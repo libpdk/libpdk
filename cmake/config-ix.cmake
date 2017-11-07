@@ -10,6 +10,7 @@ include(CheckSymbolExists)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
 include(CheckCXXSourceCompiles)
+include(CheckCXXCompilerFlag)
 include(TestBigEndian)
 
 include(CheckCompilerVersion)
