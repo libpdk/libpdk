@@ -1,0 +1,3 @@
+[submodule "thirdparty/zendapi"]
+	path = thirdparty/zendapi
+	url = https://github.com/qcoreteam/zendapi.git
