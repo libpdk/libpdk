@@ -444,5 +444,12 @@ elseif(PDK_ENABLE_LTO)
     endif()
 endif()
 
+# Provide public options to globally control RTTI and EH
+option(PDK_ENABLE_EH "Enable Exception handling" OFF)
+option(PDK_ENABLE_RTTI "Enable run time type information" OFF)
+if(PDK_ENABLE_EH AND NOT PDK_ENABLE_RTTI)
+  message(FATAL_ERROR "Exception handling requires RTTI. You must set PDK_ENABLE_RTTI to ON")
+endif()
+
 pdk_get_compile_definitions()
 
