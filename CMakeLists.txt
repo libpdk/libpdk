@@ -109,6 +109,7 @@ if(PDK_USE_FOLDERS)
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
+include(AddLibpdkDefinitions)
 include(VersionFromGit)
 
 set(PDK_PACKAGE_NAME libpdk)
@@ -261,4 +262,4 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
     link_directories("/usr/local/lib")
 endif()
 
-# add_subdirectory(cmake/modules)
+add_subdirectory(cmake/modules)
