@@ -197,7 +197,7 @@ endfunction()
 #   PRODUCT_NAME
 #     Optional product name string (defaults to "libpdk")
 #   )
-function(set_windows_version_resource_properties name resource_file)
+function(pdk_set_windows_version_resource_properties name resource_file)
     cmake_parse_arguments(ARG
         ""
         "VERSION_MAJOR;VERSION_MINOR;VERSION_PATCHLEVEL;VERSION_STRING;PRODUCT_NAME"
@@ -230,4 +230,260 @@ function(set_windows_version_resource_properties name resource_file)
         "RC_INTERNAL_NAME=\"${name}\""
         "RC_PRODUCT_NAME=\"${ARG_PRODUCT_NAME}\""
         "RC_PRODUCT_VERSION=\"${ARG_VERSION_STRING}\"")
+endfunction()
+
+# pdk_add_library(name sources...
+#   SHARED;STATIC
+#     STATIC by default w/o BUILD_SHARED_LIBS.
+#     SHARED by default w/  BUILD_SHARED_LIBS.
+#   OBJECT
+#     Also create an OBJECT library target. Default if STATIC && SHARED.
+#   MODULE
+#     Target ${name} might not be created on unsupported platforms.
+#     Check with "if(TARGET ${name})".
+#   DISABLE_PDK_LINK_PDK_DYLIB
+#     Do not link this library to libPDK, even if
+#     PDK_LINK_PDK_DYLIB is enabled.
+#   OUTPUT_NAME name
+#     Corresponds to OUTPUT_NAME in target properties.
+#   DEPENDS targets...
+#     Same semantics as add_dependencies().
+#   LINK_COMPONENTS components...
+#     Same as the variable PDK_LINK_COMPONENTS.
+#   LINK_LIBS lib_targets...
+#     Same semantics as target_link_libraries().
+#   ADDITIONAL_HEADERS
+#     May specify header files for IDE generators.
+#   SONAME
+#     Should set SONAME link flags and create symlinks
+#   PLUGIN_TOOL
+#     The tool (i.e. cmake target) that this plugin will link against
+#   )
+function(pdk_add_library name)
+    cmake_parse_arguments(ARG
+        "MODULE;SHARED;STATIC;OBJECT;DISABLE_PDK_LINK_PDK_DYLIB;SONAME"
+        "OUTPUT_NAME"
+        "ADDITIONAL_HEADERS;DEPENDS;LINK_COMPONENTS;LINK_LIBS;OBJLIBS"
+        ${ARGN})
+    list(APPEND PDK_COMMON_DEPENDS ${ARG_DEPENDS})
+    
+    if(ARG_ADDITIONAL_HEADERS)
+        # Pass through ADDITIONAL_HEADERS.
+        # for argument keyword
+        set(ARG_ADDITIONAL_HEADERS ADDITIONAL_HEADERS ${ARG_ADDITIONAL_HEADERS})
+    endif()
+    
+    if(ARG_OBJLIBS)
+        set(ALL_FILES ${ARG_OBJLIBS})
+    else()
+        pdk_process_sources(ALL_FILES ${ARG_UNPARSED_ARGUMENTS} ${ARG_ADDITIONAL_HEADERS})
+    endif()
+    
+    if(ARG_MODULE)
+        if(ARG_SHARED OR ARG_STATIC)
+            message(WARNING "MODULE with SHARED|STATIC doesn't make sense.")
+        endif()
+    else()
+        if(BUILD_SHARED_LIBS AND NOT ARG_STATIC)
+            set(ARG_SHARED TRUE)
+        endif()
+        if(NOT ARG_SHARED)
+            set(ARG_STATIC TRUE)
+        endif()
+    endif()
+    
+    # Generate objlib
+    if((ARG_SHARED AND ARG_STATIC) OR ARG_OBJECT)
+        # Generate an obj library for both targets.
+        set(obj_name "obj.${name}")
+        add_library(${obj_name} OBJECT EXCLUDE_FROM_ALL ${ALL_FILES})
+        pek_update_compile_flags(${obj_name})
+        set(ALL_FILES "$<TARGET_OBJECTS:${obj_name}>")
+        # Do add_dependencies(obj) later due to CMake issue 14747.
+        list(APPEND objlibs ${obj_name})
+        set_target_properties(${obj_name} PROPERTIES FOLDER "Object Libraries")
+    endif()
+    
+    if(ARG_SHARED AND ARG_STATIC)
+        # static
+        set(name_static "${name}_static")
+        f(ARG_OUTPUT_NAME)
+        set(output_name OUTPUT_NAME "${ARG_OUTPUT_NAME}")
+        # DEPENDS has been appended to PDK_COMMON_LIBS.
+        pdk_add_library(${name_static} STATIC
+            ${output_name}
+            OBJLIBS ${ALL_FILES} # objlib
+            LINK_LIBS ${ARG_LINK_LIBS}
+            LINK_COMPONENTS ${ARG_LINK_COMPONENTS})
+        # FIXME: Add name_static to anywhere in TARGET ${name}'s PROPERTY.
+        set(ARG_STATIC)
+    endif()
+    
+    if(ARG_MODULE)
+        add_library(${name} MODULE ${ALL_FILES})
+        pdk_setup_rpath(${name})
+    elseif(ARG_SHARED)
+        pdk_add_windows_version_resource_file(ALL_FILES ${ALL_FILES})
+        add_library(${name} SHARED ${ALL_FILES})
+        pdk_setup_rpath(${name})
+    else()
+        add_library(${name} STATIC ${ALL_FILES})
+    endif()
+    
+    if(DEFINED windows_resource_file)
+        pdk_set_windows_version_resource_properties(${name} ${windows_resource_file})
+        set(windows_resource_file ${windows_resource_file} PARENT_SCOPE)
+    endif()
+    
+    pdk_set_output_directory(${name} 
+        BINARY_DIR ${PDK_RUNTIME_OUTPUT_INTDIR} 
+        LIBRARY_DIR ${PDK_LIBRARY_OUTPUT_INTDIR})
+    
+    if(NOT obj_name)
+        pdk_update_compile_flags(${name})
+    endif()
+    pdk_add_link_opts(${name})
+    if(ARG_OUTPUT_NAME)
+        set_target_properties(${name}
+            PROPERTIES
+            OUTPUT_NAME ${ARG_OUTPUT_NAME})
+    endif()
+    
+    if(ARG_MODULE)
+        set_target_properties(${name} PROPERTIES
+            PREFIX ""
+            SUFFIX ${PDK_PLUGIN_EXT})
+    endif()
+    
+    if(ARG_SHARED)
+        if(WIN32)
+            set_target_properties(${name} PROPERTIES
+                PREFIX "")
+        endif()
+        # Set SOVERSION on shared libraries that lack explicit SONAME
+        # specifier, on *nix systems that are not Darwin.
+        if(UNIX AND NOT APPLE AND NOT ARG_SONAME)
+            set_target_properties(${name}
+                PROPERTIES
+                # Since 4.0.0, the ABI version is indicated by the major version
+                SOVERSION ${PDK_VERSION_MAJOR}
+                VERSION ${PDK_VERSION_MAJOR}.${PDK_VERSION_MINOR}.${PDK_VERSION_PATCH}${PDK_VERSION_SUFFIX})
+        endif()
+    endif()
+    
+    if(ARG_SHARED OR ARG_MODULE)
+        # Do not add -Dname_EXPORTS to the command-line when building files in this
+        # target. Doing so is actively harmful for the modules build because it
+        # creates extra module variants, and not useful because we don't use these
+        # macros.
+        set_target_properties(${name} PROPERTIES DEFINE_SYMBOL "")
+        # TODO whether export symbols
+    endif()
+    
+    if(ARG_SHAHRED AND UNIX)
+        if(NOT APPLE AND ARG_SONAME)
+            get_target_property(output_name ${name} OUTPUT_NAME)
+            if(${output_name} STREQUAL "output_name-NOTFOUND")
+                set(output_name ${name})
+            endif()
+            set(library_name ${output_name}-${PDK_VERSION_MAJOR}.${PDK_VERSION_MINOR}${PDK_VERSION_SUFFIX})
+            set(api_name ${output_name}-${PDK_VERSION_MAJOR}.${PDK_VERSION_MINOR}.${PDK_VERSION_PATCH}${PDK_VERSION_SUFFIX})
+            set_target_properties(${name} PROPERTIES OUTPUT_NAME ${library_name})
+            pdk_install_library_symlink(${api_name} ${library_name} SHARED
+                COMPONENT ${name}
+                ALWAYS_GENERATE)
+            pdk_install_library_symlink(${output_name} ${library_name} SHARED
+                COMPONENT ${name}
+                ALWAYS_GENERATE)
+        endif()
+    endif()
+    
+    if(ARG_STATIC)
+        set(libtype INTERFACE)
+    else()
+        # We can use PRIVATE since SO knows its dependent libs.
+        set(libtype PRIVATE)
+    endif()
+    
+    target_link_libraries(${name} ${libtype}
+        ${ARG_LINK_LIBS})
+    
+    if(PDK_COMMON_DEPENDS)
+        add_dependencies(${name} ${PDK_COMMON_DEPENDS})
+        # Add dependencies also to objlibs.
+        # CMake issue 14747 --  add_dependencies() might be ignored to objlib's user.
+        foreach(objlib ${objlibs})
+            add_dependencies(${objlib} ${PDK_COMMON_DEPENDS})
+        endforeach()
+    endif()
+    
+    if(ARG_SHARED OR ARG_MODULE)
+        ## pdk_externalize_debuginfo(${name})
+    endif()
+endfunction()
+
+function(pdk_setup_rpath name)
+    if(CMAKE_INSTALL_RPATH)
+        return()
+    endif()
+    if(PDK_INSTALL_PREFIX AND NOT (PDK_INSTALL_PREFIX STREQUAL CMAKE_INSTALL_PREFIX))
+        set(extra_libdir ${PDK_LIBRARY_DIR})
+    elseif(PDK_BUILD_LIBRARY_DIR)
+        set(extra_libdir ${PDK_LIBRARY_DIR})
+    endif()
+    
+    if(APPLE)
+        set(_install_name_dir INSTALL_NAME_DIR "@rpath")
+        set(_install_rpath "@loader_path/../lib" ${extra_libdir})
+    elseif(UNIX)
+        set(_install_rpath "\$ORIGIN/../lib${PDK_LIBDIR_SUFFIX}" ${extra_libdir})
+        if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
+            set_property(TARGET ${name} APPEND_STRING PROPERTY
+                LINK_FLAGS " -Wl,-z,origin ")
+        elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT PDK_LINKER_IS_GOLD)
+            # $ORIGIN is not interpreted at link time by ld.bfd
+            set_property(TARGET ${name} APPEND_STRING PROPERTY
+                LINK_FLAGS " -Wl,-rpath-link,${PDK_LIBRARY_OUTPUT_INTDIR} ")
+        endif()
+    else()
+        return()
+    endif()
+    set_target_properties(${name} PROPERTIES
+        BUILD_WITH_INSTALL_RPATH On
+        INSTALL_RPATH "${_install_rpath}"
+        ${_install_name_dir})
+endfunction()
+
+
+function(pdk_install_library_symlink name dest type)
+    cmake_parse_arguments(ARG "ALWAYS_GENERATE" "COMPONENT" "" ${ARGN})
+    foreach(path ${CMAKE_MODULE_PATH})
+        if(EXISTS ${path}/LibpdkInstallSymlink.cmake)
+            set(INSTALL_SYMLINK ${path}/LibpdkInstallSymlink.cmake)
+            break()
+        endif()
+    endforeach()
+    set(component ${ARG_COMPONENT})
+    if(NOT component)
+        set(component ${name})
+    endif()
+    set(full_name ${CMAKE_${type}_LIBRARY_PREFIX}${name}${CMAKE_${type}_LIBRARY_SUFFIX})
+    set(full_dest ${CMAKE_${type}_LIBRARY_PREFIX}${dest}${CMAKE_${type}_LIBRARY_SUFFIX})
+    
+    set(output_dir lib${PDK_LIBDIR_SUFFIX})
+    if(WIN32 AND "${type}" STREQUAL "SHARED")
+        set(output_dir bin)
+    endif()
+    
+    install(SCRIPT ${INSTALL_SYMLINK}
+        CODE "pdk_install_symlink(${full_name} ${full_dest} ${output_dir})"
+        COMPONENT ${component})
+    
+    if (NOT CMAKE_CONFIGURATION_TYPES AND NOT ARG_ALWAYS_GENERATE)
+        add_custom_target(install-${name}
+            DEPENDS ${name} ${dest} install-${dest}
+            COMMAND "${CMAKE_COMMAND}"
+            -DCMAKE_INSTALL_COMPONENT=${name}
+            -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
+    endif()
 endfunction()
