@@ -1,0 +1,2 @@
+include(LibpdkProcessSources)
+include(DetermineGCCCompatible)

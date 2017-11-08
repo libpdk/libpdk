@@ -278,3 +278,4 @@ endif()
 add_subdirectory(cmake/modules)
 
 include(HandleLibpdkOptions)
+include(LibpdkTargetFuncs)
