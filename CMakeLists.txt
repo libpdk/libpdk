@@ -173,11 +173,19 @@ option(PDK_ENABLE_TERMINFO "Use terminfo database if available." ON)
 option(PDK_ENABLE_LIBXML2 "Use libxml2 if available." ON)
 option(PDK_ENABLE_THREADS "Use threads if available." ON)
 option(PDK_ENABLE_ZLIB "Use zlib for compression/decompression if available." ON)
-
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." ON)
+  option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." OFF)
+else()
+  option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." OFF)
+  option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." ON)
+endif()
 option(PDK_ENABLE_PIC "Build Position-Independent Code" ON)
 option(PDK_ENABLE_WARNINGS "Enable compiler warnings." ON)
 option(PDK_ENABLE_LLD "Use lld as C and C++ linker." OFF)
 option(PDK_ENABLE_MODULES "Compile with C++ modules enabled." OFF)
+option(PDK_ENABLE_PEDANTIC "Compile with pedantic enabled." ON)
+option(PDK_ENABLE_WERROR "Fail and stop if a warning is triggered." OFF)
 
 # Define an option controlling whether we should build for 32-bit on 64-bit
 # platforms, where supported.
