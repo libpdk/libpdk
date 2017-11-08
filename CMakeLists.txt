@@ -176,7 +176,15 @@ option(PDK_ENABLE_ZLIB "Use zlib for compression/decompression if available." ON
 
 option(PDK_ENABLE_PIC "Build Position-Independent Code" ON)
 option(PDK_ENABLE_WARNINGS "Enable compiler warnings." ON)
+option(PDK_ENABLE_LLD "Use lld as C and C++ linker." OFF)
+option(PDK_ENABLE_MODULES "Compile with C++ modules enabled." OFF)
 
+# Define an option controlling whether we should build for 32-bit on 64-bit
+# platforms, where supported.
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)
+    # TODO: support other platforms and toolchains.
+    option(PDK_BUILD_32_BITS "Build 32 bits executables and libraries." OFF)
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." ON)
@@ -263,3 +271,5 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
 endif()
 
 add_subdirectory(cmake/modules)
+
+include(HandleLibpdkOptions)
