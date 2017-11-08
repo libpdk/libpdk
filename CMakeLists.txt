@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.4.3 FATAL_ERROR)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED 17)
-
 # register zapi cmake modules, you must modify this according to your self zapi install prefix 
 #list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/cmake/zapi")
 # here find zendAPI lib
