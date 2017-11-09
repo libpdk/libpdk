@@ -418,7 +418,7 @@ function(pdk_add_library name)
     endif()
     
     if(ARG_SHARED OR ARG_MODULE)
-        ## pdk_externalize_debuginfo(${name})
+        pdk_externalize_debuginfo(${name})
     endif()
 endfunction()
 
@@ -485,5 +485,36 @@ function(pdk_install_library_symlink name dest type)
             COMMAND "${CMAKE_COMMAND}"
             -DCMAKE_INSTALL_COMPONENT=${name}
             -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
+    endif()
+endfunction()
+
+function(pdk_externalize_debuginfo name)
+    if(NOT PDK_EXTERNALIZE_DEBUGINFO)
+        return()
+    endif()
+    
+    if(NOT PDK_EXTERNALIZE_DEBUGINFO_SKIP_STRIP)
+        if(APPLE)
+            set(strip_command COMMAND xcrun strip -Sxl $<TARGET_FILE:${name}>)
+        else()
+            set(strip_command COMMAND strip -gx $<TARGET_FILE:${name}>)
+        endif()
+    endif()
+    
+    if(APPLE)
+        if(CMAKE_CXX_FLAGS MATCHES "-flto"
+                OR CMAKE_CXX_FLAGS_${UPPERCASE_CMAKE_BUILD_TYPE} MATCHES "-flto")
+            set(lto_object ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${name}-lto.o)
+            set_property(TARGET ${name} APPEND_STRING PROPERTY
+                LINK_FLAGS " -Wl,-object_path_lto,${lto_object}")
+        endif()
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND xcrun dsymutil $<TARGET_FILE:${name}>
+            ${strip_command})
+    else()
+        add_custom_command(TARGET ${name} POST_BUILD
+              COMMAND objcopy --only-keep-debug $<TARGET_FILE:${name}> $<TARGET_FILE:${name}>.debug
+              ${strip_command} -R .gnu_debuglink
+              COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:${name}>.debug $<TARGET_FILE:${name}>)
     endif()
 endfunction()

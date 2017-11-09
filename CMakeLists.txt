@@ -183,6 +183,8 @@ option(PDK_ENABLE_LLD "Use lld as C and C++ linker." OFF)
 option(PDK_ENABLE_MODULES "Compile with C++ modules enabled." OFF)
 option(PDK_ENABLE_PEDANTIC "Compile with pedantic enabled." ON)
 option(PDK_ENABLE_WERROR "Fail and stop if a warning is triggered." OFF)
+option(PDK_EXTERNALIZE_DEBUGINFO
+  "Generate dSYM files and strip executables and libraries (Darwin Only)" OFF)
 
 # Define an option controlling whether we should build for 32-bit on 64-bit
 # platforms, where supported.
