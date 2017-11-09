@@ -422,6 +422,72 @@ function(pdk_add_library name)
     endif()
 endfunction()
 
+macro(add_llvm_executable name)
+    cmake_parse_arguments(ARG "DISABLE_PDK_LINK_PDK_DYLIB;IGNORE_EXTERNALIZE_DEBUGINFO;NO_INSTALL_RPATH" "" "DEPENDS" ${ARGN})
+    pdk_process_sources(ALL_FILES ${ARG_UNPARSED_ARGUMENTS})
+    list(APPEND PDK_COMMON_DEPENDS ${ARG_DEPENDS})
+    # Generate objlib
+    if(PDK_ENABLE_OBJLIB)
+        # Generate an obj library for both targets.
+        set(obj_name "obj.${name}")
+        add_library(${obj_name} OBJECT EXCLUDE_FROM_ALL ${ALL_FILES})
+        pdk_update_compile_flags(${obj_name})
+        set(ALL_FILES "$<TARGET_OBJECTS:${obj_name}>")
+        set_target_properties(${obj_name} PROPERTIES FOLDER "Object Libraries")
+    endif()
+    pdk_add_windows_version_resource_file(ALL_FILES ${ALL_FILES})
+    if(XCODE)
+        # Note: the dummy.cpp source file provides no definitions. However,
+        # it forces Xcode to properly link the static library.
+        list(APPEND ALL_FILES "${PDK_MAIN_SRC_DIR}/cmake/dummy.cpp")
+    endif()
+    if(EXCLUDE_FROM_ALL)
+        add_executable(${name} EXCLUDE_FROM_ALL ${ALL_FILES})
+    else()
+        add_executable(${name} ${ALL_FILES})
+    endif()
+    
+    if(NOT ARG_NO_INSTALL_RPATH)
+        pdk_setup_rpath(${name})
+    endif()
+    
+    if(DEFINED windows_resource_file)
+        pdk_set_windows_version_resource_properties(${name} ${windows_resource_file})
+    endif()
+    
+    # $<TARGET_OBJECTS> doesn't require compile flags.
+    if(NOT PDK_ENABLE_OBJLIB)
+        pdk_update_compile_flags(${name})
+    endif()
+    pdk_add_link_opts(${name})
+    
+    # Do not add -Dname_EXPORTS to the command-line when building files in this
+    # target. Doing so is actively harmful for the modules build because it
+    # creates extra module variants, and not useful because we don't use these
+    # macros.
+    set_target_properties(${name} PROPERTIES DEFINE_SYMBOL "")
+    if (PDK_LINK_PDK_DYLIB AND NOT ARG_DISABLE_PDK_LINK_PDK_DYLIB)
+        set(USE_SHARED USE_SHARED)
+    endif()
+    set(EXCLUDE_FROM_ALL OFF)
+    
+    set_output_directory(${name} BINARY_DIR ${PDK_RUNTIME_OUTPUT_INTDIR} LIBRARY_DIR ${PDK_LIBRARY_OUTPUT_INTDIR})
+    if(PDK_COMMON_DEPENDS)
+        add_dependencies(${name} ${LLVM_COMMON_DEPENDS})
+    endif(PDK_COMMON_DEPENDS)
+    
+    if(NOT ARG_IGNORE_EXTERNALIZE_DEBUGINFO)
+        pdk_externalize_debuginfo(${name})
+    endif()
+    
+    if (PDK_PTHREAD_LIB)
+        # libpthreads overrides some standard library symbols, so main
+        # executable must be linked with it in order to provide consistent
+        # API for all shared libaries loaded by this executable.
+        target_link_libraries(${name} ${PDK_PTHREAD_LIB})
+    endif()
+endmacro()
+
 function(pdk_setup_rpath name)
     if(CMAKE_INSTALL_RPATH)
         return()
@@ -453,7 +519,6 @@ function(pdk_setup_rpath name)
         INSTALL_RPATH "${_install_rpath}"
         ${_install_name_dir})
 endfunction()
-
 
 function(pdk_install_library_symlink name dest type)
     cmake_parse_arguments(ARG "ALWAYS_GENERATE" "COMPONENT" "" ${ARGN})
@@ -513,8 +578,48 @@ function(pdk_externalize_debuginfo name)
             ${strip_command})
     else()
         add_custom_command(TARGET ${name} POST_BUILD
-              COMMAND objcopy --only-keep-debug $<TARGET_FILE:${name}> $<TARGET_FILE:${name}>.debug
-              ${strip_command} -R .gnu_debuglink
-              COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:${name}>.debug $<TARGET_FILE:${name}>)
+            COMMAND objcopy --only-keep-debug $<TARGET_FILE:${name}> $<TARGET_FILE:${name}>.debug
+            ${strip_command} -R .gnu_debuglink
+            COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:${name}>.debug $<TARGET_FILE:${name}>)
     endif()
+endfunction()
+
+# Generic support for adding a unittest.
+function(pdk_add_unittest test_suite test_name)
+    if(NOT PDK_BUILD_TESTS)
+        set(EXCLUDE_FROM_ALL ON)
+    endif()
+    # Our current version of gtest does not properly recognize C++11 support
+    # with MSVC, so it falls back to tr1 / experimental classes.  Since Libpdk
+    # itself requires C++11, we can safely force it on unconditionally so that
+    # we don't have to fight with the buggy gtest check.
+    add_definitions(-DGTEST_LANG_CXX11=1)
+    add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
+    include_directories(${PDK_MAIN_SRC_DIR}/thirdparty/unittest/googletest/include)
+    include_directories(${PDK_MAIN_SRC_DIR}/thirdparty/unittest/googlemock/include)
+    
+    if (NOT PDK_ENABLE_THREADS)
+        list(APPEND PDK_COMPILE_DEFINITIONS GTEST_HAS_PTHREAD=0)
+    endif ()
+    
+    if (PDK_SUPPORTS_VARIADIC_MACROS_FLAG)
+        list(APPEND PDK_COMPILE_FLAGS "-Wno-variadic-macros")
+    endif ()
+    # Some parts of gtest rely on this GNU extension, don't warn on it.
+    if(PDK_SUPPORTS_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS_FLAG)
+        list(APPEND PDK_COMPILE_FLAGS "-Wno-gnu-zero-variadic-macro-arguments")
+    endif()
+    
+    pdk_llvm_executable(${test_name} IGNORE_EXTERNALIZE_DEBUGINFO NO_INSTALL_RPATH ${ARGN})
+    set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+    set_output_directory(${test_name} BINARY_DIR ${outdir} LIBRARY_DIR ${outdir})
+    # libpthreads overrides some standard library symbols, so main
+    # executable must be linked with it in order to provide consistent
+    # API for all shared libaries loaded by this executable.
+    target_link_libraries(${test_name} gtest_main gtest ${PDK_PTHREAD_LIB})
+    add_dependencies(${test_suite} ${test_name})
+    get_target_property(test_suite_folder ${test_suite} FOLDER)
+    if (NOT ${test_suite_folder} STREQUAL "NOTFOUND")
+        set_property(TARGET ${test_name} PROPERTY FOLDER "${test_suite_folder}")
+    endif ()
 endfunction()
