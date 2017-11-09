@@ -52,4 +52,22 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
         endforeach()
         set(PDK_DEFINITIONS "${result}" PARENT_SCOPE)
     endfunction()
+    
+    # for config-ix.cmake
+    macro(pdk_add_cxx_include result files)
+        set(${result} "")
+        foreach (file_name ${files})
+            set(${result} "${${result}} #include<${file_name}>\n")
+        endforeach()
+    endmacro()
+    
+    function(pdk_check_type_exists type files variable)
+        pdk_add_cxx_include(includes "${files}")
+        CHECK_CXX_SOURCE_COMPILES("
+            ${includes} ${type} typeVar;
+            int main() {
+            return 0;
+            }
+            " ${variable})
+    endfunction()
 endif()
