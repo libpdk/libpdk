@@ -1,0 +1,67 @@
+#!/bin/bash
+
+function _cleanup()
+{
+  unset -f _usage _cleanup ; return 0
+}
+
+## Clear out nested functions on exit
+trap _cleanup INT EXIT RETURN
+
+###### some declarations ######
+forceBuild=no
+
+function _usage() {
+  ###### U S A G E : Help and ERROR ######
+  echo $@
+  echo "Usage:"
+  echo "./install [-f]"
+}
+
+[ $# = 0 ] && _usage "  >>>>>>>> no options given "
+
+##################################################################    
+#######  "getopts" with: short options  AND  long options  #######
+#######            AND  short/long arguments               #######
+while getopts ':f-' OPTION ; do
+  case "$OPTION" in
+    f  ) forceBuild=yes                       ;;
+    -  ) [ $OPTIND -ge 1 ] && optind=$(expr $OPTIND - 1 ) || optind=$OPTIND
+         eval OPTION="\$$optind"
+         OPTARG=$(echo $OPTION | cut -d'=' -f2)
+         OPTION=$(echo $OPTION | cut -d'=' -f1)
+         case $OPTION in
+             --force       ) forceBuild=yes                       ;;
+             * )  _usage " Long: >>>>>>>> invalid options (long) ";exit 1;;
+         esac
+       OPTIND=1
+       shift
+      ;;
+    ? )  _usage "Short: >>>>>>>> invalid options (short) ";exit 1;;
+  esac
+done
+
+echo -e "Welcome to use libpdk project"
+if [ ! -d "build" ]
+then
+    echo -e "create the build directory"
+    mkdir build
+    cd build
+else
+    cd build
+    if [ "$forceBuild" == "yes" ]
+    then
+         echo -e "clean the build directory"
+         rm -Rf *
+    fi
+fi
+echo -e "init the submodules of libpdk project"
+git submodule init
+
+echo -e "build configure libpdk"
+cmake ../
+if [ $? ]
+then
+    echo "something is wrong, maybe the build system can't find php-config"
+    echo "you can try ./install --php-config-path=path"
+fi
