@@ -242,66 +242,6 @@ if(MSVC)
     endif()
 endif()
 
-if(PDK_COMPILER_IS_GCC_COMPATIBLE)
-    pdk_append_if(PDK_ENABLE_WERROR "-Werror" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-    pdk_append_if(LLVM_ENABLE_WERROR "-Wno-error" CMAKE_REQUIRED_FLAGS)
-    pdk_add_flag_if_supported("-Werror=date-time" WERROR_DATE_TIME)
-    pdk_add_flag_if_supported("-Werror=unguarded-availability-new" WERROR_UNGUARDED_AVAILABILITY_NEW)
-    check_cxx_compiler_flag("-std=c++1y" PDK_TEMP_CXX_SUPPORTS_CXX1Y)
-    pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX1Y "-std=c++1y" CMAKE_CXX_FLAGS)
-    if(NOT PDK_TEMP_CXX_SUPPORTS_CXX1Y)
-        check_cxx_compiler_flag("-std=c++1z" PDK_TEMP_CXX_SUPPORTS_CXX1Z)
-        pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX1Z "-std=c++1z" CMAKE_CXX_FLAGS)
-        if(NOT PDK_TEMP_CXX_SUPPORTS_CXX1Z)
-            check_cxx_compiler_flag("-std=c++11" PDK_TEMP_CXX_SUPPORTS_CXX11)
-            pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX11 "-std=c++11" CMAKE_CXX_FLAGS)
-            if(PDK_TEMP_CXX_SUPPORTS_CXX11)
-                if (CYGWIN OR MINGW)
-                    # MinGW and Cygwin are a bit stricter and lack things like
-                    # 'strdup', 'stricmp', etc in c++11 mode.
-                    append("-std=gnu++11" CMAKE_CXX_FLAGS)
-                else()
-                    append("-std=c++11" CMAKE_CXX_FLAGS)
-                endif()
-            else()
-                message(FATAL_ERROR "libpdk requires C++11 support but the '-std=c++11' flag isn't supported.")
-            endif()
-        endif()
-    endif()
-    
-    if(PDK_ENABLE_MODULES)
-        set(PKD_TEMP_OLD_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
-        set(module_flags "-fmodules -fmodules-cache-path=${PROJECT_BINARY_DIR}/module.cache")
-        if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-            # On Darwin -fmodules does not imply -fcxx-modules.
-            set(module_flags "${module_flags} -fcxx-modules")
-        endif()
-        if(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY)
-            set(module_flags "${module_flags} -Xclang -fmodules-local-submodule-visibility")
-        endif()
-        if (PDK_ENABLE_MODULE_DEBUGGING AND ((UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "DEBUG") OR
-                (UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "RELWITHDEBINFO")))
-            set(module_flags "${module_flags} -gmodules")
-        endif()
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${module_flags}")
-        
-        # Check that we can build code with modules enabled, and that repeatedly
-        # including <cassert> still manages to respect NDEBUG properly.
-        check_cxx_source_compiles("#undef NDEBUG
-            #include <cassert>
-            #define NDEBUG
-            #include <cassert>
-            int main() { assert(this code is not compiled); }"
-            PDK_TEMP_CXX_SUPPORTS_MODULES)
-        set(CMAKE_REQUIRED_FLAGS ${PKD_TEMP_OLD_CMAKE_REQUIRED_FLAGS})
-        if(PDK_TEMP_CXX_SUPPORTS_MODULES)
-            pdk_append("${module_flags}" CMAKE_CXX_FLAGS)
-        else()
-            message(FATAL_ERROR "PDK_ENABLE_MODULES is not supported by this compiler")
-        endif()
-    endif(PDK_ENABLE_MODULES)
-endif(PDK_COMPILER_IS_GCC_COMPATIBLE)
-
 if(PDK_ENABLE_WARNINGS AND PDK_COMPILER_IS_GCC_COMPATIBLE)
     pdk_append("-Wall -W -Wno-unused-parameter -Wwrite-strings" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
     pdk_append("-Wcast-qual" CMAKE_CXX_FLAGS)
@@ -360,6 +300,68 @@ if(PDK_ENABLE_WARNINGS AND PDK_COMPILER_IS_GCC_COMPATIBLE)
     pdk_add_flag_if_supported("-Wstring-conversion" STRING_CONVERSION_FLAG)
     
 endif(PDK_ENABLE_WARNINGS AND PDK_COMPILER_IS_GCC_COMPATIBLE)
+
+if(PDK_COMPILER_IS_GCC_COMPATIBLE)
+    pdk_append_if(PDK_ENABLE_WERROR "-Werror" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+    pdk_append_if(PDK_ENABLE_WERROR "-Wno-error" CMAKE_REQUIRED_FLAGS)
+    pdk_add_flag_if_supported("-Werror=date-time" WERROR_DATE_TIME)
+    pdk_add_flag_if_supported("-Wno-unused-function" WERROR_UNUSED_FUNC)
+    pdk_add_flag_if_supported("-Wno-unneeded-internal-declaration" WERROR_NO_INTERNAL_DECLEARATION)
+    pdk_add_flag_if_supported("-Werror=unguarded-availability-new" WERROR_UNGUARDED_AVAILABILITY_NEW)
+    check_cxx_compiler_flag("-std=c++1y" PDK_TEMP_CXX_SUPPORTS_CXX1Y)
+    pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX1Y "-std=c++1y" CMAKE_CXX_FLAGS)
+    if(NOT PDK_TEMP_CXX_SUPPORTS_CXX1Y)
+        check_cxx_compiler_flag("-std=c++1z" PDK_TEMP_CXX_SUPPORTS_CXX1Z)
+        pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX1Z "-std=c++1z" CMAKE_CXX_FLAGS)
+        if(NOT PDK_TEMP_CXX_SUPPORTS_CXX1Z)
+            check_cxx_compiler_flag("-std=c++11" PDK_TEMP_CXX_SUPPORTS_CXX11)
+            pdk_append_if(PDK_TEMP_CXX_SUPPORTS_CXX11 "-std=c++11" CMAKE_CXX_FLAGS)
+            if(PDK_TEMP_CXX_SUPPORTS_CXX11)
+                if (CYGWIN OR MINGW)
+                    # MinGW and Cygwin are a bit stricter and lack things like
+                    # 'strdup', 'stricmp', etc in c++11 mode.
+                    append("-std=gnu++11" CMAKE_CXX_FLAGS)
+                else()
+                    append("-std=c++11" CMAKE_CXX_FLAGS)
+                endif()
+            else()
+                message(FATAL_ERROR "libpdk requires C++11 support but the '-std=c++11' flag isn't supported.")
+            endif()
+        endif()
+    endif()
+    
+    if(PDK_ENABLE_MODULES)
+        set(PKD_TEMP_OLD_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
+        set(module_flags "-fmodules -fmodules-cache-path=${PROJECT_BINARY_DIR}/module.cache")
+        if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+            # On Darwin -fmodules does not imply -fcxx-modules.
+            set(module_flags "${module_flags} -fcxx-modules")
+        endif()
+        if(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY)
+            set(module_flags "${module_flags} -Xclang -fmodules-local-submodule-visibility")
+        endif()
+        if (PDK_ENABLE_MODULE_DEBUGGING AND ((UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "DEBUG") OR
+                (UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "RELWITHDEBINFO")))
+            set(module_flags "${module_flags} -gmodules")
+        endif()
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${module_flags}")
+        
+        # Check that we can build code with modules enabled, and that repeatedly
+        # including <cassert> still manages to respect NDEBUG properly.
+        check_cxx_source_compiles("#undef NDEBUG
+            #include <cassert>
+            #define NDEBUG
+            #include <cassert>
+            int main() { assert(this code is not compiled); }"
+            PDK_TEMP_CXX_SUPPORTS_MODULES)
+        set(CMAKE_REQUIRED_FLAGS ${PKD_TEMP_OLD_CMAKE_REQUIRED_FLAGS})
+        if(PDK_TEMP_CXX_SUPPORTS_MODULES)
+            pdk_append("${module_flags}" CMAKE_CXX_FLAGS)
+        else()
+            message(FATAL_ERROR "PDK_ENABLE_MODULES is not supported by this compiler")
+        endif()
+    endif(PDK_ENABLE_MODULES)
+endif(PDK_COMPILER_IS_GCC_COMPATIBLE)
 
 if (PDK_COMPILER_IS_GCC_COMPATIBLE AND NOT PDK_ENABLE_WARNINGS)
     pdk_append("-w" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)

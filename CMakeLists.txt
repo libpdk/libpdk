@@ -72,8 +72,8 @@ if(CMAKE_HOST_APPLE AND APPLE)
         endif()
         foreach(lang ${languages})
             set(CMAKE_${lang}_CREATE_STATIC_LIBRARY
-                "${CMAKE_LIBTOOL} -static ${LIBTOOL_NO_WARNING_FLAG} -o <TARGET> "
-                "<LINK_FLAGS> <OBJECTS>")
+                "${CMAKE_LIBTOOL} -static ${LIBTOOL_NO_WARNING_FLAG} -o <TARGET> \
+                <LINK_FLAGS> <OBJECTS> ")
         endforeach()
     endif()
     
@@ -166,6 +166,7 @@ set(PDK_INCLUDE_DIR ${PDK_BINARY_DIR}/include)
 
 option(BUILD_SHARED_LIBS 
     "Build all libraries as shared libraries instead of static" ON)
+option(PDK_PHPCFG_PATH "Specify the php-config path of host platform" "")
 option(PDK_ENABLE_TERMINFO "Use terminfo database if available." ON)
 option(PDK_ENABLE_LIBXML2 "Use libxml2 if available." ON)
 option(PDK_ENABLE_THREADS "Use threads if available." ON)
@@ -281,3 +282,11 @@ add_subdirectory(cmake/modules)
 
 include(HandleLibpdkOptions)
 include(LibpdkTargetFuncs)
+
+# force setup some zapi variable
+set(BUILD_SHARED_LIBS OFF)
+set(ZAPI_OPT_ENABLE_UNIT_TESTS OFF)
+set(ZAPI_OPT_ENABLE_RUNTIME_TESTS OFF)
+add_subdirectory(thirdparty/zendapi)
+set(BUILD_SHARED_LIBS ON)
+

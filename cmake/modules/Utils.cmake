@@ -70,4 +70,11 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
             }
             " ${variable})
     endfunction()
+    
+    function(pdk_canonicalize_name name output)
+        string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/" "" nameStrip ${name})
+        string(REPLACE "-" "_" nameUNDERSCORE ${nameStrip})
+        string(TOUPPER ${nameUNDERSCORE} nameUPPER)
+        set(${output} "${nameUPPER}" PARENT_SCOPE)
+    endfunction(pdk_canonicalize_name)
 endif()
