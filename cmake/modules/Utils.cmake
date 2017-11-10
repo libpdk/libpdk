@@ -86,7 +86,11 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
     endfunction()
     
     function(pdk_add_module_sources module)
-        
+        list(REMOVE_AT ARGV 0)
+        foreach(file ${ARGV})
+            list(APPEND ${module} ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        endforeach()
+        set(${module} ${${module}} PARENT_SCOPE)
     endfunction()
     
 endif()
