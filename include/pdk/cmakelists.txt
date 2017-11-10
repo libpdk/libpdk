@@ -1,0 +1,5 @@
+# the libpdk headers
+
+add_subdirectory(global)
+add_subdirectory(pal)
+add_subdirectory(base)
