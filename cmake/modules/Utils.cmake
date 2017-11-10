@@ -80,9 +80,9 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
     
     function(pdk_add_headers)
         foreach(file ${ARGV})
-            list(APPEND PDK_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+            list(APPEND PDK_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${file})
         endforeach()
-        set(PDK_HEADERS ${PDK_HEADERS} PARENT_SCOPE)
+        set(PDK_HEADER_FILES ${PDK_HEADER_FILES} PARENT_SCOPE)
     endfunction()
     
     function(pdk_add_module_sources module)

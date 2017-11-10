@@ -316,8 +316,8 @@ configure_file(
     ${PDK_INCLUDE_DIR}/pdk/Version.h
     NEWLINE_STYLE UNIX)
 
-set(PDK_HEADERS "")
-set(PDK_EXT_HEADERS "")
+set(PDK_HEADER_FILES "")
+set(PDK_EXT_HEADER_FILES "")
 
 # we include our project source directories
 add_subdirectory(include)
