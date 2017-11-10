@@ -422,7 +422,7 @@ function(pdk_add_library name)
     endif()
 endfunction()
 
-macro(add_llvm_executable name)
+macro(add_pdk_executable name)
     cmake_parse_arguments(ARG "DISABLE_PDK_LINK_PDK_DYLIB;IGNORE_EXTERNALIZE_DEBUGINFO;NO_INSTALL_RPATH" "" "DEPENDS" ${ARGN})
     pdk_process_sources(ALL_FILES ${ARG_UNPARSED_ARGUMENTS})
     list(APPEND PDK_COMMON_DEPENDS ${ARG_DEPENDS})
@@ -473,7 +473,7 @@ macro(add_llvm_executable name)
     
     set_output_directory(${name} BINARY_DIR ${PDK_RUNTIME_OUTPUT_INTDIR} LIBRARY_DIR ${PDK_LIBRARY_OUTPUT_INTDIR})
     if(PDK_COMMON_DEPENDS)
-        add_dependencies(${name} ${LLVM_COMMON_DEPENDS})
+        add_dependencies(${name} ${PDK_COMMON_DEPENDS})
     endif(PDK_COMMON_DEPENDS)
     
     if(NOT ARG_IGNORE_EXTERNALIZE_DEBUGINFO)
@@ -595,8 +595,18 @@ function(pdk_add_unittest test_suite test_name)
     # we don't have to fight with the buggy gtest check.
     add_definitions(-DGTEST_LANG_CXX11=1)
     add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
-    include_directories(${PDK_MAIN_SRC_DIR}/thirdparty/unittest/googletest/include)
-    include_directories(${PDK_MAIN_SRC_DIR}/thirdparty/unittest/googlemock/include)
+    
+    if(PDK_FOUND_NATIVE_GTEST)
+        include_directories(${GTEST_INCLUDE_DIRS})
+        set(PDK_TEMP_GTEST_LIBS ${GTEST_BOTH_LIBRARIES})
+    else()
+        include_directories(${PDK_THIRDPARTY_DIR}/unittest/googletest/include)
+        include_directories(${PDK_THIRDPARTY_DIR}/unittest/googlemock/include)
+        set(PDK_TEMP_GTEST_LIBS gtest_main gtest)
+    endif()
+    
+    include_directories(${PDK_THIRDPARTY_DIR}/unittest/googletest/include)
+    include_directories(${PDK_THIRDPARTY_DIR}/unittest/googlemock/include)
     
     if (NOT PDK_ENABLE_THREADS)
         list(APPEND PDK_COMPILE_DEFINITIONS GTEST_HAS_PTHREAD=0)
@@ -610,7 +620,7 @@ function(pdk_add_unittest test_suite test_name)
         list(APPEND PDK_COMPILE_FLAGS "-Wno-gnu-zero-variadic-macro-arguments")
     endif()
     
-    pdk_llvm_executable(${test_name} IGNORE_EXTERNALIZE_DEBUGINFO NO_INSTALL_RPATH ${ARGN})
+    pdk_add_executable(${test_name} IGNORE_EXTERNALIZE_DEBUGINFO NO_INSTALL_RPATH ${ARGN})
     set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
     set_output_directory(${test_name} BINARY_DIR ${outdir} LIBRARY_DIR ${outdir})
     # libpthreads overrides some standard library symbols, so main

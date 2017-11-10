@@ -163,6 +163,7 @@ set(PDK_BINARY_DIR       ${CMAKE_CURRENT_BINARY_DIR})  # --prefix
 set(PDK_CMAKE_PATH ${PDK_MAIN_SRC_DIR}/cmake/modules)
 set(PDK_EXAMPLES_BINARY_DIR ${PDK_BINARY_DIR}/examples)
 set(PDK_INCLUDE_DIR ${PDK_BINARY_DIR}/include)
+set(PDK_THIRDPARTY_DIR ${PDK_MAIN_SRC_DIR}/thirdparty)
 
 option(BUILD_SHARED_LIBS 
     "Build all libraries as shared libraries instead of static" ON)
@@ -172,11 +173,11 @@ option(PDK_ENABLE_LIBXML2 "Use libxml2 if available." ON)
 option(PDK_ENABLE_THREADS "Use threads if available." ON)
 option(PDK_ENABLE_ZLIB "Use zlib for compression/decompression if available." ON)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." ON)
-  option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." OFF)
+    option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." ON)
+    option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." OFF)
 else()
-  option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." OFF)
-  option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." ON)
+    option(PDK_ENABLE_MODULE_DEBUGGING "Compile with -gmodules." OFF)
+    option(PDK_ENABLE_LOCAL_SUBMODULE_VISIBILITY "Compile with -fmodules-local-submodule-visibility." ON)
 endif()
 option(PDK_ENABLE_PIC "Build Position-Independent Code" ON)
 option(PDK_ENABLE_WARNINGS "Enable compiler warnings." ON)
@@ -185,7 +186,9 @@ option(PDK_ENABLE_MODULES "Compile with C++ modules enabled." OFF)
 option(PDK_ENABLE_PEDANTIC "Compile with pedantic enabled." ON)
 option(PDK_ENABLE_WERROR "Fail and stop if a warning is triggered." OFF)
 option(PDK_EXTERNALIZE_DEBUGINFO
-  "Generate dSYM files and strip executables and libraries (Darwin Only)" OFF)
+    "Generate dSYM files and strip executables and libraries (Darwin Only)" OFF)
+option(PDK_ENABLE_RUNTIME_TEST "Whether enable runtime test" ON)
+option(PDK_ENABLE_UNITTEST "Whether enable unit test" ON)
 
 # Define an option controlling whether we should build for 32-bit on 64-bit
 # platforms, where supported.
@@ -271,7 +274,7 @@ endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-include_directories( ${PDK_INCLUDE_DIR} ${PDK_MAIN_INCLUDE_DIR})
+include_directories(BEFORE ${PDK_INCLUDE_DIR} ${PDK_MAIN_INCLUDE_DIR} ${PDK_EXTRA_INCLUDE_DIR})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
     include_directories(SYSTEM "/usr/local/include")
@@ -290,3 +293,32 @@ set(ZAPI_OPT_ENABLE_RUNTIME_TESTS OFF)
 add_subdirectory(thirdparty/zendapi)
 set(BUILD_SHARED_LIBS ON)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND PDK_ENABLE_UNITTEST)
+    set(PDK_FOUND_NATIVE_GTEST OFF)
+    find_package(GTest)
+    if(GTEST_FOUND)
+        set(PDK_FOUND_NATIVE_GTEST ON)
+    endif()
+    if(NOT PDK_FOUND_NATIVE_GTEST)
+        add_subdirectory(thirdparty/unittest)
+    endif()
+    add_subdirectory(unittests)
+endif()
+
+# configure head files
+configure_file(
+    ${PDK_MAIN_INCLUDE_DIR}/pdk/Config.h.in
+    ${PDK_INCLUDE_DIR}/pdk/Config.h
+    NEWLINE_STYLE UNIX)
+
+configure_file(
+    ${PDK_MAIN_INCLUDE_DIR}/pdk/Version.h.in
+    ${PDK_INCLUDE_DIR}/pdk/Version.h
+    NEWLINE_STYLE UNIX)
+
+# we include our project source directories
+add_subdirectory(include)
+add_subdirectory(pdkext)
+add_subdirectory(src)
+add_subdirectory(benchmarks)
+add_subdirectory(examples)
