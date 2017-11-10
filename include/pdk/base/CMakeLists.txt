@@ -11,3 +11,5 @@ add_subdirectory(security)
 add_subdirectory(text)
 add_subdirectory(time)
 add_subdirectory(utils)
+
+set(PDK_HEADERS ${PDK_HEADERS} PARENT_SCOPE)

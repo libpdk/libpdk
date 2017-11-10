@@ -321,8 +321,8 @@ set(PDK_EXT_HEADERS "")
 
 # we include our project source directories
 add_subdirectory(include)
-add_subdirectory(pdkext)
 
+add_subdirectory(pdkext)
 add_subdirectory(src)
 add_subdirectory(benchmarks)
 add_subdirectory(examples)

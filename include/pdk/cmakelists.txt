@@ -3,3 +3,10 @@
 add_subdirectory(global)
 add_subdirectory(pal)
 add_subdirectory(base)
+
+# add the automatic generated header files
+list(APPEND PDK_HEADERS 
+    ${PDK_INCLUDE_DIR}/Config.h
+    ${PDK_INCLUDE_DIR}/Version.h)
+
+set(PDK_HEADERS ${PDK_HEADERS} PARENT_SCOPE)

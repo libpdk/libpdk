@@ -77,4 +77,16 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
         string(TOUPPER ${nameUNDERSCORE} nameUPPER)
         set(${output} "${nameUPPER}" PARENT_SCOPE)
     endfunction(pdk_canonicalize_name)
+    
+    function(pdk_add_headers)
+        foreach(file ${ARGV})
+            list(APPEND PDK_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        endforeach()
+        set(PDK_HEADERS ${PDK_HEADERS} PARENT_SCOPE)
+    endfunction()
+    
+    function(pdk_add_module_sources module)
+        
+    endfunction()
+    
 endif()
