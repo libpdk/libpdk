@@ -21,12 +21,14 @@ libpdk itself is big project develop with C++, We use modern C++ standard when c
 ### Opensource project
 libpdk is an opensource project adopt the Apache Licence 2.0 licence and code managed with Github platform, You can develope application with libpdk carefree, Just enjoy it!
 
-# Support Version
+# Support PHP Version
 
 * PHP 7.0
 * PHP 7.1
 * PHP 7.2
 * ...
+
+many thanks to zendAPI project, see below description
 
 # Zend Engine API adapter project
 
