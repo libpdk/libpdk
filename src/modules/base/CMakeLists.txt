@@ -1,7 +1,5 @@
 # the base module of libpdk
 
-set(PDK_BASE_MODULE_SOURCES "")
-
 add_subdirectory(compress)
 add_subdirectory(concurrent)
 add_subdirectory(ds)

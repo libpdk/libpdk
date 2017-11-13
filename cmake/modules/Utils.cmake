@@ -85,6 +85,13 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
         set(PDK_HEADER_FILES ${PDK_HEADER_FILES} PARENT_SCOPE)
     endfunction()
     
+    function(pdk_add_base_sources)
+        foreach(file ${ARGV})
+            list(APPEND PDK_BASE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        endforeach()
+        set(PDK_BASE_SOURCES ${PDK_BASE_SOURCES} PARENT_SCOPE)
+    endfunction()
+    
     function(pdk_add_module_sources module)
         list(REMOVE_AT ARGV 0)
         foreach(file ${ARGV})
