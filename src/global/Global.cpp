@@ -12,3 +12,16 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2017/11/13.
+
+namespace pdk
+{
+
+void pdk_assert(const char *assertion, const char *file, 
+                int line) noexcept
+{}
+
+void pdk_assert_x(const char *where, const char *what, 
+                  const char *file, int line) noexcept
+{}
+
+} // pdk

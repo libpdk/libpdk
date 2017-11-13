@@ -39,6 +39,26 @@
 #   define PDK_OF_MACH_O
 #endif
 
+#if defined(PDK_SHARED) || !defined(PDK_STATIC)
+#  ifdef PDK_STATIC
+#     error "Both PDK_SHARED and PDK_STATIC defined, pelase check up your cmake options!"
+#  endif
+#  ifndef PDK_SHARED
+#     define PDK_SHARED
+#  endif
+#  define PDK_CORE_EXPORT PDK_DECL_EXPORT
+#  define PDK_CORE_IMPORT PDK_DECL_IMPORT
+#endif
+
+/*
+   Avoid "unused parameter" warnings
+*/
+#define PDK_UNUSED(x) (void)x;
+
+#if !defined(PDK_NO_DEBUG) && !defined(PDK_DEBUG)
+#  define PDK_DEBUG
+#endif
+
 namespace pdk 
 {
 
@@ -64,12 +84,50 @@ using puint64 = unsigned long long;// 64 bit unsigned
 using plonglong = pint64;
 using pulonglong = puint64;
 
+inline void pdk_noop(void) {}
+
 } // pdk
 
 using uchar = unsigned char;
 using ushort = unsigned short;
 using uint = unsigned int;
 using ulong = unsigned long;
+
+namespace pdk 
+{
+
+#ifndef PDK_CC_MSVC
+PDK_NORETURN
+#endif
+PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file, 
+                                int line) noexcept;
+
+#if !defined(PDK_ASSERT)
+#  if defined(PDK_NO_DEBUG) && !defined(PDK_FORCE_ASSERTS)
+#     define PDK_ASSERT(cond) do { } while ((false) && (cond))
+#  else
+#     define PDK_ASSERT(cond) ((!(cond)) ? pdk_assert(#cond,__FILE__,__LINE__) : pdk_noop())
+#  endif
+#endif
+
+#ifndef PDK_CC_MSVC
+PDK_NORETURN
+#endif
+PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what, 
+                                  const char *file, int line) noexcept;
+
+#if !defined(PDK_ASSERT_X)
+#  if defined(PDK_NO_DEBUG) && !defined(PDK_FORCE_ASSERTS)
+#     define PDK_ASSERT_X(cond, where, what) do {} while ((false) && (cond))
+#  else
+#     define PDK_ASSERT_X(cond, where, what) ((!(cond)) ? pdk_assert_x(where, what,__FILE__,__LINE__) : pdk_noop())
+#  endif
+#endif
+
+#define PDK_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
+#define PDK_STATIC_ASSERT_X(Condition, Message) static_assert(bool(Condition), Message)
+
+} // pdk
 
 #include "pdk/global/Flags.h"
 

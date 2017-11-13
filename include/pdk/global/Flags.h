@@ -27,11 +27,11 @@ class Flag
 private:
    int m_data;
 public:
-   PDK_DECL_CONSTEXPR inline Flag(int data) PDK_DECL_NOEXCEPT
+   constexpr inline Flag(int data) noexcept
       : m_data(data)
    {}
    
-   PDK_DECL_CONSTEXPR inline operator int() const PDK_DECL_NOEXCEPT
+   constexpr inline operator int() const noexcept
    {
       return m_data;
    }
@@ -41,15 +41,53 @@ public:
    // unsigned enums: even if the enum is unsigned, the enum tags are
    // always signed
 #  if !defined(__LP64__)
-   PDK_DECL_CONSTEXPR inline Flag(long data) PDK_DECL_NOEXCEPT
+   constexpr inline Flag(long data) noexcept
       : m_data(int(data))
    {}
-   PDK_DECL_CONSTEXPR inline Flag(ulong data) PDK_DECL_NOEXCEPT
+   constexpr inline Flag(ulong data) noexcept
       : m_data(int(long(data)))
    {}
 #  endif
+   constexpr inline Flag(uint data) noexcept
+      : m_data(int(data))
+   {}
+   
+   constexpr inline Flag(short data) noexcept
+      : m_data(int(data))
+   {}
+   
+   constexpr inline Flag(ushort data) noexcept
+      : m_data(int(uint(data)))
+   {}
+   
+   constexpr inline operator uint() const noexcept
+   {
+      return uint(m_data);
+   }
 #endif
 };
+
+class IncompatibleFlag
+{
+private:
+   int m_data;
+public:
+   constexpr inline explicit IncompatibleFlag(data) noexcept;
+   constexpr inline operator int() const noexcept
+   {
+      return m_data;
+   }
+};
+
+constexpr inline IncompatibleFlag::IncompatibleFlag(int data) noexcept
+   : m_data(data)
+{}
+
+template <typename Enum>
+class Flags
+{
+   
+}
 
 } // pdk
 
