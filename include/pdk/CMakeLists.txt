@@ -3,6 +3,7 @@
 add_subdirectory(global)
 add_subdirectory(pal)
 add_subdirectory(base)
+add_subdirectory(stdext)
 add_subdirectory(utils)
 
 # add the automatic generated header files
