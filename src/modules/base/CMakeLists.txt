@@ -1,5 +1,4 @@
 # the base module of libpdk
-
 add_subdirectory(compress)
 add_subdirectory(concurrent)
 add_subdirectory(ds)
@@ -12,3 +11,5 @@ add_subdirectory(security)
 add_subdirectory(text)
 add_subdirectory(time)
 add_subdirectory(utils)
+
+set(PDK_BASE_MODULE_SOURCES ${PDK_BASE_MODULE_SOURCES} PARENT_SCOPE)
