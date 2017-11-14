@@ -4,6 +4,7 @@ pdk_add_headers(
     SystemDetection.h
     ProcessorDetection.h
     CompilerDetection.h
-    Flags.h)
+    Flags.h
+    TypeTraits.h)
 
 set(PDK_HEADER_FILES ${PDK_HEADER_FILES} PARENT_SCOPE)

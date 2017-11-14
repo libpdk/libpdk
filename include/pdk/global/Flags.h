@@ -86,8 +86,18 @@ constexpr inline IncompatibleFlag::IncompatibleFlag(int data) noexcept
 template <typename Enum>
 class Flags
 {
+   PDK_STATIC_ASSERT_X((sizeof(Enum) <= sizeof(int)), 
+                       "pdk::Flags uses an int as storage, so an enum with underlying "
+                       "long long will overflow");
+   struct Private;
+   typedef int (Private::*Zero);
+public:
+#if defined(PDK_CC_MSVC)
+   uisng Int = int;
+#else
    
-}
+#endif
+};
 
 } // pdk
 
