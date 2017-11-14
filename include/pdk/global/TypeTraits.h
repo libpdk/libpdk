@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2017/11/14.
 
-#ifndef PDK_GLOBAL_TYPE_TRAITS
-#define PDK_GLOBAL_TYPE_TRAITS
+#ifndef PDK_GLOBAL_TYPE_TRAITS_H
+#define PDK_GLOBAL_TYPE_TRAITS_H
 
 #include "pdk/global/Global.h"
 
@@ -64,4 +64,4 @@ PDK_STATIC_ASSERT((IsSignedEnum<pint64>::value));
 } // internal
 } // pdk
 
-#endif
+#endif // PDK_GLOBAL_TYPE_TRAITS_H
