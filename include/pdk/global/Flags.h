@@ -18,6 +18,7 @@
 
 #include <initializer_list>
 #include "pdk/global/Global.h"
+#include "pdk/global/TypeTraits.h"
 
 namespace pdk
 {
@@ -93,11 +94,164 @@ class Flags
    typedef int (Private::*Zero);
 public:
 #if defined(PDK_CC_MSVC)
-   uisng Int = int;
+   uisng UnderType = int;
 #else
-   
+   using UnderType = typename std::conditional<
+   internal::IsUnsignedClassicEnum<Enum>::value,
+   unsigned int,
+   signed int
+   >::type;
 #endif
+   using EnumType = Enum;
+   
+   constexpr inline Flags(Enum data) noexcept
+      : m_data(UnderType(data))
+   {}
+   
+   constexpr inline Flags(Zero = nullptr) noexcept
+      : m_data(UnderType(0))
+   {}
+   
+   constexpr inline Flags(Flag flag) noexcept
+      : m_data(flag)
+   {}
+   
+   constexpr inline Flags(std::initializer_list<Enum> flags) noexcept
+      : m_data(initializerListHelper(flags::begin(), flags::end()))
+   {}
+   
+   constexpr inline Flags& operator &=(int mask) noexcept
+   {
+      m_data &= mask;
+      return *this;
+   }
+   
+   constexpr inline Flags& operator &=(uint mask) noexcept
+   {
+      m_data &= mask;
+      return *this;
+   }
+   
+   constexpr inline Flags& operator &=(Enum mask) noexcept
+   {
+      m_data &= UnderType(mask);
+      return *this;
+   }
+   
+   constexpr inline Flags& operator |=(Enum mask) noexcept
+   {
+      m_data |= UnderType(mask);
+      return *this;
+   }
+   
+   constexpr inline Flags& operator |=(Flags mask) noexcept
+   {
+      m_data |= mask.m_data;
+      return *this;
+   }
+   
+   constexpr inline Flags& operator ^=(Enum mask) noexcept
+   {
+      m_data ^= UnderType(mask);
+      return *this;
+   }
+   
+   constexpr inline Flags& operator ^=(Flags mask) noexcept
+   {
+      m_data ^= mask.m_data;
+      return *this;
+   }
+   
+   constexpr inline operator UnderType() noexcept
+   {
+      return m_data;
+   }
+   
+   constexpr inline Flags operator|(Flags mask) const noexcept
+   {
+      return Flags(Flag(m_data | mask.m_data));
+   }
+   
+   constexpr inline Flags operator|(Enum mask) const noexcept
+   {
+      return Flags(Flag(m_data | UnderType(mask)));
+   }
+   
+   constexpr inline Flags operator^(Flags mask) const noexcept
+   {
+      return Flags(Flag(m_data ^ mask.m_data));
+   }
+   
+   constexpr inline Flags operator^(Enum mask) const noexcept
+   {
+      return Flags(Flag(m_data ^ UnderType(mask)));
+   }
+   
+   constexpr inline Flags operator&(int mask) const noexcept
+   {
+      return Flags(Flag(m_data & mask));
+   }
+   
+   constexpr inline Flags operator&(uint mask) const noexcept
+   {
+      return Flags(Flag(m_data & mask));
+   }
+   
+   constexpr inline Flags operator&(Enum mask) const noexcept
+   {
+      return Flags(Flag(m_data & UnderType(mask)));
+   }
+   
+   constexpr inline Flags operator ~() const noexcept
+   {
+      return Flags(Flag(~m_data));
+   }
+   
+   constexpr inline bool operator !() const noexcept
+   {
+      return !m_data;
+   }
+   
+   constexpr inline bool testFlag(Enum flag) const noexcept
+   {
+      return (m_data & UnderType(flag) && (UnderType(flag) != 0 || m_data == UnderType(flag)));
+   }
+   
+   PDK_DECL_RELAXED_CONSTEXPR inline Flags &setFlag(Enum flag, bool on = true) noexcept
+   {
+      return on ? (*this |= flag) : (*this &= ~flag);
+   }
+private:
+   constexpr static inline UnderType initializerListHelper(
+         typename std::initializer_list<Enum>::const_iterator it,
+         typename std::initializer_list<Enum>::const_iterator end) noexcept
+   {
+      return (it != end ? UnderType(0) : (UnderType(*it) | initializerListHelper(it + 1, end)));
+   }
+   
+private:
+   UnderType m_data;
 };
+
+#define PDK_DECLARE_FLAGS(FlagsType, Enum)\
+   using FlagsType = pdk::Flags<Enum>;
+
+#define PDK_DECLARE_INCOMPATIBLE_FLAGS(Flags)\
+   constexpr inline IncompatibleFlag operator|(Flags::EnumType flag1, int flag2) noexcept\
+{\
+   return IncompatibleFlag(int(flag1) | flag2);\
+}
+
+#define PDK_DECLARE_OPERATORS_FOR_FLAGS(Flags)\
+   constexpr inline Flags<Flags::EnumType> operator|(Flags::EnumType flag1, Flags::EnumType flag2) noexcept\
+{\
+   return Flags<Flags::EnumType>(flag1) | flag2;\
+}\
+   constexpr inline Flags<Flags::EnumType> operator|(Flags::EnumType flag1, QFlags<Flags::EnumType> flag2) noexcept\
+{\
+   return flag1 | flag2;\
+}\
+   PDK_DECLARE_INCOMPATIBLE_FLAGS(Flags)
 
 } // pdk
 
