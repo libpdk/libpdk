@@ -25,7 +25,7 @@ namespace lang {
 
 class String;
 
-struct Latin1Character
+struct PDK_CORE_EXPORT Latin1Character
 {
 public:
    constexpr inline explicit Latin1Character(char character) noexcept
@@ -451,7 +451,7 @@ public:
    
    inline Character toUpper() const noexcept
    {
-      return Character::toLower(m_data);
+      return Character::toUpper(m_data);
    }
    
    inline Character toTitleCase() const noexcept

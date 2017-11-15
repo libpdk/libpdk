@@ -228,7 +228,7 @@ template <typename Traits, typename T>
 PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
 {
    const Properties *prop = get_unicode_properties(ucs);
-   if (PDK_UNLIKELY(Traits::caseSpecial)) {
+   if (PDK_UNLIKELY(Traits::caseSpecial(prop))) {
       const ushort *specialCase = special_case_map + Traits::caseDiff(prop);
       // so far, there are no special cases beyond BMP (guaranteed by the unicodetables generator)
       if (*specialCase == 1) {

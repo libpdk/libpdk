@@ -15,6 +15,7 @@
 
 #include "gtest/gtest.h"
 #include "pdk/base/lang/Character.h"
+#include <list>
 
 using pdk::lang::Character;
 using pdk::lang::Latin1Character;
@@ -39,4 +40,55 @@ TEST(CharacterTest, testEqualInt)
       ASSERT_TRUE(0x20 != ch);
       ASSERT_TRUE(!(0x20 == ch));
    }
+}
+
+TEST(CharacterTest, testOperators)
+{
+   std::list<Character> leftItems;
+   std::list<Character> rightItems;
+   for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+         leftItems.push_back(Character(char16_t(i)));
+         rightItems.push_back(Character(char16_t(j)));
+      }
+   }
+   std::list<Character>::iterator lbegin = leftItems.begin();
+   std::list<Character>::iterator lend = leftItems.end();
+   std::list<Character>::iterator rbegin = rightItems.begin();
+   while(lbegin != lend) {
+      ASSERT_EQ(*lbegin == *rbegin, lbegin->unicode() == rbegin->unicode());
+      ASSERT_EQ(*lbegin != *rbegin, lbegin->unicode() != rbegin->unicode());
+      ASSERT_EQ(*lbegin < *rbegin, lbegin->unicode() < rbegin->unicode());
+      ASSERT_EQ(*lbegin > *rbegin, lbegin->unicode() > rbegin->unicode());
+      ASSERT_EQ(*lbegin <= *rbegin, lbegin->unicode() <= rbegin->unicode());
+      ASSERT_EQ(*lbegin >= *rbegin, lbegin->unicode() >= rbegin->unicode());
+      ++lbegin;
+      ++rbegin;
+   }
+}
+
+TEST(CharacterTest, testToUpper)
+{
+   ASSERT_EQ(Character('a').toUpper(), (char16_t)'A');
+   ASSERT_EQ(Character('A').toUpper(), (char16_t)'A');
+   ASSERT_EQ(Character(0x1c7).toUpper().unicode(), (char16_t)0x1c7);
+   ASSERT_EQ(Character(0x1c8).toUpper().unicode(), (char16_t)0x1c7);
+   ASSERT_EQ(Character(0x1c9).toUpper().unicode(), (char16_t)0x1c7);
+   ASSERT_EQ(Character(0x25c).toUpper().unicode(), (char16_t)0xa7ab);
+   ASSERT_EQ(Character(0x29e).toUpper().unicode(), (char16_t)0xa7b0);
+   ASSERT_EQ(Character(0x1d79).toUpper().unicode(), (char16_t)0xa77d);
+   ASSERT_EQ(Character(0x0265).toUpper().unicode(), (char16_t)0xa78d);
+   
+   ASSERT_EQ(Character::toUpper('a'), (char16_t)'A');
+   ASSERT_EQ(Character::toUpper('A'), (char16_t)'A');
+   ASSERT_EQ(Character::toUpper(0x1c7), (char16_t)0x1c7);
+   ASSERT_EQ(Character::toUpper(0x1c8), (char16_t)0x1c7);
+   ASSERT_EQ(Character::toUpper(0x1c9), (char16_t)0x1c7);
+   ASSERT_EQ(Character::toUpper(0x25c), (char16_t)0xa7ab);
+   ASSERT_EQ(Character::toUpper(0x29e), (char16_t)0xa7b0);
+   ASSERT_EQ(Character::toUpper(0x1d79),(char16_t) 0xa77d);
+   ASSERT_EQ(Character::toUpper(0x0265), (char16_t)0xa78d);
+   
+   ASSERT_EQ(Character::toUpper(0x10400),(char32_t) 0x10400);
+   ASSERT_EQ(Character::toUpper(0x10428), (char32_t)0x10400);
 }
