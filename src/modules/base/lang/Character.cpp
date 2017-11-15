@@ -347,7 +347,7 @@ char32_t Character::toCaseFolded(char32_t ucs4) noexcept
    if (ucs4 > LastValidCodePoint) {
       return ucs4;
    }
-   return convert_case_helper<TitlecaseTraits>(ucs4);
+   return convert_case_helper<CasefoldTraits>(ucs4);
 }
 
 } // lang

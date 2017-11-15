@@ -92,3 +92,82 @@ TEST(CharacterTest, testToUpper)
    ASSERT_EQ(Character::toUpper(0x10400),(char32_t) 0x10400);
    ASSERT_EQ(Character::toUpper(0x10428), (char32_t)0x10400);
 }
+
+TEST(CharacterTest, testToLower)
+{
+   ASSERT_EQ(Character('A').toLower(), (char16_t)'a');
+   ASSERT_EQ(Character('a').toLower(), (char16_t)'a');
+   ASSERT_EQ(Character(0x1c7).toLower().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0x1c8).toLower().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0x1c9).toLower().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0xa77d).toLower().unicode(), (char16_t)0x1d79);
+   ASSERT_EQ(Character(0xa78d).toLower().unicode(), (char16_t)0x0265);
+   ASSERT_EQ(Character(0xa7ab).toLower().unicode(), (char16_t)0x25c);
+   ASSERT_EQ(Character(0xa7b1).toLower().unicode(), (char16_t)0x287);
+   
+   ASSERT_EQ(Character::toLower('a'), (char16_t)'a');
+   ASSERT_EQ(Character::toLower('A'), (char16_t)'a');
+   ASSERT_EQ(Character::toLower(0x1c7), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toLower(0x1c8), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toLower(0x1c9), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toLower(0xa77d), (char16_t)0x1d79);
+   ASSERT_EQ(Character::toLower(0xa78d), (char16_t)0x0265);
+   ASSERT_EQ(Character::toLower(0xa7ab),(char16_t) 0x25c);
+   ASSERT_EQ(Character::toLower(0xa7b1), (char16_t)0x287);
+   
+   ASSERT_EQ(Character::toLower(0x10400),(char32_t) 0x10428);
+   ASSERT_EQ(Character::toLower(0x10428), (char32_t)0x10428);
+}
+
+TEST(CharacterTest, toTitle)
+{
+   ASSERT_EQ(Character('a').toTitleCase(), (char16_t)'A');
+   ASSERT_EQ(Character('A').toTitleCase(), (char16_t)'A');
+   ASSERT_EQ(Character(0x1c7).toTitleCase().unicode(), (char16_t)0x1c8);
+   ASSERT_EQ(Character(0x1c8).toTitleCase().unicode(), (char16_t)0x1c8);
+   ASSERT_EQ(Character(0x1c9).toTitleCase().unicode(), (char16_t)0x1c8);
+   ASSERT_EQ(Character(0x25c).toTitleCase().unicode(), (char16_t)0xa7ab);
+   ASSERT_EQ(Character(0x29e).toTitleCase().unicode(), (char16_t)0xa7b0);
+   ASSERT_EQ(Character(0x1d79).toTitleCase().unicode(), (char16_t)0xa77d);
+   ASSERT_EQ(Character(0x0265).toTitleCase().unicode(), (char16_t)0xa78d);
+   
+   ASSERT_EQ(Character::toTitleCase('a'), (char16_t)'A');
+   ASSERT_EQ(Character::toTitleCase('A'), (char16_t)'A');
+   ASSERT_EQ(Character::toTitleCase(0x1c7), (char16_t)0x1c8);
+   ASSERT_EQ(Character::toTitleCase(0x1c8), (char16_t)0x1c8);
+   ASSERT_EQ(Character::toTitleCase(0x1c9), (char16_t)0x1c8);
+   ASSERT_EQ(Character::toTitleCase(0x25c), (char16_t)0xa7ab);
+   ASSERT_EQ(Character::toTitleCase(0x29e), (char16_t)0xa7b0);
+   ASSERT_EQ(Character::toTitleCase(0x1d79),(char16_t) 0xa77d);
+   ASSERT_EQ(Character::toTitleCase(0x0265), (char16_t)0xa78d);
+   
+   ASSERT_EQ(Character::toTitleCase(0x10400),(char32_t) 0x10400);
+   ASSERT_EQ(Character::toTitleCase(0x10428), (char32_t)0x10400);
+}
+
+TEST(CharacterTest, toCaseFolded)
+{
+   ASSERT_EQ(Character('a').toCaseFolded(), (char16_t)'a');
+   ASSERT_EQ(Character('A').toCaseFolded(), (char16_t)'a');
+   ASSERT_EQ(Character(0x1c7).toCaseFolded().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0x1c8).toCaseFolded().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0x1c9).toCaseFolded().unicode(), (char16_t)0x1c9);
+   ASSERT_EQ(Character(0xa77d).toCaseFolded().unicode(), (char16_t)0x1d79);
+   ASSERT_EQ(Character(0xa78d).toCaseFolded().unicode(), (char16_t)0x0265);
+   ASSERT_EQ(Character(0xa7ab).toCaseFolded().unicode(), (char16_t)0x25c);
+   ASSERT_EQ(Character(0xa7b1).toCaseFolded().unicode(), (char16_t)0x287);
+   
+   ASSERT_EQ(Character::toCaseFolded('a'), (char16_t)'a');
+   ASSERT_EQ(Character::toCaseFolded('A'), (char16_t)'a');
+   ASSERT_EQ(Character::toCaseFolded(0x1c7), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toCaseFolded(0x1c8), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toCaseFolded(0x1c9), (char16_t)0x1c9);
+   ASSERT_EQ(Character::toCaseFolded(0xa77d), (char16_t)0x1d79);
+   ASSERT_EQ(Character::toCaseFolded(0xa78d), (char16_t)0x0265);
+   ASSERT_EQ(Character::toCaseFolded(0xa7ab),(char16_t) 0x25c);
+   ASSERT_EQ(Character::toCaseFolded(0xa7b1), (char16_t)0x287);
+   
+   ASSERT_EQ(Character::toCaseFolded(0x10400),(char32_t) 0x10428);
+   ASSERT_EQ(Character::toCaseFolded(0x10428), (char32_t)0x10428);
+   ASSERT_EQ(Character::toCaseFolded(0xb5), (char32_t)0x3bc);
+}

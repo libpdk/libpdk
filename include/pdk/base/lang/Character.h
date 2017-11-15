@@ -461,7 +461,7 @@ public:
    
    inline Character toCaseFolded() const noexcept
    {
-      return Character::toTitleCase(m_data);
+      return Character::toCaseFolded(m_data);
    }
    
    inline Script getScript() const noexcept
