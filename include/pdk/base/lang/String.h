@@ -18,14 +18,17 @@
 
 #include "pdk/global/Global.h"
 
-namespace pdk
-{
+namespace pdk {
+namespace lang {
 
 class PDK_CORE_EXPORT String
 {
-   
+public:
+   String()
+   {}
 };
 
+} // lang
 } // pdk
 
 #endif // PDK_M_BASE_LANG_STRING_H

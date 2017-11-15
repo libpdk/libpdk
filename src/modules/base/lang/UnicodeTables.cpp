@@ -20,47 +20,7 @@ namespace lang {
 namespace internal {
 namespace unicodetables {
 
-#define PDK_GET_PROP_INDEX(ucs4) \
-   (ucs4 < 0x11000 \
-   ? (uc_property_trie[uc_property_trie[ucs4>>5] + (ucs4 & 0x1f)])\
-   : (uc_property_trie[uc_property_trie[((ucs4 - 0x11000)>>8) + 0x880] + (ucs4 & 0xff)]))
-
-#define PDK_GET_PROP_INDEX_UCS2(ucs2) \
-   (uc_property_trie[uc_property_trie[ucs2>>5] + (ucs2 & 0x1f)])
-
-#define PDK_GET_DECOMPOSITION_INDEX(ucs4) \
-   (ucs4 < 0x3400 \
-   ? (uc_decomposition_trie[uc_decomposition_trie[ucs4>>4] + (ucs4 & 0xf)]) \
-   : (ucs4 < 0x30000 \
-   ? uc_decomposition_trie[uc_decomposition_trie[((ucs4 - 0x3400)>>8) + 0x340] + (ucs4 & 0xff)] \
-   : 0xffff))
-
-#define PDK_GET_LIGATURE_INDEX(ucs4) \
-   (ucs4 < 0x3100 \
-   ? (uc_ligature_trie[uc_ligature_trie[ucs4>>5] + (ucs4 & 0x1f)]) \
-   : (ucs4 < 0x12000 \
-   ? uc_ligature_trie[uc_ligature_trie[((ucs4 - 0x3100)>>8) + 0x188] + (ucs4 & 0xff)] \
-   : 0xffff))
-
-struct NormalizationCorrection {
-    uint ucs4;
-    uint old_mapping;
-    int version;
-};
-
-static const NormalizationCorrection uc_normalization_corrections[] = {
-    { 0xf951, 0x96fb, 6 },
-    { 0x2f868, 0x2136a, 7 },
-    { 0x2f874, 0x5f33, 7 },
-    { 0x2f91f, 0x43ab, 7 },
-    { 0x2f95f, 0x7aae, 7 },
-    { 0x2f9bf, 0x4d57, 7 }
-};
-
-enum { NumNormalizationCorrections = 6 };
-enum { NormalizationCorrectionsVersionMax = 7 };
-
-static const unsigned short uc_property_trie[] = {
+const unsigned short uc_property_trie[] = {
    6256, 6288, 6320, 6352, 6384, 6416, 6448, 6480,
    6512, 6544, 6576, 6608, 6640, 6672, 6704, 6736,
    6768, 6800, 6832, 6864, 6896, 6928, 6960, 6992,
@@ -5758,7 +5718,7 @@ static const unsigned short uc_property_trie[] = {
    2494, 2494, 2494, 2494, 2494, 2494, 2489, 2489
 };
 
-static const Properties uc_properties[] = {
+const Properties uc_properties[] = {
    { 9, 18, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 21, 2 },
    { 9, 8, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 5, 17, 2 },
    { 9, 7, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 2, 2, 34, 2 },
@@ -8256,52 +8216,7 @@ static const Properties uc_properties[] = {
    { 12, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 12, 0 }
 };
 
-namespace 
-{
-
-PDK_DECL_CONST_FUNCTION inline const Properties *do_get_unicode_properties(char32_t ucs4) noexcept
-{
-   return uc_properties + PDK_GET_PROP_INDEX(ucs4);
-}
-
-PDK_DECL_CONST_FUNCTION inline const Properties *do_get_unicode_properties(char16_t ucs2) noexcept
-{
-   return uc_properties + PDK_GET_PROP_INDEX_UCS2(ucs2);
-}
-
-}
-
-PDK_DECL_CONST_FUNCTION const Properties * PDK_FASTCALL get_unicode_properties(char32_t ucs4) noexcept
-{
-   return do_get_unicode_properties(ucs4);
-}
-
-PDK_DECL_CONST_FUNCTION const Properties * PDK_FASTCALL get_unicode_properties(char16_t ucs2) noexcept
-{
-   return do_get_unicode_properties(ucs2);
-}
-
-GraphemeBreakClass PDK_FASTCALL grapheme_break_class(char32_t ucs4) noexcept
-{
-   return static_cast<GraphemeBreakClass>(do_get_unicode_properties(ucs4)->graphemeBreakClass);
-}
-
-WordBreakClass PDK_FASTCALL word_break_class(char32_t ucs4) noexcept
-{
-   return static_cast<WordBreakClass>(do_get_unicode_properties(ucs4)->wordBreakClass);
-}
-
-SentenceBreakClass PDK_FASTCALL sentence_break_class(char32_t ucs4) noexcept
-{
-   return static_cast<SentenceBreakClass>(do_get_unicode_properties(ucs4)->sentenceBreakClass);
-}
-
-LineBreakClass PDK_FASTCALL line_break_class(char32_t ucs4) noexcept
-{
-   return static_cast<LineBreakClass>(do_get_unicode_properties(ucs4)->lineBreakClass);
-}
-
-static const unsigned short special_case_map[] = {
+const unsigned short special_case_map[] = {
    0x0, // placeholder
    0x1, 0x2c65,
    0x1, 0x2c66,
@@ -8600,7 +8515,7 @@ static const unsigned short special_case_map[] = {
    0x3, 0x3a9, 0x342, 0x399
 };
 
-static const unsigned short uc_decomposition_trie[] = {
+const unsigned short uc_decomposition_trie[] = {
    // 0 - 0x3400
    
    1548, 1548, 1548, 1548, 1548, 1548, 1548, 1548,
@@ -10414,7 +10329,7 @@ static const unsigned short uc_decomposition_trie[] = {
    0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
 
-static const unsigned short uc_decomposition_map[] = {
+const unsigned short uc_decomposition_map[] = {
    0x103, 0x20, 0x210, 0x20, 0x308, 0x109, 0x61, 0x210,
    0x20, 0x304, 0x109, 0x32, 0x109, 0x33, 0x210, 0x20,
    0x301, 0x110, 0x3bc, 0x210, 0x20, 0x327, 0x109, 0x31,
@@ -12218,7 +12133,7 @@ static const unsigned short uc_decomposition_map[] = {
    0x101, 0x9f16, 0x101, 0x9f3b, 0x201, 0xd869, 0xde00
 };
 
-static const unsigned short uc_ligature_trie[] = {
+const unsigned short uc_ligature_trie[] = {
    // 0 - 0x3100
    
    631, 631, 631, 631, 631, 631, 631, 631,
@@ -12608,7 +12523,7 @@ static const unsigned short uc_ligature_trie[] = {
    0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
 
-static const unsigned short uc_ligature_map[] = {
+const unsigned short uc_ligature_map[] = {
    0x54, 0x41, 0xc0, 0x45, 0xc8, 0x49, 0xcc, 0x4e,
    0x1f8, 0x4f, 0xd2, 0x55, 0xd9, 0x57, 0x1e80, 0x59,
    0x1ef2, 0x61, 0xe0, 0x65, 0xe8, 0x69, 0xec, 0x6e,
@@ -12856,6 +12771,66 @@ static const unsigned short uc_ligature_map[] = {
    0x1, 0xd805, 0xdcb9, 0xd805, 0xdcbe, 0x2, 0xd805, 0xddb8,
    0xd805, 0xddba, 0xd805, 0xddb9, 0xd805, 0xddbb
 };
+
+namespace 
+{
+PDK_DECL_CONST_FUNCTION inline const Properties *do_get_unicode_properties(char32_t ucs4) noexcept
+{
+   return uc_properties + PDK_GET_PROP_INDEX(ucs4);
+}
+
+PDK_DECL_CONST_FUNCTION inline const Properties *do_get_unicode_properties(char16_t ucs2) noexcept
+{
+   return uc_properties + PDK_GET_PROP_INDEX_UCS2(ucs2);
+}
+}
+
+PDK_DECL_CONST_FUNCTION const Properties * PDK_FASTCALL get_unicode_properties(char32_t ucs4) noexcept
+{
+   return do_get_unicode_properties(ucs4);
+}
+
+PDK_DECL_CONST_FUNCTION const Properties * PDK_FASTCALL get_unicode_properties(char16_t ucs2) noexcept
+{
+   return do_get_unicode_properties(ucs2);
+}
+
+GraphemeBreakClass PDK_FASTCALL grapheme_break_class(char32_t ucs4) noexcept
+{
+   return static_cast<GraphemeBreakClass>(do_get_unicode_properties(ucs4)->graphemeBreakClass);
+}
+
+WordBreakClass PDK_FASTCALL word_break_class(char32_t ucs4) noexcept
+{
+   return static_cast<WordBreakClass>(do_get_unicode_properties(ucs4)->wordBreakClass);
+}
+
+SentenceBreakClass PDK_FASTCALL sentence_break_class(char32_t ucs4) noexcept
+{
+   return static_cast<SentenceBreakClass>(do_get_unicode_properties(ucs4)->sentenceBreakClass);
+}
+
+LineBreakClass PDK_FASTCALL line_break_class(char32_t ucs4) noexcept
+{
+   return static_cast<LineBreakClass>(do_get_unicode_properties(ucs4)->lineBreakClass);
+}
+struct NormalizationCorrection {
+   uint ucs4;
+   uint old_mapping;
+   int version;
+};
+
+static const NormalizationCorrection uc_normalization_corrections[] = {
+   { 0xf951, 0x96fb, 6 },
+   { 0x2f868, 0x2136a, 7 },
+   { 0x2f874, 0x5f33, 7 },
+   { 0x2f91f, 0x43ab, 7 },
+   { 0x2f95f, 0x7aae, 7 },
+   { 0x2f9bf, 0x4d57, 7 }
+};
+
+enum { NumNormalizationCorrections = 6 };
+enum { NormalizationCorrectionsVersionMax = 7 };
 
 } // unicodetables
 } // internal

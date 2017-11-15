@@ -13,6 +13,7 @@
 //
 // Created by softboy on 2017/11/15.
 
+
 #ifndef PDK_M_BASE_LANG_INTERNAL_UNICODETABLES_H
 #define PDK_M_BASE_LANG_INTERNAL_UNICODETABLES_H
 
@@ -26,9 +27,31 @@ namespace lang {
 namespace internal {
 namespace unicodetables {
 
+#define PDK_GET_PROP_INDEX(ucs4) \
+   (ucs4 < 0x11000 \
+   ? (uc_property_trie[uc_property_trie[ucs4>>5] + (ucs4 & 0x1f)])\
+   : (uc_property_trie[uc_property_trie[((ucs4 - 0x11000)>>8) + 0x880] + (ucs4 & 0xff)]))
+
+#define PDK_GET_PROP_INDEX_UCS2(ucs2) \
+   (uc_property_trie[uc_property_trie[ucs2>>5] + (ucs2 & 0x1f)])
+
+#define PDK_GET_DECOMPOSITION_INDEX(ucs4) \
+   (ucs4 < 0x3400 \
+   ? (uc_decomposition_trie[uc_decomposition_trie[(ucs4>>4)] + (ucs4 & 0xf)]) \
+   : (ucs4 < 0x30000 \
+   ? uc_decomposition_trie[uc_decomposition_trie[((ucs4 - 0x3400)>>8) + 0x340] + (ucs4 & 0xff)] \
+   : 0xffff))
+
+#define PDK_GET_LIGATURE_INDEX(ucs4) \
+   (ucs4 < 0x3100 \
+   ? (uc_ligature_trie[uc_ligature_trie[ucs4>>5] + (ucs4 & 0x1f)]) \
+   : (ucs4 < 0x12000 \
+   ? uc_ligature_trie[uc_ligature_trie[((ucs4 - 0x3100)>>8) + 0x188] + (ucs4 & 0xff)] \
+   : 0xffff))
+
 struct Properties 
 {
-   ushort catgory             : 8; /* 5 used */
+   ushort category             : 8; /* 5 used */
    ushort direction           : 8; /* 5 used */
    ushort combiningClass      : 8;
    ushort joining             : 3;
@@ -177,25 +200,25 @@ enum class LineBreakClass
 };
 
 PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL grapheme_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL grapheme_break_class(Character ch) noexcept
+inline GraphemeBreakClass grapheme_break_class(Character ch) noexcept
 {
    return grapheme_break_class(ch.unicode());
 }
 
 PDK_CORE_EXPORT WordBreakClass PDK_FASTCALL word_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT WordBreakClass PDK_FASTCALL word_break_class(Character ch) noexcept
+inline WordBreakClass word_break_class(Character ch) noexcept
 {
    return word_break_class(ch.unicode());
 }
 
 PDK_CORE_EXPORT SentenceBreakClass PDK_FASTCALL sentence_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT SentenceBreakClass PDK_FASTCALL sentence_break_class(Character ch) noexcept
+inline SentenceBreakClass sentence_break_class(Character ch) noexcept
 {
    return sentence_break_class(ch.unicode());
 }
 
 PDK_CORE_EXPORT LineBreakClass PDK_FASTCALL line_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT LineBreakClass PDK_FASTCALL line_break_class(Character ch) noexcept
+inline LineBreakClass line_break_class(Character ch) noexcept
 {
    return line_break_class(ch.unicode());
 }

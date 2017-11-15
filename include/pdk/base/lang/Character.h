@@ -13,6 +13,8 @@
 //
 // Created by softboy on 2017/11/14.
 
+
+
 #ifndef PDK_M_BASE_LANG_CHARACTER_H
 #define PDK_M_BASE_LANG_CHARACTER_H
 
@@ -430,7 +432,7 @@ public:
       return Character::hasMirrored(m_data);
    }
    
-   String decomposition() const;
+   String getDecomposition() const;
    
    inline Decomposition getDecompositionTag() const noexcept
    {

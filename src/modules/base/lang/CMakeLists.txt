@@ -10,7 +10,6 @@ pdk_add_module_sources(PDK_BASE_MODULE_SOURCES
     Object.cpp
     Short.cpp
     String.cpp
-    UnicodeTables.cpp
     UnicodeTools.cpp)
 
 set(PDK_BASE_MODULE_SOURCES ${PDK_BASE_MODULE_SOURCES} PARENT_SCOPE)
