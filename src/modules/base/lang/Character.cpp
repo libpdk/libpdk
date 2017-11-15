@@ -23,6 +23,10 @@ namespace lang {
 
 using internal::unicodetables::get_unicode_properties;
 using internal::unicodetables::Properties;
+using internal::unicodetables::LowercaseTraits;
+using internal::unicodetables::TitlecaseTraits;
+using internal::unicodetables::UppercaseTraits;
+using internal::unicodetables::CasefoldTraits;
 
 #define FLAG(x) (1 << (x))
 
@@ -178,6 +182,7 @@ char32_t Character::getMirroredCharacter(char32_t ucs4) noexcept
 
 const unsigned short *uc_decomposition_trie = internal::unicodetables::uc_decomposition_trie;
 const unsigned short *uc_decomposition_map = internal::unicodetables::uc_decomposition_map;
+const unsigned short *special_case_map = internal::unicodetables::special_case_map;
 
 namespace  {
 
@@ -219,6 +224,45 @@ const unsigned short * PDK_FASTCALL decomposition_helper(char32_t ucs4, int *len
    return decomposition + 1;
 }
 
+template <typename Traits, typename T>
+PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
+{
+   const Properties *prop = get_unicode_properties(ucs);
+   if (PDK_UNLIKELY(Traits::caseSpecial)) {
+      const ushort *specialCase = special_case_map + Traits::caseDiff(prop);
+      // so far, there are no special cases beyond BMP (guaranteed by the unicodetables generator)
+      if (*specialCase == 1) {
+         return specialCase[1];
+      }
+      return ucs;
+   }
+   return ucs + Traits::caseDiff(prop);
+}
+
+inline char32_t fold_case(const ushort *ch, const ushort *start) noexcept
+{
+    char32_t ucs4 = *ch;
+    if (Character::isLowSurrogate(ucs4) && ch > start && Character::isHighSurrogate(*(ch - 1))) {
+       ucs4 = Character::surrogateToUcs4(*(ch - 1), ucs4);
+    }
+    return convert_case_helper<CasefoldTraits>(ucs4);
+}
+
+static inline char32_t fold_case(char32_t ch, uint &last) noexcept
+{
+    char32_t ucs4 = ch;
+    if (Character::isLowSurrogate(ucs4) && Character::isHighSurrogate(last)) {
+       ucs4 = Character::surrogateToUcs4(last, ucs4);
+    }
+    last = ch;
+    return convert_case_helper<CasefoldTraits>(ucs4);
+}
+
+static inline char16_t fold_case(char16_t ch) noexcept
+{
+    return convert_case_helper<CasefoldTraits>(ch);
+}
+
 }
 
 String Character::getDecomposition() const
@@ -233,6 +277,77 @@ String Character::getDecomposition(char32_t ucs4)
    int tag;
    const unsigned short *d = decomposition_helper(ucs4, &length, &tag, buffer);
    return String();
+}
+
+Character::Decomposition Character::getDecompositionTag(char32_t ucs4) noexcept
+{
+   if (ucs4 >= Hangul_SBase && ucs4 < Hangul_SBase + Hangul_SCount)
+      return Character::Decomposition::Canonical;
+   const unsigned short index = PDK_GET_DECOMPOSITION_INDEX(ucs4);
+   if (index == 0xffff)
+      return Character::Decomposition::NoDecomposition;
+   return static_cast<Character::Decomposition>(uc_decomposition_map[index] & 0xff);
+}
+
+unsigned char Character::getCombiningClass(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return 0;
+   }
+   return static_cast<unsigned char>(get_unicode_properties(ucs4)->combiningClass);
+}
+
+Character::Script Character::getScript(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return Character::Script::Script_Unknown;
+   }
+   return static_cast<Character::Script>(get_unicode_properties(ucs4)->script);
+}
+
+Character::UnicodeVersion Character::getUnicodeVersion(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return Character::UnicodeVersion::Unicode_Unassigned;
+   }
+   return static_cast<Character::UnicodeVersion>(get_unicode_properties(ucs4)->unicodeVersion);
+}
+
+Character::UnicodeVersion Character::getCurrentUnicodeVersion() noexcept
+{
+   return PDK_UNICODE_DATA_VERSION;
+}
+
+char32_t Character::toLower(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return ucs4;
+   }
+   return convert_case_helper<LowercaseTraits>(ucs4);
+}
+
+char32_t Character::toUpper(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return ucs4;
+   }
+   return convert_case_helper<UppercaseTraits>(ucs4);
+}
+
+char32_t Character::toTitleCase(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return ucs4;
+   }
+   return convert_case_helper<TitlecaseTraits>(ucs4);
+}
+
+char32_t Character::toCaseFolded(char32_t ucs4) noexcept
+{
+   if (ucs4 > LastValidCodePoint) {
+      return ucs4;
+   }
+   return convert_case_helper<TitlecaseTraits>(ucs4);
 }
 
 } // lang
