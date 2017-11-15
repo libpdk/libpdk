@@ -1,5 +1,0 @@
-
-pdk_add_module_sources(PDK_BASE_MODULE_SOURCES 
-    ByteArray.cpp)
-
-set(PDK_BASE_MODULE_SOURCES ${PDK_BASE_MODULE_SOURCES} PARENT_SCOPE)
