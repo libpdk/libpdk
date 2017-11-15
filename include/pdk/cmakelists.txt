@@ -1,10 +1,24 @@
 # the libpdk headers
 
-add_subdirectory(global)
-add_subdirectory(pal)
-add_subdirectory(base)
-add_subdirectory(stdext)
-add_subdirectory(utils)
+pdk_collect_files(
+    DIR global
+    OUTPUT_VAR PDK_HEADER_FILES)
+
+pdk_collect_files(
+    DIR pal
+    OUTPUT_VAR PDK_HEADER_FILES)
+
+pdk_collect_files(
+    DIR base
+    OUTPUT_VAR PDK_HEADER_FILES)
+
+pdk_collect_files(
+    DIR stdext
+    OUTPUT_VAR PDK_HEADER_FILES)
+
+pdk_collect_files(
+    DIR utils
+    OUTPUT_VAR PDK_HEADER_FILES)
 
 # add the automatic generated header files
 list(APPEND PDK_HEADER_FILES 
