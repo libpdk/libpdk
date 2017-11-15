@@ -73,7 +73,7 @@ class IncompatibleFlag
 private:
    int m_data;
 public:
-   constexpr inline explicit IncompatibleFlag(data) noexcept;
+   constexpr inline explicit IncompatibleFlag(int data) noexcept;
    constexpr inline operator int() const noexcept
    {
       return m_data;
@@ -117,7 +117,7 @@ public:
    {}
    
    constexpr inline Flags(std::initializer_list<Enum> flags) noexcept
-      : m_data(initializerListHelper(flags::begin(), flags::end()))
+      : m_data(initializerListHelper(flags.begin(), flags.end()))
    {}
    
    constexpr inline Flags& operator &=(int mask) noexcept

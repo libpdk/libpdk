@@ -11,7 +11,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/11/14.
+// Created by softboy on 2017/11/15.
 
 #ifndef PDK_M_BASE_LANG_INTERNAL_UNICODETABLES_H
 #define PDK_M_BASE_LANG_INTERNAL_UNICODETABLES_H
@@ -24,6 +24,7 @@
 namespace pdk {
 namespace lang {
 namespace internal {
+namespace unicodetables {
 
 struct Properties 
 {
@@ -50,8 +51,8 @@ struct Properties
    ushort script              : 8;
 };
 
-PDK_CORE_EXPORT const Properties * PDK_FASTCALL properties(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT const Properties * PDK_FASTCALL properties(char16_t ucs4) noexcept;
+PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char32_t ucs4) noexcept;
+PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char16_t ucs4) noexcept;
 
 struct LowercaseTraits
 {
@@ -181,25 +182,25 @@ PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL grapheme_break_class(Character c
    return grapheme_break_class(ch.unicode());
 }
 
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL word_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL word_break_class(Character ch) noexcept
+PDK_CORE_EXPORT WordBreakClass PDK_FASTCALL word_break_class(char32_t ucs4) noexcept;
+PDK_CORE_EXPORT WordBreakClass PDK_FASTCALL word_break_class(Character ch) noexcept
 {
    return word_break_class(ch.unicode());
 }
 
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL sentence_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL sentence_break_class(Character ch) noexcept
+PDK_CORE_EXPORT SentenceBreakClass PDK_FASTCALL sentence_break_class(char32_t ucs4) noexcept;
+PDK_CORE_EXPORT SentenceBreakClass PDK_FASTCALL sentence_break_class(Character ch) noexcept
 {
    return sentence_break_class(ch.unicode());
 }
 
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL line_break_class(char32_t ucs4) noexcept;
-PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL line_break_class(Character ch) noexcept
+PDK_CORE_EXPORT LineBreakClass PDK_FASTCALL line_break_class(char32_t ucs4) noexcept;
+PDK_CORE_EXPORT LineBreakClass PDK_FASTCALL line_break_class(Character ch) noexcept
 {
    return line_break_class(ch.unicode());
 }
 
-
+} // unicodetables
 } // internal
 } // lang
 } // pdk

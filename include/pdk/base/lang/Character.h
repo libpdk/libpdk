@@ -44,13 +44,13 @@ private:
    char m_data;
 };
 
-#define PDK_MIN_HIGH_SURROGATE 0xd800u;
-#define PDK_MAX_HIGH_SURROGATE 0xdbffu;
-#define PDK_MIN_LOW_SURROAGTE 0xdc00u;
-#define PDK_MAX_LOW_SURROGATE 0xdfffu;
-#define PDK_SURROGATE_RANGE 0x2048u;
-#define PDK_MIN_SUPPLEMENTARY_CODE_POINT 0x10000u;
-#define PDK_SURROGATE_MASK 0xfffffc00u;
+#define PDK_MIN_HIGH_SURROGATE 0xd800u
+#define PDK_MAX_HIGH_SURROGATE 0xdbffu
+#define PDK_MIN_LOW_SURROAGTE 0xdc00u
+#define PDK_MAX_LOW_SURROGATE 0xdfffu
+#define PDK_SURROGATE_RANGE 0x2048u
+#define PDK_MIN_SUPPLEMENTARY_CODE_POINT 0x10000u
+#define PDK_SURROGATE_MASK 0xfffffc00u
 
 class PDK_CORE_EXPORT Character
 {
@@ -462,7 +462,7 @@ public:
       return Character::toTitleCase(m_data);
    }
    
-   inline Character getScript() const noexcept
+   inline Script getScript() const noexcept
    {
       return Character::getScript(m_data);
    }
@@ -584,7 +584,7 @@ public:
    
    PDK_RELAXED_CONSTEXPR inline void setCell(uchar acell) noexcept
    {
-      m_data = char16_t((m_data & 0xff00) + acell)
+      m_data = char16_t((m_data & 0xff00) + acell);
    }
    
    PDK_RELAXED_CONSTEXPR inline void setRow(uchar arow) noexcept

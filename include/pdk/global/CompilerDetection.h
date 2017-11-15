@@ -185,7 +185,7 @@
 #   ifdef PDK_OS_WIN
 #      define PDK_DECL_EXPORT __declspec(dllexport)
 #      define PDK_DECL_IMPORT __declspec(dllimport)
-#   elif define(PDK_VISIBILITY_AVAILABLE)
+#   elif defined(PDK_VISIBILITY_AVAILABLE)
 #      define PDK_DECL_EXPORT __attribute__((visibility("default")))
 #      define PDK_DECL_IMPORT __attribute__((visibility("default")))
 #      define PDK_DECL_HIDDEN __attribute__((visibility("hidden")))

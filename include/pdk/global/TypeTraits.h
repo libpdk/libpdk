@@ -40,26 +40,26 @@ struct IsSignedClassicEnum : InvertResult<IsUnsignedClassicEnum<T>>
 PDK_STATIC_ASSERT((IsUnsignedClassicEnum<puint8>::value));
 PDK_STATIC_ASSERT((!IsUnsignedClassicEnum<pint8>::value));
 
-PDK_STATIC_ASSERT((!IsSignedEnum<puint8>::value));
-PDK_STATIC_ASSERT((IsSignedEnum<pint8>::value));
+PDK_STATIC_ASSERT((!IsSignedClassicEnum<puint8>::value));
+PDK_STATIC_ASSERT((IsSignedClassicEnum<pint8>::value));
 
 PDK_STATIC_ASSERT((IsUnsignedClassicEnum<puint16>::value));
 PDK_STATIC_ASSERT((!IsUnsignedClassicEnum<pint16>::value));
 
-PDK_STATIC_ASSERT((!IsSignedEnum<puint16>::value));
-PDK_STATIC_ASSERT((IsSignedEnum<pint16>::value));
+PDK_STATIC_ASSERT((!IsSignedClassicEnum<puint16>::value));
+PDK_STATIC_ASSERT((IsSignedClassicEnum<pint16>::value));
 
 PDK_STATIC_ASSERT((IsUnsignedClassicEnum<puint32>::value));
 PDK_STATIC_ASSERT((!IsUnsignedClassicEnum<pint32>::value));
 
-PDK_STATIC_ASSERT((!IsSignedEnum<puint32>::value));
-PDK_STATIC_ASSERT((IsSignedEnum<pint32>::value));
+PDK_STATIC_ASSERT((!IsSignedClassicEnum<puint32>::value));
+PDK_STATIC_ASSERT((IsSignedClassicEnum<pint32>::value));
 
 PDK_STATIC_ASSERT((IsUnsignedClassicEnum<puint64>::value));
 PDK_STATIC_ASSERT((!IsUnsignedClassicEnum<pint64>::value));
 
-PDK_STATIC_ASSERT((!IsSignedEnum<puint64>::value));
-PDK_STATIC_ASSERT((IsSignedEnum<pint64>::value));
+PDK_STATIC_ASSERT((!IsSignedClassicEnum<puint64>::value));
+PDK_STATIC_ASSERT((IsSignedClassicEnum<pint64>::value));
 
 } // internal
 } // pdk

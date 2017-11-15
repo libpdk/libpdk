@@ -156,8 +156,6 @@
 #   define PDK_PROCESSOR_X86_64
 #   define PDK_BYTE_ORDER PDK_LITTLE_ENDIAN
 #   define PDK_PROCESSOR_WORDSIZE 8
-#endif
-
 /*
     Itanium (IA-64) family, no revisions or variants
 
