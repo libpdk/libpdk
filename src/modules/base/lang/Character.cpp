@@ -18,5 +18,6 @@
 namespace pdk 
 {
 
+#define FLAG(x) (1 << (x))
 
 } // pdk

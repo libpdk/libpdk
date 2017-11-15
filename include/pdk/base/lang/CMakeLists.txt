@@ -10,6 +10,8 @@ pdk_add_headers(
     Number.h
     Object.h
     Short.h
-    String.h)
+    String.h
+    internal/UnicodeTables.h
+    internal/UnicodeTools.h)
 
 set(PDK_HEADER_FILES ${PDK_HEADER_FILES} PARENT_SCOPE)

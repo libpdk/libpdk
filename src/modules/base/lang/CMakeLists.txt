@@ -9,7 +9,9 @@ pdk_add_module_sources(PDK_BASE_MODULE_SOURCES
     Number.cpp
     Object.cpp
     Short.cpp
-    String.cpp)
+    String.cpp
+    UnicodeTables.cpp
+    UnicodeTools.cpp)
 
 set(PDK_BASE_MODULE_SOURCES ${PDK_BASE_MODULE_SOURCES} PARENT_SCOPE)
 
