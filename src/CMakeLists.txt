@@ -8,8 +8,6 @@ add_subdirectory(kernel)
 add_subdirectory(utils)
 add_subdirectory(stdext)
 
-message("${PDK_BASE_SOURCES}")
-
 set(PDK_BASE_MODULE_SOURCES "")
 add_subdirectory(modules/base)
 

@@ -422,7 +422,7 @@ function(pdk_add_library name)
     endif()
 endfunction()
 
-macro(add_pdk_executable name)
+macro(pdk_add_executable name)
     cmake_parse_arguments(ARG "DISABLE_PDK_LINK_PDK_DYLIB;IGNORE_EXTERNALIZE_DEBUGINFO;NO_INSTALL_RPATH" "" "DEPENDS" ${ARGN})
     pdk_process_sources(ALL_FILES ${ARG_UNPARSED_ARGUMENTS})
     list(APPEND PDK_COMMON_DEPENDS ${ARG_DEPENDS})
@@ -471,7 +471,7 @@ macro(add_pdk_executable name)
     endif()
     set(EXCLUDE_FROM_ALL OFF)
     
-    set_output_directory(${name} BINARY_DIR ${PDK_RUNTIME_OUTPUT_INTDIR} LIBRARY_DIR ${PDK_LIBRARY_OUTPUT_INTDIR})
+    pdk_set_output_directory(${name} BINARY_DIR ${PDK_RUNTIME_OUTPUT_INTDIR} LIBRARY_DIR ${PDK_LIBRARY_OUTPUT_INTDIR})
     if(PDK_COMMON_DEPENDS)
         add_dependencies(${name} ${PDK_COMMON_DEPENDS})
     endif(PDK_COMMON_DEPENDS)
@@ -586,7 +586,7 @@ endfunction()
 
 # Generic support for adding a unittest.
 function(pdk_add_unittest test_suite test_name)
-    if(NOT PDK_BUILD_TESTS)
+    if(NOT PDK_ENABLE_UNITTEST)
         set(EXCLUDE_FROM_ALL ON)
     endif()
     # Our current version of gtest does not properly recognize C++11 support
@@ -622,7 +622,7 @@ function(pdk_add_unittest test_suite test_name)
     
     pdk_add_executable(${test_name} IGNORE_EXTERNALIZE_DEBUGINFO NO_INSTALL_RPATH ${ARGN})
     set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-    set_output_directory(${test_name} BINARY_DIR ${outdir} LIBRARY_DIR ${outdir})
+    pdk_set_output_directory(${test_name} BINARY_DIR ${outdir} LIBRARY_DIR ${outdir})
     # libpthreads overrides some standard library symbols, so main
     # executable must be linked with it in order to provide consistent
     # API for all shared libaries loaded by this executable.

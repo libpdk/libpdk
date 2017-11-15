@@ -100,4 +100,12 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
         set(${module} ${${module}} PARENT_SCOPE)
     endfunction()
     
+    function(pdk_add_files target)
+        list(REMOVE_AT ARGV 0)
+        foreach(file ${ARGV})
+            list(APPEND ${target} ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        endforeach()
+        set(${target} ${${target}} PARENT_SCOPE)
+    endfunction()
+    
 endif()
