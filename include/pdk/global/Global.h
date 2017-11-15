@@ -50,6 +50,17 @@
 #  define PDK_CORE_IMPORT PDK_DECL_IMPORT
 #endif
 
+#if defined(__i386__) || defined(_WIN32)
+#  if defined(PDK_CC_GNU)
+#     define PDK_FASTCALL __attribute__((regparm(3)))
+#  elif defined(PDK_CC_MSVC)
+#     define PDK_FASTCALL __fastcall
+#  else
+#     define PDK_FASTCALL
+#  endif
+#else
+#  define PDK_FASTCALL
+#endif
 /*
    Avoid "unused parameter" warnings
 */
