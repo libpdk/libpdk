@@ -16,6 +16,7 @@
 #include "gtest/gtest.h"
 #include "pdk/base/lang/Character.h"
 #include <list>
+#include <utility>
 
 using pdk::lang::Character;
 using pdk::lang::Latin1Character;
@@ -170,4 +171,49 @@ TEST(CharacterTest, toCaseFolded)
    ASSERT_EQ(Character::toCaseFolded(0x10400),(char32_t) 0x10428);
    ASSERT_EQ(Character::toCaseFolded(0x10428), (char32_t)0x10428);
    ASSERT_EQ(Character::toCaseFolded(0xb5), (char32_t)0x3bc);
+}
+
+TEST(CharacterTest, testIsDigit)
+{
+   std::list<std::pair<Character, bool>> data;
+   for(char16_t ucs = 0; ucs < 256; ++ucs)
+   {
+      bool isDigit = (ucs >= '0' && ucs <= '9');
+      data.push_back(std::make_pair(Character(ucs), isDigit));
+   }
+   auto begin = data.begin();
+   auto end = data.end();
+   while (begin != end) {
+      ASSERT_EQ((*begin).first.isDigit(), (*begin).second);
+      ++begin;
+   }
+}
+
+namespace
+{
+
+bool is_expected_letter(char16_t ucs)
+{
+   return (ucs >= 'a' && ucs <= 'z') || (ucs >= 'A' && ucs <= 'Z') ||
+         ucs == 0xAA || ucs == 0xB5 || ucs == 0xBA ||
+         (ucs >= 0xC0 && ucs <= 0xD6) ||
+         (ucs >= 0xD8 && ucs <= 0xF6) ||
+         (ucs >= 0xF8 && ucs <= 0xFF);
+}
+
+}
+
+TEST(CharacterTest, testIsLetter)
+{
+   std::list<std::pair<Character, bool>> data;
+   for(char16_t ucs = 0; ucs < 256; ++ucs)
+   {
+      data.push_back(std::make_pair(Character(ucs), is_expected_letter(ucs)));
+   }
+   auto begin = data.begin();
+   auto end = data.end();
+   while (begin != end) {
+      ASSERT_EQ((*begin).first.isLetter(), (*begin).second);
+      ++begin;
+   }
 }
