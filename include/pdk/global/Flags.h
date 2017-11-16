@@ -234,24 +234,24 @@ private:
 };
 
 #define PDK_DECLARE_FLAGS(FlagsType, Enum)\
-   using FlagsType = pdk::Flags<Enum>;
+   using FlagsType = pdk::Flags<Enum>
 
 #define PDK_DECLARE_INCOMPATIBLE_FLAGS(Flags)\
-   constexpr inline IncompatibleFlag operator|(Flags::EnumType flag1, int flag2) noexcept\
+   constexpr inline pdk::IncompatibleFlag operator|(Flags::EnumType flag1, int flag2) noexcept\
 {\
-   return IncompatibleFlag(int(flag1) | flag2);\
+   return pdk::IncompatibleFlag(int(flag1) | flag2);\
 }
 
-#define PDK_DECLARE_OPERATORS_FOR_FLAGS(Flags)\
-   constexpr inline Flags<Flags::EnumType> operator|(Flags::EnumType flag1, Flags::EnumType flag2) noexcept\
+#define PDK_DECLARE_OPERATORS_FOR_FLAGS(UserFlags)\
+   constexpr inline pdk::Flags<UserFlags::EnumType> operator|(UserFlags::EnumType flag1, UserFlags::EnumType flag2) noexcept\
 {\
-   return Flags<Flags::EnumType>(flag1) | flag2;\
+   return pdk::Flags<UserFlags::EnumType>(flag1) | flag2;\
 }\
-   constexpr inline Flags<Flags::EnumType> operator|(Flags::EnumType flag1, QFlags<Flags::EnumType> flag2) noexcept\
+   constexpr inline pdk::Flags<UserFlags::EnumType> operator|(UserFlags::EnumType flag1, pdk::Flags<UserFlags::EnumType> flag2) noexcept\
 {\
-   return flag1 | flag2;\
+   return flag2 | flag1;\
 }\
-   PDK_DECLARE_INCOMPATIBLE_FLAGS(Flags)
+   PDK_DECLARE_INCOMPATIBLE_FLAGS(UserFlags)
 
 } // pdk
 

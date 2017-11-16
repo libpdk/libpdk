@@ -13,8 +13,6 @@
 //
 // Created by softboy on 2017/11/14.
 
-
-
 #ifndef PDK_M_BASE_LANG_CHARACTER_H
 #define PDK_M_BASE_LANG_CHARACTER_H
 

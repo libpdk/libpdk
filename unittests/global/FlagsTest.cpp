@@ -1,5 +1,44 @@
+// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Created by softboy on 2017/11/14.
+
 #include "gtest/gtest.h"
-#include "pdk/base/lang/Character.h"
-#include "pdk/base/lang/internal/UnicodeTables.h"
+#include "pdk/global/Flags.h"
 #include <list>
 #include <utility>
+
+namespace pdktest 
+{
+
+enum Option
+{
+   NoOptions = 0x0,
+   ShowTabs = 0x1,
+   ShowAll = 0x2,
+   SqueezeBlank = 0x4,
+   CloseBtn = 0x8
+};
+
+PDK_DECLARE_FLAGS(Options, Option);
+PDK_DECLARE_OPERATORS_FOR_FLAGS(Options)
+
+template <unsigned int N, typename T>
+bool verify_const_expr(T n)
+{
+   return n == N;
+}
+
+}
+
+
