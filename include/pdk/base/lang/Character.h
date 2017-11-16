@@ -489,9 +489,9 @@ public:
       return m_data;
    }
    
-   inline bool isPrint() const noexcept
+   inline bool isPrintable() const noexcept
    {
-      return Character::isPrint(m_data);   
+      return Character::isPrintable(m_data);   
    }
    
    inline bool isMark() const noexcept
@@ -674,7 +674,7 @@ public:
    static Script PDK_FASTCALL getScript(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION;
    static UnicodeVersion PDK_FASTCALL getUnicodeVersion(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION;
    static UnicodeVersion PDK_FASTCALL getCurrentUnicodeVersion() noexcept PDK_DECL_CONST_FUNCTION;
-   static bool PDK_FASTCALL isPrint(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION;
+   static bool PDK_FASTCALL isPrintable(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION;
    
    static constexpr inline bool isSpace(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION
    {

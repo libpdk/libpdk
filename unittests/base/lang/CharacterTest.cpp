@@ -217,3 +217,205 @@ TEST(CharacterTest, testIsLetter)
       ++begin;
    }
 }
+
+TEST(CharacterTest, testIsLetterOrNumber)
+{
+   std::list<std::pair<Character, bool>> data;
+   for(char16_t ucs = 0; ucs < 256; ++ucs)
+   {
+      bool isLetterOrNumber = is_expected_letter(ucs) ||
+            (ucs >= '0' && ucs <= '9') ||
+            ucs == 0xB2 || ucs == 0xB3 || ucs == 0xB9 ||
+            (ucs >= 0xBC && ucs <= 0xBE);
+      data.push_back(std::make_pair(Character(ucs), isLetterOrNumber));
+   }
+   auto begin = data.begin();
+   auto end = data.end();
+   while (begin != end) {
+      ASSERT_EQ((*begin).first.isLetterOrNumber(), (*begin).second);
+      ++begin;
+   }
+}
+
+TEST(CharacterTest, testIsPrintable)
+{
+   // noncharacters, reserved (General_Gategory =Cn)
+   ASSERT_FALSE(Character(0x2064).isPrintable());
+   ASSERT_FALSE(Character(0x2069).isPrintable());
+   ASSERT_FALSE(Character(0xfdd0).isPrintable());
+   ASSERT_FALSE(Character(0xfdef).isPrintable());
+   ASSERT_FALSE(Character(0xfff0).isPrintable());
+   ASSERT_FALSE(Character(0xfff8).isPrintable());
+   ASSERT_FALSE(Character(0xfffe).isPrintable());
+   ASSERT_FALSE(Character(0xffff).isPrintable());
+   
+   ASSERT_FALSE(Character::isPrintable(0xe0000));
+   ASSERT_FALSE(Character::isPrintable(0xe0002));
+   ASSERT_FALSE(Character::isPrintable(0xe001f));
+   ASSERT_FALSE(Character::isPrintable(0xe0080));
+   ASSERT_FALSE(Character::isPrintable(0xe00ff));
+   
+   // Other_Default_Ignorable_Code_Point, Variation_Selector
+   ASSERT_TRUE(Character(0x034f).isPrintable());
+   ASSERT_TRUE(Character(0x115f).isPrintable());
+   ASSERT_TRUE(Character(0x180b).isPrintable());
+   ASSERT_TRUE(Character(0x180d).isPrintable());
+   ASSERT_TRUE(Character(0x3164).isPrintable());
+   ASSERT_TRUE(Character(0xfe00).isPrintable());
+   ASSERT_TRUE(Character(0xfe0f).isPrintable());
+   ASSERT_TRUE(Character(0xffa0).isPrintable());
+   
+   ASSERT_TRUE(Character::isPrintable(0xe0100));
+   ASSERT_TRUE(Character::isPrintable(0xe01ef));
+   
+   // Cf, Cs, Cc, White_Space, Annotation Characters
+   ASSERT_TRUE(!Character(0x0008).isPrintable());
+   ASSERT_TRUE(!Character(0x000a).isPrintable());
+   ASSERT_TRUE(Character(0x0020).isPrintable());
+   ASSERT_TRUE(Character(0x00a0).isPrintable());
+   ASSERT_TRUE(!Character(0x00ad).isPrintable());
+   ASSERT_TRUE(!Character(0x0085).isPrintable());
+   ASSERT_TRUE(!Character(0xd800).isPrintable());
+   ASSERT_TRUE(!Character(0xdc00).isPrintable());
+   ASSERT_TRUE(!Character(0xfeff).isPrintable());
+   ASSERT_TRUE(!Character::isPrintable(0x1d173));
+   
+   ASSERT_TRUE(Character('0').isPrintable());
+   ASSERT_TRUE(Character('A').isPrintable());
+   ASSERT_TRUE(Character('a').isPrintable());
+   
+   ASSERT_TRUE(Character(0x0370).isPrintable());// assigned in 5.1
+   ASSERT_TRUE(Character(0x0524).isPrintable());// assigned in 5.2
+   ASSERT_TRUE(Character(0x0526).isPrintable());// assigned in 6.0
+   ASSERT_TRUE(Character(0x08a0).isPrintable());// assigned in 6.1
+   ASSERT_TRUE(!Character(0x1aff).isPrintable());// not assigned
+   ASSERT_TRUE(Character(0x1e9e).isPrintable());// assigned in 5.1
+   
+   ASSERT_TRUE(Character::isPrintable(0x1b000));// assigned in 6.0
+   ASSERT_TRUE(Character::isPrintable(0x110d0));// assigned in 5.1
+   ASSERT_TRUE(!Character::isPrintable(0x1bca0));// assigned in 7.0
+}
+
+TEST(CharacterTest, testIsUpper)
+{
+   ASSERT_TRUE(Character('A').isUpper());
+   ASSERT_TRUE(Character('Z').isUpper());
+   ASSERT_TRUE(!Character('a').isUpper());
+   ASSERT_TRUE(!Character('z').isUpper());
+   ASSERT_TRUE(!Character('?').isUpper());
+   
+   ASSERT_TRUE(Character(0xC2).isUpper()); // A with ^
+   ASSERT_TRUE(!Character(0xE2).isUpper()); // a with ^
+   
+   for (char32_t codepoint = 0; codepoint <= Character::LastValidCodePoint; ++codepoint) {
+      if (Character::isUpper(codepoint)) {
+         ASSERT_EQ(codepoint, Character::toUpper(codepoint));
+      }
+   }
+}
+
+TEST(CharacterTest, testIsLower)
+{
+   ASSERT_TRUE(!Character('A').isLower());
+   ASSERT_TRUE(!Character('Z').isLower());
+   ASSERT_TRUE(Character('a').isLower());
+   ASSERT_TRUE(Character('z').isLower());
+   ASSERT_TRUE(!Character('?').isLower());
+   
+   ASSERT_TRUE(!Character(0xC2).isLower()); // A with ^
+   ASSERT_TRUE(Character(0xE2).isLower()); // a with ^
+   
+   for (char32_t codepoint = 0; codepoint <= Character::LastValidCodePoint; ++codepoint) {
+      if (Character::isLower(codepoint)) {
+         ASSERT_EQ(codepoint, Character::toLower(codepoint));
+      }
+   }
+}
+
+TEST(CharacterTest, testTitleCase)
+{
+   for (char32_t codepoint = 0; codepoint <= Character::LastValidCodePoint; ++codepoint) {
+      if (Character::isTitleCase(codepoint)) {
+         ASSERT_EQ(codepoint, Character::toTitleCase(codepoint));
+      }
+   }
+}
+
+TEST(CharacterTest, testIsSpace)
+{
+   std::list<std::pair<Character, bool>> data;
+   for(char16_t ucs = 0; ucs < 256; ++ucs)
+   {
+      bool isSpace = (ucs <= 0x0D && ucs >= 0x09) || ucs == 0x20 || ucs == 0xA0 || ucs == 0x85;
+      data.push_back(std::make_pair(Character(ucs), isSpace));
+   }
+   auto begin = data.begin();
+   auto end = data.end();
+   while (begin != end) {
+      ASSERT_EQ((*begin).first.isSpace(), (*begin).second);
+      ++begin;
+   }
+}
+
+TEST(CharacterTest, testIsSpaceSpecial)
+{
+   ASSERT_TRUE(!Character(Character::Null).isSpace());
+   ASSERT_TRUE(Character(Character::Nbsp).isSpace());
+   ASSERT_TRUE(Character(Character::ParagraphSeparator).isSpace());
+   ASSERT_TRUE(Character(Character::LineSeparator).isSpace());
+   ASSERT_TRUE(Character(Character::LineFeed).isSpace());
+   ASSERT_TRUE(Character(0x1680).isSpace());
+}
+
+TEST(CharacterTest, testGetCategory)
+{
+   ASSERT_EQ(Character('a').getCategory(), Character::Category::Letter_Lowercase);
+   ASSERT_EQ(Character('A').getCategory(), Character::Category::Letter_Uppercase);
+   
+   ASSERT_EQ(Character::getCategory('a'), Character::Category::Letter_Lowercase);
+   ASSERT_EQ(Character::getCategory('A'), Character::Category::Letter_Uppercase);
+   
+   ASSERT_EQ(Character::getCategory(0xe0100), Character::Category::Mark_NonSpacing);
+   ASSERT_NE(Character::getCategory(0xeffff), Character::Category::Other_PrivateUse);
+   ASSERT_EQ(Character::getCategory(0xf0000), Character::Category::Other_PrivateUse);
+   ASSERT_EQ(Character::getCategory(0xf0001), Character::Category::Other_PrivateUse);
+   
+   ASSERT_EQ(Character::getCategory(0xd900), Character::Category::Other_Surrogate);
+   ASSERT_EQ(Character::getCategory(0xdc00), Character::Category::Other_Surrogate);
+   ASSERT_EQ(Character::getCategory(0xdc01), Character::Category::Other_Surrogate);
+   
+   ASSERT_EQ(Character::getCategory(0x1aff), Character::Category::Other_NotAssigned);
+   ASSERT_EQ(Character::getCategory(0x10fffd), Character::Category::Other_PrivateUse);
+   ASSERT_EQ(Character::getCategory(0x10ffff), Character::Category::Other_NotAssigned);
+   ASSERT_EQ(Character::getCategory(0x110000), Character::Category::Other_NotAssigned);
+}
+
+TEST(CharacterTest, testGetDirection)
+{
+   ASSERT_EQ(Character::getDirection(0x200E), Character::Direction::DirL);
+   ASSERT_EQ(Character::getDirection(0x200F), Character::Direction::DirR);
+   ASSERT_EQ(Character::getDirection(0x202A), Character::Direction::DirLRE);
+   ASSERT_EQ(Character::getDirection(0x202B), Character::Direction::DirRLE);
+   ASSERT_EQ(Character::getDirection(0x202C), Character::Direction::DirPDF);
+   ASSERT_EQ(Character::getDirection(0x202D), Character::Direction::DirLRO);
+   ASSERT_EQ(Character::getDirection(0x202E), Character::Direction::DirRLO);
+   ASSERT_EQ(Character::getDirection(0x2066), Character::Direction::DirLRI);
+   ASSERT_EQ(Character::getDirection(0x2067), Character::Direction::DirRLI);
+   ASSERT_EQ(Character::getDirection(0x2068), Character::Direction::DirFSI);
+   ASSERT_EQ(Character::getDirection(0x2069), Character::Direction::DirPDI);
+   
+   ASSERT_EQ(Character('a').getDirection(), Character::Direction::DirL);
+   ASSERT_EQ(Character('0').getDirection(), Character::Direction::DirEN);
+   ASSERT_EQ(Character(0x627).getDirection(), Character::Direction::DirAL);
+   ASSERT_EQ(Character(0x5d0).getDirection(), Character::Direction::DirR);
+   
+   ASSERT_EQ(Character::getDirection('a'), Character::Direction::DirL);
+   ASSERT_EQ(Character::getDirection('0'), Character::Direction::DirEN);
+   ASSERT_EQ(Character::getDirection(0x627), Character::Direction::DirAL);
+   ASSERT_EQ(Character::getDirection(0x5d0), Character::Direction::DirR);
+   
+   ASSERT_EQ(Character::getDirection(0xE01DA), Character::Direction::DirNSM);
+   ASSERT_EQ(Character::getDirection(0xf0000), Character::Direction::DirL);
+   ASSERT_EQ(Character::getDirection(0xE0030), Character::Direction::DirBN);
+   ASSERT_EQ(Character::getDirection(0x2FA17), Character::Direction::DirL);
+}

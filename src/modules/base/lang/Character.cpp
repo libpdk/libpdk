@@ -30,7 +30,7 @@ using internal::unicodetables::CasefoldTraits;
 
 #define FLAG(x) (1 << (x))
 
-bool Character::isPrint(char32_t ucs4) noexcept
+bool Character::isPrintable(char32_t ucs4) noexcept
 {
    if (ucs4 > LastValidCodePoint) {
       return false;
