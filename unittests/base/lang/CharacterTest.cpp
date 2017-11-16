@@ -15,11 +15,13 @@
 
 #include "gtest/gtest.h"
 #include "pdk/base/lang/Character.h"
+#include "pdk/base/lang/internal/UnicodeTables.h"
 #include <list>
 #include <utility>
 
 using pdk::lang::Character;
 using pdk::lang::Latin1Character;
+using namespace pdk::lang::internal::unicodetables;
 
 TEST(CharacterTest, testEqualInt)
 {
@@ -419,3 +421,236 @@ TEST(CharacterTest, testGetDirection)
    ASSERT_EQ(Character::getDirection(0xE0030), Character::Direction::DirBN);
    ASSERT_EQ(Character::getDirection(0x2FA17), Character::Direction::DirL);
 }
+
+TEST(CharacterTest, testGetJoiningType)
+{
+   ASSERT_EQ(Character('a').getJoiningType(), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character('0').getJoiningType(), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character(0x0627).getJoiningType(), Character::JoiningType::Joining_Right);
+   ASSERT_EQ(Character(0x05d0).getJoiningType(), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character(0x00ad).getJoiningType(), Character::JoiningType::Joining_Transparent);
+   ASSERT_EQ(Character(0xA872).getJoiningType(), Character::JoiningType::Joining_Left);
+   
+   ASSERT_EQ(Character::getJoiningType('a'), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character::getJoiningType('0'), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character::getJoiningType(0x0627), Character::JoiningType::Joining_Right);
+   ASSERT_EQ(Character::getJoiningType(0x05d0), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character::getJoiningType(0x00ad), Character::JoiningType::Joining_Transparent);
+   
+   ASSERT_EQ(Character::getJoiningType(0xE01DA), Character::JoiningType::Joining_Transparent);
+   ASSERT_EQ(Character::getJoiningType(0xf0000), Character::JoiningType::Joining_None);
+   ASSERT_EQ(Character::getJoiningType(0xE0030), Character::JoiningType::Joining_Transparent);
+   ASSERT_EQ(Character::getJoiningType(0x2FA17), Character::JoiningType::Joining_None);
+   
+   ASSERT_EQ(Character::getJoiningType(0xA872), Character::JoiningType::Joining_Left);
+   ASSERT_EQ(Character::getJoiningType(0x10ACD), Character::JoiningType::Joining_Left);
+   ASSERT_EQ(Character::getJoiningType(0x10AD7), Character::JoiningType::Joining_Left);
+}
+
+TEST(CharacterTest, testCombiningClass)
+{
+   ASSERT_EQ(Character('a').getCombiningClass(), 0);
+   ASSERT_EQ(Character('0').getCombiningClass(), 0);
+   ASSERT_EQ(Character(0x627).getCombiningClass(), 0);
+   ASSERT_EQ(Character(0x5d0).getCombiningClass(), 0);
+   
+   ASSERT_EQ(Character::getCombiningClass('a'), 0);
+   ASSERT_EQ(Character::getCombiningClass('0'), 0);
+   ASSERT_EQ(Character::getCombiningClass(0x627), 0);
+   ASSERT_EQ(Character::getCombiningClass(0x5d0), 0);
+   
+   ASSERT_EQ(Character::getCombiningClass(0xE01DA), 0);
+   ASSERT_EQ(Character::getCombiningClass(0xf0000), 0);
+   ASSERT_EQ(Character::getCombiningClass(0xE0030), 0);
+   ASSERT_EQ(Character::getCombiningClass(0x2FA17), 0);
+   
+   ASSERT_EQ(Character::getCombiningClass(0x300), 230);
+   ASSERT_EQ(Character::getCombiningClass(0x1d244), 230);
+}
+
+TEST(CharacterTest, testUnicodeVersion)
+{
+   ASSERT_EQ(Character('a').getUnicodeVersion(), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character('0').getUnicodeVersion(), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character(0x627).getUnicodeVersion(), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character(0x5d0).getUnicodeVersion(), Character::UnicodeVersion::Unicode_1_1);
+   
+   ASSERT_EQ(Character::getUnicodeVersion('a'), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character::getUnicodeVersion('0'), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x627), Character::UnicodeVersion::Unicode_1_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x5d0), Character::UnicodeVersion::Unicode_1_1);
+   
+   ASSERT_EQ(Character(0x0591).getUnicodeVersion(), Character::UnicodeVersion::Unicode_2_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0591), Character::UnicodeVersion::Unicode_2_0);
+   
+   ASSERT_EQ(Character(0x20AC).getUnicodeVersion(), Character::UnicodeVersion::Unicode_2_1_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0x20AC), Character::UnicodeVersion::Unicode_2_1_2);
+   ASSERT_EQ(Character(0xfffc).getUnicodeVersion(), Character::UnicodeVersion::Unicode_2_1_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0xfffc), Character::UnicodeVersion::Unicode_2_1_2);
+   
+   ASSERT_EQ(Character(0x01f6).getUnicodeVersion(), Character::UnicodeVersion::Unicode_3_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x01f6), Character::UnicodeVersion::Unicode_3_0);
+   
+   ASSERT_EQ(Character(0x03F4).getUnicodeVersion(), Character::UnicodeVersion::Unicode_3_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x03F4), Character::UnicodeVersion::Unicode_3_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x10300), Character::UnicodeVersion::Unicode_3_1);
+   
+   ASSERT_EQ(Character(0x0220).getUnicodeVersion(), Character::UnicodeVersion::Unicode_3_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0220), Character::UnicodeVersion::Unicode_3_2);
+   ASSERT_EQ(Character(0x0220).getUnicodeVersion(), Character::UnicodeVersion::Unicode_3_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0xFF5F), Character::UnicodeVersion::Unicode_3_2);
+   
+   ASSERT_EQ(Character(0x0221).getUnicodeVersion(), Character::UnicodeVersion::Unicode_4_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0221), Character::UnicodeVersion::Unicode_4_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x10000), Character::UnicodeVersion::Unicode_4_0);
+   
+   ASSERT_EQ(Character(0x0237).getUnicodeVersion(), Character::UnicodeVersion::Unicode_4_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0237), Character::UnicodeVersion::Unicode_4_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x10140), Character::UnicodeVersion::Unicode_4_1);
+   
+   ASSERT_EQ(Character(0x0242).getUnicodeVersion(), Character::UnicodeVersion::Unicode_5_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0242), Character::UnicodeVersion::Unicode_5_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x12000), Character::UnicodeVersion::Unicode_5_0);
+   
+   ASSERT_EQ(Character(0x0370).getUnicodeVersion(), Character::UnicodeVersion::Unicode_5_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0370), Character::UnicodeVersion::Unicode_5_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x1f093), Character::UnicodeVersion::Unicode_5_1);
+   
+   ASSERT_EQ(Character(0x0524).getUnicodeVersion(), Character::UnicodeVersion::Unicode_5_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0x0524), Character::UnicodeVersion::Unicode_5_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0x2b734), Character::UnicodeVersion::Unicode_5_2);
+   
+   ASSERT_EQ(Character(0x26ce).getUnicodeVersion(), Character::UnicodeVersion::Unicode_6_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x26ce), Character::UnicodeVersion::Unicode_6_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x1f618), Character::UnicodeVersion::Unicode_6_0);
+   
+   ASSERT_EQ(Character(0xa69f).getUnicodeVersion(), Character::UnicodeVersion::Unicode_6_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0xa69f), Character::UnicodeVersion::Unicode_6_1);
+   ASSERT_EQ(Character::getUnicodeVersion(0x1f600), Character::UnicodeVersion::Unicode_6_1);
+   
+   ASSERT_EQ(Character(0x20ba).getUnicodeVersion(), Character::UnicodeVersion::Unicode_6_2);
+   ASSERT_EQ(Character::getUnicodeVersion(0x20ba), Character::UnicodeVersion::Unicode_6_2);
+   
+   ASSERT_EQ(Character(0x061c).getUnicodeVersion(), Character::UnicodeVersion::Unicode_6_3);
+   ASSERT_EQ(Character::getUnicodeVersion(0x061c), Character::UnicodeVersion::Unicode_6_3);
+   
+   ASSERT_EQ(Character(0x20bd).getUnicodeVersion(), Character::UnicodeVersion::Unicode_7_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x20bd), Character::UnicodeVersion::Unicode_7_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x16b00), Character::UnicodeVersion::Unicode_7_0);
+   
+   ASSERT_EQ(Character(0x08b3).getUnicodeVersion(), Character::UnicodeVersion::Unicode_8_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x08b3), Character::UnicodeVersion::Unicode_8_0);
+   ASSERT_EQ(Character::getUnicodeVersion(0x108e0), Character::UnicodeVersion::Unicode_8_0);
+   
+   ASSERT_EQ(Character(0x09ff).getUnicodeVersion(), Character::UnicodeVersion::Unicode_Unassigned);
+   ASSERT_EQ(Character::getUnicodeVersion(0x09ff), Character::UnicodeVersion::Unicode_Unassigned);
+   ASSERT_EQ(Character::getUnicodeVersion(0x110000), Character::UnicodeVersion::Unicode_Unassigned);
+}
+
+TEST(CharacterTest, testGetDigitalValue)
+{
+   ASSERT_EQ(Character('9').getDigitValue(), 9);
+   ASSERT_EQ(Character('0').getDigitValue(), 0);
+   ASSERT_EQ(Character('a').getDigitValue(), -1);
+   
+   ASSERT_EQ(Character::getDigitValue('9'), 9);
+   ASSERT_EQ(Character::getDigitValue('0'), 0);
+   
+   ASSERT_EQ(Character::getDigitValue(0x1049), 9);
+   ASSERT_EQ(Character::getDigitValue(0x1040), 0);
+   
+   ASSERT_EQ(Character::getDigitValue(0xd800), -1);
+   ASSERT_EQ(Character::getDigitValue(0x110000), -1);
+}
+
+TEST(CharacterTest, testMirroredChar)
+{
+   ASSERT_TRUE(Character(0x169B).hasMirrored());
+   ASSERT_EQ(Character(0x169B).getMirroredCharacter(), Character(0x169C));
+   
+   ASSERT_TRUE(Character(0x169C).hasMirrored());
+   ASSERT_EQ(Character(0x169C).getMirroredCharacter(), Character(0x169B));
+   
+   ASSERT_TRUE(Character(0x301A).hasMirrored());
+   ASSERT_EQ(Character(0x301A).getMirroredCharacter(), Character(0x301B));
+   
+   ASSERT_TRUE(Character(0x301B).hasMirrored());
+   ASSERT_EQ(Character(0x301B).getMirroredCharacter(), Character(0x301A));
+}
+
+TEST(CharacterTest, testDecomposition)
+{
+   for (uint ucs = 0xac00; ucs <= 0xd7af; ++ucs) {
+      Character::Decomposition expected = Character::getUnicodeVersion(ucs) > Character::UnicodeVersion::Unicode_Unassigned 
+            ? Character::Decomposition::Canonical : Character::Decomposition::NoDecomposition;
+      ASSERT_EQ(Character::getDecompositionTag(ucs), expected);
+   }
+   
+   ASSERT_EQ(Character(0xa0).getDecompositionTag(), Character::Decomposition::NoBreak);
+   ASSERT_EQ(Character(0xa8).getDecompositionTag(), Character::Decomposition::Compat);
+   ASSERT_EQ(Character(0x41).getDecompositionTag(), Character::Decomposition::NoDecomposition);
+   
+   ASSERT_EQ(Character::getDecompositionTag(0xa0), Character::Decomposition::NoBreak);
+   ASSERT_EQ(Character::getDecompositionTag(0xa8), Character::Decomposition::Compat);
+   ASSERT_EQ(Character::getDecompositionTag(0x41), Character::Decomposition::NoDecomposition);
+   
+}
+
+
+
+TEST(CharacterTest, testLineBreakClass)
+{
+   ASSERT_EQ(line_break_class(0x0029), LineBreakClass::LineBreak_CP);
+   ASSERT_EQ(line_break_class(0x0041), LineBreakClass::LineBreak_AL);
+   ASSERT_EQ(line_break_class(0x0033), LineBreakClass::LineBreak_NU);
+   ASSERT_EQ(line_break_class(0x00ad), LineBreakClass::LineBreak_BA);
+   ASSERT_EQ(line_break_class(0x05d0), LineBreakClass::LineBreak_HL);
+   ASSERT_EQ(line_break_class(0xfffc), LineBreakClass::LineBreak_CB);
+   ASSERT_EQ(line_break_class(0xe0164), LineBreakClass::LineBreak_CM);
+   ASSERT_EQ(line_break_class(0x2f9a4), LineBreakClass::LineBreak_ID);
+   ASSERT_EQ(line_break_class(0x10000), LineBreakClass::LineBreak_AL);
+   ASSERT_EQ(line_break_class(0x1f1e6), LineBreakClass::LineBreak_RI);
+   
+   // mapped to AL:
+   ASSERT_EQ(line_break_class(0xfffd), LineBreakClass::LineBreak_AL);
+   ASSERT_EQ(line_break_class(0x100000), LineBreakClass::LineBreak_AL);
+}
+
+TEST(CharacterTest, testGetScript)
+{
+   ASSERT_EQ(Character::getScript(0x0020), Character::Script::Script_Common);
+   ASSERT_EQ(Character::getScript(0x0041), Character::Script::Script_Latin);
+   ASSERT_EQ(Character::getScript(0x0375), Character::Script::Script_Greek);
+   ASSERT_EQ(Character::getScript(0x0400), Character::Script::Script_Cyrillic);
+   ASSERT_EQ(Character::getScript(0x0531), Character::Script::Script_Armenian);
+   ASSERT_EQ(Character::getScript(0x0591), Character::Script::Script_Hebrew);
+   ASSERT_EQ(Character::getScript(0x0600), Character::Script::Script_Arabic);
+   ASSERT_EQ(Character::getScript(0x0700), Character::Script::Script_Syriac);
+   ASSERT_EQ(Character::getScript(0x0780), Character::Script::Script_Thaana);
+   ASSERT_EQ(Character::getScript(0x07c0), Character::Script::Script_Nko);
+   ASSERT_EQ(Character::getScript(0x0900), Character::Script::Script_Devanagari);
+   ASSERT_EQ(Character::getScript(0x0981), Character::Script::Script_Bengali);
+   ASSERT_EQ(Character::getScript(0x0a01), Character::Script::Script_Gurmukhi);
+   ASSERT_EQ(Character::getScript(0x0a81), Character::Script::Script_Gujarati);
+   ASSERT_EQ(Character::getScript(0x0b01), Character::Script::Script_Oriya);
+   ASSERT_EQ(Character::getScript(0x0b82), Character::Script::Script_Tamil);
+   ASSERT_EQ(Character::getScript(0x0c01), Character::Script::Script_Telugu);
+   ASSERT_EQ(Character::getScript(0x0c82), Character::Script::Script_Kannada);
+   ASSERT_EQ(Character::getScript(0x0d02), Character::Script::Script_Malayalam);
+   ASSERT_EQ(Character::getScript(0x0d82), Character::Script::Script_Sinhala);
+   ASSERT_EQ(Character::getScript(0x0e01), Character::Script::Script_Thai);
+   ASSERT_EQ(Character::getScript(0x0e81), Character::Script::Script_Lao);
+   ASSERT_EQ(Character::getScript(0x0f00), Character::Script::Script_Tibetan);
+   ASSERT_EQ(Character::getScript(0x1000), Character::Script::Script_Myanmar);
+   ASSERT_EQ(Character::getScript(0x10a0), Character::Script::Script_Georgian);
+   ASSERT_EQ(Character::getScript(0x1100), Character::Script::Script_Hangul);
+   ASSERT_EQ(Character::getScript(0x1680), Character::Script::Script_Ogham);
+   ASSERT_EQ(Character::getScript(0x16a0), Character::Script::Script_Runic);
+   ASSERT_EQ(Character::getScript(0x1780), Character::Script::Script_Khmer);
+   ASSERT_EQ(Character::getScript(0x200c), Character::Script::Script_Inherited);
+   ASSERT_EQ(Character::getScript(0x200d), Character::Script::Script_Inherited);
+   ASSERT_EQ(Character::getScript(0x1018a), Character::Script::Script_Greek);
+   ASSERT_EQ(Character::getScript(0x1f130), Character::Script::Script_Common);
+   ASSERT_EQ(Character::getScript(0xe0100), Character::Script::Script_Inherited);
+}
+
