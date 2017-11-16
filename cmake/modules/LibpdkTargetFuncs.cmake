@@ -619,7 +619,6 @@ function(pdk_add_unittest test_suite test_name)
     if(PDK_SUPPORTS_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS_FLAG)
         list(APPEND PDK_COMPILE_FLAGS "-Wno-gnu-zero-variadic-macro-arguments")
     endif()
-    
     pdk_add_executable(${test_name} IGNORE_EXTERNALIZE_DEBUGINFO NO_INSTALL_RPATH ${ARGN})
     set(outdir ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR})
     pdk_set_output_directory(${test_name} BINARY_DIR ${outdir} LIBRARY_DIR ${outdir})

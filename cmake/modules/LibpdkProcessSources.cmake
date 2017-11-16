@@ -47,7 +47,6 @@ function(pdk_process_sources out_var)
         set_source_files_properties(${ARG_ADDITIONAL_HEADERS} PROPERTIES HEADER_FILE_ONLY ON)
         list(APPEND sources ${ARG_ADDITIONAL_HEADERS} ${hdrs})
     endif()
-    pdk_check_source_file_list(${sources})
     set(${out_var} ${sources} PARENT_SCOPE)
 endfunction()
 
@@ -63,32 +62,5 @@ function(pdk_find_all_header_files hdrs_out additional_headerdirs)
     set(${hdrs_out} ${all_headers} PARENT_SCOPE)
 endfunction()
 
-function(pdk_check_source_file_list)
-    cmake_parse_arguments(ARG "" "SOURCE_DIR" "" ${ARGN})
-    set(listed ${ARG_UNPARSED_ARGUMENTS})
-    if(ARG_SOURCE_DIR)
-        file(GLOB globbed
-            RELATIVE "${CMAKE_CURRENT_LIST_DIR}"
-            "${ARG_SOURCE_DIR}/*.c" "${ARG_SOURCE_DIR}/*.cpp")
-    else()
-        file(GLOB globbed *.c *.cpp)
-    endif()
-    foreach(g ${globbed})
-        get_filename_component(fn ${g} NAME)
-        if(ARG_SOURCE_DIR)
-            set(entry "${g}")
-        else()
-            set(entry "${fn}")
-        endif()
-        # Don't reject hidden files. Some editors create backups in the
-        # same directory as the file.
-        if (NOT "${fn}" MATCHES "^\\.")
-            list(FIND PDK_OPTIONAL_SOURCES ${entry} idx)
-            if(idx LESS 0)
-                message(SEND_ERROR "Found unknown source file ${g}
-                    Please update ${CMAKE_CURRENT_LIST_FILE}\n")
-            endif()
-        endif()
-    endforeach()
-endfunction()
+
 

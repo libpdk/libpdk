@@ -18,6 +18,15 @@
 
 #include "pdk/global/Global.h"
 
+#ifdef truncate
+#error String.h must be included before any header file that defines truncate
+#endif
+
+#ifdef PDK_OS_DARWIN
+PDK_FORWARD_DECLARE_CF_TYPE(CFString);
+PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
+#endif
+
 namespace pdk {
 namespace lang {
 

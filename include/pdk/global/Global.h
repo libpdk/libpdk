@@ -70,6 +70,49 @@
 #  define PDK_DEBUG
 #endif
 
+#if defined(PDK_CC_GNU) && !defined(__INSURE__)
+#  if defined(PDK_CC_MINGW) && !defined(PDK_CC_CLANG)
+#     define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B) \
+         __attribute__((format(gnu_printf, (A), (B))))
+#  else
+#     define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B) \
+         __attribute__((format(printf, (A), (B))))
+#  endif
+#else
+#  define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B)
+#endif
+
+#ifdef PDK_CC_MSVC
+#  define PDK_NEVER_INLINE __declspec(noinline)
+#  define PDK_ALWAYS_INLINE __forceinline
+#elif defined(PDK_CC_GNU)
+#  define PDK_NEVER_INLINE __attribute__((noinline))
+#  define PDK_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#  define PDK_NEVER_INLINE
+#  define PDK_NEVER_INLINE inline
+#endif
+
+#ifndef PDK_FORWARD_DECLARE_OBJC_CLASS
+#  ifdef __OBJC__
+#    define PDK_FORWARD_DECLARE_OBJC_CLASS(classname) @class classname
+#  else
+#    define PDK_FORWARD_DECLARE_OBJC_CLASS(classname) typedef struct objc_object classname
+#  endif
+#endif
+#ifndef PDK_FORWARD_DECLARE_CF_TYPE
+#  define PDK_FORWARD_DECLARE_CF_TYPE(type) typedef const struct __ ## type * type ## Ref
+#endif
+#ifndef PDK_FORWARD_DECLARE_MUTABLE_CF_TYPE
+#  define PDK_FORWARD_DECLARE_MUTABLE_CF_TYPE(type) typedef struct __ ## type * type ## Ref
+#endif
+#ifndef PDK_FORWARD_DECLARE_CG_TYPE
+#  define PDK_FORWARD_DECLARE_CG_TYPE(type) typedef const struct type *type ## Ref;
+#endif
+#ifndef PDK_FORWARD_DECLARE_MUTABLE_CG_TYPE
+#  define PDK_FORWARD_DECLARE_MUTABLE_CG_TYPE(type) typedef struct type *type ## Ref;
+#endif
+
 namespace pdk 
 {
 
