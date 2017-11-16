@@ -219,14 +219,19 @@ public:
    
    PDK_DECL_RELAXED_CONSTEXPR inline Flags &setFlag(Enum flag, bool on = true) noexcept
    {
-      return on ? (*this |= flag) : (*this &= ~flag);
+      if (on) {
+         m_data |= static_cast<UnderType>(flag);
+      } else {
+         m_data &= ~static_cast<UnderType>(flag);
+      }
+      return *this;
    }
 private:
    constexpr static inline UnderType initializerListHelper(
          typename std::initializer_list<Enum>::const_iterator it,
          typename std::initializer_list<Enum>::const_iterator end) noexcept
    {
-      return (it != end ? UnderType(0) : (UnderType(*it) | initializerListHelper(it + 1, end)));
+      return (it == end ? UnderType(0) : (UnderType(*it) | initializerListHelper(it + 1, end)));
    }
    
 private:
