@@ -164,6 +164,60 @@ PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file,
 #  endif
 #endif
 
+/*
+  uintptr and ptrdiff is guaranteed to be the same size as a pointer, i.e.
+
+      sizeof(void *) == sizeof(uintptr)
+      && sizeof(void *) == sizeof(ptrdiff)
+*/
+template <int> struct IntegerForSize;
+
+template <> 
+struct IntegerForSize<1>
+{
+   using Unsigned = puint8;
+   using Signed = pint8;
+};
+
+template <>
+struct IntegerForSize<2>
+{
+   using Unsigned = puint16;
+   using Signed = pint16;
+};
+
+template <>
+struct IntegerForSize<4>
+{
+   using Unsigned = puint32;
+   using Signed = pint32;
+};
+
+template <>
+struct IntegerForSize<8>
+{
+   using Unsigned = puint64;
+   using Signed = puint64;
+};
+
+#if defined(PDK_CC_GNU) && defined(__SIZEOF_INT128__)
+template <>
+struct IntegerForSize<16>
+{
+   __extension__ typedef unsigned __int128 Unsigned;
+   __extension__ typedef __int128 Signed;
+};
+#endif
+
+template <typename T>
+struct IntegerForSizeof : IntegerForSize<sizeof(T)>
+{};
+
+using registerint = typename IntegerForSize<PDK_PROCESSOR_WORDSIZE>::Signed;
+using registeruint = typename IntegerForSize<PDK_PROCESSOR_WORDSIZE>::Unsigned;
+using uintptr = typename IntegerForSizeof<void *>::Unsigned;
+using intptr = typename IntegerForSizeof<void *>::Signed;
+
 #ifndef PDK_CC_MSVC
 PDK_NORETURN
 #endif
