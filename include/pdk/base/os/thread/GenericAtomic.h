@@ -211,7 +211,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType, typename RawType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndStoreAcquire(AtomicType &atomicValue, RawType newValue) noexcept
    {
       AtomicType temp = BaseClass::fetchAndStoreRelaxed(atomicValue, newValue);
@@ -220,7 +220,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType, typename RawType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndStoreRelease(AtomicType &atomicValue, RawType newValue) noexcept
    {
       BaseClass::releaseMemoryFence(atomicValue);
@@ -228,7 +228,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType, typename RawType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndStoreOrdered(AtomicType &atomicValue, RawType newValue) noexcept
    {
       BaseClass::orderedMemoryFence(atomicValue);
@@ -246,7 +246,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndAddRelaxed(AtomicType &atomicValue, 
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
    {
@@ -259,7 +259,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndAddAcquire(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
    {
@@ -278,7 +278,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndAddOrdered(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
    {
@@ -287,7 +287,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndSubRelaxed(AtomicType &atomicValue, 
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
    {
@@ -295,7 +295,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndSubAcquire(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
    {
@@ -305,7 +305,7 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndSubRelease(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
    {
@@ -314,12 +314,135 @@ struct GenericAtomicOps
    }
    
    template <typename AtomicType>
-   static PDK_ALWAYS_INLINE 
+   static PDK_ALWAYS_INLINE
    AtomicType fetchAndSubOrdered(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
    {
       BaseClass::orderedMemoryFence(atomicValue);
       return BaseClass::fetchAndSubRelaxed(atomicValue, valueToSub);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndAndRelaxed(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = load(atomicValue);
+      while(true) {
+         if (BaseClass::testAndSetRelaxed(atomicValue, temp, AtomicType(temp & operand), &temp)) {
+            return temp;
+         }       
+      }
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndAndAcquire(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndAndRelaxed(atomicValue, operand);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndAndRelease(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndAndRelaxed(atomicValue, operand);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndAndOrdered(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndAndRelaxed(atomicValue, operand);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndOrRelaxed(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = load(atomicValue);
+      while(true) {
+         if (BaseClass::testAndSetRelaxed(atomicValue, temp, AtomicType(temp | operand), &temp)) {
+            return temp;
+         }       
+      }
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndOrAcquire(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndOrRelaxed(atomicValue, operand);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndOrRelease(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndOrRelaxed(atomicValue, operand);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndOrOrdered(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndOrRelaxed(atomicValue, operand);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndXorRelaxed(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = load(atomicValue);
+      while(true) {
+         if (BaseClass::testAndSetRelaxed(atomicValue, temp, AtomicType(temp ^ operand), &temp)) {
+            return temp;
+         }       
+      }
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndXorAcquire(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndXorRelaxed(atomicValue, operand);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndXorRelease(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndXorRelaxed(atomicValue, operand);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndXorOrdered(AtomicType &atomicValue,
+                                 typename std::enable_if<std::is_integral<AtomicType>::value, AtomicType>::type operand) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndXorRelaxed(atomicValue, operand);
    }
 };
 
