@@ -16,6 +16,8 @@
 #ifndef PDK_M_BASE_OS_THREAD_GENERIC_ATOMIC_H
 #define PDK_M_BASE_OS_THREAD_GENERIC_ATOMIC_H
 
+#include "pdk/global/Global.h"
+
 namespace pdk {
 namespace os {
 namespace thread {
@@ -48,6 +50,277 @@ struct AtomicAdditiveType<T *>
 {
    using AdditiveType = T;
    static const int AddScale = sizeof(T);
+};
+
+template <typename BaseClass>
+struct GenericAtomicOps
+{
+   template <typename T>
+   struct AtomicUnderType 
+   {
+      using Type = T;
+      using PointerType = T *;
+   };
+   
+   template <typename AtomicType>
+   static void acquireMemoryFence(const AtomicType &atomicValue) noexcept
+   {
+      BaseClass::orderedMemoryFence(value);
+   }
+   
+   template <typename AtomicType>
+   static void releaseMemoryFence(const AtomicType &atomicValue) noexcept
+   {
+      BaseClass::orderedMemoryFence(value);
+   }
+   
+   template <typename AtomicType>
+   static void orderedMemoryFence(const AtomicType &) noexcept
+   {}
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE AtomicType load(const AtomicType &atomicValue) noexcept
+   {
+      return value;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE void store(AtomicType &atomicValue, RawType newValue) noexcept
+   {
+      atomicValue = newValue;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE AtomicType loadAcquire(const AtomicType &atomicValue) noexcept
+   {
+      AtomicType temp = *static_cast<const volatile AtomicType *>(&atomicValue);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE void storeRelease(AtomicType &atomicValue, 
+                                              RawType newValue)
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      *static_cast<volatile AtomicType *>(&atomicValue) = newValue;
+   }
+   
+   static inline constexpr bool isRefCountingNative() noexcept
+   {
+      return BaseClass::isFetchAndAddNative();
+   }
+   
+   static inline constexpr bool isRefCountingWaitFree() noexcept
+   {
+      return BaseClass::isFetchAndAddWaitFree();
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE bool ref(AtomicType &atomicValue) noexcept
+   {
+      return BaseClass::fetchAndAddRelaxed(atomicValue, 1) != AtomicType(-1);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE bool deref(AtomicType &atomicValue) noexcept
+   {
+      return BaseClass::fetchAndAddRelaxed(atomicValue, -1) != 1;
+   }
+   
+#if 0
+   static inline constexpr bool isTestAndSetNative() noexcept;
+   static inline constexpr bool isTestAndSetWaitFree() noexcept;
+   template <typename AtomicType, typename RawType> 
+   static inline bool testAndSetRelaxed(AtomicType &atomicValue, RawType expectedValue, 
+                                        RawType newValue) noexcept;
+   template <typename AtomicType, typename RawType> 
+   static inline bool testAndSetRelaxed(AtomicType &atomicValue, RawType expectedValue, 
+                                        RawType newValue, RawType *currentValue) noexcept;
+#endif
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetAcquire(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue) noexcept
+   {
+      bool status = BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return status;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetRelease(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue);
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetOrdered(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue);
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetAcquire(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue, RawType *currentValue) noexcept
+   {
+      bool status = BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue, currentValue);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return status;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetRelease(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue, RawType *currentValue) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue, currentValue);
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE bool testAndSetOrdered(AtomicType &atomicValue, RawType expectedValue, 
+                                                   RawType newValue, RawType *currentValue) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::testAndSetRelaxed(atomicValue, expectedValue, newValue, currentValue);
+   }
+   
+   static inline constexpr bool isFetchAndStoreNative() noexcept
+   {
+      return false;
+   }
+   
+   static inline constexpr bool isFetchAndStoreWaitFree() noexcept
+   {
+      return false;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndStoreRelaxed(AtomicType &atomicValue, RawType newValue) noexcept
+   {
+      while(true) {
+         AtomicType temp = load(atomicValue);
+         if (BaseClass::testAndSetRelaxed(atomicValue, temp, newValue)) {
+            return temp;
+         }
+      }
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndStoreAcquire(AtomicType &atomicValue, RawType newValue) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndStoreRelaxed(atomicValue, newValue);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndStoreRelease(AtomicType &atomicValue, RawType newValue) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndStoreRelaxed(atomicValue, newValue);
+   }
+   
+   template <typename AtomicType, typename RawType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndStoreOrdered(AtomicType &atomicValue, RawType newValue) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndStoreRelaxed(atomicValue, newValue);
+   }
+   
+   static inline constexpr bool isFetchAndAddNative() noexcept
+   {
+      return false;
+   }
+   
+   static inline constexpr bool isFetchAndAddWaitFree() noexcept
+   {
+      return false;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndAddRelaxed(AtomicType &atomicValue, 
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
+   {
+      while(true) {
+         AtomicType temp = load(atomicValue);
+         if (BaseClass::testAndSetRelaxed(atomicValue, temp, static_cast<AtomicType>(temp + valueToAdd))) {
+            return temp;
+         }
+      }
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndAddAcquire(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndAddRelaxed(atomicValue, valueToAdd);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE
+   AtomicType fetchAndAddRelease(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndAddRelaxed(atomicValue, valueToAdd);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndAddOrdered(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToAdd) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndAddRelaxed(atomicValue, valueToAdd);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndSubRelaxed(AtomicType &atomicValue, 
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
+   {
+      fetchAndAddRelaxed(atomicValue, valueToSub);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndSubAcquire(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
+   {
+      AtomicType temp = BaseClass::fetchAndSubRelaxed(atomicValue, newValue);
+      BaseClass::acquireMemoryFence(atomicValue);
+      return temp;
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndSubRelease(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
+   {
+      BaseClass::releaseMemoryFence(atomicValue);
+      return BaseClass::fetchAndSubRelaxed(atomicValue, valueToSub);
+   }
+   
+   template <typename AtomicType>
+   static PDK_ALWAYS_INLINE 
+   AtomicType fetchAndSubOrdered(AtomicType &atomicValue,
+                                 typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
+   {
+      BaseClass::orderedMemoryFence(atomicValue);
+      return BaseClass::fetchAndSubRelaxed(atomicValue, valueToSub);
+   }
 };
 
 } // thread
