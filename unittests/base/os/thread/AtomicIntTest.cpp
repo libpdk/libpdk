@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <list>
 #include <utility>
+#include <tuple>
 
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/Atomic.h"
@@ -326,3 +327,55 @@ TEST(AtomicIntTest, testIsRefCountingNative)
 #endif
 }
 
+TEST(AtomicIntTest, testIsRefCountingWaitFree)
+{
+#if defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_WAIT_FREE)
+   ASSERT_TRUE(AtomicInt::isRefCountingWaitFree());
+   ASSERT_TRUE(AtomicInt::isRefCountingNative());
+#  if defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_NOT_NATIVE)
+#    error "Reference counting cannot be wait-free and unsupported at the same time!"
+#  endif
+#else
+   ASSERT_TRUE(!AtomicInt::isRefCountingWaitFree());
+#endif
+}
+
+TEST(AtomicIntTest, testRef)
+{
+   std::list<std::tuple<int, int, int>> data;
+   data.push_back(std::make_tuple(0, 1, 1));
+   data.push_back(std::make_tuple(-1, 0, 0));
+   data.push_back(std::make_tuple(1, 1, 2));
+   std::list<std::tuple<int, int, int>>::iterator begin = data.begin();
+   std::list<std::tuple<int, int, int>>::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      int value = std::get<0>(item);
+      int result = std::get<1>(item);
+      int expected = std::get<2>(item);
+      AtomicInt atomic = value;
+      ASSERT_EQ(atomic.ref() ? 1 : 0, result);
+      ASSERT_EQ(atomic.load(), expected);
+      ++begin;
+   }
+}
+
+TEST(AtomicIntTest, testDeref)
+{
+   std::list<std::tuple<int, int, int>> data;
+   data.push_back(std::make_tuple(0, 1, -1));
+   data.push_back(std::make_tuple(1, 0, 0));
+   data.push_back(std::make_tuple(2, 1, 1));
+   std::list<std::tuple<int, int, int>>::iterator begin = data.begin();
+   std::list<std::tuple<int, int, int>>::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      int value = std::get<0>(item);
+      int result = std::get<1>(item);
+      int expected = std::get<2>(item);
+      AtomicInt atomic = value;
+      ASSERT_EQ(atomic.deref() ? 1 : 0, result);
+      ASSERT_EQ(atomic.load(), expected);
+      ++begin;
+   }
+}
