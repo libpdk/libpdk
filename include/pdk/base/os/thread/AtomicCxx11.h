@@ -511,28 +511,28 @@ struct AtomicOperations
    }
    
    template <typename T>
-   static inline T fetchAndAddRelaxed(std::atomic<T> &atomicValue,
+   static inline T fetchAndAndRelaxed(std::atomic<T> &atomicValue,
                                       typename AtomicAdditiveType<T>::AdditiveType value) noexcept
    {
       return atomicValue.fetch_and(value, std::memory_order_relaxed);
    }
    
    template <typename T>
-   static inline T fetchAndAddAcquire(std::atomic<T> &atomicValue,
+   static inline T fetchAndAndAcquire(std::atomic<T> &atomicValue,
                                       typename AtomicAdditiveType<T>::AdditiveType value) noexcept
    {
       return atomicValue.fetch_and(value, std::memory_order_acquire);
    }
    
    template <typename T>
-   static inline T fetchAndAddRelease(std::atomic<T> &atomicValue,
+   static inline T fetchAndAndRelease(std::atomic<T> &atomicValue,
                                       typename AtomicAdditiveType<T>::AdditiveType value) noexcept
    {
       return atomicValue.fetch_and(value, std::memory_order_release);
    }
    
    template <typename T>
-   static inline T fetchAndAddOrdered(std::atomic<T> &atomicValue,
+   static inline T fetchAndAndOrdered(std::atomic<T> &atomicValue,
                                       typename AtomicAdditiveType<T>::AdditiveType value) noexcept
    {
       return atomicValue.fetch_and(value, std::memory_order_seq_cst);

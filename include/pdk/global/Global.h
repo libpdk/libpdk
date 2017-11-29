@@ -217,6 +217,7 @@ using registerint = typename IntegerForSize<PDK_PROCESSOR_WORDSIZE>::Signed;
 using registeruint = typename IntegerForSize<PDK_PROCESSOR_WORDSIZE>::Unsigned;
 using uintptr = typename IntegerForSizeof<void *>::Unsigned;
 using intptr = typename IntegerForSizeof<void *>::Signed;
+using ptrdiff = intptr;
 
 #ifndef PDK_CC_MSVC
 PDK_NORETURN

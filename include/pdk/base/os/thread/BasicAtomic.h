@@ -175,28 +175,349 @@ public:
       return Operations::isFetchAndAddWaitFree();
    }
    
-   T fetchAndAddRelaxed(T newValue) noexcept
+   T fetchAndAddRelaxed(T value) noexcept
    {
-      return Operations::fetchAndAddRelaxed(m_atomic, newValue);
+      return Operations::fetchAndAddRelaxed(m_atomic, value);
    }
    
-   T fetchAndAddAcquire(T newValue) noexcept
+   T fetchAndAddAcquire(T value) noexcept
    {
-      return Operations::fetchAndAddAcquire(m_atomic, newValue);
+      return Operations::fetchAndAddAcquire(m_atomic, value);
    }
    
-   T fetchAndAddRelease(T newValue) noexcept
+   T fetchAndAddRelease(T value) noexcept
    {
-      return Operations::fetchAndAddRelease(m_atomic, newValue);
+      return Operations::fetchAndAddRelease(m_atomic, value);
    }
    
-   T fetchAndAddOrdered(T newValue) noexcept
+   T fetchAndAddOrdered(T value) noexcept
    {
-      return Operations::fetchAndAddOrdered(m_atomic, newValue);
+      return Operations::fetchAndAddOrdered(m_atomic, value);
    }
+   
+   T fetchAndSubRelaxed(T value) noexcept
+   {
+      return Operations::fetchAndSubRelaxed(m_atomic, value);
+   }
+   
+   T fetchAndSubAcquire(T value) noexcept
+   {
+      return Operations::fetchAndSubAcquire(m_atomic, value);
+   }
+   
+   T fetchAndSubRelease(T value) noexcept
+   {
+      return Operations::fetchAndSubRelease(m_atomic, value);
+   }
+   
+   T fetchAndSubOrdered(T value) noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, value);
+   }
+   
+   T fetchAndAndRelaxed(T value) noexcept
+   {
+      return Operations::fetchAndAndRelaxed(m_atomic, value);
+   }
+   
+   T fetchAndAndAcquire(T value) noexcept
+   {
+      return Operations::fetchAndAndAcquire(m_atomic, value);
+   }
+   
+   T fetchAndAndRelease(T value) noexcept
+   {
+      return Operations::fetchAndAndRelease(m_atomic, value);
+   }
+   
+   T fetchAndAndOrdered(T value) noexcept
+   {
+      return Operations::fetchAndAndOrdered(m_atomic, value);
+   }
+   
+   T fetchAndOrRelaxed(T value) noexcept
+   {
+      return Operations::fetchAndOrRelaxed(m_atomic, value);
+   }
+   
+   T fetchAndOrAcquire(T value) noexcept
+   {
+      return Operations::fetchAndOrAcquire(m_atomic, value);
+   }
+   
+   T fetchAndOrRelease(T value) noexcept
+   {
+      return Operations::fetchAndOrRelease(m_atomic, value);
+   }
+   
+   T fetchAndOrOrdered(T value) noexcept
+   {
+      return Operations::fetchAndOrOrdered(m_atomic, value);
+   }
+   
+   T fetchAndXorRelaxed(T value) noexcept
+   {
+      return Operations::fetchAndXorRelaxed(m_atomic, value);
+   }
+   
+   T fetchAndXorAcquire(T value) noexcept
+   {
+      return Operations::fetchAndXorAcquire(m_atomic, value);
+   }
+   
+   T fetchAndXorRelease(T value) noexcept
+   {
+      return Operations::fetchAndXorRelease(m_atomic, value);
+   }
+   
+   T fetchAndXorOrdered(T value) noexcept
+   {
+      return Operations::fetchAndXorOrdered(m_atomic, value);
+   }
+   
+   T operator++() noexcept
+   {
+      return fetchAndAddOrdered(1) + 1;
+   }
+   
+   T operator++(int) noexcept
+   {
+      return fetchAndAddOrdered(1);
+   }
+   
+   T operator--() noexcept
+   {
+      return fetchAndSubOrdered(1) - 1;
+   }
+   
+   T operator--(int) noexcept
+   {
+      return fetchAndSubOrdered(1);
+   }
+   
+   T operator+=(T value) noexcept
+   {
+      return fetchAndAddOrdered(value) + value;
+   }
+   
+   T operator-=(T value) noexcept
+   {
+      return fetchAndSubOrdered(value) - value;
+   }
+   
+   T operator&=(T value) noexcept
+   {
+      return fetchAndAndOrdered(value) & value;
+   }
+
+   T operator|=(T value) noexcept
+   {
+      return fetchAndOrOrdered(value) | value;
+   }
+   
+   T operator^=(T value) noexcept
+   {
+      return fetchAndXorOrdered(value) ^ value;
+   }
+   
+   BasicAtomicInteger() = default;
+   constexpr BasicAtomicInteger(T value) noexcept
+      : m_atomic(value)
+   {}
+   
+   BasicAtomicInteger(const BasicAtomicInteger &other) = delete;
+   BasicAtomicInteger &operator=(const BasicAtomicInteger &other) = delete;
+   BasicAtomicInteger &operator=(const BasicAtomicInteger &other) volatile = delete;
+   
 public:
    typename Operations::Type m_atomic;
 };
+
+using BasicAtomicInt = BasicAtomicInteger<int>;
+
+template <typename T>
+class BasicAtomicPointer
+{
+public:
+   using Type = T *;
+   using Operations = AtomicOperations<T>;
+   using AtomicType = typename Operations::Type;
+   
+   
+   BasicAtomicPointer() = default;
+   constexpr BasicAtomicPointer(Type value)
+      : m_atomic(value)
+   {}
+   BasicAtomicPointer(BasicAtomicPointer &other) = delete;
+   BasicAtomicPointer &operator=(BasicAtomicPointer &other) = delete;
+   BasicAtomicPointer &operator=(BasicAtomicPointer &other) volatile = delete;
+   
+   Type load() const noexcept
+   {
+      return Operations::load(m_atomic);
+   }
+   
+   void store(Type newValue) noexcept
+   {
+      Operations::store(m_atomic, newValue);
+   }
+   
+   Type loadAcquire() const noexcept
+   {
+      return Operations::loadAcquire(m_atomic);
+   }
+   
+   void storeRelease(Type newValue) noexcept
+   {
+      Operations::storeRelease(m_atomic, newValue);
+   }
+   
+   static constexpr bool isTestAndSetNative() noexcept
+   {
+      return Operations::isTestAndSetNative();
+   }
+
+   static constexpr bool isTestAndSetWaitFree() noexcept
+   {
+      return Operations::isTestAndSetWaitFree();
+   }
+   
+   bool testAndSetRelaxed(Type expectedValue, Type newValue) noexcept
+   {
+      return Operations::testAndSetRelaxed(m_atomic, expectedValue, newValue);
+   }
+   
+   bool testAndSetAcquire(Type expectedValue, Type newValue) noexcept
+   {
+      return Operations::testAndSetAcquire(m_atomic, expectedValue, newValue);
+   }
+   
+   bool testAndSetRelease(Type expectedValue, Type newValue) noexcept
+   {
+      return Operations::testAndSetRelease(m_atomic, expectedValue, newValue);
+   }
+   
+   bool testAndSetOrdered(Type expectedValue, Type newValue) noexcept
+   {
+      return Operations::testAndSetOrdered(m_atomic, expectedValue, newValue);
+   }
+   
+   static constexpr bool isFetchAndStoreNative() noexcept
+   {
+      return Operations::isFetchAndStoreNative();
+   }
+   
+   static constexpr bool isFetchAndStoreWaitFree() noexcept
+   {
+      return Operations::isFetchAndStoreWaitFree();
+   }
+   
+   Type fetchAndStoreRelaxed(Type newValue) noexcept
+   {
+      return Operations::fetchAndStoreRelaxed(m_atomic, newValue);
+   }
+
+   Type fetchAndStoreAcquire(Type newValue) noexcept
+   {
+      return Operations::fetchAndStoreAcquire(m_atomic, newValue);
+   }
+   
+   Type fetchAndStoreRelease(Type newValue) noexcept
+   {
+      return Operations::fetchAndStoreRelease(m_atomic, newValue);
+   }
+   
+   Type fetchAndStoreOrdered(Type newValue) noexcept
+   {
+      return Operations::fetchAndStoreOrdered(m_atomic, newValue);
+   }
+   
+   static constexpr isFetchAndAddNative() noexcept
+   {
+      return Operations::isFetchAndAddNative();
+   }
+
+   static constexpr isFetchAndAddWaitFree() noexcept
+   {
+      return Operations::isFetchAndAddWaitFree();
+   }
+   
+   Type fetchAndAddRelaxed(Type value) noexcept
+   {
+      return Operations::fetchAndAddRelaxed(m_atomic, value);
+   }
+   
+   Type fetchAndAddAcquire(Type value) noexcept
+   {
+      return Operations::fetchAndAddAcquire(m_atomic, value);
+   }
+   
+   Type fetchAndAddRelease(Type value) noexcept
+   {
+      return Operations::fetchAndAddRelease(m_atomic, value);
+   }
+
+   Type fetchAndAddOrdered(Type value) noexcept
+   {
+      return Operations::fetchAndAddOrdered(m_atomic, value);
+   }
+   
+   Type fetchAndSubRelaxed(Type value) noexcept
+   {
+      return Operations::fetchAndSubRelaxed(m_atomic, value);
+   }
+   
+   Type fetchAndSubAcquire(Type value) noexcept
+   {
+      return Operations::fetchAndSubAcquire(m_atomic, value);
+   }
+   
+   Type fetchAndSubRelease(Type value) noexcept
+   {
+      return Operations::fetchAndSubRelease(m_atomic, value);
+   }
+
+   Type fetchAndSubOrdered(Type value) noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, value);
+   }
+   
+   Type operator++() noexcept
+   {
+      return Operations::fetchAndAddOrdered(m_atomic, 1) + 1;
+   }
+   
+   Type operator++(int) noexcept
+   {
+      return Operations::fetchAndAddOrdered(m_atomic, 1);
+   }
+   
+   Type operator--() noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, 1) - 1;
+   }
+   
+   Type operator--(int) noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, 1);
+   }
+   
+   Type operator+=(pdk::ptrdiff value) noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, value) + value;
+   }
+   
+   Type operator-=(pdk::ptrdiff value) noexcept
+   {
+      return Operations::fetchAndSubOrdered(m_atomic, value) - value;
+   }
+public:
+   AtomicType m_atomic;
+};
+
+#ifndef PDK_BASIC_ATOMIC_INITIALIZER
+#  define PDK_BASIC_ATOMIC_INITIALIZER(a) { (a) }
+#endif
 
 } // thread
 } // os
