@@ -74,7 +74,7 @@ public:
    }
 };
 
-//PDK_WARNING_POP
+PDK_WARNING_POP
 
 template <typename T>
 inline void atomic_assign(T *&dest, T *source)

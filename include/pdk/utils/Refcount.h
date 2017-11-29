@@ -17,7 +17,7 @@
 #define PDK_UTILS_REFCOUNT_H
 
 #include "pdk/global/Global.h"
-#include <atomic>
+#include "pdk/base/os/thread/Atomic.h"
 
 namespace pdk {
 namespace utils {
@@ -27,39 +27,74 @@ class Refcount
 public:
    inline bool ref() noexcept
    {
-      
+      int count = m_atomic.load();
+#if !defined(PDK_NO_UNSHARED_CONTAINERS)
+      if (0 == count) {
+         return false;
+      }
+#endif
+      if (-1 != count) {
+         m_atomic.ref();
+      }
+      return true;
    }
    
    inline bool deref() noexcept
    {
-      
+      int count = m_atomic.load();
+#if !defined(PDK_NO_UNSHARED_CONTAINERS)
+      if (0 == count) {
+         return false;
+      }
+#endif
+      if (-1 == count) {
+         return true;
+      }
+      return m_atomic.deref();
    }
    
 #if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
    bool setSharable(bool sharable) noexcept
    {
-      
+      PDK_ASSERT(!isShared());
+      if (sharable) {
+         return m_atomic.testAndSetRelaxed(0, 1);
+      } else {
+         return m_atomic.testAndSetRelaxed(1, 0);
+      }
    }
    
    bool isSharable() const noexcept
    {
-      
+      return m_atomic.load() != 0;
    }
 #endif
    
    bool isStatic() const noexcept
    {
-      
+      return m_atomic.load() == -1;
    }
    
    bool isShared() const noexcept
    {
-      
+      int count = m_atomic.load();
+      return (1 != count) && (0 != count);
    }
    
+   void initializeOwned() noexcept
+   {
+      m_atomic.store(1);
+   }
+   
+   void initializeUnshared() noexcept
+   {
+       m_atomic.store(0);
+   }
 private:
-   std::atomic<int> m_atomic;
+    pdk::os::thread::AtomicInt m_atomic;
 };
+
+#define PDK_REFCOUNT_INITIALIZE_STATIC { PDK_BASIC_ATOMIC_INITIALIZER(-1) }
 
 } // utils
 } // pdk
