@@ -22,8 +22,8 @@ namespace pdk {
 namespace os {
 namespace thread {
 
-//PDK_WARNING_PUSH
-//PDK_WARNING_DISABLE_GCC("-Wextra")
+PDK_WARNING_PUSH
+PDK_WARNING_DISABLE_GCC("-Wextra")
 
 template <typename T>
 class AtomicInteger : public BasicAtomicInteger<T>

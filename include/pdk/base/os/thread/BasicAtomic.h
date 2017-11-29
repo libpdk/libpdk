@@ -432,12 +432,12 @@ public:
       return Operations::fetchAndStoreOrdered(m_atomic, newValue);
    }
    
-   static constexpr isFetchAndAddNative() noexcept
+   static constexpr bool isFetchAndAddNative() noexcept
    {
       return Operations::isFetchAndAddNative();
    }
 
-   static constexpr isFetchAndAddWaitFree() noexcept
+   static constexpr bool isFetchAndAddWaitFree() noexcept
    {
       return Operations::isFetchAndAddWaitFree();
    }

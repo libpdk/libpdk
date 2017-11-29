@@ -63,23 +63,25 @@ struct GenericAtomicOps
    };
    
    template <typename AtomicType>
-   static void acquireMemoryFence(const AtomicType &atomicValue) noexcept
+   static void acquireMemoryFence(const AtomicType &value) noexcept
+   {
+      BaseClass::acquireMemoryFence(value);
+   }
+   
+   template <typename AtomicType>
+   static void releaseMemoryFence(const AtomicType &value) noexcept
+   {
+      BaseClass::releaseMemoryFence(value);
+   }
+   
+   template <typename AtomicType>
+   static void orderedMemoryFence(const AtomicType &value) noexcept
    {
       BaseClass::orderedMemoryFence(value);
    }
    
    template <typename AtomicType>
-   static void releaseMemoryFence(const AtomicType &atomicValue) noexcept
-   {
-      BaseClass::orderedMemoryFence(value);
-   }
-   
-   template <typename AtomicType>
-   static void orderedMemoryFence(const AtomicType &) noexcept
-   {}
-   
-   template <typename AtomicType>
-   static PDK_ALWAYS_INLINE AtomicType load(const AtomicType &atomicValue) noexcept
+   static PDK_ALWAYS_INLINE AtomicType load(const AtomicType &value) noexcept
    {
       return value;
    }
@@ -299,7 +301,7 @@ struct GenericAtomicOps
    AtomicType fetchAndSubAcquire(AtomicType &atomicValue,
                                  typename AtomicAdditiveType<AtomicType>::AdditiveType valueToSub) noexcept
    {
-      AtomicType temp = BaseClass::fetchAndSubRelaxed(atomicValue, newValue);
+      AtomicType temp = BaseClass::fetchAndSubRelaxed(atomicValue, valueToSub);
       BaseClass::acquireMemoryFence(atomicValue);
       return temp;
    }

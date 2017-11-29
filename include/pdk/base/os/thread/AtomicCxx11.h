@@ -358,7 +358,7 @@ struct AtomicOperations
    
    static inline constexpr bool isTestAndSetNative() noexcept
    {
-      AtomicTraits<sizeof(AtomicType)>::isLockFree();
+      return AtomicTraits<sizeof(AtomicType)>::isLockFree();
    }
    
    static inline constexpr bool isTestAndSetWaitFree() noexcept
