@@ -21,6 +21,7 @@
 
 using pdk::os::thread::BasicAtomicInt;
 using pdk::os::thread::BasicAtomicInteger;
+using pdk::os::thread::AtomicInt;
 
 namespace
 {
@@ -170,6 +171,12 @@ void warning_free_helper()
 
 }
 
+template <typename T> 
+struct TypeInStruct
+{ 
+   T type; 
+};
+
 TEST(AtomicIntTest, testWarningFreeHelper)
 {
    warning_free_helper();
@@ -180,3 +187,35 @@ TEST(AtomicIntTest, testWarningFree)
    void (*foo)() = &warning_free_helper;
    (void)foo;
 }
+
+TEST(AtomicIntTest, testAlignment)
+{
+   // this will cause a build error if the alignment isn't the same
+   char dummy1[alignof(BasicAtomicInt) == alignof(TypeInStruct<int>) ? 1 : -1];
+   char dummy2[alignof(AtomicInt) == alignof(TypeInStruct<int>) ? 1 : -1];
+   (void)dummy1;
+   (void)dummy2;
+   
+#ifdef PDK_ATOMIC_INT8_IS_SUPPORTED
+   ASSERT_EQ(alignof(BasicAtomicInteger<char>), alignof(TypeInStruct<char>));
+#endif
+   
+#ifdef PDK_ATOMIC_INT16_IS_SUPPORTED
+   ASSERT_EQ(alignof(BasicAtomicInteger<short>), alignof(TypeInStruct<short>));
+#endif
+   
+#ifdef PDK_ATOMIC_INT32_IS_SUPPORTED
+   ASSERT_EQ(alignof(BasicAtomicInteger<int>), alignof(TypeInStruct<int>));
+#endif
+
+#ifdef PDK_ATOMIC_INT64_IS_SUPPORTED
+   ASSERT_EQ(alignof(BasicAtomicInteger<pdk::plonglong>), alignof(TypeInStruct<pdk::plonglong>));
+#endif
+   
+}
+
+
+
+
+
+
