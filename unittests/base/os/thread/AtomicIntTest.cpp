@@ -15,6 +15,7 @@
 
 #include <limits.h>
 #include <cstdio>
+#include <list>
 
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/Atomic.h"
@@ -214,8 +215,60 @@ TEST(AtomicIntTest, testAlignment)
    
 }
 
+namespace 
+{
 
+void make_data_list(std::list<int> &data)
+{
+   data.push_back(31337);
+   data.push_back(0);
+   data.push_back(1);
+   data.push_back(-1);
+   data.push_back(2);
+   data.push_back(-2);
+   data.push_back(3);
+   data.push_back(-3);
+   data.push_back(INT_MAX);
+   data.push_back(INT_MIN + 1);
+}
 
+}
 
+TEST(AtomicIntTest, testConstructor)
+{
+   std::list<int> data;
+   make_data_list(data);
+   
+   std::list<int>::iterator begin = data.begin();
+   std::list<int>::iterator end = data.end();
+   while (begin != end) {
+      int value = *begin;
+      AtomicInt atomic1(value);
+      ASSERT_EQ(atomic1.load(), value);
+      AtomicInt atomic2 = value;
+      ASSERT_EQ(atomic2.load(), value);
+      ++begin;
+   }
+}
 
-
+TEST(AtomicIntTest, testCopyConstructor)
+{
+   std::list<int> data;
+   make_data_list(data);
+   std::list<int>::iterator begin = data.begin();
+   std::list<int>::iterator end = data.end();
+   while (begin != end) {
+      int value = *begin;
+      AtomicInt atomic1(value);
+      ASSERT_EQ(atomic1.load(), value);
+      AtomicInt atomic2(atomic1);
+      ASSERT_EQ(atomic2.load(), value);
+      AtomicInt atomic3 = atomic1;
+      ASSERT_EQ(atomic3.load(), value);
+      AtomicInt atomic4(atomic2);
+      ASSERT_EQ(atomic4.load(), value);
+      AtomicInt atomic5 = atomic2;
+      ASSERT_EQ(atomic5.load(), value);
+      ++begin;
+   }
+}
