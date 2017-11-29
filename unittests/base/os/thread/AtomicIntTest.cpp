@@ -16,6 +16,7 @@
 #include <limits.h>
 #include <cstdio>
 #include <list>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/Atomic.h"
@@ -208,7 +209,7 @@ TEST(AtomicIntTest, testAlignment)
 #ifdef PDK_ATOMIC_INT32_IS_SUPPORTED
    ASSERT_EQ(alignof(BasicAtomicInteger<int>), alignof(TypeInStruct<int>));
 #endif
-
+   
 #ifdef PDK_ATOMIC_INT64_IS_SUPPORTED
    ASSERT_EQ(alignof(BasicAtomicInteger<pdk::plonglong>), alignof(TypeInStruct<pdk::plonglong>));
 #endif
@@ -272,3 +273,56 @@ TEST(AtomicIntTest, testCopyConstructor)
       ++begin;
    }
 }
+
+TEST(AtomicIntTest, testAssignmentOperator)
+{
+   std::list<std::pair<int, int>> data;
+   data.push_back(std::make_pair(0, 1));
+   data.push_back(std::make_pair(1, 0));
+   data.push_back(std::make_pair(0, -1));
+   data.push_back(std::make_pair(-1, 0));
+   data.push_back(std::make_pair(-1, 1));
+   data.push_back(std::make_pair(1, -1));
+   std::list<std::pair<int, int>>::iterator begin = data.begin();
+   std::list<std::pair<int, int>>::iterator end = data.end();
+   while (begin != end) {
+      std::pair<int, int> pair = *begin;
+      int value = pair.first;
+      int newValue = pair.second;
+      AtomicInt atomic1 = value;
+      atomic1 = newValue;
+      ASSERT_EQ(atomic1.load(), newValue);
+      atomic1 = value;
+      ASSERT_EQ(atomic1.load(), value);
+      AtomicInt atomic2 = newValue;
+      atomic1 = atomic2;
+      ASSERT_EQ(atomic1.load(), atomic2.load());
+      ++begin;
+   }
+}
+
+TEST(AtomicIntTest, testIsRefCountingNative)
+{
+#if defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_ALWAYS_NATIVE)
+   ASSERT_TRUE(AtomicInt::isRefCountingNative());
+#  if (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_SOMETIMES_NATIVE) \
+   || (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_NEVER_NATIVE)))
+#     error "Define only one of PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_{ALWAYS, SOMETIMES, NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_SOMETIMES_NATIVE)
+   ASSERT_TRUE(AtomicInt::isRefCountingNative() || !AtomicInt::isRefCountingNative());
+#  if (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_ALWAYS_NATIVE) \
+   || (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_NEVER_NATIVE)))
+#     error "Define only one of PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_{ALWAYS, SOMETIMES, NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_NEVER_NATIVE)
+   ASSERT_TRUE(!AtomicInt::isRefCountingNative());
+#  if (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_ALWAYS_NATIVE) \
+   || (defined(PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_SOMETIMES_NATIVE)))
+#     error "Define only one of PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_{ALWAYS, SOMETIMES, NEVER}_NATIVE"
+#  endif
+#else
+#  error "Define only one of PDK_ATOMIC_INT_REFERENCE_COUNTING_IS_{ALWAYS, SOMETIMES, NEVER}_NATIVE is not defined"
+#endif
+}
+
