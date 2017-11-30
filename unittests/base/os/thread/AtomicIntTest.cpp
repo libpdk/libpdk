@@ -588,3 +588,42 @@ TEST(AtomicIntTest, testFetchAndStore)
       ++begin;
    }
 }
+
+
+TEST(AtomicIntTest, testIsFetchAndAddNative)
+{
+#if defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_ALWAYS_NATIVE)
+   ASSERT_TRUE(AtomicInt::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_SOMETIMES_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_NEVER_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_SOMTIMES_NATIVE)
+   ASSERT_TRUE(AtomicInt::isFetchAndAddNative() || !AtomicInt::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_ALWAYS_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_NEVER_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_NEVER_NATIVE)
+   ASSERT_TRUE(!AtomicInt::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_ALWAYS_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_SOMTIMES_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#else
+#  error "PDK_ATOMIC_INT_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE is not defined"
+#endif
+}
+
+TEST(AtomicIntTest, testAtomicIsFetchAndAddWaitFree)
+{
+#if defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_WAIT_FREE)
+   ASSERT_TRUE(AtomicInt::isFetchAndAddWaitFree());
+   ASSERT_TRUE(AtomicInt::isFetchAndAddNative());
+#  if defined(PDK_ATOMIC_INT_FETCH_AND_ADD_IS_NOT_NATIVE)
+#    error "Reference counting cannot be wait-free and unsupported at the same time!"
+#  endif
+#else
+   ASSERT_TRUE(!AtomicInt::isFetchAndAddWaitFree());
+#endif
+}
