@@ -417,3 +417,174 @@ TEST(AtomicIntTest, testAtomicIsTestAndSetWaitFree)
    ASSERT_TRUE(!AtomicInt::isTestAndSetWaitFree());
 #endif
 }
+
+TEST(AtomicIntTest, testTestAndSet)
+{
+   std::list<std::tuple<int, int, int, bool>> data;
+   data.push_back(std::make_tuple(0, 0, 0, true));
+   data.push_back(std::make_tuple(0, 0, 1, true));
+   data.push_back(std::make_tuple(0, 0, -1, true));
+   data.push_back(std::make_tuple(1, 1, 0, true));
+   data.push_back(std::make_tuple(1, 1, 1, true));
+   data.push_back(std::make_tuple(1, 1, -1, true));
+   data.push_back(std::make_tuple(-1, -1, 0, true));
+   data.push_back(std::make_tuple(-1, -1, 1, true));
+   data.push_back(std::make_tuple(-1, -1, -1, true));
+   data.push_back(std::make_tuple(INT_MIN + 1, INT_MIN + 1, INT_MIN + 1, true));
+   data.push_back(std::make_tuple(INT_MIN + 1, INT_MIN + 1, 1, true));
+   data.push_back(std::make_tuple(INT_MIN + 1, INT_MIN + 1, -1, true));
+   data.push_back(std::make_tuple(INT_MAX, INT_MAX, INT_MAX, true));
+   data.push_back(std::make_tuple(INT_MAX, INT_MAX, 1, true));
+   data.push_back(std::make_tuple(INT_MAX, INT_MAX, -1, true));
+   
+   data.push_back(std::make_tuple(0, 1, ~0, false));
+   data.push_back(std::make_tuple(0, -1, ~0, false));
+   data.push_back(std::make_tuple(1, 0, ~0, false));
+   data.push_back(std::make_tuple(-1, 0, ~0, false));
+   data.push_back(std::make_tuple(1, -1, ~0, false));
+   data.push_back(std::make_tuple(-1, 1, ~0, false));
+   data.push_back(std::make_tuple(INT_MIN + 1, INT_MAX, ~0, false));
+   data.push_back(std::make_tuple(INT_MAX, INT_MIN + 1, ~0, false));
+   
+   std::list<std::tuple<int, int, int, bool>>::iterator begin = data.begin();
+   std::list<std::tuple<int, int, int, bool>>::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      int value = std::get<0>(item);
+      int expected = std::get<1>(item);
+      int newValue = std::get<2>(item);
+      int result = std::get<3>(item);
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.testAndSetRelaxed(expected, newValue), result);
+      }
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.testAndSetAcquire(expected, newValue), result);
+      }
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.testAndSetRelease(expected, newValue), result);
+      }
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.testAndSetOrdered(expected, newValue), result);
+      }
+#ifdef PDK_ATOMIC_INT32_IS_SUPPORTED
+      {
+         AtomicInt atomic = value;
+         int currentval = 0xdeadbeef;
+         ASSERT_EQ(atomic.testAndSetRelaxed(expected, newValue, currentval), result);
+         if (!result) {
+            ASSERT_EQ(currentval, value);
+         }
+      }
+      
+      {
+         AtomicInt atomic = value;
+         int currentval = 0xdeadbeef;
+         ASSERT_EQ(atomic.testAndSetAcquire(expected, newValue, currentval), result);
+         if (!result) {
+            ASSERT_EQ(currentval, value);
+         }
+      }
+      
+      {
+         AtomicInt atomic = value;
+         int currentval = 0xdeadbeef;
+         ASSERT_EQ(atomic.testAndSetRelease(expected, newValue, currentval), result);
+         if (!result) {
+            ASSERT_EQ(currentval, value);
+         }
+      }
+      
+      {
+         AtomicInt atomic = value;
+         int currentval = 0xdeadbeef;
+         ASSERT_EQ(atomic.testAndSetOrdered(expected, newValue, currentval), result);
+         if (!result) {
+            ASSERT_EQ(currentval, value);
+         }
+      }
+#endif
+      ++begin;
+   }
+}
+
+TEST(AtomicIntTest, testIsFetchAndStoreNative)
+{
+#if defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_ALWAYS_NATIVE)
+   ASSERT_TRUE(AtomicInt::isFetchAndStoreNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_SOMETIMES_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_NEVER_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_STORE_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_SOMTIMES_NATIVE)
+   ASSERT_TRUE(AtomicInt::isFetchAndStoreNative() || !AtomicInt::isFetchAndStoreNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_ALWAYS_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_NEVER_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_STORE_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_NEVER_NATIVE)
+   ASSERT_TRUE(!AtomicInt::isFetchAndStoreNative());
+#  if (defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_ALWAYS_NATIVE) \
+   || defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_SOMTIMES_NATIVE))
+#     error "Define only one of PDK_ATOMIC_INT_FETCH_AND_STORE_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#else
+#  error "PDK_ATOMIC_INT_FETCH_AND_STORE_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE is not defined"
+#endif
+}
+
+TEST(AtomicIntTest, testAtomicIsFetchAndStoreWaitFree)
+{
+#if defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_WAIT_FREE)
+   ASSERT_TRUE(AtomicInt::isFetchAndStoreWaitFree());
+   ASSERT_TRUE(AtomicInt::isFetchAndStoreNative());
+#  if defined(PDK_ATOMIC_INT_FETCH_AND_STORE_IS_NOT_NATIVE)
+#    error "Reference counting cannot be wait-free and unsupported at the same time!"
+#  endif
+#else
+   ASSERT_TRUE(!AtomicInt::isFetchAndStoreWaitFree());
+#endif
+}
+
+TEST(AtomicIntTest, testFetchAndStore)
+{
+   std::list<std::tuple<int, int>> data;
+   data.push_back(std::make_tuple(0, 1));
+   data.push_back(std::make_tuple(1, 2));
+   data.push_back(std::make_tuple(3, 8));
+   std::list<std::tuple<int, int>>::iterator begin = data.begin();
+   std::list<std::tuple<int, int>>::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      int value = std::get<0>(item);
+      int newValue = std::get<1>(item);
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.fetchAndStoreRelaxed(newValue), value);
+         ASSERT_EQ(atomic.load(), newValue);
+      }
+      
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.fetchAndStoreAcquire(newValue), value);
+         ASSERT_EQ(atomic.load(), newValue);
+      }
+      
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.fetchAndStoreRelease(newValue), value);
+         ASSERT_EQ(atomic.load(), newValue);
+      }
+      
+      {
+         AtomicInt atomic = value;
+         ASSERT_EQ(atomic.fetchAndStoreOrdered(newValue), value);
+         ASSERT_EQ(atomic.load(), newValue);
+      }
+      
+      ++begin;
+   }
+}
