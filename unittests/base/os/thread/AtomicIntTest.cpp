@@ -627,3 +627,142 @@ TEST(AtomicIntTest, testAtomicIsFetchAndAddWaitFree)
    ASSERT_TRUE(!AtomicInt::isFetchAndAddWaitFree());
 #endif
 }
+
+TEST(AtomicIntTest, testFetchAndAdd)
+{
+   std::list<std::tuple<int, int>> data;
+   data.push_back(std::make_tuple(0, 1));
+   data.push_back(std::make_tuple(1, 0));
+   data.push_back(std::make_tuple(2, 1));
+   data.push_back(std::make_tuple(10, 21));
+   data.push_back(std::make_tuple(31, 40));
+   data.push_back(std::make_tuple(51, 62));
+   data.push_back(std::make_tuple(72, 81));
+   data.push_back(std::make_tuple(810, 721));
+   data.push_back(std::make_tuple(631, 540));
+   data.push_back(std::make_tuple(451, 362));
+   data.push_back(std::make_tuple(272, 181));
+   data.push_back(std::make_tuple(1810, 8721));
+   data.push_back(std::make_tuple(3631, 6540));
+   data.push_back(std::make_tuple(5451, 4362));
+   data.push_back(std::make_tuple(7272, 2181));
+   
+   data.push_back(std::make_tuple(0, -1));
+   data.push_back(std::make_tuple(1, 0));
+   data.push_back(std::make_tuple(1, -2));
+   data.push_back(std::make_tuple(2, -1));
+   data.push_back(std::make_tuple(10, -21));
+   data.push_back(std::make_tuple(31, -40));
+   data.push_back(std::make_tuple(51, -62));
+   data.push_back(std::make_tuple(72, -81));
+   data.push_back(std::make_tuple(810, -721));
+   data.push_back(std::make_tuple(631, -540));
+   data.push_back(std::make_tuple(451, -362));
+   data.push_back(std::make_tuple(272, -181));
+   data.push_back(std::make_tuple(1810, -8721));
+   data.push_back(std::make_tuple(3631, -6540));
+   data.push_back(std::make_tuple(5451, -4362));
+   data.push_back(std::make_tuple(7272, -2181));
+   
+   data.push_back(std::make_tuple(0, 1));
+   data.push_back(std::make_tuple(-1, 0));
+   data.push_back(std::make_tuple(-1, 2));
+   data.push_back(std::make_tuple(-2, 1));
+   data.push_back(std::make_tuple(-10, 21));
+   data.push_back(std::make_tuple(-31, 40));
+   data.push_back(std::make_tuple(-51, 62));
+   data.push_back(std::make_tuple(-72, 81));
+   data.push_back(std::make_tuple(-810, 721));
+   data.push_back(std::make_tuple(-631, 540));
+   data.push_back(std::make_tuple(-451, 362));
+   data.push_back(std::make_tuple(-272, 181));
+   data.push_back(std::make_tuple(-1810, 8721));
+   data.push_back(std::make_tuple(-3631, 6540));
+   data.push_back(std::make_tuple(-5451, 4362));
+   data.push_back(std::make_tuple(-7272, 2181));
+   
+   std::list<std::tuple<int, int>>::iterator begin = data.begin();
+   std::list<std::tuple<int, int>>::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      int value1 = std::get<0>(item);
+      int value2 = std::get<1>(item);
+      int result;
+      {
+         AtomicInt atomic = value1;
+         result = atomic.fetchAndAddRelaxed(value2);
+         ASSERT_EQ(result, value1);
+         ASSERT_EQ(atomic.load(), value1 + value2);
+      }
+      
+      {
+         AtomicInt atomic = value1;
+         result = atomic.fetchAndAddAcquire(value2);
+         ASSERT_EQ(result, value1);
+         ASSERT_EQ(atomic.load(), value1 + value2);
+      }
+      
+      {
+         AtomicInt atomic = value1;
+         result = atomic.fetchAndAddRelease(value2);
+         ASSERT_EQ(result, value1);
+         ASSERT_EQ(atomic.load(), value1 + value2);
+      }
+      
+      {
+         AtomicInt atomic = value1;
+         result = atomic.fetchAndAddOrdered(value2);
+         ASSERT_EQ(result, value1);
+         ASSERT_EQ(atomic.load(), value1 + value2);
+      }
+      
+      ++begin;
+   }
+}
+
+TEST(AtomicIntTest, testOperators)
+{
+   {
+      BasicAtomicInt atomic = PDK_BASIC_ATOMIC_INITIALIZER(0);
+      atomic = 1;
+      ASSERT_EQ(static_cast<int>(atomic), 1);
+   }
+   AtomicInt atomic = 0;
+   int x = ++atomic;
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 1);
+   
+   x = atomic++;
+   ASSERT_EQ(static_cast<int>(atomic), x + 1);
+   ASSERT_EQ(static_cast<int>(atomic), 2);
+   
+   x = atomic--;
+   ASSERT_EQ(static_cast<int>(atomic), x - 1);
+   ASSERT_EQ(static_cast<int>(atomic), 1);
+   
+   x = --atomic;
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 0);
+   
+   x = (atomic += 1);
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 1);
+   
+   x = (atomic -= 1);
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 0);
+   
+   x = (atomic |= 0xf);
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 0xf);
+   
+   x = (atomic &= 0x17);
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 7);
+   
+   x = (atomic ^= 0x14);
+   ASSERT_EQ(static_cast<int>(atomic), x);
+   ASSERT_EQ(static_cast<int>(atomic), 0x13);
+}
+
+
