@@ -180,3 +180,148 @@ TYPED_TEST(AtomicIntegerTest, testConstructor)
       ++begin;
    }
 }
+
+TYPED_TEST(AtomicIntegerTest, testCopy)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      AtomicInteger<TypeParam> copy(atomic);
+      ASSERT_EQ(atomic.load(), copy.load());
+      AtomicInteger<TypeParam> copy2 = atomic;
+      ASSERT_EQ(atomic.load(), copy2.load());
+      
+      AtomicInteger<TypeParam> copy3(std::move(atomic));
+      ASSERT_EQ(atomic.load(), copy3.load());
+      AtomicInteger<TypeParam> copy4 = std::move(atomic);
+      ASSERT_EQ(atomic.load(), copy4.load());
+      ++begin;
+   }
+}
+
+TYPED_TEST(AtomicIntegerTest, testAssign)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      AtomicInteger<TypeParam> copy;
+      copy = atomic;
+      ASSERT_EQ(copy.load(), atomic.load());
+      
+      AtomicInteger<TypeParam> copy2;
+      copy2 = atomic;
+      ASSERT_EQ(copy2.load(), atomic.load());
+      
+      AtomicInteger<TypeParam> copy2bis;
+      copy2bis = atomic.load(); // operator=(TypeParam)
+      ASSERT_EQ(copy2bis.load(), atomic.load());
+      
+      AtomicInteger<TypeParam> copy3;
+      copy3 = std::move(copy);
+      ASSERT_EQ(copy3.load(), atomic.load());
+      
+      AtomicInteger<TypeParam> copy4;
+      copy4 = std::move(copy2);
+      ASSERT_EQ(copy4.load(), atomic.load());
+      ++begin;
+   }
+}
+
+TYPED_TEST(AtomicIntegerTest, testOperatorInteger)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      TypeParam value2 = atomic;
+      ASSERT_EQ(value2, static_cast<TypeParam>(value));
+      ++begin;
+   }
+}
+
+TYPED_TEST(AtomicIntegerTest, testLoadAcquireStoreRelease)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      ASSERT_EQ(atomic.loadAcquire(), static_cast<TypeParam>(value));
+      atomic.storeRelease(~value);
+      ASSERT_EQ(atomic.loadAcquire(), static_cast<TypeParam>(~value));
+      atomic.storeRelease(value);
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ++begin;
+   }
+}
+
+TYPED_TEST(AtomicIntegerTest, testRefDeref)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      const bool needToPreventOverflow  = std::is_signed<TypeParam>::value && value == std::numeric_limits<TypeParam>::max();
+      const bool needToPreventUnderflow = std::is_signed<TypeParam>::value && value == std::numeric_limits<TypeParam>::min();
+      TypeParam nextValue = static_cast<TypeParam>(value);
+      if (!needToPreventOverflow) {
+         ++nextValue;
+      }
+      TypeParam prevValue = static_cast<TypeParam>(value);
+      if (!needToPreventUnderflow) {
+         --prevValue;
+      }
+      AtomicInteger<TypeParam> atomic(value);
+      if (!needToPreventOverflow) {
+         ASSERT_EQ(atomic.ref(), nextValue != 0);
+         ASSERT_EQ(atomic.load(), nextValue);
+         ASSERT_EQ(atomic.deref(), value != 0);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic.deref(), prevValue != 0);
+         ASSERT_EQ(atomic.load(), prevValue);
+         ASSERT_EQ(atomic.ref(), value != 0);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      if (!needToPreventOverflow) {
+         ASSERT_EQ(++atomic, nextValue);
+         ASSERT_EQ(--atomic, static_cast<TypeParam>(value));
+      }
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(--atomic, prevValue);
+         ASSERT_EQ(++atomic, static_cast<TypeParam>(value));
+      }
+      
+      if (!needToPreventOverflow) {
+         ASSERT_EQ(atomic++, static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic--, nextValue);
+      }
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic--, static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic++, prevValue);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ++begin;
+   }
+}
