@@ -30,7 +30,7 @@ namespace
 
 struct WarnFreeHandler
 {
-    void bar() {}
+   void bar() {}
 };
 
 void warning_free_helper()
@@ -113,3 +113,25 @@ TEST(AtomicPointerTest, testCopyConstructor)
    ASSERT_EQ(atomic3.load(), atomic3Copy.load());
 }
 
+TEST(AtomicPointerTest, testAssignmentOperator)
+{
+   void *oneLevel = this;
+   void *twoLevel = &oneLevel;
+   void *threeLevel = &twoLevel;
+   
+   AtomicPointer<void> atomic1 = oneLevel;
+   AtomicPointer<void> atomic2 = twoLevel;
+   AtomicPointer<void> atomic3 = threeLevel;
+   
+   ASSERT_EQ(atomic1.load(), oneLevel);
+   ASSERT_EQ(atomic2.load(), twoLevel);
+   ASSERT_EQ(atomic3.load(), threeLevel);
+   
+   atomic1 = twoLevel;
+   atomic2 = threeLevel;
+   atomic3 = oneLevel;
+   
+   ASSERT_EQ(atomic1.load(), twoLevel);
+   ASSERT_EQ(atomic2.load(), threeLevel);
+   ASSERT_EQ(atomic3.load(), oneLevel);
+}
