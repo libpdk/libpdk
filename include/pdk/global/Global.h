@@ -64,7 +64,7 @@
 /*
    Avoid "unused parameter" warnings
 */
-#define PDK_UNUSED(x) (void)x;
+#define PDK_UNUSED(x) (void)x
 
 #if !defined(PDK_NO_DEBUG) && !defined(PDK_DEBUG)
 #  define PDK_DEBUG

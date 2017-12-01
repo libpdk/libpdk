@@ -18,8 +18,8 @@
 
 #include "AtomicCxx11.h"
 
-PDK_WARNING_PUSH
-PDK_WARNING_DISABLE_MSVC(4522)
+//PDK_WARNING_PUSH
+//PDK_WARNING_DISABLE_MSVC(4522)
 
 namespace pdk {
 namespace os {
@@ -64,7 +64,7 @@ public:
       Operations::storeRelease(m_atomic, newValue);
       return newValue;
    }
-
+   
    static constexpr bool isRefCountingNative() noexcept
    {
       return Operations::isRefCountingNative();
@@ -309,7 +309,7 @@ public:
    {
       return fetchAndAndOrdered(value) & value;
    }
-
+   
    T operator|=(T value) noexcept
    {
       return fetchAndOrOrdered(value) | value;
@@ -376,7 +376,7 @@ public:
    {
       return Operations::isTestAndSetNative();
    }
-
+   
    static constexpr bool isTestAndSetWaitFree() noexcept
    {
       return Operations::isTestAndSetWaitFree();
@@ -416,7 +416,7 @@ public:
    {
       return Operations::fetchAndStoreRelaxed(m_atomic, newValue);
    }
-
+   
    Type fetchAndStoreAcquire(Type newValue) noexcept
    {
       return Operations::fetchAndStoreAcquire(m_atomic, newValue);
@@ -436,7 +436,7 @@ public:
    {
       return Operations::isFetchAndAddNative();
    }
-
+   
    static constexpr bool isFetchAndAddWaitFree() noexcept
    {
       return Operations::isFetchAndAddWaitFree();
@@ -456,7 +456,7 @@ public:
    {
       return Operations::fetchAndAddRelease(m_atomic, value);
    }
-
+   
    Type fetchAndAddOrdered(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndAddOrdered(m_atomic, value);
@@ -476,7 +476,7 @@ public:
    {
       return Operations::fetchAndSubRelease(m_atomic, value);
    }
-
+   
    Type fetchAndSubOrdered(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubOrdered(m_atomic, value);
@@ -504,12 +504,22 @@ public:
    
    Type operator+=(pdk::ptrdiff value) noexcept
    {
-      return Operations::fetchAndSubOrdered(m_atomic, value) + value;
+      return Operations::fetchAndAddOrdered(m_atomic, value) + value;
    }
    
    Type operator-=(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubOrdered(m_atomic, value) - value;
+   }
+   
+   operator Type() const noexcept 
+   { 
+      return loadAcquire(); 
+   }
+   
+   Type operator=(Type value) noexcept {
+      storeRelease(value); 
+      return value;
    }
 public:
    AtomicType m_atomic;
@@ -523,6 +533,6 @@ public:
 } // os
 } // pdk
 
-PDK_WARNING_POP
+//PDK_WARNING_POP
 
 #endif // PDK_M_BASE_OS_THREAD_BASIC_ATOMIC_H

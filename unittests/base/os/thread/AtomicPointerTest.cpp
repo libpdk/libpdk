@@ -522,3 +522,123 @@ TEST(AtomicPointerTest, testFetchAndAdd)
       ++begin;
    }
 }
+
+template <typename T>
+void const_and_volatile_helper()
+{
+   T *oneLevel = 0;
+   T *twoLevel = &oneLevel;
+   T *threeLevel = &twoLevel;
+   
+   {
+      AtomicPointer<T> atomic1 = oneLevel;
+      AtomicPointer<T> atomic2 = twoLevel;
+      AtomicPointer<T> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_EQ(atomic1.fetchAndStoreRelaxed(twoLevel), oneLevel);
+      ASSERT_EQ(atomic2.fetchAndStoreRelaxed(threeLevel), twoLevel);
+      ASSERT_EQ(atomic3.fetchAndStoreRelaxed(oneLevel), threeLevel);
+      
+      ASSERT_EQ(atomic1.load(), twoLevel);
+      ASSERT_EQ(atomic2.load(), threeLevel);
+      ASSERT_EQ(atomic3.load(), oneLevel);
+   }
+   {
+      AtomicPointer<T> atomic1 = oneLevel;
+      AtomicPointer<T> atomic2 = twoLevel;
+      AtomicPointer<T> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_TRUE(atomic1.testAndSetRelaxed(oneLevel, twoLevel));
+      ASSERT_TRUE(atomic1.testAndSetRelaxed(twoLevel, threeLevel));
+      ASSERT_TRUE(atomic1.testAndSetRelaxed(threeLevel, oneLevel));
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+   }
+}
+
+TEST(AtomicPointerTest, testConstAndVolatile)
+{
+   const_and_volatile_helper<void>();
+   const_and_volatile_helper<const void>();
+   const_and_volatile_helper<volatile void>();
+   const_and_volatile_helper<const volatile void>();
+}
+
+struct ForwardDeclared;
+struct ContainsForwardDeclared
+{
+   AtomicPointer<ForwardDeclared> ptr;
+};
+
+TEST(AtomicPointerTest, testForwardDeclared)
+{
+   AtomicPointer<ForwardDeclared> ptr;
+   ContainsForwardDeclared cfd;
+   PDK_UNUSED(ptr);
+   PDK_UNUSED(cfd);
+   SUCCEED();
+}
+
+namespace
+{
+template <typename T>
+void operators_helper()
+{
+   using PtrType = T *;
+   T array[3] = {};
+   PtrType zero = array;
+   PtrType one = array + 1;
+   PtrType two = array + 2;
+   {
+      BasicAtomicPointer<T> atomic = PDK_BASIC_ATOMIC_INITIALIZER(0);
+      atomic = one;
+      ASSERT_EQ(static_cast<PtrType>(atomic), one);
+   }
+   
+   AtomicPointer<T> atomic = zero;
+   PtrType x = ++atomic;
+   ASSERT_EQ(static_cast<PtrType>(atomic), x);
+   ASSERT_EQ(static_cast<PtrType>(atomic), one);
+   
+   x = atomic++;
+   ASSERT_EQ(static_cast<PtrType>(atomic), x + 1);
+   ASSERT_EQ(static_cast<PtrType>(atomic), two);
+   
+   x = atomic--;
+   ASSERT_EQ(static_cast<PtrType>(atomic), x - 1);
+   ASSERT_EQ(static_cast<PtrType>(atomic), one);
+   
+   x = --atomic;
+   ASSERT_EQ(static_cast<PtrType>(atomic), x);
+   ASSERT_EQ(static_cast<PtrType>(atomic), zero);
+   
+   x = (atomic += 2);
+   ASSERT_EQ(static_cast<PtrType>(atomic), x);
+   ASSERT_EQ(static_cast<PtrType>(atomic), two);
+   
+   x = (atomic -= 1);
+   ASSERT_EQ(static_cast<PtrType>(atomic), x);
+   ASSERT_EQ(static_cast<PtrType>(atomic), one);
+}
+struct Big { double d[10]; };
+}
+
+TEST(AtomicPointerTest, testOperators)
+{
+   operators_helper<char>();
+   operators_helper<int>();
+   operators_helper<double>();
+   operators_helper<Big>();
+}
+
+
