@@ -369,3 +369,156 @@ TEST(AtomicPointerTest, testFetchAndStore)
       ASSERT_EQ(atomic3.load(), oneLevel);
    }
 }
+
+TEST(AtomicPointerTest, testIsFetchAndAddNative)
+{
+#if defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_ALWAYS_NATIVE)
+   ASSERT_TRUE(AtomicPointer<void>::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_SOMETIMES_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_NEVER_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_SOMETIMES_NATIVE)
+   ASSERT_TRUE(AtomicPointer<void>::isFetchAndAddNative() || !AtomicPointer<void>::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_ALWAYS_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_NEVER_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_NEVER_NATIVE)
+   ASSERT_TRUE(!AtomicPointer<void>::isFetchAndAddNative());
+#  if (defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_ALWAYS_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_SOMTIMES_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#else
+#  error "PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE is not defined"
+#endif
+}
+
+TEST(AtomicPointerTest, testFetchAndAddWaitFree)
+{
+#if defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_WAIT_FREE)
+   // the runtime test should say the same thing
+   ASSERT_EQ(AtomicPointer<void>::isFetchAndAddWaitFree());
+   ASSERT_EQ(AtomicPointer<void>::isFetchAndAddNative());
+#  if defined(PDK_ATOMIC_POINTER_FETCH_AND_ADD_IS_NOT_NATIVE)
+#    error "Reference counting cannot be wait-free and unsupported at the same time!"
+#  endif
+#else
+   ASSERT_TRUE(!AtomicPointer<void>::isFetchAndAddWaitFree());
+#endif
+}
+
+TEST(AtomicPointerTest, testFetchAndAdd)
+{
+   std::list<int> data;
+   data.push_back(0);
+   data.push_back(1);
+   data.push_back(2);
+   data.push_back(10);
+   data.push_back(31);
+   data.push_back(51);
+   data.push_back(72);
+   data.push_back(810);
+   data.push_back(631);
+   data.push_back(451);
+   data.push_back(272);
+   data.push_back(1810);
+   data.push_back(3631);
+   data.push_back(5451);
+   data.push_back(7272);
+   data.push_back(-1);
+   data.push_back(-2);
+   data.push_back(-10);
+   data.push_back(-31);
+   data.push_back(-51);
+   data.push_back(-72);
+   data.push_back(-810);
+   data.push_back(-631);
+   data.push_back(-451);
+   data.push_back(-272);
+   data.push_back(-1810);
+   data.push_back(-3631);
+   data.push_back(-5451);
+   data.push_back(-7272);
+   
+   typename std::list<int>::iterator begin = data.begin();
+   typename std::list<int>::iterator end = data.end();
+   while (begin != end) {
+      int value = *begin;
+      char c;
+      char *pc = &c;
+      short s;
+      short *ps = &s;
+      int i;
+      int *pi = &i;
+      {
+         AtomicPointer<char> pointer1 = pc;
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddRelaxed(value)), static_cast<void *>(pc));
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddRelaxed(-value)), static_cast<void *>(pc + value));
+         ASSERT_EQ(static_cast<void *>(pointer1.load()), static_cast<void *>(pc));
+         
+         AtomicPointer<short> pointer2 = ps;
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddRelaxed(value)), static_cast<void *>(ps));
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddRelaxed(-value)), static_cast<void *>(ps + value));
+         ASSERT_EQ(static_cast<void *>(pointer2.load()), static_cast<void *>(ps));
+         
+         AtomicPointer<int> pointer3 = pi;
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddRelaxed(value)), static_cast<void *>(pi));
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddRelaxed(-value)), static_cast<void *>(pi + value));
+         ASSERT_EQ(static_cast<void *>(pointer3.load()), static_cast<void *>(pi));
+      }
+      
+      {
+         AtomicPointer<char> pointer1 = pc;
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddAcquire(value)), static_cast<void *>(pc));
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddAcquire(-value)), static_cast<void *>(pc + value));
+         ASSERT_EQ(static_cast<void *>(pointer1.load()), static_cast<void *>(pc));
+         
+         AtomicPointer<short> pointer2 = ps;
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddAcquire(value)), static_cast<void *>(ps));
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddAcquire(-value)), static_cast<void *>(ps + value));
+         ASSERT_EQ(static_cast<void *>(pointer2.load()), static_cast<void *>(ps));
+         
+         AtomicPointer<int> pointer3 = pi;
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddAcquire(value)), static_cast<void *>(pi));
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddAcquire(-value)), static_cast<void *>(pi + value));
+         ASSERT_EQ(static_cast<void *>(pointer3.load()), static_cast<void *>(pi));
+      }
+      
+      {
+         AtomicPointer<char> pointer1 = pc;
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddRelease(value)), static_cast<void *>(pc));
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddRelease(-value)), static_cast<void *>(pc + value));
+         ASSERT_EQ(static_cast<void *>(pointer1.load()), static_cast<void *>(pc));
+         
+         AtomicPointer<short> pointer2 = ps;
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddRelease(value)), static_cast<void *>(ps));
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddRelease(-value)), static_cast<void *>(ps + value));
+         ASSERT_EQ(static_cast<void *>(pointer2.load()), static_cast<void *>(ps));
+         
+         AtomicPointer<int> pointer3 = pi;
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddRelease(value)), static_cast<void *>(pi));
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddRelease(-value)), static_cast<void *>(pi + value));
+         ASSERT_EQ(static_cast<void *>(pointer3.load()), static_cast<void *>(pi));
+      }
+      
+      {
+         AtomicPointer<char> pointer1 = pc;
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddOrdered(value)), static_cast<void *>(pc));
+         ASSERT_EQ(static_cast<void *>(pointer1.fetchAndAddOrdered(-value)), static_cast<void *>(pc + value));
+         ASSERT_EQ(static_cast<void *>(pointer1.load()), static_cast<void *>(pc));
+         
+         AtomicPointer<short> pointer2 = ps;
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddOrdered(value)), static_cast<void *>(ps));
+         ASSERT_EQ(static_cast<void *>(pointer2.fetchAndAddOrdered(-value)), static_cast<void *>(ps + value));
+         ASSERT_EQ(static_cast<void *>(pointer2.load()), static_cast<void *>(ps));
+         
+         AtomicPointer<int> pointer3 = pi;
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddOrdered(value)), static_cast<void *>(pi));
+         ASSERT_EQ(static_cast<void *>(pointer3.fetchAndAddOrdered(-value)), static_cast<void *>(pi + value));
+         ASSERT_EQ(static_cast<void *>(pointer3.load()), static_cast<void *>(pi));
+      }
+      ++begin;
+   }
+}
