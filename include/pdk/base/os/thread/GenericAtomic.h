@@ -48,7 +48,7 @@ struct AtomicAdditiveType
 template <typename T>
 struct AtomicAdditiveType<T *>
 {
-   using AdditiveType = T;
+   using AdditiveType = pdk::ptrdiff;
    static const int AddScale = sizeof(T);
 };
 

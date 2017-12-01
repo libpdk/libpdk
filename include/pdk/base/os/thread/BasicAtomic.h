@@ -340,7 +340,7 @@ class BasicAtomicPointer
 {
 public:
    using Type = T *;
-   using Operations = AtomicOperations<T>;
+   using Operations = AtomicOperations<Type>;
    using AtomicType = typename Operations::Type;
    
    
@@ -442,42 +442,42 @@ public:
       return Operations::isFetchAndAddWaitFree();
    }
    
-   Type fetchAndAddRelaxed(Type value) noexcept
+   Type fetchAndAddRelaxed(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndAddRelaxed(m_atomic, value);
    }
    
-   Type fetchAndAddAcquire(Type value) noexcept
+   Type fetchAndAddAcquire(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndAddAcquire(m_atomic, value);
    }
    
-   Type fetchAndAddRelease(Type value) noexcept
+   Type fetchAndAddRelease(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndAddRelease(m_atomic, value);
    }
 
-   Type fetchAndAddOrdered(Type value) noexcept
+   Type fetchAndAddOrdered(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndAddOrdered(m_atomic, value);
    }
    
-   Type fetchAndSubRelaxed(Type value) noexcept
+   Type fetchAndSubRelaxed(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubRelaxed(m_atomic, value);
    }
    
-   Type fetchAndSubAcquire(Type value) noexcept
+   Type fetchAndSubAcquire(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubAcquire(m_atomic, value);
    }
    
-   Type fetchAndSubRelease(Type value) noexcept
+   Type fetchAndSubRelease(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubRelease(m_atomic, value);
    }
 
-   Type fetchAndSubOrdered(Type value) noexcept
+   Type fetchAndSubOrdered(pdk::ptrdiff value) noexcept
    {
       return Operations::fetchAndSubOrdered(m_atomic, value);
    }
