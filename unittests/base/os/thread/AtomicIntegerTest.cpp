@@ -530,6 +530,106 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndAdd)
       }
       ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
       
+      if (!needToPreventOverflow) {
+         ASSERT_EQ(atomic += parcel1, newValue1);
+         ASSERT_EQ(atomic += parcel2, static_cast<TypeParam>(value));
+      }
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic += parcel2, newValue2);
+         ASSERT_EQ(atomic += parcel1, static_cast<TypeParam>(value));
+      }
+      ++begin;
+   }
+}
+
+TYPED_TEST(AtomicIntegerTest, testFetchAndSub)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      TypeParam parcel1 = 41;
+      TypeParam parcel2 = static_cast<TypeParam>(0-41);
+      const bool needToPreventOverflow  = std::is_signed<TypeParam>::value && value > std::numeric_limits<TypeParam>::max() - parcel1;
+      const bool needToPreventUnderflow = std::is_signed<TypeParam>::value && value < std::numeric_limits<TypeParam>::min() - parcel2;
+      
+      TypeParam newValue1 = static_cast<TypeParam>(value);
+      if (!needToPreventUnderflow) {
+         newValue1 -= parcel1;
+      }
+      TypeParam newValue2 = static_cast<TypeParam>(value);
+      if (!needToPreventOverflow) {
+         newValue2 -= parcel2;
+      }
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic.fetchAndSubRelaxed(parcel1), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue1);
+         ASSERT_EQ(atomic.fetchAndSubRelaxed(parcel2), newValue1);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if(!needToPreventOverflow) {
+         ASSERT_EQ(atomic.fetchAndSubRelaxed(parcel2), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue2);
+         ASSERT_EQ(atomic.fetchAndSubRelaxed(parcel1), newValue2);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic.fetchAndSubAcquire(parcel1), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue1);
+         ASSERT_EQ(atomic.fetchAndSubAcquire(parcel2), newValue1);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if(!needToPreventOverflow) {
+         ASSERT_EQ(atomic.fetchAndSubAcquire(parcel2), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue2);
+         ASSERT_EQ(atomic.fetchAndSubAcquire(parcel1), newValue2);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic.fetchAndSubRelease(parcel1), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue1);
+         ASSERT_EQ(atomic.fetchAndSubRelease(parcel2), newValue1);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if(!needToPreventOverflow) {
+         ASSERT_EQ(atomic.fetchAndSubRelease(parcel2), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue2);
+         ASSERT_EQ(atomic.fetchAndSubRelease(parcel1), newValue2);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic.fetchAndSubOrdered(parcel1), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue1);
+         ASSERT_EQ(atomic.fetchAndSubOrdered(parcel2), newValue1);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if(!needToPreventOverflow) {
+         ASSERT_EQ(atomic.fetchAndSubOrdered(parcel2), static_cast<TypeParam>(value));
+         ASSERT_EQ(atomic.load(), newValue2);
+         ASSERT_EQ(atomic.fetchAndSubOrdered(parcel1), newValue2);
+      }
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      if (!needToPreventUnderflow) {
+         ASSERT_EQ(atomic -= parcel1, newValue1);
+         ASSERT_EQ(atomic -= parcel2, static_cast<TypeParam>(value));
+      }
+      
+      if (!needToPreventOverflow) {
+         ASSERT_EQ(atomic -= parcel2, newValue2);
+         ASSERT_EQ(atomic -= parcel1, static_cast<TypeParam>(value));
+      }
       ++begin;
    }
 }
