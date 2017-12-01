@@ -366,3 +366,51 @@ TYPED_TEST(AtomicIntegerTest, testTestAndSet)
    }
 }
 
+TYPED_TEST(AtomicIntegerTest, testTestAndSetWithOldValue)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      TypeParam oldValue;
+      TypeParam newValue = ~static_cast<TypeParam>(value);
+      AtomicInteger<TypeParam> atomic(value);
+      
+      ASSERT_TRUE(atomic.testAndSetRelaxed(value, newValue, oldValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetRelaxed(value, newValue, oldValue));
+      ASSERT_EQ(oldValue, newValue);
+      ASSERT_TRUE(atomic.testAndSetRelaxed(newValue, value, oldValue));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(oldValue, value);
+      
+      ASSERT_TRUE(atomic.testAndSetAcquire(value, newValue, oldValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetAcquire(value, newValue, oldValue));
+      ASSERT_EQ(oldValue, newValue);
+      ASSERT_TRUE(atomic.testAndSetAcquire(newValue, value, oldValue));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(oldValue, value);
+      
+      ASSERT_TRUE(atomic.testAndSetRelease(value, newValue, oldValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetRelease(value, newValue, oldValue));
+      ASSERT_EQ(oldValue, newValue);
+      ASSERT_TRUE(atomic.testAndSetRelease(newValue, value, oldValue));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(oldValue, value);
+      
+      ASSERT_TRUE(atomic.testAndSetOrdered(value, newValue, oldValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetOrdered(value, newValue, oldValue));
+      ASSERT_EQ(oldValue, newValue);
+      ASSERT_TRUE(atomic.testAndSetOrdered(newValue, value, oldValue));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(oldValue, value);
+      
+      ++begin;
+   }
+}
