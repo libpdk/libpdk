@@ -135,3 +135,120 @@ TEST(AtomicPointerTest, testAssignmentOperator)
    ASSERT_EQ(atomic2.load(), threeLevel);
    ASSERT_EQ(atomic3.load(), oneLevel);
 }
+
+TEST(AtomicPointerTest, testIsTestAndSetNative)
+{
+#if defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_ALWAYS_NATIVE)
+   ASSERT_TRUE(AtomicPointer<void>::isTestAndSetNative());
+#  if (defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_SOMETIMES_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_NEVER_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_TEST_AND_SET_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_SOMETIMES_NATIVE)
+   ASSERT_TRUE(AtomicPointer<void>::isTestAndSetNative() || !AtomicPointer<void>::isTestAndSetNative());
+#  if (defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_ALWAYS_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_NEVER_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_TEST_AND_SET_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#elif defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_NEVER_NATIVE)
+   ASSERT_TRUE(!AtomicPointer<void>::isTestAndSetNative());
+#  if (defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_ALWAYS_NATIVE)     \
+   || defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_SOMTIMES_NATIVE))
+#    error "Define only one of PDK_ATOMIC_POINTER_TEST_AND_SET_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE"
+#  endif
+#else
+#  error "PDK_ATOMIC_POINTER_TEST_AND_SET_IS_{ALWAYS,SOMTIMES,NEVER}_NATIVE is not defined"
+#endif
+}
+
+TEST(AtomicPointerTest, testIsTestAndSetWaitFree)
+{
+#if defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_WAIT_FREE)
+   // the runtime test should say the same thing
+   ASSERT_EQ(AtomicPointer<void>::isTestAndSetWaitFree());
+   ASSERT_EQ(AtomicPointer<void>::isTestAndSetNative());
+#  if defined(PDK_ATOMIC_POINTER_TEST_AND_SET_IS_NOT_NATIVE)
+#    error "Reference counting cannot be wait-free and unsupported at the same time!"
+#  endif
+#else
+   ASSERT_TRUE(!AtomicPointer<void>::isTestAndSetWaitFree());
+#endif
+}
+
+TEST(AtomicPointerTest, testTestAndSet)
+{
+   void *oneLevel = this;
+   void *twoLevel = &oneLevel;
+   void *threeLevel = &twoLevel;
+   {
+      AtomicPointer<void> atomic1 = oneLevel;
+      AtomicPointer<void> atomic2 = twoLevel;
+      AtomicPointer<void> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_TRUE(atomic1.testAndSetRelaxed(oneLevel, twoLevel));
+      ASSERT_TRUE(atomic2.testAndSetRelaxed(twoLevel, threeLevel));
+      ASSERT_TRUE(atomic3.testAndSetRelaxed(threeLevel, oneLevel));
+      
+      ASSERT_EQ(atomic1.load(), twoLevel);
+      ASSERT_EQ(atomic2.load(), threeLevel);
+      ASSERT_EQ(atomic3.load(), oneLevel);
+   }
+   
+   {
+      AtomicPointer<void> atomic1 = oneLevel;
+      AtomicPointer<void> atomic2 = twoLevel;
+      AtomicPointer<void> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_TRUE(atomic1.testAndSetAcquire(oneLevel, twoLevel));
+      ASSERT_TRUE(atomic2.testAndSetAcquire(twoLevel, threeLevel));
+      ASSERT_TRUE(atomic3.testAndSetAcquire(threeLevel, oneLevel));
+      
+      ASSERT_EQ(atomic1.load(), twoLevel);
+      ASSERT_EQ(atomic2.load(), threeLevel);
+      ASSERT_EQ(atomic3.load(), oneLevel);
+   }
+   
+   {
+      AtomicPointer<void> atomic1 = oneLevel;
+      AtomicPointer<void> atomic2 = twoLevel;
+      AtomicPointer<void> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_TRUE(atomic1.testAndSetRelease(oneLevel, twoLevel));
+      ASSERT_TRUE(atomic2.testAndSetRelease(twoLevel, threeLevel));
+      ASSERT_TRUE(atomic3.testAndSetRelease(threeLevel, oneLevel));
+      
+      ASSERT_EQ(atomic1.load(), twoLevel);
+      ASSERT_EQ(atomic2.load(), threeLevel);
+      ASSERT_EQ(atomic3.load(), oneLevel);
+   }
+   
+   {
+      AtomicPointer<void> atomic1 = oneLevel;
+      AtomicPointer<void> atomic2 = twoLevel;
+      AtomicPointer<void> atomic3 = threeLevel;
+      
+      ASSERT_EQ(atomic1.load(), oneLevel);
+      ASSERT_EQ(atomic2.load(), twoLevel);
+      ASSERT_EQ(atomic3.load(), threeLevel);
+      
+      ASSERT_TRUE(atomic1.testAndSetOrdered(oneLevel, twoLevel));
+      ASSERT_TRUE(atomic2.testAndSetOrdered(twoLevel, threeLevel));
+      ASSERT_TRUE(atomic3.testAndSetOrdered(threeLevel, oneLevel));
+      
+      ASSERT_EQ(atomic1.load(), twoLevel);
+      ASSERT_EQ(atomic2.load(), threeLevel);
+      ASSERT_EQ(atomic3.load(), oneLevel);
+   }
+}
