@@ -325,3 +325,44 @@ TYPED_TEST(AtomicIntegerTest, testRefDeref)
       ++begin;
    }
 }
+
+TYPED_TEST(AtomicIntegerTest, testTestAndSet)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      TypeParam newValue = ~static_cast<TypeParam>(value);
+      AtomicInteger<TypeParam> atomic(value);
+      
+      ASSERT_TRUE(atomic.testAndSetRelaxed(value, newValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetRelaxed(value, newValue));
+      ASSERT_TRUE(atomic.testAndSetRelaxed(newValue, value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      ASSERT_TRUE(atomic.testAndSetAcquire(value, newValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetAcquire(value, newValue));
+      ASSERT_TRUE(atomic.testAndSetAcquire(newValue, value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      ASSERT_TRUE(atomic.testAndSetRelease(value, newValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetRelease(value, newValue));
+      ASSERT_TRUE(atomic.testAndSetRelease(newValue, value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      ASSERT_TRUE(atomic.testAndSetOrdered(value, newValue));
+      ASSERT_EQ(atomic.load(), newValue);
+      ASSERT_TRUE(!atomic.testAndSetOrdered(value, newValue));
+      ASSERT_TRUE(atomic.testAndSetOrdered(newValue, value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      
+      ++begin;
+   }
+}
+
