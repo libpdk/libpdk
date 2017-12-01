@@ -479,7 +479,7 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndAdd)
          ASSERT_EQ(atomic.load(), newValue1);
          ASSERT_EQ(atomic.fetchAndAddRelaxed(parcel2), newValue1);
       }
-       ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
       
       if (!needToPreventUnderflow) {
          ASSERT_EQ(atomic.fetchAndAddRelaxed(parcel2), static_cast<TypeParam>(value));
@@ -493,7 +493,7 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndAdd)
          ASSERT_EQ(atomic.load(), newValue1);
          ASSERT_EQ(atomic.fetchAndAddAcquire(parcel2), newValue1);
       }
-       ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
       
       if (!needToPreventUnderflow) {
          ASSERT_EQ(atomic.fetchAndAddAcquire(parcel2), static_cast<TypeParam>(value));
@@ -507,7 +507,7 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndAdd)
          ASSERT_EQ(atomic.load(), newValue1);
          ASSERT_EQ(atomic.fetchAndAddRelease(parcel2), newValue1);
       }
-       ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
       
       if (!needToPreventUnderflow) {
          ASSERT_EQ(atomic.fetchAndAddRelease(parcel2), static_cast<TypeParam>(value));
@@ -521,7 +521,7 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndAdd)
          ASSERT_EQ(atomic.load(), newValue1);
          ASSERT_EQ(atomic.fetchAndAddOrdered(parcel2), newValue1);
       }
-       ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value));
       
       if (!needToPreventUnderflow) {
          ASSERT_EQ(atomic.fetchAndAddOrdered(parcel2), static_cast<TypeParam>(value));
@@ -633,3 +633,53 @@ TYPED_TEST(AtomicIntegerTest, testFetchAndSub)
       ++begin;
    }
 }
+
+TYPED_TEST(AtomicIntegerTest, testFetchAndOr)
+{
+   using LargeInt = typename std::conditional<std::is_signed<TypeParam>::value, pdk::pint64, pdk::puint64>::type;
+   std::list<LargeInt> data;
+   init_test_data<TypeParam, LargeInt>(data);
+   typename std::list<LargeInt>::iterator begin = data.begin();
+   typename std::list<LargeInt>::iterator end = data.end();
+   while (begin != end) {
+      LargeInt value = *begin;
+      AtomicInteger<TypeParam> atomic(value);
+      TypeParam zero = 0;
+      TypeParam one = 1;
+      TypeParam minusOne = static_cast<TypeParam>(~0);
+      
+      ASSERT_EQ(atomic.fetchAndOrRelaxed(zero), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.fetchAndOrRelaxed(one), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.fetchAndOrRelaxed(minusOne), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.load(), minusOne);
+      atomic.store(value);
+      
+      ASSERT_EQ(atomic.fetchAndOrAcquire(zero), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.fetchAndOrAcquire(one), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.fetchAndOrAcquire(minusOne), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.load(), minusOne);
+      atomic.store(value);
+      
+      ASSERT_EQ(atomic.fetchAndOrRelease(zero), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.fetchAndOrRelease(one), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.fetchAndOrRelease(minusOne), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.load(), minusOne);
+      atomic.store(value);
+      
+      ASSERT_EQ(atomic.fetchAndOrOrdered(zero), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.fetchAndOrOrdered(one), static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic.load(), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.fetchAndOrOrdered(minusOne), static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic.load(), minusOne);
+      atomic.store(value);
+      
+      ASSERT_EQ(atomic |= zero, static_cast<TypeParam>(value));
+      ASSERT_EQ(atomic |= one, static_cast<TypeParam>(value | 1));
+      ASSERT_EQ(atomic |= minusOne, minusOne);
+      ++begin;
+   }
+}
+
