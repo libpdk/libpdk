@@ -98,7 +98,267 @@ struct PDK_CORE_EXPORT ArrayData
    }
 };
 
-PDK_DECLARE_OPERATORS_FOR_FLAGS(ArrayData::AllocationOptions)
+//PDK_DECLARE_OPERATORS_FOR_FLAGS(ArrayData::AllocationOptions)
+
+template <typename T>
+struct TypedArrayData : ArrayData
+{
+   class Iterator
+   {
+   public:
+      using IteratorCategory = std::random_access_iterator_tag;
+      using DifferenceType = int;
+      using ValueType = T;
+      using Pointer = T *;
+      using Reference = T &;
+   
+   public:
+      inline Iterator()
+         : m_pointer(nullptr)
+      {}
+      
+      inline Iterator(T *next)
+         : m_pointer(next)
+      {}
+      
+      inline T &operator*() const
+      {
+         return *m_pointer;
+      }
+      
+      inline T *operator->() const
+      {
+         return m_pointer;
+      }
+      
+      inline T &operator[](int index) const
+      {
+         return *(m_pointer + index);
+      }
+      
+      inline bool operator==(const Iterator &other) const
+      {
+         return m_pointer == other.m_pointer;
+      }
+      
+      inline bool operator!=(const Iterator &other) const
+      {
+         return m_pointer != other.m_pointer;
+      }
+      
+      inline bool operator<(const Iterator &other) const
+      {
+         return m_pointer < other.m_pointer;
+      }
+      
+      inline bool operator<=(const Iterator &other) const
+      {
+         return m_pointer <= other.m_pointer;
+      }
+      
+      inline bool operator>(const Iterator &other) const
+      {
+         return m_pointer > other.m_pointer;
+      }
+      
+      inline bool operator>=(const Iterator &other) const
+      {
+         return m_pointer >= other.m_pointer;
+      }
+      
+      inline Iterator &operator++()
+      {
+         ++m_pointer;
+         return *this;
+      }
+      
+      inline Iterator operator++(int)
+      {
+         T *orig = this;
+         ++m_pointer;
+         return orig;
+      }
+      
+      inline Iterator &operator--()
+      {
+         --m_pointer;
+         return *this;
+      }
+      
+      inline Iterator operator--(int)
+      {
+         T *orig = this;
+         --m_pointer;
+         return orig;
+      }
+      
+      inline Iterator operator+(int value) const
+      {
+         return Iterator(m_pointer + value);
+      }
+      
+      inline Iterator operator-(int value) const
+      {
+         return Iterator(m_pointer - value);
+      }
+      
+      inline Iterator &operator+=(int value)
+      {
+         m_pointer += value;
+         return *this;
+      }
+      
+      inline int operator-(const Iterator &value) const
+      {
+         return m_pointer - value.m_pointer;
+      }
+      
+      inline Iterator &operator-=(int value)
+      {
+         m_pointer -= value;
+         return *this;
+      }
+      
+      inline operator T*() const
+      {
+         return m_pointer;
+      }
+   public:
+      T *m_pointer;
+   };
+   
+   friend class Iterator;
+   
+   class ConstIterator
+   {
+   public:
+      using IteratorCategory = std::random_access_iterator_tag;
+      using DifferenceType = int;
+      using ValueType = T;
+      using Pointer = const T *;
+      using Reference = const T &;
+   
+   public:
+      inline ConstIterator()
+         : m_pointer(nullptr)
+      {}
+      
+      inline ConstIterator(const T *next)
+         : m_pointer(next)
+      {}
+      
+      inline explicit ConstIterator(const ConstIterator &other)
+         : m_pointer(other.m_pointer)
+      {}
+      
+      inline const T &operator*() const
+      {
+         return *m_pointer;
+      }
+      
+      inline const T *operator->() const
+      {
+         return m_pointer;
+      }
+      
+      inline const T &operator[](int index) const
+      {
+         return *(m_pointer + index);
+      }
+      
+      inline bool operator==(const ConstIterator &other) const
+      {
+         return m_pointer == other.m_pointer;
+      }
+      
+      inline bool operator!=(const ConstIterator &other) const
+      {
+         return m_pointer != other.m_pointer;
+      }
+      
+      inline bool operator<(const ConstIterator &other) const
+      {
+         return m_pointer < other.m_pointer;
+      }
+      
+      inline bool operator<=(const ConstIterator &other) const
+      {
+         return m_pointer <= other.m_pointer;
+      }
+      
+      inline bool operator>(const ConstIterator &other) const
+      {
+         return m_pointer > other.m_pointer;
+      }
+      
+      inline bool operator>=(const ConstIterator &other) const
+      {
+         return m_pointer >= other.m_pointer;
+      }
+      
+      inline ConstIterator &operator++()
+      {
+         ++m_pointer;
+         return *this;
+      }
+      
+      inline ConstIterator &operator++(int)
+      {
+         T *orig = m_pointer;
+         ++m_pointer;
+         return orig;
+      }
+      
+      inline ConstIterator &operator--()
+      {
+         --m_pointer;
+         return *this;
+      }
+      
+      inline ConstIterator &operator--(int)
+      {
+         T *orig = m_pointer;
+         --m_pointer;
+         return orig;
+      }
+      
+      inline ConstIterator &operator+=(int value)
+      {
+         m_pointer += value;
+         return *this;
+      }
+
+      inline ConstIterator &operator-=(int value)
+      {
+         m_pointer -= value;
+         return *this;
+      }
+      
+      inline ConstIterator operator-(int value) const
+      {
+         return ConstIterator(m_pointer - value);
+      }
+      
+      inline ConstIterator operator+(int value) const
+      {
+         return ConstIterator(m_pointer + value);
+      }
+      
+      inline int operator-(const ConstIterator &value) const
+      {
+         return m_pointer - value.m_pointer;
+      }
+      
+      inline operator const T *() const
+      {
+         return m_pointer;
+      }
+   public:
+      const T *m_pointer;
+   };
+   
+   friend class ConstIterator;
+};
 
 } // internal
 } // ds
