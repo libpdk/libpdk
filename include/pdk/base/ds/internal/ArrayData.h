@@ -46,13 +46,13 @@ struct PDK_CORE_EXPORT ArrayData
    
    PDK_DECLARE_FLAGS(AllocationOptions, AllocationOption);
    
-   void *data()
+   void *getData()
    {
       PDK_ASSERT(m_size == 0 || m_offset < 0 || static_cast<size_t>(m_offset) >= sizeof(ArrayData));
       return reinterpret_cast<char *>(this) + m_offset;
    }
    
-   const void *data() const
+   const void *getData() const
    {
       PDK_ASSERT(m_size == 0 || m_offset < 0 || static_cast<size_t>(m_offset) >= sizeof(ArrayData));
       return reinterpret_cast<const char *>(this) + m_offset;
@@ -111,7 +111,7 @@ struct TypedArrayData : ArrayData
       using ValueType = T;
       using Pointer = T *;
       using Reference = T &;
-   
+      
    public:
       inline Iterator()
          : m_pointer(nullptr)
@@ -237,7 +237,7 @@ struct TypedArrayData : ArrayData
       using ValueType = T;
       using Pointer = const T *;
       using Reference = const T &;
-   
+      
    public:
       inline ConstIterator()
          : m_pointer(nullptr)
@@ -327,7 +327,7 @@ struct TypedArrayData : ArrayData
          m_pointer += value;
          return *this;
       }
-
+      
       inline ConstIterator &operator-=(int value)
       {
          m_pointer -= value;
@@ -358,6 +358,100 @@ struct TypedArrayData : ArrayData
    };
    
    friend class ConstIterator;
+   
+   T *getData()
+   {
+      return static_cast<T *>(ArrayData::getData());
+   }
+   
+   const T *getData() const
+   {
+      return static_cast<const T *>(ArrayData::getData());
+   }
+   
+   Iterator begin(Iterator = Iterator())
+   {
+      return getData();
+   }
+   
+   Iterator end(Iterator = Iterator())
+   {
+      return getData() + m_size;
+   }
+   
+   ConstIterator begin(ConstIterator = ConstIterator()) const
+   {
+      return getData();
+   }
+   
+   ConstIterator end(ConstIterator = ConstIterator()) const
+   {
+      return getData() + m_size;
+   }
+   
+   ConstIterator constBegin() const
+   {
+      return getData();
+   }
+   
+   ConstIterator constEnd() const
+   {
+      return getData() + m_size;
+   }
+   
+   class AlignmentDummy
+   {
+      ArrayData m_header;
+      T m_data;
+   };
+   
+   static TypedArrayData *allocate(size_t capacity,
+                                   AllocationOptions options = Default) PDK_REQUIRED_RESULT
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      return static_cast<TypedArrayData *>(ArrayData::allocate(
+                                                   sizeof(T), alignof(AlignmentDummy), capacity, options));
+   }
+   
+   static void deallocate(ArrayData *data)
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      ArrayData::deallocate(data, sizeof(T), alignof(AlignmentDummy));
+   }
+   
+   static TypedArrayData *fromRawData(const T *data, size_t size,
+                                      AllocationOptions options = Default)
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      TypedArrayData *result = allocate(0, options | RawData);
+      if (result) {
+         PDK_ASSERT(!result->m_ref.isShared());
+         result->m_offset = reinterpret_cast<const char *>(data) 
+               - reinterpret_cast<const char *>(result);
+         result->m_size = size;
+      }
+      return result;
+   }
+   
+   static TypedArrayData *getSharedNull() noexcept
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      return static_cast<TypedArrayData *>(ArrayData::getSharedNull());
+   }
+   
+   static TypedArrayData *getSharedEmpty()
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      return allocate(0);
+   }
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   static TypedArrayData *getUnsharableEmpty()
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      return allocate(0, Unsharable);
+   }
+#endif
 };
 
 } // internal

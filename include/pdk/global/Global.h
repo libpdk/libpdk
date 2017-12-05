@@ -239,5 +239,6 @@ PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what,
 } // pdk
 
 #include "pdk/global/Flags.h"
+#include "pdk/global/Numeric.h"
 
 #endif // PDK_GLOBAL_GLOBAL_H

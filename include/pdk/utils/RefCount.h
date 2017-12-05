@@ -88,10 +88,10 @@ public:
    
    void initializeUnshared() noexcept
    {
-       m_atomic.store(0);
+      m_atomic.store(0);
    }
-private:
-    pdk::os::thread::AtomicInt m_atomic;
+   
+   pdk::os::thread::AtomicInt m_atomic;
 };
 
 #define PDK_REFCOUNT_INITIALIZE_STATIC { PDK_BASIC_ATOMIC_INITIALIZER(-1) }
