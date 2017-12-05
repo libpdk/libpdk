@@ -20,16 +20,24 @@ namespace utils {
 
 size_t calculate_block_size(size_t elementCount, size_t elementSize, size_t headerSize) noexcept
 {
-   unsigned count = static_cast<unsigned int>(elementCount);
-   unsigned size = static_cast<unsigned int>(elementSize);
-   unsigned header = static_cast<unsigned int>(headerSize);
+   unsigned int count = static_cast<unsigned int>(elementCount);
+   unsigned int size = static_cast<unsigned int>(elementSize);
+   unsigned int header = static_cast<unsigned int>(headerSize);
    PDK_ASSERT(elementSize);
    PDK_ASSERT(size == elementSize);
    PDK_ASSERT(header == headerSize);
    if (PDK_UNLIKELY(count != elementCount)) {
       return std::numeric_limits<size_t>::max();
    }
-   
+   unsigned int bytes;
+   if (PDK_UNLIKELY(pdk::mul_overflow(size, count, &bytes))
+       || PDK_UNLIKELY(pdk::add_overflow(bytes, header, &bytes))) {
+      return std::numeric_limits<size_t>::max();
+   }
+   if (PDK_UNLIKELY(static_cast<int>(bytes) < 0)) { // catches bytes >= 2GB
+      return std::numeric_limits<size_t>::max();
+   }
+   return bytes;
 }
 
 CalculateGrowingBlockSizeResult calculate_growing_block_size(size_t elementCount, size_t elementSize, 
