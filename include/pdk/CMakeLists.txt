@@ -5,6 +5,10 @@ pdk_collect_files(
     OUTPUT_VAR PDK_HEADER_FILES)
 
 pdk_collect_files(
+    DIR kernel
+    OUTPUT_VAR PDK_HEADER_FILES)
+
+pdk_collect_files(
     DIR pal
     OUTPUT_VAR PDK_HEADER_FILES)
 
