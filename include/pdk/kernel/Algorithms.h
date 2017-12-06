@@ -250,7 +250,6 @@ PDK_DECL_RELAXED_CONSTEXPR inline uint count_trailing_zero_bits(pdk::puint8 valu
 #endif
 }
 
-
 PDK_DECL_RELAXED_CONSTEXPR inline uint count_trailing_zero_bits(pdk::puint16 value) noexcept
 {
 #if defined(PDK_HAS_BUILTIN_CTZ)
@@ -287,8 +286,8 @@ PDK_DECL_RELAXED_CONSTEXPR inline uint count_trailing_zero_bits(pdk::puint32 val
 
 PDK_DECL_RELAXED_CONSTEXPR inline uint count_trailing_zero_bits(pdk::puint64 value) noexcept
 {
-#if defined(PDK_HAS_BUILTIN_CTZ)
-   return value ? internal::pdk_builtin_ctz(value) :  64U;
+#if defined(PDK_HAS_BUILTIN_CTZLL)
+   return value ? internal::pdk_builtin_ctzll(value) :  64U;
 #else
    pdk::puint32 x = static_cast<pdk::puint32>(value);
    return x ? count_trailing_zero_bits(x)
