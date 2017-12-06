@@ -42,6 +42,14 @@
 #  define PDK_MATH_PI (3.14159265358979323846)
 #endif
 
+#ifndef PDK_MATH_PI_2
+#  define PDK_MATH_PI_2 (1.57079632679489661923)
+#endif
+
+#ifndef PDK_MATH_PI_4
+#  define PDK_MATH_PI_4 (0.78539816339744830962)
+#endif
+
 #define PDK_SINE_TABLE_SIZE 256
 
 namespace pdk {
