@@ -16,6 +16,8 @@
 #ifndef PDK_KERNEL_MATH_H
 #define PDK_KERNEL_MATH_H
 
+#include "Algorithms.h"
+
 #ifndef PDK_MATH_E
 #  define PDK_MATH_E (2.7182818284590452354)
 #endif
@@ -85,6 +87,59 @@ constexpr inline float radians_to_degrees(float radians)
 constexpr inline float radians_to_degrees(double radians)
 {
    return radians * 180 / PDK_MATH_PI;
+}
+
+#if defined(PDK_HAS_BUILTIN_CLZ)
+inline pdk::puint32 next_power_of_two(pdk::puint32 value)
+{
+   if (0 == value) {
+      return 1;
+   }
+   return 2U << (31 ^ pdk::kernel::internal::pdk_builtin_clz(value));
+}
+
+#else
+inline pdk::puint32 next_power_of_two(pdk::puint32 value)
+{
+   value |= value >> 1;
+   value |= value >> 2;
+   value |= value >> 4;
+   value |= value >> 8;
+   value |= value >> 16;
+   ++value;
+   return value;
+}
+#endif
+
+#if defined(PDK_HAS_BUILTIN_CLZLL)
+inline pdk::puint64 next_power_of_two(pdk::puint64 value)
+{
+   if (0 == value) {
+      return 1;
+   }
+   return 2U << (63 ^ pdk::kernel::internal::pdk_builtin_clz(value));
+}
+#else
+inline pdk::puint64 next_power_of_two(pdk::puint64 value)
+{
+   value |= value >> 1;
+   value |= value >> 2;
+   value |= value >> 4;
+   value |= value >> 8;
+   value |= value >> 16;
+   value |= value >> 32;
+   ++v;
+}
+#endif
+
+inline pdk::puint32 next_power_of_two(pdk::pint32 value)
+{
+   return next_power_of_two(static_cast<pdk::puint32>(value));
+}
+
+inline pdk::puint64 next_power_of_two(pdk::pint64 value)
+{
+   return next_power_of_two(static_cast<pdk::puint64>(value));
 }
 
 } // kernel
