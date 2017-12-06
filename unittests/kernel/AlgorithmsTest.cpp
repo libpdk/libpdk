@@ -143,3 +143,39 @@ TYPED_TEST(AlgorithmsTest, testCountTrailing)
       ++begin;
    }
 }
+
+TYPED_TEST(AlgorithmsTest, testCountLeading)
+{
+   using DataType = std::list<std::tuple<pdk::puint64, uint>>;
+   size_t sizeTestType = sizeof(TypeParam);
+   DataType data;
+   int nibs = sizeTestType * 2;
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), static_cast<uint>(sizeTestType * 8)));
+   for (uint i = 0; i < sizeTestType * 8; ++i) {
+      const pdk::puint64 input = PDK_UINT64_C(1) << i;
+      data.push_back(std::make_tuple(input, static_cast<uint>(sizeTestType*8-i-1)));
+   }
+   // @TODO not thread safe
+   std::srand(std::time(0));
+   // and some random ones:
+   for (uint i = 0; i < sizeTestType*8; ++i) {
+      for (uint j = 0; j < sizeTestType*3; ++j) {  // 3 is arbitrary
+         const pdk::puint64 r = static_cast<pdk::puint64>(std::rand()) << 32 | static_cast<pdk::puint32>(std::rand());
+         const pdk::puint64 b = PDK_UINT64_C(1) << i;
+         const pdk::puint64 mask = b-1;
+         const pdk::puint64 input = (r&mask) | b;
+         data.push_back(std::make_tuple(input, static_cast<uint>(sizeTestType*8-i-1)));
+      }
+   }
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      pdk::puint64 input = std::get<0>(item);
+      uint expected = std::get<1>(item);
+      const TypeParam value = static_cast<TypeParam>(input);
+      ASSERT_EQ(pdk::kernel::count_leading_zero_bits(value), expected);
+      ++begin;
+   }
+}

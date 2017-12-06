@@ -341,8 +341,8 @@ PDK_DECL_RELAXED_CONSTEXPR inline uint count_leading_zero_bits(pdk::puint32 valu
 
 PDK_DECL_RELAXED_CONSTEXPR inline uint count_leading_zero_bits(pdk::puint64 value) noexcept
 {
-#if defined(PDK_HAS_BUILTIN_CLZ)
-   return value ? internal::pdk_builtin_clz(value) : 64U;
+#if defined(PDK_HAS_BUILTIN_CLZLL)
+   return value ? internal::pdk_builtin_clzll(value) : 64U;
 #else
    value = value | (value >> 1);
    value = value | (value >> 2);
