@@ -16,7 +16,6 @@
 #include "pdk/kernel/Math.h"
 
 namespace pdk {
-namespace kernel {
 
 const double pdk_sine_table[PDK_SINE_TABLE_SIZE] = {
     double(0.0),
@@ -277,5 +276,4 @@ const double pdk_sine_table[PDK_SINE_TABLE_SIZE] = {
     double(-0.024541228522912448)
 };
 
-} // kernel
 } // pdk

@@ -1,0 +1,34 @@
+// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Created by softboy on 2017/12/06.
+
+#include "gtest/gtest.h"
+#include "pdk/kernel/Math.h"
+#include <list>
+#include <utility>
+#include <tuple>
+#include <cstdlib>
+#include <cmath>
+
+static const double PI = 3.14159265358979323846264338327950288;
+
+TEST(MathTest, testFastSinCos)
+{
+   const int LOOP_COUNT = 100000;
+   for (int i = 0; i < LOOP_COUNT; ++i) {
+      double angle = i * 2 * PI / (LOOP_COUNT - 1);
+      ASSERT_TRUE(std::abs(std::sin(angle) - pdk::fast_sin(angle)) < 1e-5);
+      ASSERT_TRUE(std::abs(std::cos(angle) - pdk::fast_cos(angle)) < 1e-5);
+   }
+}

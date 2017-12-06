@@ -98,7 +98,7 @@ TYPED_TEST(AlgorithmsTest, testPopulationCount)
       pdk::puint64 input = std::get<0>(item);
       uint expected = std::get<1>(item);
       const TypeParam value = static_cast<TypeParam>(input);
-      ASSERT_EQ(pdk::kernel::population_count(value), expected);
+      ASSERT_EQ(pdk::population_count(value), expected);
       ++begin;
    }
 }
@@ -139,7 +139,7 @@ TYPED_TEST(AlgorithmsTest, testCountTrailing)
       pdk::puint64 input = std::get<0>(item);
       uint expected = std::get<1>(item);
       const TypeParam value = static_cast<TypeParam>(input);
-      ASSERT_EQ(pdk::kernel::count_trailing_zero_bits(value), expected);
+      ASSERT_EQ(pdk::count_trailing_zero_bits(value), expected);
       ++begin;
    }
 }
@@ -149,7 +149,6 @@ TYPED_TEST(AlgorithmsTest, testCountLeading)
    using DataType = std::list<std::tuple<pdk::puint64, uint>>;
    size_t sizeTestType = sizeof(TypeParam);
    DataType data;
-   int nibs = sizeTestType * 2;
    data.push_back(std::make_tuple(PDK_UINT64_C(0), static_cast<uint>(sizeTestType * 8)));
    for (uint i = 0; i < sizeTestType * 8; ++i) {
       const pdk::puint64 input = PDK_UINT64_C(1) << i;
@@ -175,7 +174,7 @@ TYPED_TEST(AlgorithmsTest, testCountLeading)
       pdk::puint64 input = std::get<0>(item);
       uint expected = std::get<1>(item);
       const TypeParam value = static_cast<TypeParam>(input);
-      ASSERT_EQ(pdk::kernel::count_leading_zero_bits(value), expected);
+      ASSERT_EQ(pdk::count_leading_zero_bits(value), expected);
       ++begin;
    }
 }

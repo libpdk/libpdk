@@ -19,7 +19,6 @@
 #include "pdk/global/Global.h"
 
 namespace pdk {
-namespace kernel {
 namespace internal {
 
 #ifdef PDK_CC_CLANG
@@ -359,7 +358,6 @@ PDK_DECL_RELAXED_CONSTEXPR inline uint count_leading_zero_bits(unsigned long int
    return count_leading_zero_bits(static_cast<pdk::IntegerForSizeof<long>::Unsigned>(value));
 }
 
-} // kernel
 } // pdk
 
 

@@ -45,7 +45,6 @@
 #define PDK_SINE_TABLE_SIZE 256
 
 namespace pdk {
-namespace kernel {
 
 extern const double pdk_sine_table[PDK_SINE_TABLE_SIZE];
 
@@ -95,7 +94,7 @@ inline pdk::puint32 next_power_of_two(pdk::puint32 value)
    if (0 == value) {
       return 1;
    }
-   return 2U << (31 ^ pdk::kernel::internal::pdk_builtin_clz(value));
+   return 2U << (31 ^ pdk::internal::pdk_builtin_clz(value));
 }
 
 #else
@@ -117,7 +116,7 @@ inline pdk::puint64 next_power_of_two(pdk::puint64 value)
    if (0 == value) {
       return 1;
    }
-   return 2U << (63 ^ pdk::kernel::internal::pdk_builtin_clz(value));
+   return 2U << (63 ^ pdk::internal::pdk_builtin_clz(value));
 }
 #else
 inline pdk::puint64 next_power_of_two(pdk::puint64 value)
@@ -142,7 +141,6 @@ inline pdk::puint64 next_power_of_two(pdk::pint64 value)
    return next_power_of_two(static_cast<pdk::puint64>(value));
 }
 
-} // kernel
 } // pdk
 
 #endif // PDK_KERNEL_MATH_H
