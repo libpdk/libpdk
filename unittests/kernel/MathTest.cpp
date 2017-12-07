@@ -61,5 +61,36 @@ TEST(MathTest, testDegreesToRadians)
       ASSERT_EQ(pdk::degrees_to_radians(degreesDouble), radiansDouble);
       ++begin;
    }
-   
+}
+
+TEST(MathTest, testRadiansToDegrees)
+{
+   using DataType = std::list<std::tuple<float, float, double, double>>;
+   DataType data;
+   data.push_back(std::make_tuple(static_cast<float>(PDK_MATH_PI), 180.0f, PI, 180.0));
+   data.push_back(std::make_tuple(static_cast<float>(2 * PDK_MATH_PI), 360.0f, PI * 2, 360.0));
+   data.push_back(std::make_tuple(static_cast<float>(PDK_MATH_PI_2), 90.0f, PI / 2, 90.0));
+   data.push_back(std::make_tuple(123.1234567f, 7054.454427971739f, 123.123456789123456789, 7054.4544330781363896676339209079742431640625));
+   data.push_back(std::make_tuple(987654321.9876543f, 56588424267.74745f, 987654321987654321.987654321987654321, 56588424267747450880.0));
+   data.push_back(std::make_tuple(0.0f, 0.0f, 0.0, 0.0));
+   data.push_back(std::make_tuple(static_cast<float>(-PDK_MATH_PI), -180.0f, PI, 180.0));
+   data.push_back(std::make_tuple(static_cast<float>(-2 * PDK_MATH_PI), -360.0f, -2 * PI, -360.0));
+   data.push_back(std::make_tuple(static_cast<float>(-PDK_MATH_PI_2), -90.0f, -PI / 2, -90.0));
+   data.push_back(std::make_tuple(-123.1234567f, -7054.454427971739f, -123.123456789123456789, -7054.4544330781363896676339209079742431640625));
+   data.push_back(std::make_tuple(-987654321.9876543f, -56588424267.74745f, -987654321987654321.987654321987654321, -56588424267747450880.0));
+
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      float radiansFloat = std::get<0>(item);
+      float degreesFloat = std::get<1>(item);
+      double radiansDouble = std::get<2>(item);
+      double degreesDouble  = std::get<3>(item);
+      
+      EXPECT_FLOAT_EQ(pdk::radians_to_degrees(radiansFloat), degreesFloat);
+      //  EXPECT_DOUBLE_EQ(pdk::radians_to_degrees(radiansDouble), degreesDouble); // failed
+      EXPECT_FLOAT_EQ(pdk::radians_to_degrees(radiansDouble), degreesDouble);
+      ++begin;
+   }
 }

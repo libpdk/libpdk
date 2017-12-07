@@ -93,7 +93,7 @@ constexpr inline float radians_to_degrees(float radians)
 
 constexpr inline float radians_to_degrees(double radians)
 {
-   return radians * 180 / PDK_MATH_PI;
+   return radians * (180 / PDK_MATH_PI);
 }
 
 #if defined(PDK_HAS_BUILTIN_CLZ)
