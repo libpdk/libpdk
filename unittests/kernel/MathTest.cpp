@@ -94,3 +94,60 @@ TEST(MathTest, testRadiansToDegrees)
       ++begin;
    }
 }
+
+TEST(MathTest, testNextPowerOfTwo32S)
+{
+   using DataType = std::list<std::tuple<pdk::pint32, pdk::puint32>>;
+   DataType data;
+   data.push_back(std::make_tuple(0, 1U));
+   data.push_back(std::make_tuple(1, 2U));
+   data.push_back(std::make_tuple(2, 4U));
+   data.push_back(std::make_tuple(17, 32U));
+   data.push_back(std::make_tuple(128, 256U));
+   data.push_back(std::make_tuple(65535, 65536U));
+   data.push_back(std::make_tuple(65536, 131072U));
+   data.push_back(std::make_tuple((1 << 30), (1U << 31)));
+   data.push_back(std::make_tuple((1 << 30) + 1, (1U << 31)));
+   data.push_back(std::make_tuple(0x7FFFFFFF, (1U<<31)));
+   data.push_back(std::make_tuple(-1, 0U));
+   data.push_back(std::make_tuple(-128, 0U));
+   data.push_back(std::make_tuple(static_cast<int>(0x80000000), 0U));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      pdk::pint32 input = std::get<0>(item);
+      pdk::pint32 output = std::get<1>(item);
+      ASSERT_EQ(pdk::next_power_of_two(input), output);
+      ++begin;
+   }
+}
+
+TEST(MathTest, testNextPowerOfTwo32U)
+{
+   using DataType = std::list<std::tuple<pdk::pint32, pdk::puint32>>;
+   DataType data;
+   data.push_back(std::make_tuple(0U, 1U));
+   data.push_back(std::make_tuple(1U, 2U));
+   data.push_back(std::make_tuple(2U, 4U));
+   data.push_back(std::make_tuple(17U, 32U));
+   data.push_back(std::make_tuple(128U, 256U));
+   data.push_back(std::make_tuple(65535U, 65536U));
+   data.push_back(std::make_tuple(65536U, 131072U));
+   data.push_back(std::make_tuple((1U << 30), (1U << 31)));
+   data.push_back(std::make_tuple((1U << 30) + 1, (1U << 31)));
+   data.push_back(std::make_tuple(2147483647U, 2147483648U));
+   data.push_back(std::make_tuple(2147483648U, 0U));
+   data.push_back(std::make_tuple(2147483649U, 0U));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      pdk::pint32 input = std::get<0>(item);
+      pdk::pint32 output = std::get<1>(item);
+      ASSERT_EQ(pdk::next_power_of_two(input), output);
+      ++begin;
+   }
+}
