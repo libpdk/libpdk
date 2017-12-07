@@ -124,7 +124,7 @@ inline pdk::puint64 next_power_of_two(pdk::puint64 value)
    if (0 == value) {
       return 1;
    }
-   return 2U << (63 ^ pdk::internal::pdk_builtin_clz(value));
+   return PDK_UINT64_C(2) << (63 ^ pdk::internal::pdk_builtin_clzll(value));
 }
 #else
 inline pdk::puint64 next_power_of_two(pdk::puint64 value)

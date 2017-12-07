@@ -78,7 +78,7 @@ TEST(MathTest, testRadiansToDegrees)
    data.push_back(std::make_tuple(static_cast<float>(-PDK_MATH_PI_2), -90.0f, -PI / 2, -90.0));
    data.push_back(std::make_tuple(-123.1234567f, -7054.454427971739f, -123.123456789123456789, -7054.4544330781363896676339209079742431640625));
    data.push_back(std::make_tuple(-987654321.9876543f, -56588424267.74745f, -987654321987654321.987654321987654321, -56588424267747450880.0));
-
+   
    DataType::iterator begin = data.begin();
    DataType::iterator end = data.end();
    while (begin != end) {
@@ -118,7 +118,7 @@ TEST(MathTest, testNextPowerOfTwo32S)
    while (begin != end) {
       auto item = *begin;
       pdk::pint32 input = std::get<0>(item);
-      pdk::pint32 output = std::get<1>(item);
+      pdk::puint32 output = std::get<1>(item);
       ASSERT_EQ(pdk::next_power_of_two(input), output);
       ++begin;
    }
@@ -146,7 +146,64 @@ TEST(MathTest, testNextPowerOfTwo32U)
    while (begin != end) {
       auto item = *begin;
       pdk::pint32 input = std::get<0>(item);
-      pdk::pint32 output = std::get<1>(item);
+      pdk::puint32 output = std::get<1>(item);
+      ASSERT_EQ(pdk::next_power_of_two(input), output);
+      ++begin;
+   }
+}
+
+TEST(MathTest, testNextPowerOfTwo64S)
+{
+   using DataType = std::list<std::tuple<pdk::pint64, pdk::puint64>>;
+   DataType data;
+   data.push_back(std::make_tuple(PDK_INT64_C(0), PDK_UINT64_C(1)));
+   data.push_back(std::make_tuple(PDK_INT64_C(1), PDK_UINT64_C(2)));
+   data.push_back(std::make_tuple(PDK_INT64_C(2), PDK_UINT64_C(4)));
+   data.push_back(std::make_tuple(PDK_INT64_C(17), PDK_UINT64_C(32)));
+   data.push_back(std::make_tuple(PDK_INT64_C(128), PDK_UINT64_C(256)));
+   data.push_back(std::make_tuple(PDK_INT64_C(65535), PDK_UINT64_C(65536)));
+   data.push_back(std::make_tuple(PDK_INT64_C(65536), PDK_UINT64_C(131072)));
+   data.push_back(std::make_tuple(PDK_INT64_C(2147483647), PDK_UINT64_C(0x80000000)));
+   data.push_back(std::make_tuple(PDK_INT64_C(2147483648), PDK_UINT64_C(0x100000000)));
+   data.push_back(std::make_tuple(PDK_INT64_C(2147483649), PDK_UINT64_C(0x100000000)));
+   data.push_back(std::make_tuple(PDK_INT64_C(0x7FFFFFFFFFFFFFFF), PDK_UINT64_C(0x8000000000000000)));
+   data.push_back(std::make_tuple(PDK_INT64_C(-1), PDK_UINT64_C(0)));
+   data.push_back(std::make_tuple(PDK_INT64_C(-128), PDK_UINT64_C(0)));
+   data.push_back(std::make_tuple(-PDK_INT64_C(0x80000000), PDK_UINT64_C(0)));
+   data.push_back(std::make_tuple(static_cast<pdk::pint64>(PDK_INT64_C(0x8000000000000000)), PDK_UINT64_C(0)));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      pdk::pint64 input = std::get<0>(item);
+      pdk::puint64 output = std::get<1>(item);
+      ASSERT_EQ(pdk::next_power_of_two(input), output);
+      ++begin;
+   }
+}
+
+TEST(MathTest, testNextPowerOfTwo64U)
+{
+   using DataType = std::list<std::tuple<pdk::puint64, pdk::puint64>>;
+   DataType data;
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), PDK_UINT64_C(1)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), PDK_UINT64_C(2)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2), PDK_UINT64_C(4)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(17), PDK_UINT64_C(32)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(128), PDK_UINT64_C(256)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), PDK_UINT64_C(65536)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), PDK_UINT64_C(131072)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(0x7FFFFFFFFFFFFFFF), PDK_UINT64_C(0x8000000000000000)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(0x8000000000000000), PDK_UINT64_C(0)));
+   data.push_back(std::make_tuple(PDK_UINT64_C(0x8000000000000001), PDK_UINT64_C(0)));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      pdk::puint64 input = std::get<0>(item);
+      pdk::puint64 output = std::get<1>(item);
       ASSERT_EQ(pdk::next_power_of_two(input), output);
       ++begin;
    }
