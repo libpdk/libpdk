@@ -75,7 +75,7 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    }
    ArrayData *header = static_cast<ArrayData *>(::malloc(allocSize));
    if (header) {
-      pdk::uintptr data = (pdk::uintptr(header) + sizeof(ArrayData) + alignment - 1)
+      pdk::uintptr data = (reinterpret_cast<pdk::uintptr>(header) + sizeof(ArrayData) + alignment - 1)
             & ~(alignment - 1);
 #if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
       header->m_ref.m_atomic.store(static_cast<bool>(!(options & Unsharable)));
