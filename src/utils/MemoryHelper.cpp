@@ -14,6 +14,7 @@
 // Created by softboy on 2017/12/04.
 
 #include "pdk/utils/MemoryHelper.h"
+#include "pdk/kernel/Math.h"
 
 namespace pdk {
 namespace utils {
@@ -43,7 +44,25 @@ size_t calculate_block_size(size_t elementCount, size_t elementSize, size_t head
 CalculateGrowingBlockSizeResult calculate_growing_block_size(size_t elementCount, size_t elementSize, 
                                                              size_t headerSize) noexcept
 {
-   
+   CalculateGrowingBlockSizeResult result = {
+      std::numeric_limits<size_t>::max(),std::numeric_limits<size_t>::max()
+   };
+   unsigned int bytes = static_cast<unsigned int>(calculate_block_size(elementCount, elementSize, headerSize));
+   if (static_cast<int>(bytes) < 0) {
+      // catches std::numeric_limits<size_t>::max()
+      return result;
+   }
+   unsigned int moreBytes = pdk::next_power_of_two(bytes);
+   if (PDK_UNLIKELY(static_cast<int>(moreBytes) < 0)) {
+      // catches morebytes == 2GB
+      // grow by half the difference between bytes and morebytes
+      bytes += (moreBytes - bytes) / 2;
+   } else {
+      bytes = moreBytes;
+   }
+   result.m_elementCount = (bytes - static_cast<unsigned int>(headerSize)) / static_cast<unsigned int>(elementSize);
+   result.m_size = bytes;
+   return result;
 }
 
 } // utils
