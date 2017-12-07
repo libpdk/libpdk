@@ -14,6 +14,7 @@
 // Created by softboy on 2017/12/04.
 
 #include "pdk/base/ds/internal/ArrayData.h"
+#include "pdk/utils/MemoryHelper.h"
 #include <climits>
 
 namespace pdk {
@@ -66,8 +67,42 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    // plus padded to grow in size
    size_t allocSize;
    if (options & Grow) {
-      
+      pdk::utils::CalculateGrowingBlockSizeResult r = pdk::utils::calculate_growing_block_size(capacity, objectSize, headerSize);
+      capacity = r.m_elementCount;
+      allocSize = r.m_size;
+   } else {
+      allocSize = pdk::utils::calculate_block_size(capacity, objectSize, headerSize);
    }
+   ArrayData *header = static_cast<ArrayData *>(::malloc(allocSize));
+   if (header) {
+      pdk::uintptr data = (pdk::uintptr(header) + sizeof(ArrayData) + alignment - 1)
+            & ~(alignment - 1);
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+      header->m_ref.m_atomic.store(static_cast<bool>(!(options & Unsharable)));
+#else
+      header->m_ref.m_atomic.store(1);
+#endif
+      header->m_size = 0;
+      header->m_alloc = capacity;
+      header->m_capacityReserved = static_cast<bool>(options & CapacityReserved);
+      header->m_offset = data - reinterpret_cast<pdk::uintptr>(header);
+   }
+   return header;
+}
+
+void ArrayData::deallocate(ArrayData *data, size_t objectSize, size_t alignment) noexcept
+{
+   PDK_ASSERT(alignment >= alignof(ArrayData) && !(alignment & (alignment - 1)));
+   PDK_UNUSED(objectSize); 
+   PDK_UNUSED(alignment);
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   if (data == &pdkArrayUnsharableEmpty) {
+      return;
+   }
+#endif
+   PDK_ASSERT_X(data == 0 || !data->m_ref.isStatic(), "ArrayData::deallocate",
+                "Static data can not be deleted");
+   ::free(data);
 }
 
 } // internal
