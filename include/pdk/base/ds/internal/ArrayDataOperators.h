@@ -252,41 +252,118 @@ struct GenericArrayOperator : TypedArrayData<T>
 };
 
 template <typename T>
-struct MovableArrayOperator : TypedArrayData<T>
+struct MovableArrayOperator : GenericArrayOperator<T>
 {
-   void appendInitialize(size_t newSize)
-   {
-      
-   }
-   
-   void copyAppend(const T *begin, const T *end)
-   {
-      
-   }
-   
-   void copyAppend(size_t n, const T &target)
-   {
-      
-   }
-   
-   void truncate(size_t newSize)
-   {
-      
-   }
-   
-   void destroyAll()
-   {
-      
-   }
+   // using GenericArrayOperator<T>::appendInitialize;
+   // using GenericArrayOperator<T>::copyAppend;
+   // using GenericArrayOperator<T>::truncate;
+   // using GenericArrayOperator<T>::destroyAll;
    
    void insert(T *where, const T *begin, const T *end)
    {
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(where >= this->begin() && where < this->end());
+      PDK_ASSERT(begin < end);
+      PDK_ASSERT(end <= where || begin > this->end());
+      PDK_ASSERT(static_cast<size_t>(end - begin) <= this->m_alloc - static_cast<uint>(this->m_size));
+      // Provides strong exception safety guarantee,
+      // provided T::~T() nothrow
+      struct ReversableDisplace
+      {
+         ReversableDisplace(T *start, T *finish, size_t diff)
+            : m_start(start),
+              m_end(finish),
+              m_dispalce(diff)
+         {
+            std::memmove(static_cast<void *>(begin), static_cast<void *>(begin + displace)
+                         (end - begin) * sizeof(T));
+         }
+         
+         void commit()
+         {
+            m_displace = 0; 
+         }
+         
+         ~ReversableDisplace()
+         {
+            if (m_displace) {
+               std::memmove(static_cast<void *>(begin), static_cast<void *>(begin + displace),
+                            (end - begin) * sizeof(T));
+            }
+         }
+         
+         T *const m_begin;
+         T *const m_end;
+         size_t m_displace;
+      } displace(where, this->end(), static_cast<size_t>(end - begin));
       
+      struct CopyConstructor
+      {
+         CopyConstructor(T *where) 
+            : m_where(where) 
+         {}
+         
+         void copy(const T *src, const T *const srcEnd)
+         {
+            m_size = 0;
+            for (; src != srcEnd; ++src) {
+               new (where + m_size) T(*src);
+               ++m_size;
+            }
+            m_size = 0;
+         }
+         
+         ~CopyConstructor()
+         {
+            while (m_size) {
+               where[--m_size].~T();
+            }
+         }
+         
+         T *const m_where;
+         size_t m_size;
+      } copier(where);
+      
+      copier.copy(b, e);
+      displace.commit();
+      this->size += (end - begin);
    }
    
    void erase(T *begin, T *end)
    {
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(begin < end);
+      PDK_ASSERT(begin >= this->begin() && begin < this->end());
+      PDK_ASSERT(end > this->begin() && end < this->end());
+      struct Mover
+      {
+         Mover(T *&start, const T *finish, int &size)
+            : m_destination(start),
+              m_source(start),
+              m_count(finish - start),
+              m_size(size)
+         {
+            
+         }
+         
+         ~Mover()
+         {
+            std::memmove(static_cast<void *>(m_destination), static_cast<const void *>(m_source),
+                         m_count * sizeof(T));
+            m_size -= (m_source - m_destination);
+         }
+         
+         T *&m_destination;
+         const T *const m_source;
+         size_t m_count;
+         int &m_size;
+      } mover(end, this->end(), this->m_size);
       
+      do {
+         // Exceptions or not, dtor called once per instance
+         static_cast<T *>(--end)->~T();
+      } while (end != begin);
    }
 };
 
