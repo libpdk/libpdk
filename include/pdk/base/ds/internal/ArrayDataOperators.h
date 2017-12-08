@@ -107,37 +107,147 @@ struct GenericArrayOperator : TypedArrayData<T>
 {
    void appendInitialize(size_t newSize)
    {
-      
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(newSize > static_cast<uint>(this->m_size));
+      PDK_ASSERT(newSize <= this->m_alloc);
+      T *const begin = this->begin();
+      do {
+         new (begin + this->m_size) T();
+      } while (static_cast<size_t>(++this->m_size) != newSize);
    }
    
    void copyAppend(const T *begin, const T *end)
    {
-      
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(begin < end);
+      PDK_ASSERT(static_cast<size_t>(end - begin) <= this->m_alloc - static_cast<size_t>(this->m_size));
+      T *iterator = this->end();
+      for (; begin != end; ++iterator, ++begin) {
+         new (iterator) T(*begin);
+         ++this->m_size;
+      }
    }
    
-   void copyAppend(size_t n, const T &target)
+   void copyAppend(size_t n, const T &data)
    {
-      
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(n <= this->m_alloc - static_cast<uint>(this->m_size));
+      T *iterator = this->end();
+      const T *const end = iterator + n;
+      for (; iterator != end; ++iterator) {
+         new (iterator) T(data);
+         ++this->m_size;
+      }
    }
    
    void truncate(size_t newSize)
    {
-      
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(newSize < static_cast<size_t>(this->m_size));
+      const T * const begin = this->begin();
+      do {
+         static_cast<T *>((begin + (--this->m_size)))->~T();
+      } while (static_cast<size_t>(this->m_size) != newSize);
    }
    
    void destroyAll()
    {
-      
+      PDK_ASSERT(this->isMutable());
+      // As this is to be called only from destructor, it doesn't need to be
+      // exception safe; size not updated.
+      PDK_ASSERT(this->m_ref.m_atomic.load() == 0);
+      const T *const begin = this->begin();
+      const T *iterator = this->end();
+      while (iterator != begin) {
+         static_cast<T *>(--iterator)->~T();
+      }
    }
    
    void insert(T *where, const T *begin, const T *end)
    {
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(!this->m_ref.isShared());
+      PDK_ASSERT(where >= this->begin() && where < this->end());
+      PDK_ASSERT(static_cast<size_t>(end - begin));
+      PDK_ASSERT(begin < end);
+      PDK_ASSERT(end <= where || begin > this->end());
+      // Array may be truncated at where in case of exceptions
+      T *const selfEnd = this->end();
+      const T *readIterator = selfEnd;
+      T *writerIterator = selfEnd + (end - begin);
+      const T *const step1End = where + std::max(end - begin, selfEnd  - where);
+      struct Destructor
+      {
+         Destructor(T *&iterator)
+            : m_iterator(&iterator),
+              m_end(iterator)
+         {}
+         
+         void commit()
+         {
+            m_iterator = &m_end;
+         }
+         
+         ~Destructor()
+         {
+            for (; *m_iterator != m_end; --*m_iterator) {
+               static_cast<T *>(*m_iterator)->~T();
+            }
+         }
+         
+         T **m_iterator;
+         T *m_end;
+      } destroyer(writeIter);
       
+      // Construct new elements in array
+      do {
+         --readIterator;
+         --writerIterator;
+         new (writerIterator) T(*readIterator);
+      } while (writerIterator != step1End);
+      
+      while (writerIterator != selfEnd) {
+         --end;
+         --writerIterator;
+         new (writerIterator) T(*end);
+      }
+      
+      destroyer.commit();
+      this->m_size = destroyer.m_end - selfEnd;
+      while (writerIterator != selfEnd) {
+         --readIterator;
+         --writerIterator;
+         *writerIterator = *readIterator;
+      }
+      
+      while (writerIterator != where) {
+         --end;
+         --writerIterator;
+         *writerIterator = *end;
+      }
    }
    
    void erase(T *begin, T *end)
    {
+      PDK_ASSERT(this->isMutable());
+      PDK_ASSERT(begin < end);
+      PDK_ASSERT(begin >= this->begin() && begin < this->end());
+      PDK_ASSERT(end > this->begin() && end < this->end());
+      const T *const selfEnd = this->end();
+      do {
+         *begin = *end;
+         ++begin;
+         ++end;
+      } while (end != selfEnd);
       
+      do {
+         static_cast<T *>(--end)->~T();
+         --this->m_size;
+      } while (end != begin);
    }
 };
 
