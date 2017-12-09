@@ -42,4 +42,75 @@ TEST(ArrayDataTest, testRefCounting)
    ASSERT_TRUE(!array.m_ref.deref());
    ASSERT_EQ(array.m_ref.m_atomic.load(), 0);
    // Now would be a good time to free/release allocated data
+   
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   {
+      // Reference counting initialized to 0 (non-sharable)
+      ArrayData array = {PDK_BASIC_ATOMIC_INITIALIZER(0), 0, 0, 0, 0};
+      ASSERT_EQ(array.m_ref.m_atomic.load(), 0);
+      ASSERT_FALSE(array.m_ref.isStatic());
+      ASSERT_FALSE(array.m_ref.isSharable());
+      ASSERT_FALSE(array.m_ref.ref());
+      // Reference counting fails, data should be copied
+      ASSERT_EQ(array.m_ref.m_atomic.load(), 0);
+      
+      ASSERT_FALSE(array.m_ref.deref());
+      ASSERT_EQ(array.m_ref.m_atomic.load(), 0);
+      // Free/release data
+   }
+#endif
+   {
+      // Reference counting initialized to -1 (static read-only data)
+      ArrayData array = {PDK_REFCOUNT_INITIALIZE_STATIC, 0, 0, 0, 0};
+      ASSERT_EQ(array.m_ref.m_atomic.load(), -1);
+      ASSERT_TRUE(array.m_ref.isStatic());
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+      ASSERT_TRUE(array.m_ref.isSharable());
+#endif
+      ASSERT_TRUE(array.m_ref.ref());
+      ASSERT_EQ(array.m_ref.m_atomic.load(), -1);
+      
+      ASSERT_TRUE(array.m_ref.deref());
+      ASSERT_EQ(array.m_ref.m_atomic.load(), -1);
+   }
+}
+
+TEST(ArrayDataTest, testSharedNullEmpty)
+{
+   ArrayData *null = const_cast<ArrayData *>(ArrayData::sm_sharedNull);
+   ArrayData *empty = ArrayData::allocate(1, alignof(ArrayData), 0);
+   ASSERT_TRUE(null->m_ref.isStatic());
+   ASSERT_TRUE(null->m_ref.isShared());
+   
+   ASSERT_TRUE(empty->m_ref.isStatic());
+   ASSERT_TRUE(empty->m_ref.isShared());
+   
+   ASSERT_EQ(null->m_ref.m_atomic.load(), -1);
+   ASSERT_EQ(empty->m_ref.m_atomic.load(), -1);
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   ASSERT_TRUE(null->m_ref.isSharable());
+   ASSERT_TRUE(empty->m_ref.isSharable());
+#endif
+   
+   ASSERT_TRUE(null->m_ref.ref());
+   ASSERT_TRUE(empty->m_ref.ref());
+   ASSERT_EQ(null->m_ref.m_atomic.load(), -1);
+   ASSERT_EQ(empty->m_ref.m_atomic.load(), -1);
+   
+   ASSERT_TRUE(null->m_ref.deref());
+   ASSERT_TRUE(empty->m_ref.deref());
+   ASSERT_EQ(null->m_ref.m_atomic.load(), -1);
+   ASSERT_EQ(empty->m_ref.m_atomic.load(), -1);
+   
+   ASSERT_NE(null, empty);
+   
+   ASSERT_EQ(null->m_size, 0);
+   ASSERT_EQ(null->m_alloc, 0);
+   ASSERT_EQ(null->m_capacityReserved, 0u);
+   
+   ASSERT_EQ(empty->m_size, 0);
+   ASSERT_EQ(empty->m_alloc, 0);
+   ASSERT_EQ(empty->m_capacityReserved, 0u);
 }
