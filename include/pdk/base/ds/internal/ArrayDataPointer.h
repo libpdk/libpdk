@@ -40,7 +40,7 @@ public:
                : other.clone(other.m_data.cloneFlags()))
    {}
    
-   explicit ArrayDataOperator(TypedArrayData<T> *ptr)
+   explicit ArrayDataPointer(TypedArrayData<T> *ptr)
       : m_data(ptr)
    {
       if (!ptr) {
@@ -107,6 +107,7 @@ public:
                                 ? m_data->detachFlags() & ~ArrayData::Unsharable
                                 : m_data->detachFlags() | ArrayData::Unsharable);
          ArrayDataPointer old(m_data);
+         PDK_UNUSED(old);
          m_data = detached;
       } else {
          m_data->m_ref.setSharable(sharable);
@@ -130,6 +131,7 @@ public:
       if (needsDetach()) {
          Data *copy = clone(m_data->detachFlags());
          ArrayDataPointer old(m_data);
+         PDK_UNUSED(old);
          m_data = copy;
          return true;
       }

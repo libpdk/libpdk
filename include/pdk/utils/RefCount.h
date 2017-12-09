@@ -22,13 +22,21 @@
 namespace pdk {
 namespace utils {
 
+/**
+ * @brief The RefCount class
+ * 
+ * unsharable = 0
+ * static     = -1
+ * owned      = 1
+ */
+
 class RefCount
 {
 public:
    inline bool ref() noexcept
    {
       int count = m_atomic.load();
-#if !defined(PDK_NO_UNSHARED_CONTAINERS)
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
       if (0 == count) {
          return false;
       }
@@ -42,7 +50,7 @@ public:
    inline bool deref() noexcept
    {
       int count = m_atomic.load();
-#if !defined(PDK_NO_UNSHARED_CONTAINERS)
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
       if (0 == count) {
          return false;
       }

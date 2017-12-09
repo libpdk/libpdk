@@ -98,7 +98,7 @@ struct PDK_CORE_EXPORT ArrayData
    }
 };
 
-//PDK_DECLARE_OPERATORS_FOR_FLAGS(ArrayData::AllocationOptions)
+PDK_DECLARE_OPERATORS_FOR_FLAGS(ArrayData::AllocationOptions)
 
 template <typename T>
 struct TypedArrayData : ArrayData
