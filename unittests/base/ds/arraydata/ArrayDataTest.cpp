@@ -20,6 +20,7 @@
 #include "pdk/base/ds/internal/ArrayData.h"
 
 using pdk::ds::internal::ArrayData;
+using pdk::ds::internal::StaticArrayData;
 
 TEST(ArrayDataTest, testRefCounting)
 {
@@ -113,4 +114,30 @@ TEST(ArrayDataTest, testSharedNullEmpty)
    ASSERT_EQ(empty->m_size, 0);
    ASSERT_EQ(empty->m_alloc, 0);
    ASSERT_EQ(empty->m_capacityReserved, 0u);
+}
+
+TEST(ArrayDataTest, testStaticData)
+{
+   StaticArrayData<char, 10> charArray = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(char, 10),
+      {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'}
+   };
+   
+   StaticArrayData<int, 10> intArray = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+   };
+   
+   StaticArrayData<double, 10> doubleArray = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(double, 10),
+      {0.f, 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f}
+   };
+   
+   ASSERT_EQ(charArray.m_header.m_size, 10);
+   ASSERT_EQ(intArray.m_header.m_size, 10);
+   ASSERT_EQ(doubleArray.m_header.m_size, 10);
+   
+   ASSERT_EQ(charArray.m_header.getData(), reinterpret_cast<void *>(&charArray.m_data));
+   ASSERT_EQ(intArray.m_header.getData(), reinterpret_cast<void *>(&intArray.m_data));
+   ASSERT_EQ(doubleArray.m_header.getData(), reinterpret_cast<void *>(&doubleArray.m_data));
 }
