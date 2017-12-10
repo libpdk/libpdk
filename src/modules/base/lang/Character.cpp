@@ -116,7 +116,7 @@ bool Character::isNumberHelper(char32_t ucs4) noexcept
    return FLAG(get_unicode_properties(ucs4)->category) & mask;
 }
 
-bool Character::isLetterOrNumberHelper(char32_t ucs4)
+bool Character::isLetterOrNumberHelper(char32_t ucs4) noexcept
 {
    if (ucs4 > LastValidCodePoint) {
       return false;

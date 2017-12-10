@@ -53,7 +53,7 @@ struct PodArrayOperator : TypedArrayData<T>
    {
       PDK_ASSERT(this->isMutable());
       PDK_ASSERT(!this->m_ref.isShared());
-      PDK_ASSERT(static_cast<size_t>(end - begin) <= this->m_alloc - static_cast<uint>(this->m_size));
+      PDK_ASSERT(n <= this->m_alloc - static_cast<uint>(this->m_size));
       T *iterator = this->end();
       const T *const end = iterator + n;
       for (; iterator != end; ++iterator) {
@@ -201,7 +201,7 @@ struct GenericArrayOperator : TypedArrayData<T>
          
          T **m_iterator;
          T *m_end;
-      } destroyer(writeIter);
+      } destroyer(writerIterator);
       
       // Construct new elements in array
       do {
@@ -272,12 +272,12 @@ struct MovableArrayOperator : GenericArrayOperator<T>
       struct ReversableDisplace
       {
          ReversableDisplace(T *start, T *finish, size_t diff)
-            : m_start(start),
+            : m_begin(start),
               m_end(finish),
-              m_dispalce(diff)
+              m_displace(diff)
          {
-            std::memmove(static_cast<void *>(begin), static_cast<void *>(begin + displace)
-                         (end - begin) * sizeof(T));
+            std::memmove(static_cast<void *>(m_begin), static_cast<void *>(m_begin + m_displace)
+                         (m_end - m_begin) * sizeof(T));
          }
          
          void commit()
@@ -288,7 +288,7 @@ struct MovableArrayOperator : GenericArrayOperator<T>
          ~ReversableDisplace()
          {
             if (m_displace) {
-               std::memmove(static_cast<void *>(begin), static_cast<void *>(begin + displace),
+               std::memmove(static_cast<void *>(begin), static_cast<void *>(begin + m_displace),
                             (end - begin) * sizeof(T));
             }
          }
@@ -325,7 +325,7 @@ struct MovableArrayOperator : GenericArrayOperator<T>
          size_t m_size;
       } copier(where);
       
-      copier.copy(b, e);
+      copier.copy(begin, end);
       displace.commit();
       this->size += (end - begin);
    }
@@ -377,14 +377,14 @@ template <typename T>
 struct ArrayOperatorSelector<T, 
       typename std::enable_if<!pdk::TypeInfo<T>::isComplex && !pdk::TypeInfo<T>::isStatic>::type>
 {
-   using Type = PodArrayOperator;
+   using Type = PodArrayOperator<T>;
 };
 
 template <typename T>
 struct ArrayOperatorSelector<T, 
       typename std::enable_if<pdk::TypeInfo<T>::isComplex && !pdk::TypeInfo<T>::isStatic>::type>
 {
-   using Type = MovableArrayOperator;
+   using Type = MovableArrayOperator<T>;
 };
 
 template <typename T>

@@ -13,7 +13,7 @@
 //
 // Created by zzu_softboy on 2017/12/08.
 
-#nif PDK_BASE_DS_ARRAY_DATA_TEST_SIMPLE_VECTOR_H
+#ifndef PDK_BASE_DS_ARRAY_DATA_TEST_SIMPLE_VECTOR_H
 #define PDK_BASE_DS_ARRAY_DATA_TEST_SIMPLE_VECTOR_H
 
 #include "pdk/base/ds/internal/ArrayData.h"
@@ -28,9 +28,10 @@ class SimpleVector
 {
 private:
    using Data = TypedArrayData<T>;
-   using Iterator = Data::Iterator;
-   using ConstIterator = Data::ConstIterator;
+   using Iterator = typename Data::Iterator;
+   using ConstIterator = typename Data::ConstIterator;
    
+public:
    SimpleVector()
    {}
    
@@ -50,7 +51,7 @@ private:
       }
    }
    
-   SimpleVector(const T *begin, const T *eend)
+   SimpleVector(const T *begin, const T *end)
       : m_data(Data::allocate(end - begin))
    {
       if (end - begin) {

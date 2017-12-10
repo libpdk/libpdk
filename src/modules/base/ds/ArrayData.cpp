@@ -39,7 +39,7 @@ static const ArrayData &pdkArrayUnsharableEmpty = pdkArray[1];
 }
 
 ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment, 
-                               size_t capacity, AllocationOptions options)
+                               size_t capacity, AllocationOptions options) noexcept
 {
    PDK_ASSERT(alignment >= alignof(ArrayData)
               && !(alignment & alignment - 1));

@@ -18,6 +18,7 @@
 #include <utility>
 #include <algorithm>
 #include "pdk/base/ds/internal/ArrayData.h"
+#include "SimpleVector.h"
 
 using pdk::ds::internal::ArrayData;
 using pdk::ds::internal::StaticArrayData;
@@ -140,4 +141,22 @@ TEST(ArrayDataTest, testStaticData)
    ASSERT_EQ(charArray.m_header.getData(), reinterpret_cast<void *>(&charArray.m_data));
    ASSERT_EQ(intArray.m_header.getData(), reinterpret_cast<void *>(&intArray.m_data));
    ASSERT_EQ(doubleArray.m_header.getData(), reinterpret_cast<void *>(&doubleArray.m_data));
+}
+
+TEST(ArrayDataTest, testSimpleVector)
+{
+   ArrayData data0 = {
+      PDK_REFCOUNT_INITIALIZE_STATIC, 0, 0, 0, 0
+   };
+   
+   StaticArrayData<int, 7> data1 = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 7),
+      {
+         0, 1, 2, 3, 4, 5, 6
+      }
+   };
+   
+   int array[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+   SimpleVector<int> v1;
+   SimpleVector<int> v2(v1);
 }

@@ -35,9 +35,9 @@ public:
    {}
    
    ArrayDataPointer(const ArrayDataPointer &other)
-      : m_data(other.m_data.m_ref.ref()
+      : m_data(other.m_data->m_ref.ref()
                ? other.m_data
-               : other.clone(other.m_data.cloneFlags()))
+               : other.clone(other.m_data->cloneFlags()))
    {}
    
    explicit ArrayDataPointer(TypedArrayData<T> *ptr)
