@@ -109,11 +109,11 @@ TEST(ArrayDataTest, testSharedNullEmpty)
    ASSERT_NE(null, empty);
    
    ASSERT_EQ(null->m_size, 0);
-   ASSERT_EQ(null->m_alloc, 0);
+   ASSERT_EQ(null->m_alloc, 0u);
    ASSERT_EQ(null->m_capacityReserved, 0u);
    
    ASSERT_EQ(empty->m_size, 0);
-   ASSERT_EQ(empty->m_alloc, 0);
+   ASSERT_EQ(empty->m_alloc, 0u);
    ASSERT_EQ(empty->m_capacityReserved, 0u);
 }
 
@@ -167,4 +167,77 @@ TEST(ArrayDataTest, testSimpleVector)
    SimpleVector<int> v8(array, array + sizeof(array)/sizeof(*array));
    
    v3 = v1;
+   v1.swap(v3);
+   v4.clear();
+   
+   ASSERT_TRUE(v1.isNull());
+   ASSERT_TRUE(v2.isNull());
+   ASSERT_TRUE(v3.isNull());
+   ASSERT_TRUE(v4.isNull());
+   ASSERT_FALSE(v5.isNull());
+   ASSERT_FALSE(v6.isNull());
+   ASSERT_FALSE(v7.isNull());
+   ASSERT_FALSE(v8.isNull());
+   
+   ASSERT_TRUE(v1.isEmpty());
+   ASSERT_TRUE(v2.isEmpty());
+   ASSERT_TRUE(v3.isEmpty());
+   ASSERT_TRUE(v4.isEmpty());
+   ASSERT_TRUE(v5.isEmpty());
+   ASSERT_FALSE(v6.isEmpty());
+   ASSERT_FALSE(v7.isEmpty());
+   ASSERT_FALSE(v8.isEmpty());
+   
+   ASSERT_EQ(v1.size(), static_cast<size_t>(0));
+   ASSERT_EQ(v2.size(), static_cast<size_t>(0));
+   ASSERT_EQ(v3.size(), static_cast<size_t>(0));
+   ASSERT_EQ(v4.size(), static_cast<size_t>(0));
+   ASSERT_EQ(v5.size(), static_cast<size_t>(0));
+   ASSERT_EQ(v6.size(), static_cast<size_t>(7));
+   ASSERT_EQ(v7.size(), static_cast<size_t>(10));
+   ASSERT_EQ(v8.size(), static_cast<size_t>(10));
+   
+   ASSERT_EQ(v1.capacity(), static_cast<size_t>(0));
+   ASSERT_EQ(v2.capacity(), static_cast<size_t>(0));
+   ASSERT_EQ(v3.capacity(), static_cast<size_t>(0));
+   ASSERT_EQ(v4.capacity(), static_cast<size_t>(0));
+   ASSERT_EQ(v5.capacity(), static_cast<size_t>(0));
+   ASSERT_EQ(v6.capacity(), static_cast<size_t>(0));
+   ASSERT_GE(v7.capacity(), static_cast<size_t>(10));
+   ASSERT_GE(v8.capacity(), static_cast<size_t>(10));
+   
+   ASSERT_TRUE(v1.isStatic());
+   ASSERT_TRUE(v2.isStatic());
+   ASSERT_TRUE(v3.isStatic());
+   ASSERT_TRUE(v4.isStatic());
+   ASSERT_TRUE(v5.isStatic());
+   ASSERT_TRUE(v6.isStatic());
+   ASSERT_FALSE(v7.isStatic());
+   ASSERT_FALSE(v8.isStatic());
+   
+   ASSERT_TRUE(v1.isShared());
+   ASSERT_TRUE(v2.isShared());
+   ASSERT_TRUE(v3.isShared());
+   ASSERT_TRUE(v4.isShared());
+   ASSERT_TRUE(v5.isShared());
+   ASSERT_TRUE(v6.isShared());
+   ASSERT_FALSE(v7.isShared());
+   ASSERT_FALSE(v8.isShared());
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   ASSERT_TRUE(v1.isSharable());
+   ASSERT_TRUE(v2.isSharable());
+   ASSERT_TRUE(v3.isSharable());
+   ASSERT_TRUE(v4.isSharable());
+   ASSERT_TRUE(v5.isSharable());
+   ASSERT_TRUE(v6.isSharable());
+   ASSERT_TRUE(v7.isSharable());
+   ASSERT_TRUE(v8.isSharable());
+#endif
+   
+   ASSERT_TRUE(v1.isSharedWith(v2));
+//   ASSERT_TRUE(v1.isSharedWith(v3));
+//   ASSERT_TRUE(v1.isSharedWith(v4));
+//   ASSERT_FALSE(v1.isSharedWith(v5));
+//   ASSERT_FALSE(v1.isSharedWith(v6));
 }

@@ -187,8 +187,18 @@ public:
       m_data.detach();
    }
    
+   void swap(SimpleVector<T> &other)
+   {
+      std::swap(m_data, other.m_data);
+   }
 private:
    ArrayDataPointer<T> m_data;
 };
+
+template <typename T>
+void swap(SimpleVector<T> &v1, SimpleVector<T> &v2)
+{
+   v1.swap(v2);
+}
 
 #endif

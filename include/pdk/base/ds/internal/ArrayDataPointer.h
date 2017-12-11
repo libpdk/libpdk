@@ -124,6 +124,7 @@ public:
    {
       ArrayDataPointer temp(m_data);
       m_data = Data::getSharedNull();
+      PDK_UNUSED(temp);
    }
    
    bool detach()
@@ -166,6 +167,18 @@ private:
 private:
    Data *m_data;
 };
+
+template <typename T>
+inline bool operator ==(const ArrayDataPointer<T> &lhs, const ArrayDataPointer<T> &rhs)
+{
+   return lhs.getData() == rhs.getData();
+}
+
+template <typename T>
+inline bool operator !=(const ArrayDataPointer<T> &lhs, const ArrayDataPointer<T> &rhs)
+{
+   return lhs.getData() != rhs.getData();
+}
 
 template <typename T>
 inline void swap(ArrayDataPointer<T> &left, ArrayDataPointer<T> &right)
