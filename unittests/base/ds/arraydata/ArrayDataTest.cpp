@@ -236,8 +236,34 @@ TEST(ArrayDataTest, testSimpleVector)
 #endif
    
    ASSERT_TRUE(v1.isSharedWith(v2));
-//   ASSERT_TRUE(v1.isSharedWith(v3));
-//   ASSERT_TRUE(v1.isSharedWith(v4));
-//   ASSERT_FALSE(v1.isSharedWith(v5));
-//   ASSERT_FALSE(v1.isSharedWith(v6));
+   ASSERT_TRUE(v1.isSharedWith(v3));
+   ASSERT_TRUE(v1.isSharedWith(v4));
+   ASSERT_FALSE(v1.isSharedWith(v5));
+   ASSERT_FALSE(v1.isSharedWith(v6));
+   
+   ASSERT_EQ(v1.constBegin(), v1.constEnd());
+   ASSERT_EQ(v4.constBegin(), v4.constEnd());
+   ASSERT_EQ((v6.constBegin() + v6.size()), v6.constEnd());
+   ASSERT_EQ((v7.constBegin() + v7.size()), v7.constEnd());
+   ASSERT_EQ((v8.constBegin() + v8.size()), v8.constEnd());
+   
+   ASSERT_TRUE(v1 == v2);
+   ASSERT_TRUE(v1 == v3);
+   ASSERT_TRUE(v1 == v4);
+   ASSERT_TRUE(v1 == v5);
+   ASSERT_FALSE(v1 == v6);
+   
+   ASSERT_TRUE(v1 != v6);
+   ASSERT_TRUE(v4 != v6);
+   ASSERT_TRUE(v5 != v6);
+   ASSERT_TRUE(!(v1 != v5));
+   
+   ASSERT_TRUE(v1 < v6);
+   ASSERT_FALSE(v6 < v1);
+   ASSERT_TRUE(v6 > v1);
+   ASSERT_FALSE(v1 > v6);
+   ASSERT_TRUE(v1 <= v6);
+   ASSERT_FALSE(v6 <= v1);
+   ASSERT_TRUE(v6 >= v1);
+   ASSERT_FALSE(v1 >= v6);
 }

@@ -112,6 +112,11 @@ struct TypedArrayData : ArrayData
       using Pointer = T *;
       using Reference = T &;
       
+      using iterator_category = IteratorCategory;
+      using difference_type = DifferenceType;
+      using value_type = ValueType;
+      using pointer = Pointer;
+      using reference = Reference;                
    public:
       inline Iterator()
          : m_pointer(nullptr)
@@ -238,6 +243,11 @@ struct TypedArrayData : ArrayData
       using Pointer = const T *;
       using Reference = const T &;
       
+      using iterator_category = IteratorCategory;
+      using difference_type = DifferenceType;
+      using value_type = ValueType;
+      using pointer = Pointer;
+      using reference = Reference;
    public:
       inline ConstIterator()
          : m_pointer(nullptr)

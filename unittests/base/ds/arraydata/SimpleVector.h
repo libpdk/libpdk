@@ -28,9 +28,13 @@ class SimpleVector
 {
 private:
    using Data = TypedArrayData<T>;
+public:
+   using ValueType = T;
    using Iterator = typename Data::Iterator;
    using ConstIterator = typename Data::ConstIterator;
-   
+   using value_type = T;
+   using iterator = Iterator;
+   using const_iterator = ConstIterator;
 public:
    SimpleVector()
    {}
@@ -199,6 +203,48 @@ template <typename T>
 void swap(SimpleVector<T> &v1, SimpleVector<T> &v2)
 {
    v1.swap(v2);
+}
+
+template <typename T>
+inline bool operator ==(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   if (lhs.isSharedWith(rhs)) {
+      return true;
+   }
+   if (lhs.size() != rhs.size()) {
+      return false;
+   }
+   return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+template <typename T>
+inline bool operator !=(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   return !(lhs == rhs);
+}
+
+template <typename T>
+inline bool operator <(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template <typename T>
+inline bool operator >(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   return !(rhs < lhs);
+}
+
+template <typename T>
+inline bool operator >=(const SimpleVector<T> &lhs, const SimpleVector<T> &rhs)
+{
+   return !(lhs < rhs);
 }
 
 #endif
