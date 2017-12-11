@@ -159,4 +159,12 @@ TEST(ArrayDataTest, testSimpleVector)
    int array[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
    SimpleVector<int> v1;
    SimpleVector<int> v2(v1);
+   SimpleVector<int> v3(static_cast<TypedArrayData<int> *>(&data0));
+   SimpleVector<int> v4(static_cast<TypedArrayData<int> *>(&data1.m_header));
+   SimpleVector<int> v5(static_cast<TypedArrayData<int> *>(&data0));
+   SimpleVector<int> v6(static_cast<TypedArrayData<int> *>(&data1.m_header));
+   SimpleVector<int> v7(10, 5);
+   SimpleVector<int> v8(array, array + sizeof(array)/sizeof(*array));
+   
+   v3 = v1;
 }

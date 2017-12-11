@@ -140,7 +140,7 @@ public:
    
    ~ArrayDataPointer()
    {
-      if (m_data->m_ref.deref()) {
+      if (!m_data->m_ref.deref()) {
          if (m_data->isMutable()) {
             (*this)->destroyAll();
          }
