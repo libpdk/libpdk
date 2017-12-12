@@ -205,6 +205,170 @@ public:
       return *(end() - 1);
    }
    
+   void reserve(size_t n)
+   {
+      if (n == 0) {
+         return;
+      }
+      if (n <= capacity()) {
+         if (m_data->m_capacityReserved) {
+            return;
+         }
+         if (!m_data->m_ref.isShared()) {
+            m_data->m_capacityReserved = 1;
+            return;
+         }
+      }
+      SimpleVector detached(Data::allocate(std::max(n, size()),
+                                           m_data->detachFlags() | Data::CapacityReserved));
+      if (size()) {
+         detached.m_data->copyAppend(constBegin(), constEnd());
+      }
+      detached.swap(*this);
+   }
+   
+   void resize(size_t newSize)
+   {
+      if (size() == newSize) {
+         return;
+      }
+      if (m_data.needsDetach() || newSize > capacity()) {
+         SimpleVector<T> detached(Data::allocate(m_data->detachCapacity(newSize), m_data->detachFlags()));
+         if (newSize) {
+            if (newSize < size()) {
+               const T *const begin = constBegin();
+               detached.m_data->copyAppend(begin, begin + newSize);
+            } else {
+               if (size()) {
+                  const T *const begin = constBegin();
+                  detached.m_data->copyAppend(begin, begin + newSize);
+               }
+               detached.m_data->appendInitialize(newSize);
+            }
+         }
+         detached.swap(*this);
+         return;
+      }
+      if (newSize > size()) {
+         m_data->appendInitialize(newSize);
+      } else {
+         m_data->truncate(newSize);
+      }
+   }
+   
+   void prepend(const_iterator first, const_iterator last)
+   {
+      if (!m_data->m_size) {
+         append(first, last);
+         return;
+      }
+      if (first == last) {
+         return;
+      }
+      T *const begin = m_data->begin();
+      if (m_data.needsDetach()
+          || (capacity() - size() < static_cast<size_t>(last - first))) {
+         SimpleVector<T> detached(Data::allocate(
+                                     m_data->detachCapacity(size() + (last - first)),
+                                     m_data->detachFlags() | Data::Grow));
+         detached.m_data->copyAppend(first, last);
+         detached.m_data->copyAppend(begin, begin + m_data->m_size);
+         detached.swap(*this);
+         return;
+      }
+      m_data->insert(begin, first, last);
+   }
+   
+   void append(const_iterator first, const_iterator last)
+   {
+      if (first == last) {
+         return;
+      }
+      if (m_data.needsDetach()
+          || (capacity() - size() < static_cast<size_t>(last - first))) {
+         SimpleVector<T> detached(Data::allocate(
+                                     m_data->detachCapacity(size() + (last - first)),
+                                     m_data->detachFlags() | Data::Grow));
+         if (m_data->m_size) {
+            const T *const begin = constBegin();
+            detached.m_data->copyAppend(begin, begin + m_data->m_size);
+         }
+         detached.m_data->copyAppend(first, last);
+         detached.swap(*this);
+         return;
+      }
+      m_data->copyAppend(first, last);
+   }
+   
+   void insert(int position, const_iterator first, const_iterator last)
+   {
+      if (position < 0) {
+         position += m_data->m_size + 1;
+      }
+      if (position <= 0) {
+         prepend(first, last);
+         return;
+      }
+      if (static_cast<size_t>(position) >= size()) {
+         append(first, last);
+         return;
+      }
+      if (first == last) {
+         return;
+      }
+      const Iterator begin = m_data->begin();
+      const Iterator where = begin + position;
+      const Iterator end = begin + m_data->m_size;
+      if (m_data.needsDetach()
+          || (capacity() - size() < static_cast<size_t>(last - first))) {
+         SimpleVector<T> detached(Data::allocate(
+                                     m_data->detachCapacity(size() + (last - first)),
+                                     m_data->detachFlags() | Data::Grow));
+         if (position) {
+            detached.m_data->copyAppend(begin, where);
+         }
+         detached.m_data->copyAppend(first, last);
+         detached.m_data->copyAppend(where, end);
+         detached.swap(*this);
+         return;
+      }
+      
+      if ((first >= where && first < end)
+          || (last > where && last <= end)) {
+         // Copy overlapping data first and only then shuffle it into place
+         iterator start = m_data->begin() + position;
+         iterator middle = m_data->end();
+         m_data->copyAppend(first, last);
+         std::rotate(start, middle, m_data->end());
+      }
+      m_data->insert(where, first, last);
+   }
+   
+   void erase(const_iterator first, const_iterator last)
+   {
+      if (first == last) {
+         return;
+      }
+      const T *const begin = m_data->begin();
+      const T *const end = begin + m_data->m_size;
+      if (m_data.needsDetach()) {
+         SimpleVector<T> detached(Data::allocate(
+                                     m_data->detachCapacity(size() - (last - first)),
+                                     m_data->detachFlags()));
+         if (first != begin) {
+            detached.m_data->copyAppend(begin, first);
+         }
+         detached.m_data->copyAppend(last, end);
+         detached.swap(*this);
+         return;
+      }
+      if (last == end) {
+         m_data->truncate(end - first);
+      } else {
+         m_data->erase(first, last);
+      }
+   }
+   
    void clear()
    {
       m_data.clear();

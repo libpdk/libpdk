@@ -301,6 +301,117 @@ TEST(ArrayDataTest, testSimpleVector)
          ASSERT_EQ(&temp[i], &temp.at(i));
          ASSERT_NE(&temp[i], &v6[i]);
       }
-       ASSERT_EQ(static_cast<const int *>(temp.begin()), tempBegin);
+      ASSERT_EQ(static_cast<const int *>(temp.begin()), tempBegin);
    }
+   
+   {
+      int count = 0;
+      for (int value : v7) {
+         ASSERT_EQ(value, 5);
+         ++count;
+      }
+      ASSERT_EQ(count, 10);
+   }
+   
+   {
+      int count = 0;
+      for (int value : v8) {
+         ASSERT_EQ(value, count);
+         ++count;
+      }
+      ASSERT_EQ(count, 10);
+   }
+   
+   v5 = v6;
+   ASSERT_TRUE(v5.isSharedWith(v6));
+   ASSERT_FALSE(v1.isSharedWith(v5));
+   
+   v1.swap(v6);
+   ASSERT_TRUE(v6.isNull());
+   ASSERT_TRUE(v1.isSharedWith(v5));
+   
+   {
+      using std::swap;
+      swap(v1, v6);
+      ASSERT_TRUE(v5.isSharedWith(v6));
+      ASSERT_FALSE(v1.isSharedWith(v5));
+   }
+   
+   v1.prepend(array, array + sizeof(array)/sizeof(array[0]));
+   ASSERT_EQ(v1.size(), static_cast<size_t>(10));
+   
+   v6 = v1;
+   ASSERT_TRUE(v6.isSharedWith(v1));
+   
+   v1.prepend(array, array + sizeof(array) / sizeof(array[0]));
+   ASSERT_FALSE(v1.isSharedWith(v6));
+   ASSERT_EQ(v1.size(), static_cast<size_t>(20));
+   ASSERT_EQ(v6.size(), static_cast<size_t>(10));
+   
+   for (int i = 0; i < 20; ++i) {
+      ASSERT_EQ(v1[i], v6[i % 10]);
+   }
+   v1.clear();
+   v1.append(array, array + sizeof(array)/ sizeof(array[0]));
+   ASSERT_EQ(v1.size(), static_cast<size_t>(10));
+   ASSERT_TRUE(v1 == v8);
+   v6 = v1;
+   ASSERT_TRUE(v6.isSharedWith(v1));
+   
+   v1.append(array, array + sizeof(array)/sizeof(array[0]));
+   ASSERT_FALSE(v1.isSharedWith(v6));
+   ASSERT_EQ(v1.size(), static_cast<size_t>(20));
+   ASSERT_EQ(v6.size(), static_cast<size_t>(10));
+   
+   for (int i = 0; i < 20; ++i) {
+      ASSERT_EQ(v1[i], v6[i % 10]);
+   }
+   
+   v1.insert(0, v6.constBegin(), v6.constEnd());
+   ASSERT_EQ(v1.size(), static_cast<size_t>(30));
+   
+   for (int i = 0; i < 30; ++i) {
+      ASSERT_EQ(v1[i], v8[i % 10]);
+   }
+   v6 = v1;
+   ASSERT_TRUE(v6.isSharedWith(v1));
+   
+   v1.insert(10, v6.constBegin(), v6.constEnd());
+   ASSERT_FALSE(v6.isSharedWith(v1));
+   ASSERT_EQ(v1.size(), static_cast<size_t>(60));
+   ASSERT_EQ(v6.size(), static_cast<size_t>(30));
+   for (int i = 0; i < 30; ++i) {
+      ASSERT_EQ(v6[i], v8[i % 10]);
+   }
+   for (int i = 0; i < 60; ++i) {
+      ASSERT_EQ(v1[i], v8[i % 10]);
+   }
+   v1.insert(static_cast<int>(v1.size()), v6.constBegin(), v6.constEnd());
+   // v1 is now [ 0..9 x 6, <new data>0..9 x 3</new data> ]
+   
+   ASSERT_EQ(v1.size(), static_cast<size_t>(90));
+   for (int i = 0; i < 90; ++i) {
+      ASSERT_EQ(v1[i], v8[i % 10]);
+   }
+   
+   v1.insert(-1, v8.constBegin(), v8.constEnd());
+   // v1 is now [ 0..9 x 9, <new data>0..9</new data> ]
+   ASSERT_EQ(v1.size(), static_cast<size_t>(100));
+   for (int i = 0; i < 100; ++i) {
+      ASSERT_EQ(v1[i], v8[i % 10]);
+   }
+   
+   v1.insert(-11, v8.constBegin(), v8.constEnd());
+   // v1 is now [ 0..9 x 9, <new data>0..9</new data>, 0..9 ]
+   ASSERT_EQ(v1.size(), static_cast<size_t>(110));
+   
+   v1.insert(-200, v8.constBegin(), v8.constEnd());
+   // v1 is now [ <new data>0..9</new data>, 0..9 x 11 ]
+   ASSERT_EQ(v1.size(), static_cast<size_t>(120));
+   
+   for (int i = 0; i < 120; ++i) {
+      ASSERT_EQ(v1[i], v8[i % 10]);
+   }
+   
+   
 }
