@@ -23,6 +23,17 @@
 using pdk::ds::internal::ArrayData;
 using pdk::ds::internal::StaticArrayData;
 
+namespace 
+{
+
+template <typename T>
+const T &to_const(const T &t)
+{
+   return t;
+}
+
+}
+
 TEST(ArrayDataTest, testRefCounting)
 {
    ArrayData array = {{PDK_BASIC_ATOMIC_INITIALIZER(1)}, 0, 0, 0, 0};
@@ -266,4 +277,30 @@ TEST(ArrayDataTest, testSimpleVector)
    ASSERT_FALSE(v6 <= v1);
    ASSERT_TRUE(v6 >= v1);
    ASSERT_FALSE(v1 >= v6);
+   {
+      SimpleVector<int> temp(v6);
+      ASSERT_EQ(to_const(v6).front(), 0);
+      ASSERT_EQ(to_const(v6).back(), 6);
+      ASSERT_TRUE(temp.isShared());
+      ASSERT_TRUE(temp.isSharedWith(v6));
+      
+      ASSERT_EQ(temp.front(), 0);
+      ASSERT_EQ(temp.back(), 6);
+      
+      ASSERT_FALSE(temp.isShared());
+      const int *const tempBegin = temp.begin();
+      
+      for (size_t i = 0; i < v6.size(); ++i) {
+         ASSERT_EQ(to_const(v6)[i], static_cast<int>(i));
+         ASSERT_EQ(to_const(v6).at(i), static_cast<int>(i));
+         ASSERT_EQ(&to_const(v6)[i], &to_const(v6).at(i));
+         ASSERT_EQ(to_const(v8)[i], to_const(v6)[i]);
+         
+         ASSERT_EQ(temp[i], static_cast<int>(i));
+         ASSERT_EQ(temp.at(i), static_cast<int>(i));
+         ASSERT_EQ(&temp[i], &temp.at(i));
+         ASSERT_NE(&temp[i], &v6[i]);
+      }
+       ASSERT_EQ(static_cast<const int *>(temp.begin()), tempBegin);
+   }
 }

@@ -81,7 +81,7 @@ public:
       return m_data.isNull();
    }
    
-   bool isEmpty()
+   bool isEmpty() const
    {
       return this->empty();
    }
@@ -170,15 +170,39 @@ public:
    const T &operator[](size_t i) const
    {
       PDK_ASSERT(i < static_cast<size_t>(m_data->m_size));
-      detach();
       return begin()[i];
    }
    
    const T &at(size_t i) const
    { 
       PDK_ASSERT(i < static_cast<size_t>(m_data->m_size)); 
-      detach(); 
       return begin()[i]; 
+   }
+   
+   T &front()
+   {
+      PDK_ASSERT(!isEmpty());
+      detach();
+      return *begin();
+   }
+   
+   T &back()
+   {
+      PDK_ASSERT(!isEmpty());
+      detach();
+      return *(end() - 1);
+   }
+   
+   const T &front() const
+   {
+      PDK_ASSERT(!isEmpty());
+      return *begin();
+   }
+   
+   const T &back() const
+   {
+      PDK_ASSERT(!isEmpty());
+      return *(end() - 1);
    }
    
    void clear()
