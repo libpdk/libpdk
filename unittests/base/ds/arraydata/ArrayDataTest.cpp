@@ -413,5 +413,70 @@ TEST(ArrayDataTest, testSimpleVector)
       ASSERT_EQ(v1[i], v8[i % 10]);
    }
    
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   {
+      v7.setSharable(true);
+      ASSERT_TRUE(v7.isSharable());
+      
+      SimpleVector<int> copy1(v7);
+      ASSERT_TRUE(copy1.isSharedWith(v7));
+      
+      v7.setSharable(false);
+      ASSERT_FALSE(v7.isSharable());
+      ASSERT_FALSE(copy1.isSharedWith(v7));
+      
+      ASSERT_EQ(v7.size(), copy1.size());
+      for (size_t i = 0; i < copy1.size(); ++i){
+         ASSERT_EQ(v7[i], copy1[i]);
+      }
+      
+      SimpleVector<int> copy2(v7);
+      ASSERT_FALSE(copy2.isSharedWith(v7));
+      ASSERT_EQ(copy1.size(), copy2.size());
+      for (size_t i = 0; i < copy1.size(); ++i){
+         ASSERT_EQ(copy1[i], copy2[i]);
+      }
+      v7.setSharable(true);
+      ASSERT_TRUE(v7.isSharable());
+      
+      SimpleVector<int> copy3(v7);
+      ASSERT_TRUE(copy3.isSharedWith(v7));
+   }
    
+   {
+      SimpleVector<int> null;
+      SimpleVector<int> empty(0, 5);
+      
+      ASSERT_TRUE(null.isSharable());
+      ASSERT_TRUE(empty.isSharable());
+      
+      null.setSharable(true);
+      empty.setSharable(true);
+      
+      ASSERT_TRUE(null.isSharable());
+      ASSERT_TRUE(empty.isSharable());
+      
+      ASSERT_TRUE(null.isEmpty());
+      ASSERT_TRUE(empty.isEmpty());
+      
+      null.setSharable(false);
+      empty.setSharable(false);
+      
+      ASSERT_FALSE(null.isSharable());
+      ASSERT_FALSE(empty.isSharable());
+      
+      ASSERT_TRUE(null.isEmpty());
+      ASSERT_TRUE(empty.isEmpty());
+      
+      null.setSharable(true);
+      empty.setSharable(true);
+      
+      ASSERT_TRUE(null.isSharable());
+      ASSERT_TRUE(empty.isSharable());
+      
+      ASSERT_TRUE(null.isEmpty());
+      ASSERT_TRUE(empty.isEmpty());
+   }
+   
+#endif
 }
