@@ -646,3 +646,36 @@ TEST(ArrayDataTest, testAllocateData)
       ++begin;
    }
 }
+
+class Unaligned
+{
+   char dummy[8]; 
+};
+
+TEST(ArrayDataTest, testAlignment)
+{
+   for (size_t i = 1; i < 10; ++i) {
+      size_t alignment = static_cast<size_t>(1u) << i;
+      
+      size_t minAlignment = std::max(alignment, alignof(ArrayData));
+      Deallocator keeper(sizeof(Unaligned), minAlignment);
+      keeper.m_headers.reserve(100);
+      for (int j = 0; j < 100; j++) {
+         ArrayData *data = ArrayData::allocate(sizeof(Unaligned),
+                                               minAlignment, 8, ArrayData::Default);
+         keeper.m_headers.push_back(data);
+         ASSERT_TRUE(data);
+         ASSERT_EQ(data->m_size, 0);
+         ASSERT_TRUE(data->m_alloc >= static_cast<uint>(8));
+         // These conditions should hold as long as header and array are
+         // allocated together
+         ASSERT_TRUE(data->m_offset >= static_cast<pdk::ptrdiff>(sizeof(ArrayData)));
+         ASSERT_TRUE(data->m_offset <= static_cast<pdk::ptrdiff>(sizeof(ArrayData) + minAlignment - alignof(ArrayData)));
+         // Data is aligned
+         ASSERT_EQ(static_cast<pdk::uintptr>(reinterpret_cast<pdk::uintptr>(data->getData()) % alignment), static_cast<pdk::uintptr>(0u));
+         // Check that the allocated array can be used. Best tested with a
+         // memory checker, such as valgrind, running.
+         std::memset(data->getData(), 'A', sizeof(Unaligned) * 8);
+      }
+   }
+}
