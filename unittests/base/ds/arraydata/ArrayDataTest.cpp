@@ -782,7 +782,7 @@ struct CountedObject
    
    CountedObject &operator =(const CountedObject &other) 
    {
-      m_flags = static_cast<ObjectFlags>(other.m_flags | CopyConstructed);
+      m_flags = static_cast<ObjectFlags>(other.m_flags | CopyAssigned);
       m_id = other.m_id;
       return *this;
    }
@@ -902,4 +902,47 @@ TEST(ArrayDataTest, testArrayOperations)
    
    ASSERT_EQ(vi.size(), 15u);
    ASSERT_EQ(vo.size(), 15u);
+   
+   // Displace less elements than array is extended by
+   vi.insert(5, vi.constBegin(), vi.constEnd());
+   vo.insert(5, vo.constBegin(), vo.constEnd());
+   
+   ASSERT_EQ(vi.size(), 30u);
+   ASSERT_EQ(vo.size(), 30u);
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(36));
+   
+   for (int i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], intArray[i % 5]);
+      ASSERT_EQ(vo[i].m_id, vo[i % 5].m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::DefaultConstructed
+                | CountedObject::CopyAssigned);
+   }
+   
+   for (int i = 5; i < 15; ++i) {
+      ASSERT_EQ(vi[i], intArray[i % 5]);
+      ASSERT_EQ(vo[i].m_id, vo[i % 5].m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::CopyConstructed
+                | CountedObject::CopyAssigned);
+   }
+   
+   for (int i = 15; i < 20; ++i) {
+      ASSERT_EQ(vi[i], referenceInt);
+      ASSERT_EQ(vo[i].m_id, referenceObject.m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::CopyAssigned
+                | CountedObject::CopyConstructed);
+   }
+   
+   for (int i = 20; i < 25; ++i) {
+      ASSERT_EQ(vi[i], intArray[i % 5]);
+      ASSERT_EQ(vo[i].m_id, vo[i % 5].m_id);
+      ASSERT_EQ(vo[i].m_flags & CountedObject::CopyAssigned, static_cast<int>(CountedObject::CopyAssigned));
+   }
+   
+   for (int i = 25; i < 30; ++i) {
+      ASSERT_EQ(vi[i], referenceInt);
+      ASSERT_EQ(vo[i].m_id, referenceObject.m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::CopyAssigned
+                | CountedObject::CopyConstructed);
+   }
 }

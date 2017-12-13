@@ -341,6 +341,7 @@ public:
          iterator middle = m_data->end();
          m_data->copyAppend(first, last);
          std::rotate(start, middle, m_data->end());
+         return;
       }
       m_data->insert(where, first, last);
    }
