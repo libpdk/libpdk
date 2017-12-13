@@ -19,6 +19,7 @@
 #include "pdk/base/ds/internal/ArrayData.h"
 #include "pdk/base/ds/internal/ArrayDataPointer.h"
 
+using pdk::ds::internal::ArrayData;
 using pdk::ds::internal::TypedArrayData;
 using pdk::ds::internal::ArrayDataPointer;
 using pdk::ds::internal::ArrayDataPointerRef;
@@ -382,6 +383,12 @@ public:
    void swap(SimpleVector<T> &other)
    {
       std::swap(m_data, other.m_data);
+   }
+   
+   static SimpleVector fromRawData(const T *data, size_t size,
+                                   ArrayData::AllocationOptions options = Data::Default)
+   {
+      return SimpleVector(Data::fromRawData(data, size, options));
    }
 private:
    ArrayDataPointer<T> m_data;

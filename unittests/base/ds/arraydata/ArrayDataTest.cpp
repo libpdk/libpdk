@@ -16,6 +16,8 @@
 #include "gtest/gtest.h"
 #include <list>
 #include <utility>
+#include <tuple>
+#include <vector>
 #include <algorithm>
 #include "pdk/base/ds/internal/ArrayData.h"
 #include "SimpleVector.h"
@@ -479,4 +481,168 @@ TEST(ArrayDataTest, testSimpleVector)
    }
    
 #endif
+}
+
+TEST(ArrayDataTest, testSimpleVectorReserve)
+{
+   using DataType = std::list<std::tuple<SimpleVector<int>, size_t, size_t>>;
+   DataType data;
+   data.push_back(std::make_tuple(SimpleVector<int>(), static_cast<size_t>(0), static_cast<size_t>(0)));
+   data.push_back(std::make_tuple(SimpleVector<int>(0, 42), static_cast<size_t>(0), static_cast<size_t>(0)));
+   data.push_back(std::make_tuple(SimpleVector<int>(5, 42), static_cast<size_t>(5), static_cast<size_t>(5)));
+   
+   static const StaticArrayData<int, 15> array = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 15),
+      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+   };
+   
+   ArrayDataPointerRef<int> p = {
+      static_cast<TypedArrayData<int> *>(const_cast<ArrayData *>(&array.m_header))
+   };
+   data.push_back(std::make_tuple(SimpleVector<int>(p), static_cast<size_t>(0), static_cast<size_t>(15)));
+   data.push_back(std::make_tuple(SimpleVector<int>::fromRawData(array.m_data, 15), static_cast<size_t>(0), static_cast<size_t>(15)));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      SimpleVector<int> vector = std::get<0>(item);
+      size_t capacity = std::get<1>(item);
+      size_t size = std::get<2>(item);
+      ASSERT_TRUE(!capacity || capacity >= size);
+      ASSERT_EQ(vector.capacity(), capacity);
+      ASSERT_EQ(vector.size(), size);
+      
+      const SimpleVector<int> copy(vector);
+      
+      vector.reserve(0);
+      ASSERT_EQ(vector.capacity(), capacity);
+      ASSERT_EQ(vector.size(), size);
+      
+      vector.reserve(10);
+      
+      if (!capacity) {
+         capacity = size;
+      }
+      
+      ASSERT_EQ(vector.capacity(), std::max(static_cast<size_t>(10), capacity));
+      ASSERT_EQ(vector.size(), size);
+      
+      vector.reserve(20);
+      ASSERT_EQ(vector.capacity(), static_cast<size_t>(20));
+      ASSERT_EQ(vector.size(), size);
+      
+      vector.reserve(30);
+      ASSERT_EQ(vector.capacity(), static_cast<size_t>(30));
+      ASSERT_EQ(vector.size(), size);
+      
+      ASSERT_EQ(vector, copy);
+      ++begin;
+   }
+}
+
+
+struct Deallocator
+{
+   Deallocator(size_t objectSize, size_t alignment)
+      : m_objectSize(objectSize),
+        m_alignment(alignment)
+   {
+      
+   }
+   
+   ~Deallocator()
+   {
+      for(ArrayData *data: m_headers) {
+         ArrayData::deallocate(data, m_objectSize, m_alignment);
+      }
+   }
+   
+   size_t m_objectSize;
+   size_t m_alignment;
+   std::vector<ArrayData *> m_headers;
+};
+
+TEST(ArrayDataTest, testAllocateData)
+{
+   using DataType = std::list<std::tuple<size_t, size_t, ArrayData::AllocationOptions, bool, bool, const ArrayData *>>;
+   DataType data;
+   
+   struct
+   {
+      char const *m_typeName;
+      size_t m_objectSize;
+      size_t m_alignment;
+   } types[] = {
+   {"char", sizeof(char), alignof(char)},
+   {"short", sizeof(short), alignof(short)},
+   {"void *", sizeof(void *), alignof(void *)},
+};
+   
+   ArrayData *sharedEmpty = ArrayData::allocate(0, alignof(ArrayData), 0);
+   ASSERT_TRUE(sharedEmpty);
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   ArrayData *unsharableEmpty = ArrayData::allocate(0, alignof(ArrayData), 0, ArrayData::Unsharable);
+   ASSERT_TRUE(unsharableEmpty);
+#endif
+   
+   struct
+   {
+      char const *m_description;
+      ArrayData::AllocationOptions m_allocateOptions;
+      bool m_isCapacityReserved;
+      bool m_isSharable;
+      const ArrayData *m_commonEmpty;
+   } options[] = {
+   {"Default", ArrayData::Default, false, true, sharedEmpty},
+   {"Reserved", ArrayData::CapacityReserved, true, true, sharedEmpty},
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   {"Reserved | Unsharable", ArrayData::CapacityReserved | ArrayData::Unsharable, true, false, unsharableEmpty},
+   {"Unsharable", ArrayData::Unsharable,  false, false, unsharableEmpty},
+#endif
+   {"Grow", ArrayData::Grow, false, true, sharedEmpty}
+};
+   
+   for (size_t i = 0; i < sizeof(types)/sizeof(types[0]); ++i) {
+      for (size_t j = 0; j < sizeof(options)/sizeof(options[0]); ++j) {
+         data.push_back(std::make_tuple(types[i].m_objectSize, types[i].m_alignment, options[j].m_allocateOptions,
+                                        options[j].m_isCapacityReserved, options[j].m_isSharable, options[j].m_commonEmpty));
+      }
+   }
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      size_t objectSize = std::get<0>(item);
+      size_t alignment = std::get<1>(item);
+      ArrayData::AllocationOptions allocateOptions = std::get<2>(item);
+      bool isCapacityReserved = std::get<3>(item);
+      bool isSharable = std::get<4>(item);
+      const ArrayData *commonEmpty = std::get<5>(item);
+      size_t minAlignment = std::max(alignment, alignof(ArrayData));
+      
+      ASSERT_EQ(ArrayData::allocate(objectSize, minAlignment, 0, ArrayData::AllocationOptions(allocateOptions)), commonEmpty);
+      
+      Deallocator keeper(objectSize, minAlignment);
+      keeper.m_headers.reserve(1024);
+      
+      for (int capacity = 1; capacity <= 1024; capacity <<= 1) {
+         ArrayData *data = ArrayData::allocate(objectSize, minAlignment, capacity, ArrayData::AllocationOptions(allocateOptions));
+         keeper.m_headers.push_back(data);
+         ASSERT_EQ(data->m_size, 0);
+         if (allocateOptions & ArrayData::Grow) {
+            ASSERT_TRUE(data->m_alloc > static_cast<uint>(capacity));
+         } else {
+            ASSERT_EQ(data->m_alloc, static_cast<uint>(capacity));
+         }
+         ASSERT_EQ(data->m_capacityReserved, static_cast<uint>(isCapacityReserved));
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+         ASSERT_EQ(data->m_ref.isSharable(), isSharable);
+#endif
+         ::memset(data->getData(), 'A', objectSize * capacity);
+      }
+      ++begin;
+   }
 }
