@@ -163,7 +163,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       const T *const begin = this->begin();
       const T *iterator = this->end();
       while (iterator != begin) {
-         static_cast<T *>(--iterator)->~T();
+         (--iterator)->~T();
       }
    }
    
@@ -190,12 +190,17 @@ struct GenericArrayOperator : TypedArrayData<T>
          void commit()
          {
             m_iterator = &m_end;
+//            std::cout << m_end << std::endl;
+//            std::cout << *m_iterator << std::endl;
+//            std::cout << "------" << std::endl;
          }
          
          ~Destructor()
          {
+//            std::cout << m_end << std::endl;
+//            std::cout << *m_iterator << std::endl;
             for (; *m_iterator != m_end; --*m_iterator) {
-               static_cast<T *>(*m_iterator)->~T();
+               (*m_iterator)->~T();
             }
          }
          
@@ -217,8 +222,8 @@ struct GenericArrayOperator : TypedArrayData<T>
       }
       
       destroyer.commit();
-      this->m_size = destroyer.m_end - selfEnd;
-      while (writerIterator != selfEnd) {
+      this->m_size += destroyer.m_end - selfEnd;
+      while (readIterator != where) {
          --readIterator;
          --writerIterator;
          *writerIterator = *readIterator;

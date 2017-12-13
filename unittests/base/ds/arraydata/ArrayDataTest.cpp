@@ -679,3 +679,227 @@ TEST(ArrayDataTest, testAlignment)
       }
    }
 }
+
+TEST(ArrayDataTest, testTypedData)
+{
+   StaticArrayData<int, 10> data = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+   };
+   ASSERT_EQ(data.m_header.m_size, 10);
+   {
+      TypedArrayData<int> *array = static_cast<TypedArrayData<int> *>(&data.m_header);
+      ASSERT_EQ(array->getData(), data.m_data);
+      int j = 0;
+      for (TypedArrayData<int>::Iterator iter = array->begin(); iter != array->end(); ++iter, ++j)
+      {
+         ASSERT_EQ(static_cast<const int *>(iter), data.m_data + j);
+      }
+      ASSERT_EQ(j, 10);
+   }
+   
+   {
+      const TypedArrayData<int> *array = static_cast<const TypedArrayData<int> *>(&data.m_header);
+      ASSERT_EQ(array->getData(), data.m_data);
+      int j = 0;
+      for (TypedArrayData<int>::ConstIterator iter = array->begin(); iter != array->end(); ++iter, ++j)
+      {
+         ASSERT_EQ(static_cast<const int *>(iter), data.m_data + j);
+      }
+      ASSERT_EQ(j, 10);
+   }
+   
+   {
+      TypedArrayData<int> *null = TypedArrayData<int>::getSharedNull();
+      TypedArrayData<int> *empty = TypedArrayData<int>::allocate(0);
+      ASSERT_TRUE(null != empty);
+      ASSERT_EQ(null->m_size, 0);
+      ASSERT_EQ(empty->m_size, 0);
+      ASSERT_EQ(null->begin(), null->end());
+      ASSERT_EQ(empty->begin(), empty->end());
+   }
+   
+   {
+      Deallocator keeper(sizeof(char), alignof(TypedArrayData<char>::AlignmentDummy));
+      ArrayData *array = TypedArrayData<char>::allocate(10);
+      keeper.m_headers.push_back(array);
+      ASSERT_TRUE(array);
+      ASSERT_EQ(array->m_size, 0);
+      ASSERT_EQ(array->m_alloc, 10u);
+      
+      // Check that the allocated array can be used. Best tested with a
+      // memory checker, such as valgrind, running.
+      std::memset(array->getData(), 0, 10 * sizeof(char));
+      keeper.m_headers.clear();
+      TypedArrayData<char>::deallocate(array);
+   }
+   {
+      Deallocator keeper(sizeof(short), alignof(TypedArrayData<short>::AlignmentDummy));
+      ArrayData *array = TypedArrayData<short>::allocate(10);
+      keeper.m_headers.push_back(array);
+      ASSERT_TRUE(array);
+      ASSERT_EQ(array->m_size, 0);
+      ASSERT_EQ(array->m_alloc, 10u);
+      
+      // Check that the allocated array can be used. Best tested with a
+      // memory checker, such as valgrind, running.
+      std::memset(array->getData(), 0, 10 * sizeof(short));
+      keeper.m_headers.clear();
+      TypedArrayData<short>::deallocate(array);
+   }
+   
+   {
+      Deallocator keeper(sizeof(double), alignof(TypedArrayData<double>::AlignmentDummy));
+      ArrayData *array = TypedArrayData<double>::allocate(10);
+      keeper.m_headers.push_back(array);
+      ASSERT_TRUE(array);
+      ASSERT_EQ(array->m_size, 0);
+      ASSERT_EQ(array->m_alloc, 10u);
+      
+      // Check that the allocated array can be used. Best tested with a
+      // memory checker, such as valgrind, running.
+      std::memset(array->getData(), 0, 10 * sizeof(double));
+      keeper.m_headers.clear();
+      TypedArrayData<double>::deallocate(array);
+   }
+}
+
+struct CountedObject
+{
+   CountedObject()
+      : m_id(sm_liveCount++),
+        m_flags(DefaultConstructed)
+   {}
+   
+   CountedObject(const CountedObject &other)
+      : m_id(other.m_id),
+        m_flags(other.m_flags == DefaultConstructed
+                ? static_cast<ObjectFlags>(CopyConstructed | DefaultConstructed)
+                : CopyConstructed)
+   {
+      ++sm_liveCount;
+   }
+   
+   CountedObject &operator =(const CountedObject &other) 
+   {
+      m_flags = static_cast<ObjectFlags>(other.m_flags | CopyConstructed);
+      m_id = other.m_id;
+      return *this;
+   }
+   
+   struct LeakChecker
+   {
+      LeakChecker()
+         : m_previousLiveCount(sm_liveCount)
+      {
+      }
+      
+      ~LeakChecker()
+      {
+         doCheck();
+      }
+      
+      void doCheck()
+      {
+         ASSERT_EQ(sm_liveCount, m_previousLiveCount);
+      }
+      
+   private:
+      const size_t m_previousLiveCount;
+   };
+   
+   ~CountedObject()
+   {
+      --sm_liveCount;
+   }
+   
+   enum ObjectFlags 
+   {
+      DefaultConstructed  = 1,
+      CopyConstructed     = 2,
+      CopyAssigned        = 4
+   };
+   
+   size_t m_id; // not unique
+   ObjectFlags m_flags;
+   static size_t sm_liveCount;
+};
+
+size_t CountedObject::sm_liveCount = 0;
+
+TEST(ArrayDataTest, testArrayOperations)
+{
+   CountedObject::LeakChecker leakChecker; 
+   PDK_UNUSED(leakChecker);
+   const int intArray[5] = {80, 101, 100, 114, 111};
+   const std::string stringArray[5] = {
+      std::string("just"),
+      std::string("for"),
+      std::string("testing"),
+      std::string("a"),
+      std::string("vector")
+   };
+   const CountedObject objArray[5];
+   ASSERT_TRUE(!pdk::TypeInfo<int>::isComplex && !pdk::TypeInfo<int>::isStatic);
+   ASSERT_TRUE(pdk::TypeInfo<CountedObject>::isComplex && pdk::TypeInfo<CountedObject>::isStatic);
+   ASSERT_EQ(CountedObject::sm_liveCount, 5u);
+   
+   for (size_t i = 0; i < 5; ++i) {
+      ASSERT_EQ(objArray[i].m_id, static_cast<size_t>(i));
+   }
+   
+   SimpleVector<int> vi(intArray, intArray + 5);
+   SimpleVector<std::string> vs(stringArray, stringArray + 5);
+   SimpleVector<CountedObject> vo(objArray, objArray + 5);
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, 10u);
+   
+   for (int i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], intArray[i]);
+      ASSERT_EQ(vo[i].m_id, objArray[i].m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::CopyConstructed
+                | CountedObject::DefaultConstructed);
+   }
+   
+   vi.clear();
+   vs.clear();
+   vo.clear();
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(5));
+   
+   int referenceInt = 7;
+   CountedObject referenceObject;
+   vi = SimpleVector<int>(5, referenceInt);
+   vo = SimpleVector<CountedObject>(5, referenceObject);
+   ASSERT_EQ(vi.size(), 5u);
+   ASSERT_EQ(vo.size(), 5u);
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(11));
+   for (int i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], referenceInt);
+      ASSERT_EQ(vo[i].m_id, referenceObject.m_id);
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), CountedObject::CopyConstructed
+                | CountedObject::DefaultConstructed);
+   }
+   
+   vi.reserve(30);
+   vo.reserve(30);
+   
+   ASSERT_EQ(vi.size(), 5u);
+   ASSERT_EQ(vo.size(), 5u);
+   
+   ASSERT_TRUE(vi.capacity() >= 30u);
+   ASSERT_TRUE(vo.capacity() >= 30u);
+   
+   vi.insert(0, intArray, intArray + 5);
+   vo.insert(0, objArray, objArray + 5);
+   
+   ASSERT_EQ(vi.size(), 10u);
+   ASSERT_EQ(vo.size(), 10u);
+   
+   vi.insert(0, intArray, intArray + 5);
+   vo.insert(0, objArray, objArray + 5);
+   
+   ASSERT_EQ(vi.size(), 15u);
+   ASSERT_EQ(vo.size(), 15u);
+}
