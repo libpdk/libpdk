@@ -946,3 +946,20 @@ TEST(ArrayDataTest, testArrayOperations)
                 | CountedObject::CopyConstructed);
    }
 }
+
+TEST(ArrayDataTest, testArrayOperations2)
+{
+   CountedObject::LeakChecker leakChecker;
+   PDK_UNUSED(leakChecker);
+   SimpleVector<int> vi(5);
+   SimpleVector<CountedObject> vo(5);
+   
+   ASSERT_EQ(vi.size(), static_cast<size_t>(5));
+   ASSERT_EQ(vo.size(), static_cast<size_t>(5));
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(5));
+   for (size_t i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+   }
+}

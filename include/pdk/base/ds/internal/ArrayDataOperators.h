@@ -35,7 +35,7 @@ struct PodArrayOperator : TypedArrayData<T>
       PDK_ASSERT(!this->m_ref.isShared());
       PDK_ASSERT(newSize > static_cast<uint>(this->m_size));
       PDK_ASSERT(newSize <= static_cast<uint>(this->m_alloc));
-      std::memset(this->end(), 0, (newSize - this->m_size));
+      std::memset(this->end(), 0, (newSize - this->m_size) * sizeof(T));
       this->m_size = static_cast<int>(newSize);
    }
    
