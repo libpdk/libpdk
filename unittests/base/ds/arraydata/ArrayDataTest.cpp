@@ -1044,3 +1044,145 @@ TEST(ArrayDataTest, testArrayOperations2)
                                                                   | CountedObject::CopyAssigned));
    }
 }
+
+namespace
+{
+
+inline bool array_is_filled_with(const ArrayDataPointer<int> &array, int fillValue, size_t size)
+{
+   const int *iter = array->begin();
+   const int *const end = array->end();
+   for (size_t i = 0; i < size; ++i, ++iter) {
+      if (*iter != fillValue) {
+         return false;
+      }
+   }
+   if (iter != end) {
+      return false;
+   }
+   return true;
+}
+
+}
+
+TEST(ArrayDataTest, testSetSharable)
+{
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   using DataType = std::list<std::tuple<ArrayDataPointer<int>, size_t, size_t, bool, int>>;
+   DataType data;
+   
+   ArrayDataPointer<int> null;
+   ArrayDataPointer<int> empty;
+   empty.clear();
+   
+   static StaticArrayData<int, 10> staticArrayData = {
+      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      {3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
+   };
+   
+   ArrayDataPointer<int> emptyReserved(TypedArrayData<int>::allocate(5, ArrayData::CapacityReserved));
+   ArrayDataPointer<int> nonEmpty(TypedArrayData<int>::allocate(5, ArrayData::Default));
+   ArrayDataPointer<int> nonEmptyExtraCapacity(TypedArrayData<int>::allocate(10, ArrayData::Default));
+   ArrayDataPointer<int> nonEmptyReserved(TypedArrayData<int>::allocate(15, ArrayData::CapacityReserved));
+   ArrayDataPointer<int> staticArray(static_cast<TypedArrayData<int> *>(&staticArrayData.m_header));
+   ArrayDataPointer<int> rawData(TypedArrayData<int>::fromRawData(staticArrayData.m_data, 10));
+   
+   nonEmpty->copyAppend(5, 1);
+   nonEmptyExtraCapacity->copyAppend(5, 1);
+   nonEmptyReserved->copyAppend(7, 2);
+   
+   // ArrayDataPointer<int> 0
+   // size 1
+   // capacity 2
+   // isCapacityReserved 3
+   // fillValue 4
+   data.push_back(std::make_tuple(null, static_cast<size_t>(0), static_cast<size_t>(0), false, 0));
+   data.push_back(std::make_tuple(empty, static_cast<size_t>(0), static_cast<size_t>(0), false, 0));
+   // unsharable-empty implicitly tested in shared-empty
+   data.push_back(std::make_tuple(emptyReserved, static_cast<size_t>(0), static_cast<size_t>(5), true, 0));
+   data.push_back(std::make_tuple(nonEmpty, static_cast<size_t>(5), static_cast<size_t>(5), false, 1));
+   data.push_back(std::make_tuple(nonEmptyExtraCapacity, static_cast<size_t>(5), static_cast<size_t>(10), false, 1));
+   data.push_back(std::make_tuple(nonEmptyReserved, static_cast<size_t>(7), static_cast<size_t>(15), true, 2));
+   data.push_back(std::make_tuple(staticArray, static_cast<size_t>(10), static_cast<size_t>(0), false, 3));
+   data.push_back(std::make_tuple(rawData, static_cast<size_t>(10), static_cast<size_t>(0), false, 3));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   
+   while(begin != end)
+   {
+      auto item = *begin;
+      ArrayDataPointer<int> array = std::get<0>(item);
+      size_t size = std::get<1>(item);
+      size_t capacity = std::get<2>(item);
+      bool isCapacityReserved = std::get<3>(item);
+      int fillValue = std::get<4>(item);
+      
+      ASSERT_TRUE(array->m_ref.isShared());
+      ASSERT_TRUE(array->m_ref.isSharable());
+      
+      ASSERT_EQ(static_cast<size_t>(array->m_size), size);
+      ASSERT_EQ(static_cast<size_t>(array->m_alloc), capacity);
+      ASSERT_EQ(static_cast<size_t>(array->m_capacityReserved), isCapacityReserved);
+      
+      ASSERT_TRUE(array_is_filled_with(array, fillValue, size));
+      
+      array.setSharable(true);
+      ASSERT_TRUE(array->m_ref.isSharable());
+      ASSERT_TRUE(array_is_filled_with(array, fillValue, size));
+      
+      {
+         ArrayDataPointer<int> copy(array);
+         ASSERT_TRUE(array->m_ref.isShared());
+         ASSERT_TRUE(array->m_ref.isSharable());
+         ASSERT_EQ(copy->getData(), array->getData());
+      }
+      
+      // Unshare, must detach
+      array.setSharable(false);
+      
+      // Immutability (alloc == 0) is lost on detach, as is additional capacity
+      // if capacityReserved flag is not set.
+      if ((capacity == 0 && size != 0)
+          || (!isCapacityReserved && capacity > size)) {
+         capacity = size;
+      }
+      ASSERT_FALSE(array->m_ref.isShared());
+      ASSERT_FALSE(array->m_ref.isSharable());
+      
+      ASSERT_EQ(static_cast<size_t>(array->m_size), size);
+      ASSERT_EQ(static_cast<size_t>(array->m_alloc), capacity);
+      ASSERT_TRUE(array_is_filled_with(array, fillValue, size));
+      {
+         ArrayDataPointer<int> copy(array);
+         ASSERT_FALSE(array->m_ref.isShared());
+         ASSERT_FALSE(array->m_ref.isSharable());
+         // Null/empty is always shared
+         ASSERT_EQ(copy->m_ref.isShared(), !(size || isCapacityReserved));
+         ASSERT_TRUE(copy->m_ref.isSharable());
+         ASSERT_EQ(static_cast<size_t>(copy->m_size), size);
+         ASSERT_EQ(static_cast<size_t>(copy->m_alloc), capacity);
+         ASSERT_EQ(static_cast<bool>(copy->m_capacityReserved), isCapacityReserved);
+         ASSERT_TRUE(array_is_filled_with(copy, fillValue, size));
+      }
+      
+      array.setSharable(true);
+      ASSERT_EQ(array->m_ref.isShared(), !(size || isCapacityReserved));
+      ASSERT_TRUE(array->m_ref.isSharable());
+      ASSERT_EQ(static_cast<size_t>(array->m_size), size);
+      ASSERT_EQ(static_cast<size_t>(array->m_alloc), capacity);
+      ASSERT_EQ(static_cast<bool>(array->m_capacityReserved), isCapacityReserved);
+      
+      {
+         ArrayDataPointer<int> copy(array);
+         ASSERT_TRUE(array->m_ref.isShared());
+         ASSERT_EQ(copy.getData(), copy.getData());
+      }
+      
+      ASSERT_EQ(array->m_ref.isShared(), !(size || isCapacityReserved));
+      ASSERT_TRUE(array->m_ref.isSharable());
+      
+      ++begin;
+   }
+#endif
+}

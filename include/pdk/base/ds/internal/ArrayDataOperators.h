@@ -49,7 +49,7 @@ struct PodArrayOperator : TypedArrayData<T>
       this->m_size += end - begin;
    }
    
-   void copyAppend(size_t n, const T &target)
+   void copyAppend(size_t n, const T &value)
    {
       PDK_ASSERT(this->isMutable());
       PDK_ASSERT(!this->m_ref.isShared());
@@ -57,7 +57,7 @@ struct PodArrayOperator : TypedArrayData<T>
       T *iterator = this->end();
       const T *const end = iterator + n;
       for (; iterator != end; ++iterator) {
-         std::memcpy(iterator, &target, sizeof(T));
+         std::memcpy(iterator, &value, sizeof(T));
       }
       this->m_size += static_cast<int>(n);
    }
@@ -130,7 +130,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       }
    }
    
-   void copyAppend(size_t n, const T &data)
+   void copyAppend(size_t n, const T &value)
    {
       PDK_ASSERT(this->isMutable());
       PDK_ASSERT(!this->m_ref.isShared());
@@ -138,7 +138,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       T *iterator = this->end();
       const T *const end = iterator + n;
       for (; iterator != end; ++iterator) {
-         new (iterator) T(data);
+         new (iterator) T(value);
          ++this->m_size;
       }
    }
@@ -180,6 +180,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       const T *readIterator = selfEnd;
       T *writerIterator = selfEnd + (end - begin);
       const T *const step1End = where + std::max(end - begin, selfEnd  - where);
+      // @TODO why use this?
       struct Destructor
       {
          Destructor(T *&iterator)
