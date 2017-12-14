@@ -150,7 +150,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       PDK_ASSERT(newSize < static_cast<size_t>(this->m_size));
       const T * const begin = this->begin();
       do {
-         static_cast<T *>((begin + (--this->m_size)))->~T();
+         (begin + (--this->m_size))->~T();
       } while (static_cast<size_t>(this->m_size) != newSize);
    }
    
@@ -190,15 +190,15 @@ struct GenericArrayOperator : TypedArrayData<T>
          void commit()
          {
             m_iterator = &m_end;
-//            std::cout << m_end << std::endl;
-//            std::cout << *m_iterator << std::endl;
-//            std::cout << "------" << std::endl;
+            //            std::cout << m_end << std::endl;
+            //            std::cout << *m_iterator << std::endl;
+            //            std::cout << "------" << std::endl;
          }
          
          ~Destructor()
          {
-//            std::cout << m_end << std::endl;
-//            std::cout << *m_iterator << std::endl;
+            //            std::cout << m_end << std::endl;
+            //            std::cout << *m_iterator << std::endl;
             for (; *m_iterator != m_end; --*m_iterator) {
                (*m_iterator)->~T();
             }
@@ -250,7 +250,7 @@ struct GenericArrayOperator : TypedArrayData<T>
       } while (end != selfEnd);
       
       do {
-         static_cast<T *>(--end)->~T();
+         (--end)->~T();
          --this->m_size;
       } while (end != begin);
    }

@@ -961,5 +961,86 @@ TEST(ArrayDataTest, testArrayOperations2)
    for (size_t i = 0; i < 5; ++i) {
       ASSERT_EQ(vi[i], 0);
       ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed));
+   }
+   
+   // appendInitialize, again
+   // These will detach
+   vi.resize(10);
+   vo.resize(10);
+   
+   ASSERT_EQ(vi.size(), static_cast<size_t>(10));
+   ASSERT_EQ(vo.size(), static_cast<size_t>(10));
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(10));
+   for (size_t i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed
+                                                                  | CountedObject::CopyConstructed));
+   }
+   for (size_t i = 5; i < 10; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i + 5));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed));
+   }
+   
+   // truncate
+   ASSERT_TRUE(!vi.isShared());
+   ASSERT_TRUE(!vo.isShared());
+   
+   vi.resize(7);
+   vo.resize(7);
+   ASSERT_EQ(vi.size(), static_cast<size_t>(7));
+   ASSERT_EQ(vo.size(), static_cast<size_t>(7));
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(7));
+   for (size_t i = 0; i < 5; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed
+                                                                  | CountedObject::CopyConstructed));
+   }
+   for (size_t i = 5; i < 7; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i + 5));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed));
+   }
+   
+   vi.resize(10);
+   vo.resize(10);
+   
+   for (size_t i = 7; i < 10; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed));
+   }
+   
+   // erase
+   vi.erase(vi.begin() + 2, vi.begin() + 5);
+   vo.erase(vo.begin() + 2, vo.begin() + 5);
+   
+   ASSERT_EQ(vi.size(), static_cast<size_t>(7));
+   ASSERT_EQ(vo.size(), static_cast<size_t>(7));
+   
+   ASSERT_EQ(CountedObject::sm_liveCount, static_cast<size_t>(7));
+   for (size_t i = 0; i < 2; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed
+                                                                  | CountedObject::CopyConstructed));
+   }
+   
+   for (size_t i = 2; i < 4; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i + 8));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed
+                                                                  | CountedObject::CopyAssigned));
+   }
+   
+   for (size_t i = 4; i < 7; ++i) {
+      ASSERT_EQ(vi[i], 0);
+      ASSERT_EQ(vo[i].m_id, static_cast<size_t>(i + 3));
+      ASSERT_EQ(static_cast<int>(vo[i].m_flags), static_cast<int>(CountedObject::DefaultConstructed
+                                                                  | CountedObject::CopyAssigned));
    }
 }

@@ -242,7 +242,7 @@ public:
             } else {
                if (size()) {
                   const T *const begin = constBegin();
-                  detached.m_data->copyAppend(begin, begin + newSize);
+                  detached.m_data->copyAppend(begin, begin + size());
                }
                detached.m_data->appendInitialize(newSize);
             }
@@ -346,7 +346,7 @@ public:
       m_data->insert(where, first, last);
    }
    
-   void erase(const_iterator first, const_iterator last)
+   void erase(Iterator first, Iterator last)
    {
       if (first == last) {
          return;
