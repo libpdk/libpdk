@@ -16,6 +16,7 @@
 #ifndef PDK_KERNEL_STRING_UTILS_H
 #define PDK_KERNEL_STRING_UTILS_H
 
+#include <string>
 #include "pdk/global/Global.h"
 
 namespace pdk
@@ -25,6 +26,9 @@ namespace pdk
 namespace ds {
 class ByteArray;
 }
+
+extern const uchar latin1Lowercased[256];
+extern const uchar latin1Uppercased[256];
 
 PDK_CORE_EXPORT char *strdup(const char *str);
 
@@ -54,7 +58,7 @@ inline int strncmp(const char *lhs, const char *rhs, uint length)
 }
 
 PDK_CORE_EXPORT int stricmp(const char *lhs, const char *rhs);
-PDK_CORE_EXPORT int strnicmp(const char *lhs, const char *rhs);
+PDK_CORE_EXPORT int strnicmp(const char *lhs, const char *rhs, uint length);
 
 PDK_CORE_EXPORT int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 PDK_CORE_EXPORT int snprintf(char *str, size_t size, const char *format, ...);
