@@ -12,3 +12,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2017/12/15.
+
+#include "pdk/kernel/StringUtils.h"
+#include "pdk/base/ds/ByteArray.h"
+
