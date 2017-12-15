@@ -481,7 +481,7 @@ struct ArrayDataPointerRef
 {PDK_REFCOUNT_INITIALIZE_STATIC, size, 0, 0, offset} \
    /**/
 
-#define PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(type, size) \
+#define PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(type, size) \
    PDK_STATIC_ARRAY_HEADER_INITIALIZER_WITH_OFFSET(size, \
    ((sizeof(pdk::ds::internal::ArrayData) + (alignof(type) - 1)) & ~(alignof(type) - 1))) \
    /**/
@@ -497,21 +497,20 @@ struct ArrayDataPointerRef
             return ref;\
          }\
       };\
-   })                                                     
+      return StaticWrapper::get();\
+   }())
 
 #define PDK_ARRAY_LITERAL_IMPL(Type, ...)\
    union {Type type_must_be_POD;} dummy;PDK_UNUSED(dummy);\
    Type data[] = {__VA_ARGS__}; PDK_UNUSED(data);\
    enum {Size = sizeof(data)/sizeof(data[0])};\
    static const pdk::ds::internal::StaticArrayData<Type, Size> literal = {\
-      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(Type, Size), {__VAR_ARGS__}\
-   };\
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(Type, Size), { __VA_ARGS__ }};\
    pdk::ds::internal::ArrayDataPointerRef<Type> ref = \
    {\
      static_cast<pdk::ds::internal::TypedArrayData<Type> *>(\
-      const_cast<pdk::ds::internal::ArrayData *>(&literal.m_header)\
-      )\
-   }
+      const_cast<pdk::ds::internal::ArrayData *>(&literal.m_header))\
+   };
 
 } // internal
 } // ds

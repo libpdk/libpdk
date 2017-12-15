@@ -133,17 +133,17 @@ TEST(ArrayDataTest, testSharedNullEmpty)
 TEST(ArrayDataTest, testStaticData)
 {
    StaticArrayData<char, 10> charArray = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(char, 10),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(char, 10),
       {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'}
    };
    
    StaticArrayData<int, 10> intArray = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(int, 10),
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
    };
    
    StaticArrayData<double, 10> doubleArray = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(double, 10),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(double, 10),
       {0.f, 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f}
    };
    
@@ -163,7 +163,7 @@ TEST(ArrayDataTest, testSimpleVector)
    };
    
    StaticArrayData<int, 7> data1 = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 7),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(int, 7),
       {
          0, 1, 2, 3, 4, 5, 6
       }
@@ -492,7 +492,7 @@ TEST(ArrayDataTest, testSimpleVectorReserve)
    data.push_back(std::make_tuple(SimpleVector<int>(5, 42), static_cast<size_t>(5), static_cast<size_t>(5)));
    
    static const StaticArrayData<int, 15> array = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 15),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(int, 15),
       {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
    };
    
@@ -683,7 +683,7 @@ TEST(ArrayDataTest, testAlignment)
 TEST(ArrayDataTest, testTypedData)
 {
    StaticArrayData<int, 10> data = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(int, 10),
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
    };
    ASSERT_EQ(data.m_header.m_size, 10);
@@ -1076,7 +1076,7 @@ TEST(ArrayDataTest, testSetSharable)
    empty.clear();
    
    static StaticArrayData<int, 10> staticArrayData = {
-      PDK_STATIC_ARRAT_DATA_HEADER_INITIALIZER(int, 10),
+      PDK_STATIC_ARRAY_DATA_HEADER_INITIALIZER(int, 10),
       {3, 3, 3, 3, 3, 3, 3, 3, 3, 3}
    };
    
@@ -1275,5 +1275,12 @@ TEST(ArrayDataTest, testFromRawData)
          FAIL() << "Unexpected type data";
       }
       ++begin;
+   }
+}
+
+TEST(ArrayDataTest, testLiterals)
+{
+   {
+      ArrayDataPointer<char> d = PDK_ARRAY_LITERAL(char, "ABCDEFGHIJ");
    }
 }
