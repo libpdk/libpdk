@@ -59,7 +59,7 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    if (!(options & RawData)) {
       headerSize += (alignment - alignof(ArrayData));
    }
-   if (headerSize > INT_MAX) {
+   if (headerSize > static_cast<size_t>(INT_MAX)) {
       return 0;
    }
    // Calculate the byte size
@@ -73,7 +73,7 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    } else {
       allocSize = pdk::utils::calculate_block_size(capacity, objectSize, headerSize);
    }
-   ArrayData *header = static_cast<ArrayData *>(::malloc(allocSize));
+   ArrayData *header = static_cast<ArrayData *>(std::malloc(allocSize));
    if (header) {
       pdk::uintptr data = (reinterpret_cast<pdk::uintptr>(header) + sizeof(ArrayData) + alignment - 1)
             & ~(alignment - 1);

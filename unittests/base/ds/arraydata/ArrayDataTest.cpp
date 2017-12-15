@@ -1423,3 +1423,42 @@ TEST(ArrayDataTest, testRValueRefs)
    ASSERT_EQ(v3.size(), static_cast<size_t>(1));
    ASSERT_EQ(v3.front(), 42);
 }
+
+TEST(ArrayDataTest, testGrowing)
+{
+   SimpleVector<int> vector;
+   ASSERT_EQ(vector.size(), static_cast<size_t>(0));
+   ASSERT_EQ(vector.capacity(), static_cast<size_t>(0));
+   size_t previousCapacity = 0;
+   size_t allocations = 0;
+   for (size_t i = 1; i < (1 << 20); ++i) {
+      int source[1] = { int(i) };
+      vector.append(source, source + 1);
+      ASSERT_EQ(vector.size(), i);
+      if (vector.capacity() != previousCapacity) {
+         // Don't re-allocate until necessary
+         previousCapacity = vector.capacity();
+         ++allocations;
+         if (previousCapacity - i > 10) {
+            i = previousCapacity - 5;
+            vector.back() = -int(i);
+            vector.resize(i);
+            // It's still not the time to re-allocate
+            ASSERT_EQ(vector.capacity(), previousCapacity);
+         }
+      }
+   }
+   ASSERT_TRUE(vector.size() >= size_t(1 << 20));
+   // QArrayData::Grow prevents excessive allocations on a growing container
+   ASSERT_TRUE(allocations > 20 / 2);
+   ASSERT_TRUE(allocations < 20 * 2);
+   for (size_t i = 0; i < vector.size(); ++i) {
+      int value = to_const(vector).at(i);
+      if (value < 0) {
+         i = -value;
+         continue;
+      }
+      
+      ASSERT_EQ(value, int(i + 1));
+   }
+}
