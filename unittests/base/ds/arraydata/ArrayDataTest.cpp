@@ -1312,3 +1312,114 @@ TEST(ArrayDataTest, testLiterals)
       ASSERT_EQ(to_const(v)[10], static_cast<char>('\0'));
    }
 }
+
+TEST(ArrayDataTest, testVariadicLiterals)
+{
+   {
+      ArrayDataPointer<int> d = PDK_ARRAY_LITERAL(int, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+      ASSERT_EQ(d->m_size, 10);
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(d->getData()[i], i);
+      }
+   }
+   {
+      ArrayDataPointer<char> d = PDK_ARRAY_LITERAL(char, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J');
+      ASSERT_EQ(d->m_size, 10);
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(d->getData()[i],'A' + i);
+      }
+   }
+   {
+      ArrayDataPointer<char *> d = PDK_ARRAY_LITERAL(char *, const_cast<char *>((const char *)"A"), 
+                                                     const_cast<char *>((const char *)"B"), 
+                                                     const_cast<char *>((const char *)"C"), 
+                                                     const_cast<char *>((const char *)"D"), 
+                                                     const_cast<char *>((const char *)"E"), 
+                                                     const_cast<char *>((const char *)"F"), 
+                                                     const_cast<char *>((const char *)"G"), 
+                                                     const_cast<char *>((const char *)"H"), 
+                                                     const_cast<char *>((const char *)"I"), 
+                                                     const_cast<char *>((const char *)"J"));
+      ASSERT_EQ(d->m_size, 10);
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(d->getData()[i][0],'A' + i);
+         ASSERT_EQ(d->getData()[i][1],'\0');
+      }
+   }
+   {
+      SimpleVector<int> v = PDK_ARRAY_LITERAL(int, 0, 1, 2, 3, 4, 5, 6);
+      ASSERT_FALSE(v.isNull());
+      ASSERT_FALSE(v.isEmpty());
+      ASSERT_EQ(v.size(), static_cast<size_t>(7));
+      // v.capacity() is unspecified, for now
+      ASSERT_TRUE(v.isStatic());
+#if !defined(QT_NO_UNSHARABLE_CONTAINERS)
+      ASSERT_TRUE(v.isSharable());
+#endif
+      ASSERT_EQ(static_cast<const int *>(v.constBegin() + v.size()), static_cast<const int *>(v.constEnd()));
+      for (int i = 0; i < 7; ++i) {
+         ASSERT_EQ(to_const(v)[i], i);
+      }
+   }
+}
+
+struct CompilerHasCxxImplicitMoves
+{
+   static bool value()
+   {
+      DetectImplicitMove d(DetectImplicitMove{});
+      return d.constructor == DetectConstructor::MoveConstructor;
+   }
+   struct DetectConstructor
+   {
+      constexpr DetectConstructor()
+         : constructor(DefaultConstructor)
+      {
+      }
+      
+      constexpr DetectConstructor(const DetectConstructor &)
+         : constructor(CopyConstructor)
+      {
+      }
+      
+      constexpr DetectConstructor(DetectConstructor &&)
+         : constructor(MoveConstructor)
+      {
+      }
+      
+      enum Constructor {
+         DefaultConstructor,
+         CopyConstructor,
+         MoveConstructor
+      };
+      
+      Constructor constructor;
+   };
+   
+   struct DetectImplicitMove
+         : DetectConstructor
+   {
+   };
+};
+
+TEST(ArrayDataTest, testRValueRefs)
+{
+   SimpleVector<int> v1(1, 42);
+   SimpleVector<int> v2;
+   const SimpleVector<int>::const_iterator begin = v1.constBegin();
+   ASSERT_FALSE(v1.isNull());
+   ASSERT_TRUE(v2.isNull());
+   
+   v2 = std::move(v1);
+   ASSERT_TRUE(v1.isNull());
+   ASSERT_FALSE(v2.isNull());
+   
+   ASSERT_EQ(v2.constBegin(), begin);
+   SimpleVector<int> v3(std::move(v2));
+   
+   ASSERT_TRUE(v1.isNull());
+   ASSERT_TRUE(v2.isNull());
+   ASSERT_FALSE(v3.isNull());
+   ASSERT_EQ(v3.size(), static_cast<size_t>(1));
+   ASSERT_EQ(v3.front(), 42);
+}

@@ -65,7 +65,7 @@ public:
       other.m_data = Data::getSharedNull();
    }
    
-   ArrayDataPointer &operator=(const ArrayDataPointer &&other) noexcept
+   ArrayDataPointer &operator=(ArrayDataPointer &&other) noexcept
    {
       ArrayDataPointer moved(std::move(other));
       this->swap(moved);
