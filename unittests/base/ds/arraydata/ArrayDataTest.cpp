@@ -1282,5 +1282,33 @@ TEST(ArrayDataTest, testLiterals)
 {
    {
       ArrayDataPointer<char> d = PDK_ARRAY_LITERAL(char, "ABCDEFGHIJ");
+      ASSERT_EQ(d->m_size, 10 + 1);
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(d->getData()[i], static_cast<char>('A' + i));
+      }
+   }
+   {
+      // wchar_t is not necessarily 2-bytes
+      ArrayDataPointer<wchar_t> d = PDK_ARRAY_LITERAL(wchar_t, L"ABCDEFGHIJ");
+      ASSERT_EQ(d->m_size, 10 + 1);
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(d->getData()[i], static_cast<wchar_t>('A' + i));
+      }
+   }
+   {
+      SimpleVector<char> v = PDK_ARRAY_LITERAL(char, "ABCDEFGHIJ");
+      ASSERT_FALSE(v.isNull());
+      ASSERT_FALSE(v.isEmpty());
+      ASSERT_EQ(v.size(), static_cast<size_t>(11));
+      // v.capacity() is unspecified, for now
+      ASSERT_TRUE(v.isStatic());
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+      ASSERT_TRUE(v.isSharable());
+#endif
+      ASSERT_EQ(static_cast<const char*>(v.constBegin() + v.size()), static_cast<const char*>(v.constEnd()));
+      for (int i = 0; i < 10; ++i) {
+         ASSERT_EQ(to_const(v)[i], static_cast<char>('A' + i));
+      }
+      ASSERT_EQ(to_const(v)[10], static_cast<char>('\0'));
    }
 }
