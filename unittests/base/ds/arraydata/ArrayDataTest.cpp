@@ -1186,3 +1186,94 @@ TEST(ArrayDataTest, testSetSharable)
    }
 #endif
 }
+
+struct ResetOnDtor
+{
+   ResetOnDtor(int value)
+      : m_value(value)
+   {}
+   
+   ~ResetOnDtor()
+   {
+      m_value = 0;
+   }
+   
+   int m_value;
+};
+
+bool operator ==(const ResetOnDtor &lhs, const ResetOnDtor &rhs)
+{
+   return lhs.m_value == rhs.m_value;
+}
+
+template <typename T>
+void from_raw_data_impl()
+{
+   static const T array[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+   {
+      // Default: Immutable, sharable
+      SimpleVector<T> raw = SimpleVector<T>::fromRawData(array, sizeof(array)/sizeof(array[0]), ArrayData::Default);
+      ASSERT_EQ(raw.size(), static_cast<size_t>(11));
+      ASSERT_EQ(static_cast<const T *>(raw.constBegin()), array);
+      ASSERT_EQ(static_cast<const T *>(raw.constEnd()), static_cast<const T *>(array + sizeof(array)/ sizeof(array[0])));
+      ASSERT_FALSE(raw.isShared());
+      ASSERT_TRUE(SimpleVector<T>(raw).isSharedWith(raw));
+      ASSERT_FALSE(raw.isShared());
+      ASSERT_EQ(raw.back(), static_cast<T>(11));
+      ASSERT_TRUE(static_cast<const T *>(raw.constBegin()) != array);
+   }
+   
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
+   {
+      // Immutable, unsharable
+      SimpleVector<T> raw = SimpleVector<T>::fromRawData(array, sizeof(array)/sizeof(array[0]), ArrayData::Unsharable);
+      ASSERT_EQ(raw.size(), static_cast<size_t>(11));
+      ASSERT_EQ(static_cast<const T *>(raw.constBegin()), array);
+      ASSERT_EQ(static_cast<const T *>(raw.constEnd()), static_cast<const T *>(array + sizeof(array)/sizeof(array[0])));
+      
+      SimpleVector<T> copy(raw);
+      ASSERT_FALSE(copy.isSharedWith(raw));
+      ASSERT_FALSE(raw.isShared());
+      ASSERT_EQ(copy.size(), static_cast<size_t>(11));
+      
+      for (size_t i = 0; i < 11; ++i) {
+         ASSERT_EQ(to_const(copy)[i], to_const(raw)[i]);
+         ASSERT_EQ(to_const(copy)[i], static_cast<T>(i + 1));
+      }
+      ASSERT_EQ(raw.size(), size_t(11));
+      ASSERT_EQ(static_cast<const T *>(raw.constBegin()), array);
+      ASSERT_EQ(static_cast<const T *>(raw.constEnd()), static_cast<const T *>(array + sizeof(array)/sizeof(array[0])));
+      
+      // Detach
+      ASSERT_EQ(raw.back(), static_cast<T>(11));
+      ASSERT_TRUE(static_cast<const T *>(raw.constBegin()) != array);
+   }
+#endif
+}
+
+TEST(ArrayDataTest, testFromRawData)
+{
+   std::list<int> data;
+   data.push_back(0);
+   data.push_back(1);
+   
+   std::list<int>::iterator begin = data.begin();
+   std::list<int>::iterator end = data.end();
+   while (begin != end)
+   {
+      int type = *begin;
+      
+      switch (type)
+      {
+      case 0:
+         from_raw_data_impl<int>();
+         break;
+      case 1:
+         from_raw_data_impl<ResetOnDtor>();
+         break;
+      default:
+         FAIL() << "Unexpected type data";
+      }
+      ++begin;
+   }
+}
