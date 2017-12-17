@@ -27,6 +27,7 @@
 #include "pdk/utils/RefCount.h"
 #include "pdk/base/ds/internal/ArrayData.h"
 #include "pdk/global/EnumDefs.h"
+#include "pdk/kernel/StringUtils.h"
 
 #ifdef truncate
 #error ByteArray.h must be included before any header file that defines truncate
@@ -377,6 +378,81 @@ private:
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(ByteArray::Base64Options)
 
+class PDK_CORE_EXPORT ByteRef
+{
+   public:
+   inline operator char() const
+   {
+      return m_index < m_array.m_data->m_size
+            ? m_array.m_data->getData()[m_index] : static_cast<char>(0);
+   }
+   
+   inline ByteRef &operator =(char c)
+   {
+      if (m_index >= m_array.m_data->m_size) {
+         m_array.expand(m_index);
+      } else {
+         m_array.detach();
+      }
+      m_array.m_data->getData()[m_index] = c;
+      return *this;
+   }
+   
+   inline ByteRef &operator =(const ByteRef &c)
+   {
+      if (m_index >= m_array.m_data->m_size) {
+         m_array.expand(m_index);
+      } else {
+         m_array.detach();
+      }
+      m_array.m_data->getData()[m_index] = c.m_array.m_data->getData()[m_index];
+      return *this;
+   }
+   
+   inline bool operator ==(char c) const
+   {
+      return m_array.m_data->getData()[m_index] == c;
+   }
+   
+   inline bool operator !=(char c) const
+   {
+      return m_array.m_data->getData()[m_index] != c;
+   }
+   
+   inline bool operator >(char c) const
+   {
+      return m_array.m_data->getData()[m_index] != c;
+   }
+   
+   inline bool operator >=(char c) const
+   {
+      return m_array.m_data->getData()[m_index] >= c;
+   }
+   
+   inline bool operator <=(char c) const
+   {
+      return m_array.m_data->getData()[m_index] <= c;
+   }
+   
+   inline bool operator <(char c) const
+   {
+      return m_array.m_data->getData()[m_index] < c;
+   }
+   
+   private:
+   inline ByteRef(ByteArray &array, int index)
+      : m_array(array),
+        m_index(index)
+   {}
+   
+   private:
+   friend class ByteArray;
+   
+   private:
+   ByteArray &m_array;
+   int m_index;
+};
+
 inline ByteArray::ByteArray() noexcept
    : m_data(Data::getSharedNull())
 {}
@@ -493,80 +569,291 @@ inline void ByteArray::squeeze()
    }
 }
 
-class PDK_CORE_EXPORT ByteRef
+inline ByteRef ByteArray::operator [](int index)
 {
-public:
-   inline operator char() const
-   {
-      return m_index < m_array.m_data->m_size 
-            ? m_array.m_data->getData()[i] : static_cast<char>(0);
-   }
-   
-   inline ByteRef &operator =(char c)
-   {
-      if (m_index >= m_array.m_data->m_size) {
-         m_array.expand(i);
-      } else {
-         m_array.detach();
-      }
-      m_array.m_data->getData()[m_index] = c;
-      return *this;
-   }
-   
-   inline ByteRef &operator =(const ByteRef &c)
-   {
-      if (m_index >= m_array.m_data->m_size) {
-         m_array.expand(i);
-      } else {
-         m_array.detach();
-      }
-      m_array.m_data->getData()[m_index] = c.m_array.m_data->getData()[m_index];
-      return *this; 
-   }
-   
-   inline bool operator ==(char c) const
-   {
-      return m_array.m_data->getData()[i] == c;
-   }
-   
-   inline bool operator !=(char c) const
-   {
-      return m_array.m_data->getData()[i] != c;
-   }
-   
-   inline bool operator >(char c) const
-   {
-      return m_array.m_data->getData()[i] != c;
-   }
-   
-   inline bool operator >=(char c) const
-   {
-      return m_array.m_data->getData()[i] >= c;
-   }
-   
-   inline bool operator <=(char c) const
-   {
-      return m_array.m_data->getData()[i] <= c;
-   }
-   
-   inline bool operator <(char c) const
-   {
-      return m_array.m_data->getData()[i] < c;
-   }
-   
-private:
-   inline ByteRef(ByteArray &array, int index)
-      : m_array(array),
-        m_index(index)
-   {}   
-   
-private:
-   friend class ByteArray;
-   
-private:
-   ByteArray &m_array;
-   int m_index;
-};
+   PDK_ASSERT(index >= 0);
+   return ByteRef(*this, index);
+}
+
+inline ByteRef ByteArray::operator [](uint index)
+{
+   return ByteRef(*this, index);
+}
+
+inline ByteArray::iterator ByteArray::begin()
+{
+   detach();
+   return m_data->getData();
+}
+
+inline ByteArray::const_iterator ByteArray::begin() const
+{
+   return m_data->getData();
+}
+
+inline ByteArray::const_iterator ByteArray::cbegin() const
+{
+   return m_data->getData();
+}
+
+inline ByteArray::const_iterator ByteArray::constBegin() const
+{
+   return m_data->getData();
+}
+
+inline ByteArray::iterator ByteArray::end()
+{
+   detach();
+   return m_data->getData() + m_data->m_size;
+}
+
+inline ByteArray::const_iterator ByteArray::cend() const
+{
+   return m_data->getData() + m_data->m_size;
+}
+
+inline ByteArray::const_iterator ByteArray::constEnd() const
+{
+   return m_data->getData() + m_data->m_size;
+}
+
+inline ByteArray &ByteArray::append(int count, char ch)
+{
+   return insert(0, count, ch);
+}
+
+inline ByteArray &ByteArray::prepend(int count, char ch)
+{
+   return insert(m_data->m_size, count, ch);
+}
+
+inline ByteArray &ByteArray::operator +=(char c)
+{
+   return append(c);
+}
+
+inline ByteArray &ByteArray::operator +=(const char *str)
+{
+   return append(str);
+}
+
+inline ByteArray &ByteArray::operator +=(const ByteArray &array)
+{
+   return append(array);
+}
+
+inline void ByteArray::push_back(char c)
+{
+   append(c);
+}
+
+inline void ByteArray::push_back(const char *str)
+{
+   append(str);
+}
+
+inline void ByteArray::push_back(const ByteArray &array)
+{
+   append(array);
+}
+
+inline void ByteArray::push_front(char c)
+{
+   prepend(c);
+}
+
+inline void ByteArray::push_front(const char *str)
+{
+   prepend(str);
+}
+
+inline void ByteArray::push_front(const ByteArray &array)
+{
+   prepend(array);
+}
+
+inline bool ByteArray::contains(const ByteArray &array) const
+{
+   return -1 != indexOf(array);
+}
+
+inline bool ByteArray::contains(const char *array) const
+{
+   return -1 != indexOf(array);
+}
+
+inline bool ByteArray::contains(char c) const
+{
+   return -1 != indexOf(c);
+}
+
+inline bool operator ==(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return (lhs.size() == rhs.size())
+         && (std::memcmp(lhs.getConstRawData(), rhs.getConstRawData(), lhs.size()));
+}
+
+inline bool operator ==(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return rhs ? pdk::strcmp(lhs, rhs) == 0 : lhs.isEmpty();
+}
+
+inline bool operator ==(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return lhs ? pdk::strcmp(lhs, rhs) == 0 : rhs.isEmpty();
+}
+
+inline bool operator !=(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return !(lhs == rhs);
+}
+
+inline bool operator !=(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return rhs ? pdk::strcmp(lhs, rhs) != 0 : !lhs.isEmpty();
+}
+
+inline bool operator !=(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return lhs ? pdk::strcmp(lhs, rhs) != 0 : !rhs.isEmpty();
+}
+
+inline bool operator <(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) < 0;
+}
+
+inline bool operator <(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) < 0;
+}
+
+inline bool operator <(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) < 0;
+}
+
+inline bool operator <=(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) <= 0;
+}
+
+inline bool operator <=(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) <= 0;
+}
+
+inline bool operator <=(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) <= 0;
+}
+
+inline bool operator >(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) > 0;
+}
+
+inline bool operator >(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) > 0;
+}
+
+inline bool operator >(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) > 0;
+}
+
+inline bool operator >=(const ByteArray &lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) >= 0;
+}
+
+inline bool operator >=(const ByteArray &lhs, const char *rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) >= 0;
+}
+
+inline bool operator >=(const char *lhs, const ByteArray &rhs) noexcept
+{
+   return pdk::strcmp(lhs, rhs) >= 0;
+}
+
+inline const ByteArray operator+(const ByteArray &lhs, const ByteArray &rhs)
+{
+   return ByteArray(lhs) += rhs;
+}
+
+inline const ByteArray operator+(const ByteArray &lhs, const char *rhs)
+{
+   return ByteArray(lhs) += rhs;
+}
+
+inline const ByteArray operator+(const ByteArray &lhs, char rhs)
+{
+   return ByteArray(lhs) += rhs;
+}
+
+inline const ByteArray operator+(const char *lhs, const ByteArray &rhs)
+{
+   return ByteArray(lhs) += rhs;
+}
+
+inline const ByteArray operator+(char lhs, const ByteArray &rhs)
+{
+   return ByteArray(&lhs, 1) += rhs;
+}
+
+inline ByteArray &ByteArray::replace(char before, const char *after)
+{
+   return replace(&before, 1, after, pdk::strlen(after));
+}
+
+inline ByteArray &ByteArray::replace(const ByteArray &before, const char *after)
+{
+   return replace(before.getConstRawData(), before.size(), after, pdk::strlen(after));
+}
+
+inline ByteArray &ByteArray::replace(const char *before, const char *after)
+{
+   return replace(before, pdk::strlen(before), after, pdk::strlen(after));
+}
+
+inline ByteArray &ByteArray::setNum(short number, int base)
+{
+   return base == 10 ? setNum(static_cast<long long>(number), base)
+                     : setNum(static_cast<unsigned long long>(static_cast<unsigned short>(number)), base);
+}
+
+inline ByteArray &ByteArray::setNum(ushort number, int base)
+{
+   return setNum(static_cast<unsigned long long>(number), base);
+}
+
+inline ByteArray &ByteArray::setNum(int number, int base)
+{
+   return base == 10 ? setNum(static_cast<long long>(number), base)
+                     : setNum(static_cast<unsigned long long>(static_cast<uint>(number)), base);
+}
+
+inline ByteArray &ByteArray::setNum(uint number, int base)
+{
+   return setNum(static_cast<unsigned long long>(number), base);
+}
+
+inline ByteArray &ByteArray::setNum(float number, char format, int prec)
+{
+   return setNum(static_cast<double>(number), format, prec);
+}
+
+inline std::string ByteArray::toStdString() const
+{
+   return std::string(getConstRawData(), length());
+}
+
+inline ByteArray ByteArray::fromStdString(const std::string &str)
+{
+   return ByteArray(str.data(), static_cast<int>(str.size()));
+}
 
 } // ds
 } // pdk

@@ -32,7 +32,12 @@ extern const uchar latin1Uppercased[256];
 
 PDK_CORE_EXPORT char *strdup(const char *str);
 
-inline uint strlen(const char *str, uint maxLen)
+inline uint strlen(const char *str)
+{
+   return str ? static_cast<uint>(std::strlen(str)) : 0;
+}
+
+inline uint strnlen(const char *str, uint maxLen)
 {
    uint length = 0;
    if (str) {
