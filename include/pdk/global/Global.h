@@ -236,6 +236,8 @@ PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what,
 #define PDK_STATIC_ASSERT(Condition) static_assert(bool(Condition), #Condition)
 #define PDK_STATIC_ASSERT_X(Condition, Message) static_assert(bool(Condition), Message)
 
+using NoImplicitBoolCast = int;
+
 } // pdk
 
 #include "pdk/global/Flags.h"
