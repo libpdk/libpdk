@@ -25,6 +25,7 @@
 
 #include "pdk/utils/RefCount.h"
 #include "pdk/base/ds/internal/ArrayData.h"
+#include "pdk/global/EnumDefs.h"
 
 #ifdef truncate
 #error ByteArray.h must be included before any header file that defines truncate
@@ -39,6 +40,7 @@ namespace pdk {
 namespace ds {
 
 using ByteArrayData = internal::ArrayData;
+using internal::TypedArrayData;
 
 template <int N>
 struct StaticByteArrayData
@@ -78,9 +80,27 @@ struct ByteArrayDataPtr
 
 class PDK_CORE_EXPORT ByteArray
 {
+private:
+   using Data = TypedArrayData<char>;
    
+public:
+   enum Base64Option
+   {
+      Base64Encoding = 0,
+      Base64UrlEncoding = 1,
+      KeepTrailingEquals = 0,
+      OmitTrailingEquals = 2
+   };
+   
+   PDK_DECLARE_FLAGS(Base64Options, Base64Option);
+   
+   inline ByteArray() noexcept;
+   ByteArray(const char *, int size = -1);
+   ByteArray(int size, char c);
+   ByteArray(int size, pdk::Initialization);
+   inline ByteArray(const ByteArray &data) noexcept;
+   inline ~ByteArray();
 };
-
 
 
 } // ds
