@@ -108,10 +108,23 @@ public:
    ByteArray &operator=(const ByteArray &other) noexcept;
    ByteArray &operator=(const char *str);
    
-   inline ByteArray(ByteArray &&other) noexcept;
-   inline ByteArray &operator =(ByteArray &&other) noexcept;
+   inline ByteArray(ByteArray &&other) noexcept
+      : m_data(other.m_data)
+   {
+      other.m_data = Data::getSharedNull();
+   }
    
-   inline void swap(ByteArray &other) noexcept;
+   inline ByteArray &operator =(ByteArray &&other) noexcept
+   {
+      std::swap(m_data, other.m_data);
+      return *this;
+   }
+   
+   inline void swap(ByteArray &other) noexcept
+   {
+      std::swap(m_data, other.m_data);
+   }
+   
    inline int size() const;
    bool isEmpty() const;
    void resize(int size);
@@ -171,28 +184,44 @@ public:
    void chop(int n);
    
    PDK_ALWAYS_INLINE ByteArray toLower() const & PDK_REQUIRED_RESULT
-   {}
+   {
+      return toLowerHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray toLower() const && PDK_REQUIRED_RESULT
-   {}
+   {
+      return toLowerHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray toUpper() const & PDK_REQUIRED_RESULT
-   {}
+   {
+      return toUpperHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray toUpper() const && PDK_REQUIRED_RESULT
-   {}
+   {
+      return toUpperHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray trimmed() const & PDK_REQUIRED_RESULT
-   {}
+   {
+      return trimmedHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray trimmed() const && PDK_REQUIRED_RESULT
-   {}
+   {
+      return trimmedHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray simplified() const & PDK_REQUIRED_RESULT
-   {}
+   {
+      return simplifiedHelper(*this);
+   }
    
    PDK_ALWAYS_INLINE ByteArray simplified() const && PDK_REQUIRED_RESULT
-   {}
+   {
+      return simplifiedHelper(*this);
+   }
    
    ByteArray leftJustified(int with, char fill = ' ', bool truncate = false) const & PDK_REQUIRED_RESULT;
    ByteArray rightJustified(int with, char fill = ' ', bool truncate = false) const & PDK_REQUIRED_RESULT;
@@ -341,18 +370,19 @@ public:
    
    inline int count() const
    {
-      
+      return m_data->m_size;
    }
    
    int length() const
    {
+      return m_data->m_size;
    }
    
    bool isNull() const;
    
    inline ByteArray(ByteArrayDataPtr dataPtr)
-   {
-   }
+      : m_data(static_cast<Data *>(dataPtr.m_ptr))
+   {}
    
 private:
    operator pdk::NoImplicitBoolCast() const;
@@ -606,6 +636,12 @@ inline ByteArray::iterator ByteArray::end()
    detach();
    return m_data->getData() + m_data->m_size;
 }
+
+inline ByteArray::const_iterator ByteArray::end() const
+{
+   return m_data->getData() + m_data->m_size;
+}
+
 
 inline ByteArray::const_iterator ByteArray::cend() const
 {
