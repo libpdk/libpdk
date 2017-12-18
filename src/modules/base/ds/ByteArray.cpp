@@ -130,5 +130,31 @@ void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
    }
 }
 
+ByteArray &ByteArray::operator =(const char *str)
+{
+   Data *ptr;
+   if (!str) {
+      ptr = Data::getSharedNull();
+   } else if (!*str) {
+      ptr = Data::allocate(0);
+   } else {
+      const int length = static_cast<int>(std::strlen(str));
+      const uint fullLength = length + 1;
+      if (m_data->m_ref.isShared() || fullLength > m_data->m_alloc
+          || (length < m_data->m_size && fullLength < static_cast<uint>((m_data->m_alloc >> 1)))) {
+         reallocData(fullLength, m_data->detachFlags());
+      }
+      ptr = m_data;
+      std::memcpy(ptr->getData(), str, fullLength);
+      ptr->m_size = length;
+   }
+   ptr->m_ref.ref();
+   if (!m_data->m_ref.deref()) {
+      Data::deallocate(m_data);
+   }
+   m_data = ptr;
+   return *this;
+}
+
 } // ds
 } // pdk

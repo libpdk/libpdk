@@ -144,3 +144,9 @@ TEST(ByteArrayTest, testConstByteArray)
    ASSERT_EQ(carray.getConstRawData()[2], 'c');
    ASSERT_EQ(carray.getConstRawData()[3], '\0');
 }
+
+TEST(ByteArrayTest, testLeftJustified)
+{
+   ByteArray array;
+   array = "ABC";
+}
