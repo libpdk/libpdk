@@ -122,4 +122,17 @@ TEST(StringUtilsTest, testStriCmp)
       ASSERT_EQ(expected, actual);
       ++begin;
    }
+   
+   ASSERT_EQ(pdk::stricmp(0, 0), 0);
+   ASSERT_TRUE(pdk::stricmp(0, "a") != 0);
+   ASSERT_TRUE(pdk::stricmp("a", 0) != 0);
+   ASSERT_EQ(pdk::stricmp("a", "a"), 0);
+}
+
+TEST(StringUtilsTest, testStrnicmp)
+{
+   ASSERT_EQ(pdk::strnicmp(0, 0, 123), 0);
+   ASSERT_TRUE(pdk::strnicmp(0, "a", 123) != 0);
+   ASSERT_TRUE(pdk::strnicmp("a", 0, 123) != 0);
+   ASSERT_EQ(pdk::strnicmp("a", "a", 123), 0);
 }
