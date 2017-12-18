@@ -295,9 +295,74 @@ ByteArray ByteArray::rightJustified(int width, char fill, bool truncate) const
    return result;
 }
 
+ByteArray &ByteArray::append(const ByteArray &array)
+{
+   if (m_data->m_size == 0 && m_data->m_ref.isStatic() && !PDK_BA_IS_RAW_DATA(array.m_data)) {
+      *this = array;
+   } else if (array.m_data->m_size != 0) {
+      if (m_data->m_ref.isShared() || 
+          static_cast<uint>(m_data->m_size + array.m_data->m_size) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + array.m_data->m_size) + 1u, m_data->detachFlags() | Data::Grow);
+      }
+      std::memcpy(m_data->getData() + m_data->m_size, array.m_data->getData(), array.m_data->m_size);
+      m_data->m_size += array.m_data->m_size;
+      m_data->getData()[m_data->m_size] = '\0';
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::append(const char *str)
+{
+   if (str) {
+      const int length = static_cast<int>(std::strlen(str));
+      if (m_data->m_ref.isShared() || 
+          static_cast<uint>(m_data->m_size + length) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + length) + 1u, m_data->detachFlags() | Data::Grow);
+      }
+      std::memcpy(m_data->getData() + m_data->m_size, str, length + 1);
+      m_data->m_size += length;
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::append(const char *str, int length)
+{
+   if (length < 0) {
+      length = pdk::strlen(str);
+   }
+   if (str && length) {
+      if (m_data->m_ref.isShared() || 
+          static_cast<uint>(m_data->m_size + length) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + length) + 1u, m_data->detachFlags() | Data::Grow);
+      }
+      std::memcpy(m_data->getData() + m_data->m_size, str, length);
+      m_data->m_size += length;
+      m_data->getData()[m_data->m_size] = '\0';
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::append(char c)
+{
+   if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size) + 2u > m_data->m_alloc) {
+      reallocData(static_cast<uint>(m_data->m_size) + 2u, m_data->detachFlags() | Data::Grow);
+   }
+   m_data->getData()[m_data->m_size++] = c;
+   m_data->getData()[m_data->m_size] = '\0';
+   return *this;
+}
+
 bool ByteArray::isNull() const
 {
    return m_data == Data::getSharedNull();
+}
+
+void ByteArray::clear()
+{
+   if (m_data->m_ref.deref()) {
+      Data::deallocate(m_data);
+   }
+   m_data = Data::getSharedNull();
 }
 
 void ByteArray::truncate(int pos)

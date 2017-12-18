@@ -241,8 +241,8 @@ public:
    
    ByteArray &append(char c);
    ByteArray &append(int count, char c);
-   ByteArray &append(const char *s);
-   ByteArray &append(const char *s, int length);
+   ByteArray &append(const char *str);
+   ByteArray &append(const char *str, int length);
    ByteArray &append(const ByteArray &array);
    
    ByteArray &insert(int i, char c);

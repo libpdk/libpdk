@@ -148,7 +148,7 @@ TEST(ByteArrayTest, testConstByteArray)
 TEST(ByteArrayTest, testLeftJustified)
 {
    ByteArray array;
-   array = "ABC";
+   array = "PDK";
    ASSERT_EQ(array.leftJustified(5, '-'), ByteArray("PDK--"));
    ASSERT_EQ(array.leftJustified(4, '-'), ByteArray("PDK-"));
    ASSERT_EQ(array.leftJustified(4), ByteArray("PDK "));
@@ -170,7 +170,7 @@ TEST(ByteArrayTest, testLeftJustified)
 TEST(ByteArrayTest, testRightJustified)
 {
    ByteArray array;
-   array = "ABC";
+   array = "PDK";
    ASSERT_EQ(array.rightJustified(5, '-'), ByteArray("--PDK"));
    ASSERT_EQ(array.rightJustified(4, '-'), ByteArray("-PDK"));
    ASSERT_EQ(array.rightJustified(4), ByteArray(" PDK"));
