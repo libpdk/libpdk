@@ -149,4 +149,19 @@ TEST(ByteArrayTest, testLeftJustified)
 {
    ByteArray array;
    array = "ABC";
+   ASSERT_EQ(array.leftJustified(5, '-'), ByteArray("ABC--"));
+   ASSERT_EQ(array.leftJustified(4, '-'), ByteArray("ABC-"));
+   ASSERT_EQ(array.leftJustified(4), ByteArray("ABC "));
+   ASSERT_EQ(array.leftJustified(3), ByteArray("ABC"));
+   ASSERT_EQ(array.leftJustified(2), ByteArray("ABC"));
+   ASSERT_EQ(array.leftJustified(1), ByteArray("ABC"));
+   ASSERT_EQ(array.leftJustified(0), ByteArray("ABC"));
+   
+   ByteArray n;
+   ASSERT_TRUE(!n.leftJustified(3).isNull());
+   ASSERT_EQ(array.leftJustified(4, ' ', true), ByteArray("ABC "));
+   ASSERT_EQ(array.leftJustified(3, ' ', true), ByteArray("ABC"));
+   ASSERT_EQ(array.leftJustified(2, ' ', true), ByteArray("AB"));
+   ASSERT_EQ(array.leftJustified(1, ' ', true), ByteArray("A"));
+   ASSERT_EQ(array.leftJustified(0, ' ', true), ByteArray(""));
 }

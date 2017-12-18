@@ -130,6 +130,31 @@ void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
    }
 }
 
+void ByteArray::expand(int i)
+{
+   resize(std::max(i + 1, m_data->m_size));
+}
+
+ByteArray ByteArray::nullTerminated() const
+{
+   if (!PDK_BA_IS_RAW_DATA(m_data)) {
+      return *this;
+   }
+   ByteArray copy(*this);
+   copy.detach();
+   return copy;
+}
+
+ByteArray &ByteArray::operator=(const ByteArray &other) noexcept
+{
+   other.m_data->m_ref.ref();
+   if (!m_data->m_ref.deref()) {
+      Data::deallocate(m_data);
+   }
+   m_data = other.m_data;
+   return *this;
+}
+
 ByteArray &ByteArray::operator =(const char *str)
 {
    Data *ptr;
@@ -154,6 +179,118 @@ ByteArray &ByteArray::operator =(const char *str)
    }
    m_data = ptr;
    return *this;
+}
+
+void ByteArray::resize(int size)
+{
+   if (size < 0) {
+      size = 0;
+   }
+   if (PDK_BA_IS_RAW_DATA(m_data) && !m_data->m_ref.isShared() && size < m_data->m_size) {
+      m_data->m_size = size;
+      return;
+   }
+   if (0 == size && !m_data->m_capacityReserved) {
+      Data *ptr = Data::allocate(0);
+      if (!m_data->m_ref.deref()) {
+         Data::deallocate(m_data);
+      }
+      m_data = ptr;
+   } else if (m_data->m_size == 0 &&m_data->m_ref.isStatic()) {
+      //
+      // Optimize the idiom:
+      //    ByteArray a;
+      //    a.resize(sz);
+      //    ...
+      //
+      Data *ptr = Data::allocate(static_cast<uint>(size) + 1u);
+      PDK_CHECK_ALLOC_PTR(ptr);
+      ptr->m_size = size;
+      ptr->getData()[size] = '\0';
+      m_data = ptr;
+   } else {
+      if (m_data->m_ref.isShared() || static_cast<uint>(size) + 1u > m_data->m_alloc
+          || (!m_data->m_capacityReserved && size < m_data->m_size
+              && static_cast<uint>(size) + 1u < static_cast<uint>((m_data->m_alloc >> 1))))
+      {
+         reallocData(static_cast<uint>(size) + 1u, m_data->detachFlags() | Data::Grow);
+      }
+      if (m_data->m_alloc) {
+         m_data->m_size = size;
+         m_data->getData()[size] = '\0';
+      }
+   }
+}
+
+ByteArray &ByteArray::fill(char c, int size)
+{
+   resize(size < 0 ? m_data->m_size : size);
+   if (m_data->m_size) {
+      std::memset(m_data->getData(), c, m_data->m_size);
+   }
+   return *this;
+}
+
+ByteArray ByteArray::left(int length) const
+{
+   if (length >= m_data->m_size) {
+      return *this;
+   }
+   if (length < 0) {
+      length = 0;
+   }
+   return ByteArray(m_data->getData(), length);
+}
+
+ByteArray ByteArray::right(int length) const
+{
+   if (length >= m_data->m_size) {
+      return *this;
+   }
+   if (length < 0) {
+      length = 0;
+   }
+   return ByteArray(m_data->getData() + m_data->m_size - length, length);
+}
+
+ByteArray ByteArray::leftJustified(int width, char fill, bool truncate) const
+{
+   ByteArray result;
+   int length = m_data->m_size;
+   int padLength = width - length;
+   if (padLength > 0) {
+      result.resize(length + padLength);
+      if (length) {
+         std::memcpy(result.getRawData(), m_data->getData(), length);
+      }
+      std::memset(result.m_data->getData() + length, fill, padLength);
+   } else {
+      if (truncate) {
+         result = left(width);
+      } else {
+         result = *this;
+      }
+   }
+   return result;
+}
+
+bool ByteArray::isNull() const
+{
+   return m_data == Data::getSharedNull();
+}
+
+void ByteArray::truncate(int pos)
+{
+   if (pos < m_data->m_size) {
+      resize(pos);
+   }
+}
+
+void ByteArray::chop(int n)
+{
+   if (n > 0) {
+      resize(m_data->m_size - n);
+   }
 }
 
 } // ds

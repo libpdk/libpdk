@@ -230,8 +230,8 @@ public:
       return simplifiedHelper(*this);
    }
    
-   ByteArray leftJustified(int with, char fill = ' ', bool truncate = false) const & PDK_REQUIRED_RESULT;
-   ByteArray rightJustified(int with, char fill = ' ', bool truncate = false) const & PDK_REQUIRED_RESULT;
+   ByteArray leftJustified(int width, char fill = ' ', bool truncate = false) const PDK_REQUIRED_RESULT;
+   ByteArray rightJustified(int width, char fill = ' ', bool truncate = false) const PDK_REQUIRED_RESULT;
    
    ByteArray &prepend(char c);
    ByteArray &prepend(int count, char c);
@@ -733,7 +733,7 @@ inline bool ByteArray::contains(char c) const
 inline bool operator ==(const ByteArray &lhs, const ByteArray &rhs) noexcept
 {
    return (lhs.size() == rhs.size())
-         && (std::memcmp(lhs.getConstRawData(), rhs.getConstRawData(), lhs.size()));
+         && (0 == std::memcmp(lhs.getConstRawData(), rhs.getConstRawData(), lhs.size()));
 }
 
 inline bool operator ==(const ByteArray &lhs, const char *rhs) noexcept
