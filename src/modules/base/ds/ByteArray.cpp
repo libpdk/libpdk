@@ -274,6 +274,27 @@ ByteArray ByteArray::leftJustified(int width, char fill, bool truncate) const
    return result;
 }
 
+ByteArray ByteArray::rightJustified(int width, char fill, bool truncate) const
+{
+   ByteArray result;
+   int length = m_data->m_size;
+   int padLength = width - length;
+   if (padLength > 0) {
+      result.resize(length + padLength);
+      if (length) {
+         std::memcpy(result.m_data->getData() + padLength, getRawData(), length);
+      }
+      std::memset(result.m_data->getData(), fill, padLength);
+   } else {
+      if (truncate) {
+         result = left(width);
+      } else {
+         result = *this;
+      }
+   }
+   return result;
+}
+
 bool ByteArray::isNull() const
 {
    return m_data == Data::getSharedNull();

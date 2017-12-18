@@ -149,19 +149,43 @@ TEST(ByteArrayTest, testLeftJustified)
 {
    ByteArray array;
    array = "ABC";
-   ASSERT_EQ(array.leftJustified(5, '-'), ByteArray("ABC--"));
-   ASSERT_EQ(array.leftJustified(4, '-'), ByteArray("ABC-"));
-   ASSERT_EQ(array.leftJustified(4), ByteArray("ABC "));
-   ASSERT_EQ(array.leftJustified(3), ByteArray("ABC"));
-   ASSERT_EQ(array.leftJustified(2), ByteArray("ABC"));
-   ASSERT_EQ(array.leftJustified(1), ByteArray("ABC"));
-   ASSERT_EQ(array.leftJustified(0), ByteArray("ABC"));
+   ASSERT_EQ(array.leftJustified(5, '-'), ByteArray("PDK--"));
+   ASSERT_EQ(array.leftJustified(4, '-'), ByteArray("PDK-"));
+   ASSERT_EQ(array.leftJustified(4), ByteArray("PDK "));
+   ASSERT_EQ(array.leftJustified(3), ByteArray("PDK"));
+   ASSERT_EQ(array.leftJustified(2), ByteArray("PDK"));
+   ASSERT_EQ(array.leftJustified(1), ByteArray("PDK"));
+   ASSERT_EQ(array.leftJustified(0), ByteArray("PDK"));
    
    ByteArray n;
    ASSERT_TRUE(!n.leftJustified(3).isNull());
-   ASSERT_EQ(array.leftJustified(4, ' ', true), ByteArray("ABC "));
-   ASSERT_EQ(array.leftJustified(3, ' ', true), ByteArray("ABC"));
-   ASSERT_EQ(array.leftJustified(2, ' ', true), ByteArray("AB"));
-   ASSERT_EQ(array.leftJustified(1, ' ', true), ByteArray("A"));
+   ASSERT_EQ(array.leftJustified(4, ' ', true), ByteArray("PDK "));
+   ASSERT_EQ(array.leftJustified(3, ' ', true), ByteArray("PDK"));
+   ASSERT_EQ(array.leftJustified(2, ' ', true), ByteArray("PD"));
+   ASSERT_EQ(array.leftJustified(1, ' ', true), ByteArray("P"));
    ASSERT_EQ(array.leftJustified(0, ' ', true), ByteArray(""));
+   ASSERT_EQ(array, ByteArray("PDK"));
+}
+
+TEST(ByteArrayTest, testRightJustified)
+{
+   ByteArray array;
+   array = "ABC";
+   ASSERT_EQ(array.rightJustified(5, '-'), ByteArray("--PDK"));
+   ASSERT_EQ(array.rightJustified(4, '-'), ByteArray("-PDK"));
+   ASSERT_EQ(array.rightJustified(4), ByteArray(" PDK"));
+   ASSERT_EQ(array.rightJustified(3), ByteArray("PDK"));
+   ASSERT_EQ(array.rightJustified(2), ByteArray("PDK"));
+   ASSERT_EQ(array.rightJustified(1), ByteArray("PDK"));
+   ASSERT_EQ(array.rightJustified(0), ByteArray("PDK"));
+   
+   ByteArray n;
+   ASSERT_TRUE(!n.rightJustified(3).isNull());
+   ASSERT_EQ(array.rightJustified(4, '-', true), ByteArray("-PDK"));
+   ASSERT_EQ(array.rightJustified(4, ' ', true), ByteArray(" PDK"));
+   ASSERT_EQ(array.rightJustified(3, ' ', true), ByteArray("PDK"));
+   ASSERT_EQ(array.rightJustified(2, ' ', true), ByteArray("PD"));
+   ASSERT_EQ(array.rightJustified(1, ' ', true), ByteArray("P"));
+   ASSERT_EQ(array.rightJustified(0, ' ', true), ByteArray(""));
+   ASSERT_EQ(array, ByteArray("PDK"));
 }
