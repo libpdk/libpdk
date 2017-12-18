@@ -297,7 +297,7 @@ ByteArray ByteArray::rightJustified(int width, char fill, bool truncate) const
 
 ByteArray &ByteArray::prepend(const ByteArray &array)
 {
-   if (m_data->m_size && m_data->m_ref.isStatic() && !PDK_BA_IS_RAW_DATA(array.m_data)) {
+   if (m_data->m_size == 0 && m_data->m_ref.isStatic() && !PDK_BA_IS_RAW_DATA(array.m_data)) {
       *this = array;
    } else if (array.m_data->m_size != 0) {
       ByteArray temp = *this;

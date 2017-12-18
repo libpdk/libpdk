@@ -190,6 +190,23 @@ TEST(ByteArrayTest, testRightJustified)
    ASSERT_EQ(array, ByteArray("PDK"));
 }
 
+namespace
+{
+
+void prepare_prepend_data(std::list<ByteArray> &data)
+{
+   data.push_back(ByteArray(ByteArrayLiteral("data")));
+   data.push_back(ByteArray(staticStandard));
+   data.push_back(ByteArray(staticShifted));
+   data.push_back(ByteArray(staticNotNullTerminated));
+   data.push_back(ByteArray(staticShiftedNotNullTerminated));
+   data.push_back(ByteArray("data"));
+   data.push_back(ByteArray::fromRawData("data", 4));
+   data.push_back(ByteArray::fromRawData("dataBAD", 4));
+}
+
+}
+
 TEST(ByteArrayTest, testPrepend)
 {
    ByteArray array("foo");
@@ -201,4 +218,69 @@ TEST(ByteArrayTest, testPrepend)
    ASSERT_EQ(array.prepend(-1, 'x'), ByteArray("cbafoo"));
    ASSERT_EQ(array.prepend(3, 'x'), ByteArray("xxxcbafoo"));
    ASSERT_EQ(array.prepend("\0 ", 2), ByteArray::fromRawData("\0 xxxcbafoo", 11));
+}
+
+TEST(ByteArrayTest, testPrependExtend)
+{
+   std::list<ByteArray> data;
+   prepare_prepend_data(data);
+   std::list<ByteArray>::iterator begin = data.begin();
+   std::list<ByteArray>::iterator end = data.end();
+   while (begin != end) {
+      ByteArray array = *begin;
+      ASSERT_EQ(ByteArray().prepend(array), ByteArray("data"));
+      ASSERT_EQ(ByteArray("").prepend(array), ByteArray("data"));
+      
+      ASSERT_EQ(array.prepend(static_cast<char *>(0)), ByteArray("data"));
+      ASSERT_EQ(array.prepend(ByteArray()), ByteArray("data"));
+      ASSERT_EQ(array.prepend("a"), ByteArray("adata"));
+      ASSERT_EQ(array.prepend(ByteArray("b")), ByteArray("badata"));
+      ASSERT_EQ(array.prepend('c'), ByteArray("cbadata"));
+      ASSERT_EQ(array.prepend(-1, 'x'), ByteArray("cbadata"));
+      ASSERT_EQ(array.prepend(3, 'x'), ByteArray("xxxcbadata"));
+      ASSERT_EQ(array.prepend("\0 ", 2), ByteArray::fromRawData("\0 xxxcbadata", 12));
+      ASSERT_EQ(array.size(), 12);
+      ++begin;
+   }
+   
+}
+
+TEST(ByteArrayTest, testAppend)
+{
+   ByteArray array("foo");
+   ASSERT_EQ(array.append(static_cast<char *>(0)), ByteArray("foo"));
+   ASSERT_EQ(array.append(ByteArray()), ByteArray("foo"));
+   ASSERT_EQ(array.append("a"), ByteArray("fooa"));
+   ASSERT_EQ(array.append("b"), ByteArray("fooab"));
+   ASSERT_EQ(array.append('c'), ByteArray("fooabc"));
+   ASSERT_EQ(array.append(-1, 'x'), ByteArray("fooabc"));
+   ASSERT_EQ(array.append(3, 'x'), ByteArray("fooabcxxx"));
+   ASSERT_EQ(array.append("\0"), ByteArray("fooabcxxx"));
+   ASSERT_EQ(array.append("\0", 1), ByteArray::fromRawData("fooabcxxx", 10));
+   ASSERT_EQ(array.size(), 10);
+}
+
+TEST(ByteArrayTest, testAppendExtended)
+{
+   std::list<ByteArray> data;
+   prepare_prepend_data(data);
+   std::list<ByteArray>::iterator begin = data.begin();
+   std::list<ByteArray>::iterator end = data.end();
+   while (begin != end) {
+      ByteArray array = *begin;
+      ASSERT_EQ(ByteArray().append(array), ByteArray("data"));
+      ASSERT_EQ(ByteArray("").append(array), ByteArray("data"));
+      
+      ASSERT_EQ(array.append(static_cast<char *>(0)), ByteArray("data"));
+      ASSERT_EQ(array.append(ByteArray()), ByteArray("data"));
+      ASSERT_EQ(array.append("a"), ByteArray("dataa"));
+      ASSERT_EQ(array.append(ByteArray("b")), ByteArray("dataab"));
+      ASSERT_EQ(array.append('c'), ByteArray("dataabc"));
+      ASSERT_EQ(array.append(-1, 'x'), ByteArray("dataabc"));
+      ASSERT_EQ(array.append(3, 'x'), ByteArray("dataabcxxx"));
+      ASSERT_EQ(array.append("\0"), ByteArray("dataabcxxx"));
+      ASSERT_EQ(array.append("\0", 1), ByteArray::fromRawData("dataabcxxx\0 ", 11));
+      ASSERT_EQ(array.size(), 11);
+      ++begin;
+   }
 }

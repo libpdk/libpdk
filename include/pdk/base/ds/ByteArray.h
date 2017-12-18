@@ -70,15 +70,15 @@ struct ByteArrayDataPtr
 
 #define ByteArrayLiteral(str) \
    ([]()-> pdk::ds::ByteArray {\
-   enum { Size = sizeof(str) - 1 };\
-   static const StaticByteArrayData<Size> byteArrayLiteral = {\
-   PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(Size),\
-   str\
-};\
-   ByteArrayDataPtr holder = { byteArrayLiteral.getDataPtr() };\
-   const ByteArray byteArray(holder);\
-   return byteArray;\
-}())
+      enum { Size = sizeof(str) - 1 };\
+      static const pdk::ds::StaticByteArrayData<Size> byteArrayLiteral = {\
+         PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(Size),\
+         str\
+      };\
+      pdk::ds::ByteArrayDataPtr holder = { byteArrayLiteral.getDataPtr() };\
+      const pdk::ds::ByteArray byteArray(holder);\
+      return byteArray;\
+   }())
 
 class ByteRef;
 
