@@ -11,17 +11,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/12/15.
+// Created by zzu_softboy on 2017/12/18.
 
-#include "pdk/base/ds/ByteArray.h"
-#include "pdk/utils/MemoryHelper.h"
-
-#define PDK_BA_IS_RAW_DATA(data)\
-   ((data)->m_offset != sizeof(pdk::ds::ByteArrayData))
-
-namespace pdk {
-namespace ds {
+#include "gtest/gtest.h"
+#include <list>
+#include <utility>
+#include <tuple>
+#include <vector>
+#include <algorithm>
 
 
-} // ds
-} // pdk

@@ -76,6 +76,68 @@ const uchar latin1Uppercased[256] = {
    0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6,0xf7,0xd8,0xd9,0xda,0xdb,0xdc,0xdd,0xde,0xff
 };
 
+namespace
+{
+// the CRC table below is created by the following piece of code
+#if 0
+void create_crc16_table()
+{
+   unsigned int i;
+   unsigned int j;
+   unsigned short crcTable[16];
+   unsigned int v0, v1, v2, v3;
+   for (i = 0; i < 16; i++) {
+      v0 = i & 1;
+      v1 = (i >> 1) & 1;
+      v2 = (i >> 2) & 1;
+      v3 = (i >> 3) & 1;
+      j = 0;
+#undef SET_BIT
+#define SET_BIT(x, b, v) (x) |= (v) << (b)
+      SET_BIT(j,  0, v0);
+      SET_BIT(j,  7, v0);
+      SET_BIT(j, 12, v0);
+      SET_BIT(j,  1, v1);
+      SET_BIT(j,  8, v1);
+      SET_BIT(j, 13, v1);
+      SET_BIT(j,  2, v2);
+      SET_BIT(j,  9, v2);
+      SET_BIT(j, 14, v2);
+      SET_BIT(j,  3, v3);
+      SET_BIT(j, 10, v3);
+      SET_BIT(j, 15, v3);
+      crc_tbl[i] = j;
+   }
+   printf("static const puint16 crcTable[16] = {\n");
+   for (int i = 0; i < 16; i +=4)
+      printf("    0x%04x, 0x%04x, 0x%04x, 0x%04x,\n", crcTable[i], crcTable[i+1], crcTable[i+2], crcTable[i+3]);
+   printf("};\n");
+}
+#endif
+
+const puint16 crcTable[16] = {
+   0x0000, 0x1081, 0x2102, 0x3183,
+   0x4204, 0x5285, 0x6306, 0x7387,
+   0x8408, 0x9489, 0xa50a, 0xb58b,
+   0xc60c, 0xd68d, 0xe70e, 0xf78f
+};
+
+}
+
+puint16 checksum(const char *data, uint length)
+{
+   puint16 crc = 0xffff;
+   uchar c;
+   const uchar *p = reinterpret_cast<const uchar *>(data);
+   while (length--) {
+      c = *p++;
+      crc = ((crc >> 4) & 0x0fff) ^ crcTable[((crc ^ c) & 15)];
+      c >>= 4;
+      crc = ((crc >> 4) & 0x0fff) ^ crcTable[((crc ^ c) & 15)];
+   }
+   return ~crc & 0xffff;
+}
+
 char *strdup(const char *str)
 {
    if (!str) {

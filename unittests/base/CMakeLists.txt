@@ -18,6 +18,7 @@ pdk_add_unittest(ModuleBaseUnittests OsThreadTest ${PDK_OS_THREAD_TEST_SRCS})
 set(PDK_DS_TEST_SRCS)
 pdk_add_files(PDK_DS_TEST_SRCS
     ds/arraydata/SimpleVector.h
-    ds/arraydata/ArrayDataTest.cpp)
+    ds/arraydata/ArrayDataTest.cpp
+    ds/ByteArrayTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests DsTest ${PDK_DS_TEST_SRCS})
