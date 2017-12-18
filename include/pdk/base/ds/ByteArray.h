@@ -245,11 +245,11 @@ public:
    ByteArray &append(const char *str, int length);
    ByteArray &append(const ByteArray &array);
    
-   ByteArray &insert(int i, char c);
-   ByteArray &insert(int i, int count, char c);
-   ByteArray &insert(int i, const char *str);
-   ByteArray &insert(int i, const char *str, int length);
-   ByteArray &insert(int i, const ByteArray &array);
+   ByteArray &insert(int pos, char c);
+   ByteArray &insert(int pos, int count, char c);
+   ByteArray &insert(int pos, const char *str);
+   ByteArray &insert(int pos, const char *str, int length);
+   ByteArray &insert(int pos, const ByteArray &array);
    
    ByteArray &remove(int index, int length);
    
@@ -662,12 +662,12 @@ inline ByteArray::const_iterator ByteArray::constEnd() const
 
 inline ByteArray &ByteArray::append(int count, char ch)
 {
-   return insert(0, count, ch);
+   return insert(m_data->m_size, count, ch);
 }
 
 inline ByteArray &ByteArray::prepend(int count, char ch)
 {
-   return insert(m_data->m_size, count, ch);
+   return insert(0, count, ch);
 }
 
 inline ByteArray &ByteArray::operator +=(char c)

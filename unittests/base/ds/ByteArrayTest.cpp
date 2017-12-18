@@ -104,7 +104,7 @@ ByteArray verify_zero_termination(const ByteArray &array)
    if (baDataPtr->m_ref.isShared()) {
       return array;
    }
-
+   
    const char *baData = array.getConstRawData();
    const ByteArray baCopy(baData, baSize); // Deep copy
    
@@ -115,7 +115,7 @@ ByteArray verify_zero_termination(const ByteArray &array)
    }
    if (array != baCopy) {
       return  "*** Result ('" + array + "') differs from its copy "
-                                     "after null-terminator was replaced ***";
+                                        "after null-terminator was replaced ***";
    }
    const_cast<char *>(baData)[baSize] = '\0'; // Restore sanity
    return array;
@@ -188,4 +188,17 @@ TEST(ByteArrayTest, testRightJustified)
    ASSERT_EQ(array.rightJustified(1, ' ', true), ByteArray("P"));
    ASSERT_EQ(array.rightJustified(0, ' ', true), ByteArray(""));
    ASSERT_EQ(array, ByteArray("PDK"));
+}
+
+TEST(ByteArrayTest, testPrepend)
+{
+   ByteArray array("foo");
+   ASSERT_EQ(array.prepend(static_cast<char *>(0)), ByteArray("foo"));
+   ASSERT_EQ(array.prepend(ByteArray()), ByteArray("foo"));
+   ASSERT_EQ(array.prepend("a"), ByteArray("afoo"));
+   ASSERT_EQ(array.prepend("b"), ByteArray("bafoo"));
+   ASSERT_EQ(array.prepend('c'), ByteArray("cbafoo"));
+   ASSERT_EQ(array.prepend(-1, 'x'), ByteArray("cbafoo"));
+   ASSERT_EQ(array.prepend(3, 'x'), ByteArray("xxxcbafoo"));
+   ASSERT_EQ(array.prepend("\0 ", 2), ByteArray::fromRawData("\0 xxxcbafoo", 11));
 }

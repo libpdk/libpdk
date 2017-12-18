@@ -321,6 +321,7 @@ ByteArray &ByteArray::prepend(const char *str, int length)
       }
       std::memmove(m_data->getData() + length, m_data->getData(), m_data->m_size);
       std::memcpy(m_data->getData(), str, length);
+      m_data->m_size += length;
       m_data->getData()[m_data->m_size] = '\0';
    }
    return *this;
@@ -393,6 +394,62 @@ ByteArray &ByteArray::append(char c)
    }
    m_data->getData()[m_data->m_size++] = c;
    m_data->getData()[m_data->m_size] = '\0';
+   return *this;
+}
+
+namespace
+{
+
+inline ByteArray &bytearray_insert(ByteArray *array, int pos, const char *arr, int length)
+{
+   PDK_ASSERT(pos >= 0);
+   if (pos < 0 || length <= 0 || arr) {
+      return *array;
+   }
+   int oldSize = array->size();
+   array->resize(std::max(pos, oldSize) + length);
+   char *dest = array->getRawData();
+   if (pos > oldSize) {
+      std::memset(dest + oldSize, 0x20, pos - oldSize);
+   } else {
+      std::memmove(dest + pos + length, dest + pos, oldSize - pos);
+   }
+   std::memcpy(dest + pos, arr, length);
+   return *array;
+}
+
+}
+
+ByteArray &ByteArray::insert(int pos, const ByteArray &array)
+{
+   ByteArray copy(array);
+   return bytearray_insert(this, pos, copy.m_data->getData(), copy.m_data->m_size);
+}
+
+ByteArray &ByteArray::insert(int pos, const char *str)
+{
+   return bytearray_insert(this, pos, str, pdk::strlen(str));
+}
+
+ByteArray &ByteArray::insert(int pos, const char *str, int length)
+{
+   return bytearray_insert(this, pos, str, length);
+}
+
+ByteArray &ByteArray::insert(int pos, int count, char c)
+{
+   if (pos < 0 || count <= 0) {
+      return *this;
+   }
+   int oldSize = size();
+   resize(std::max(pos, oldSize) + count);
+   char *dest = m_data->getData();
+   if (pos > oldSize) {
+      std::memset(dest + oldSize, 0x20, pos - oldSize);
+   } else if (pos < oldSize){
+      std::memmove(dest + pos + count, dest + pos, oldSize - pos);
+   }
+   std::memset(dest + pos, c, count);
    return *this;
 }
 
