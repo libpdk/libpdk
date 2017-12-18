@@ -269,6 +269,70 @@ ByteArray ByteArray::mid(int index, int length) const
    }
 }
 
+bool ByteArray::startsWith(const ByteArray &array) const
+{
+   if (m_data == array.m_data || array.m_data->m_size == 0) {
+      return true;
+   }
+   if (m_data->m_size < array.m_data->m_size) {
+      return false;
+   }
+   return std::memcmp(m_data->getData(), array.m_data->getData(), array.m_data->m_size) == 0;
+}
+
+bool ByteArray::startsWith(const char *str) const
+{
+   if (!str || !*str) {
+      return true;
+   }
+   const int length = static_cast<int>(std::strlen(str));
+   if (m_data->m_size < length) {
+      return false;
+   }
+   return pdk::strncmp(m_data->getData(), str, length) == 0;
+}
+
+bool ByteArray::startsWith(char c) const
+{
+   if (m_data->m_size == 0) {
+      return false;
+   }
+   return m_data->getData()[0] == c;
+}
+
+bool ByteArray::endsWith(const ByteArray &array) const
+{
+   if (m_data == array.m_data || array.m_data->m_size) {
+      return true;
+   }
+   if (m_data->m_size < array.m_data->m_size) {
+      return false;
+   }
+   return std::memcmp(m_data->getData() + m_data->m_size - array.m_data->m_size,
+                      array.m_data->getData(),
+                      array.m_data->m_size) == 0;
+}
+
+bool ByteArray::endsWith(const char *str) const
+{
+   if (!str || !*str) {
+      return true;
+   }
+   const int length = static_cast<int>(std::strlen(str));
+   if (m_data->m_size < length) {
+      return false;
+   }
+   return pdk::strncmp(m_data->getData() + m_data->m_size - length, str, length) == 0;
+}
+
+bool ByteArray::endsWith(const char c) const
+{
+   if (m_data->m_size == 0) {
+      return false;
+   }
+   return m_data->getData()[m_data->m_size - 1] == c;
+}
+
 ByteArray ByteArray::leftJustified(int width, char fill, bool truncate) const
 {
    ByteArray result;

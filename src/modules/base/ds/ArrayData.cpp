@@ -25,7 +25,7 @@ const ArrayData ArrayData::sm_sharedNull[2] = {
    {PDK_REFCOUNT_INITIALIZE_STATIC, 0, 0, 0, sizeof(ArrayData)}
 };
 
-namespace 
+namespace
 {
 
 static const ArrayData pdkArray[3] = {
