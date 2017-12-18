@@ -298,3 +298,57 @@ TEST(ByteArrayTest, testMid)
    ASSERT_EQ(data.mid(-5, 6), ByteArray("z"));
    ASSERT_EQ(data.mid(0, 11), ByteArray("zzu_softboy"));
 }
+
+TEST(ByteArrayTest, testStartsWith)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, bool>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), true));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray("hello"), false));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(), true));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("h"), false));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("h"), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("hello"), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("hellohello"), false));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray(""), true));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray left = std::get<0>(item);
+      ByteArray right = std::get<1>(item);
+      bool result = std::get<2>(item);
+      ASSERT_TRUE(left.startsWith(right) == result);
+      if (right.isNull()) {
+         ASSERT_TRUE(left.startsWith(static_cast<char *>(0)) == result);
+      } else {
+         ASSERT_TRUE(left.startsWith(right.getRawData()) == result);
+      }
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testStartsWithChar)
+{
+   ASSERT_TRUE(ByteArray("hello").startsWith('h'));
+   ASSERT_FALSE(ByteArray("hello").startsWith('\0'));
+   ASSERT_FALSE(ByteArray("hello").startsWith('o'));
+   ASSERT_TRUE(ByteArray("h").startsWith('h'));
+   ASSERT_FALSE(ByteArray("h").startsWith('\0'));
+   ASSERT_FALSE(ByteArray("h").startsWith('o'));
+   ASSERT_FALSE(ByteArray("hello").startsWith('l'));
+   ASSERT_FALSE(ByteArray("").startsWith('h'));
+   ASSERT_FALSE(ByteArray("").startsWith('\0'));
+   ASSERT_FALSE(ByteArray().startsWith('o'));
+   ASSERT_FALSE(ByteArray().startsWith('\0'));
+}
+
+TEST(ByteArrayTest, testEndsWith)
+{
+   
+}
+
