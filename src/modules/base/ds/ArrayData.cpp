@@ -105,6 +105,31 @@ void ArrayData::deallocate(ArrayData *data, size_t objectSize, size_t alignment)
    ::free(data);
 }
 
+ContainerImplHelper::CutResult ContainerImplHelper::mid(int originalLength, int *position, int *length)
+{
+   int &positionRef = *position;
+   int &lengthRef = *length;
+   if (positionRef > originalLength) {
+      return CutResult::Null;
+   }
+   if (positionRef < 0) {
+      if (lengthRef < 0 || lengthRef + positionRef >= originalLength) {
+         return CutResult::Full;
+      }
+      if (lengthRef + positionRef <= 0) {
+         return CutResult::Null;
+      }
+      lengthRef += positionRef;
+      positionRef = 0;
+   } else if (static_cast<uint>(lengthRef) > static_cast<uint>(originalLength - positionRef)) {
+      lengthRef = originalLength - positionRef;
+   }
+   if (positionRef == 0 && lengthRef == originalLength) {
+      return CutResult::Full;
+   }
+   return lengthRef > 0 ? CutResult::Subset : CutResult::Empty;
+}
+
 } // internal
 } // ds
 } // pdk

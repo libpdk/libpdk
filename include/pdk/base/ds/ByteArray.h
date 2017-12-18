@@ -177,7 +177,7 @@ public:
    
    ByteArray left(int length) const PDK_REQUIRED_RESULT;
    ByteArray right(int length) const PDK_REQUIRED_RESULT;
-   ByteArray mid(int length) const PDK_REQUIRED_RESULT;
+   ByteArray mid(int index, int length = -1) const PDK_REQUIRED_RESULT;
    
    bool startsWith(const ByteArray &array) const;
    bool startsWith(char c) const;
@@ -289,21 +289,21 @@ public:
                                const ByteArray &include = ByteArray(),
                                char percent = '%') const;
    
-   ByteArray &setNum(short number, int base = 10);
-   ByteArray &setNum(ushort number, int base = 10);
-   ByteArray &setNum(int number, int base = 10);
-   ByteArray &setNum(uint number, int base = 10);
-   ByteArray &setNum(long long number, int base = 10);
-   ByteArray &setNum(unsigned long long number, int base = 10);
-   ByteArray &setNum(float number, char format = 'g', int prec = 6);
-   ByteArray &setNum(double number, char format = 'g', int prec = 6);
-   ByteArray &setRawData(const char *a, int n);
+//   ByteArray &setNum(short number, int base = 10);
+//   ByteArray &setNum(ushort number, int base = 10);
+//   ByteArray &setNum(int number, int base = 10);
+//   ByteArray &setNum(uint number, int base = 10);
+//   ByteArray &setNum(long long number, int base = 10);
+//   ByteArray &setNum(unsigned long long number, int base = 10);
+//   ByteArray &setNum(float number, char format = 'g', int prec = 6);
+//   ByteArray &setNum(double number, char format = 'g', int prec = 6);
+//   ByteArray &setRawData(const char *a, int n);
    
-   static ByteArray number(int, int base = 10) PDK_REQUIRED_RESULT;
-   static ByteArray number(uint, int base = 10) PDK_REQUIRED_RESULT;
-   static ByteArray number(long long, int base = 10) PDK_REQUIRED_RESULT;
-   static ByteArray number(unsigned long long, int base = 10) PDK_REQUIRED_RESULT;
-   static ByteArray number(double, char format = 'g', int prec = 6) PDK_REQUIRED_RESULT;
+//   static ByteArray number(int, int base = 10) PDK_REQUIRED_RESULT;
+//   static ByteArray number(uint, int base = 10) PDK_REQUIRED_RESULT;
+//   static ByteArray number(long long, int base = 10) PDK_REQUIRED_RESULT;
+//   static ByteArray number(unsigned long long, int base = 10) PDK_REQUIRED_RESULT;
+//   static ByteArray number(double, char format = 'g', int prec = 6) PDK_REQUIRED_RESULT;
    static ByteArray fromRawData(const char *data, int size) PDK_REQUIRED_RESULT;
    static ByteArray fromBase64(const ByteArray &base64, Base64Options options) PDK_REQUIRED_RESULT;
    static ByteArray fromHex(const ByteArray &hexEncoded) PDK_REQUIRED_RESULT;
@@ -861,32 +861,32 @@ inline ByteArray &ByteArray::replace(const char *before, const char *after)
    return replace(before, pdk::strlen(before), after, pdk::strlen(after));
 }
 
-inline ByteArray &ByteArray::setNum(short number, int base)
-{
-   return base == 10 ? setNum(static_cast<long long>(number), base)
-                     : setNum(static_cast<unsigned long long>(static_cast<unsigned short>(number)), base);
-}
+//inline ByteArray &ByteArray::setNum(short number, int base)
+//{
+//   return base == 10 ? setNum(static_cast<long long>(number), base)
+//                     : setNum(static_cast<unsigned long long>(static_cast<unsigned short>(number)), base);
+//}
 
-inline ByteArray &ByteArray::setNum(ushort number, int base)
-{
-   return setNum(static_cast<unsigned long long>(number), base);
-}
+//inline ByteArray &ByteArray::setNum(ushort number, int base)
+//{
+//   return setNum(static_cast<unsigned long long>(number), base);
+//}
 
-inline ByteArray &ByteArray::setNum(int number, int base)
-{
-   return base == 10 ? setNum(static_cast<long long>(number), base)
-                     : setNum(static_cast<unsigned long long>(static_cast<uint>(number)), base);
-}
+//inline ByteArray &ByteArray::setNum(int number, int base)
+//{
+//   return base == 10 ? setNum(static_cast<long long>(number), base)
+//                     : setNum(static_cast<unsigned long long>(static_cast<uint>(number)), base);
+//}
 
-inline ByteArray &ByteArray::setNum(uint number, int base)
-{
-   return setNum(static_cast<unsigned long long>(number), base);
-}
+//inline ByteArray &ByteArray::setNum(uint number, int base)
+//{
+//   return setNum(static_cast<unsigned long long>(number), base);
+//}
 
-inline ByteArray &ByteArray::setNum(float number, char format, int prec)
-{
-   return setNum(static_cast<double>(number), format, prec);
-}
+//inline ByteArray &ByteArray::setNum(float number, char format, int prec)
+//{
+//   return setNum(static_cast<double>(number), format, prec);
+//}
 
 inline std::string ByteArray::toStdString() const
 {

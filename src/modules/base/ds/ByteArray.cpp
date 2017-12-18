@@ -253,6 +253,22 @@ ByteArray ByteArray::right(int length) const
    return ByteArray(m_data->getData() + m_data->m_size - length, length);
 }
 
+ByteArray ByteArray::mid(int index, int length) const
+{
+   using namespace pdk::ds::internal;
+   ContainerImplHelper::CutResult result = ContainerImplHelper::mid(size(), &index, &length);
+   if (result == ContainerImplHelper::CutResult::Null) {
+      return ByteArray();
+   } else if (result == ContainerImplHelper::CutResult::Empty) {
+      ByteArrayDataPtr empty = { Data::allocate(0) };
+      return ByteArray(empty);
+   } else if (result == ContainerImplHelper::CutResult::Full) {
+      return *this;
+   } else {
+      return ByteArray(m_data->getData() + index, length);
+   }
+}
+
 ByteArray ByteArray::leftJustified(int width, char fill, bool truncate) const
 {
    ByteArray result;

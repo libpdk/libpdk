@@ -512,6 +512,16 @@ struct ArrayDataPointerRef
       const_cast<pdk::ds::internal::ArrayData *>(&literal.m_header))\
    };
 
+struct PDK_CORE_EXPORT ContainerImplHelper
+{
+   enum class CutResult 
+   {
+      Null, Empty, Full, Subset 
+   };
+   
+   static CutResult mid(int originalLength, int *position, int *length);
+};
+
 } // internal
 } // ds
 } // pdk

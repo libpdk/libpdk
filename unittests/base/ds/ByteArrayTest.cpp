@@ -284,3 +284,17 @@ TEST(ByteArrayTest, testAppendExtended)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testMid)
+{
+   ByteArray data("zzu_softboy");
+   ASSERT_EQ(data.mid(0, 3), ByteArray("zzu"));
+   ASSERT_EQ(data.mid(0, -1), ByteArray("zzu_softboy"));
+   ASSERT_EQ(data.mid(1, -1), ByteArray("zu_softboy"));
+   ASSERT_EQ(data.mid(-10, 1), ByteArray());
+   ASSERT_EQ(data.mid(-10, -1), ByteArray("zzu_softboy"));
+   ASSERT_EQ(data.mid(-11, 22), ByteArray("zzu_softboy"));
+   ASSERT_EQ(data.mid(-11, 23), ByteArray("zzu_softboy"));
+   ASSERT_EQ(data.mid(-5, 6), ByteArray("z"));
+   ASSERT_EQ(data.mid(0, 11), ByteArray("zzu_softboy"));
+}

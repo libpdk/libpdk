@@ -649,11 +649,14 @@ TEST(ArrayDataTest, testAllocateData)
 
 class Unaligned
 {
+public:
    char dummy[8]; 
 };
 
 TEST(ArrayDataTest, testAlignment)
 {
+   Unaligned unused;
+   PDK_UNUSED(unused);
    for (size_t i = 1; i < 10; ++i) {
       size_t alignment = static_cast<size_t>(1u) << i;
       
