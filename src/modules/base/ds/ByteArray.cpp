@@ -295,6 +295,50 @@ ByteArray ByteArray::rightJustified(int width, char fill, bool truncate) const
    return result;
 }
 
+ByteArray &ByteArray::prepend(const ByteArray &array)
+{
+   if (m_data->m_size && m_data->m_ref.isStatic() && !PDK_BA_IS_RAW_DATA(array.m_data)) {
+      *this = array;
+   } else if (array.m_data->m_size != 0) {
+      ByteArray temp = *this;
+      *this = array;
+      append(temp);
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::prepend(const char *str)
+{
+   return prepend(str, pdk::strlen(str));
+}
+
+ByteArray &ByteArray::prepend(const char *str, int length)
+{
+   if (str) {
+      if (m_data->m_ref.isShared() || 
+          static_cast<uint>(m_data->m_size + length) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + length) + 1u, m_data->detachFlags() | Data::Grow);
+      }
+      std::memmove(m_data->getData() + length, m_data->getData(), m_data->m_size);
+      std::memcpy(m_data->getData(), str, length);
+      m_data->getData()[m_data->m_size] = '\0';
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::prepend(char c)
+{
+   if (m_data->m_ref.isShared() || 
+       static_cast<uint>(m_data->m_size) + 2u > m_data->m_alloc) {
+      reallocData(static_cast<uint>(m_data->m_size) + 2u, m_data->detachFlags() | Data::Grow);
+   }
+   std::memmove(m_data->getData() + 1, m_data->getData(), m_data->m_size);
+   m_data->getData()[0] = c;
+   ++m_data->m_size;
+   m_data->getData()[m_data->m_size] = '\0';
+   return *this;
+}
+
 ByteArray &ByteArray::append(const ByteArray &array)
 {
    if (m_data->m_size == 0 && m_data->m_ref.isStatic() && !PDK_BA_IS_RAW_DATA(array.m_data)) {

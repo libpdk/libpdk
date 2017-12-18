@@ -235,8 +235,8 @@ public:
    
    ByteArray &prepend(char c);
    ByteArray &prepend(int count, char c);
-   ByteArray &prepend(const char *s);
-   ByteArray &prepend(const char *s, int length);
+   ByteArray &prepend(const char *str);
+   ByteArray &prepend(const char *str, int length);
    ByteArray &prepend(const ByteArray &array);
    
    ByteArray &append(char c);
