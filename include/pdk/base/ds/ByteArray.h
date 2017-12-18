@@ -66,7 +66,7 @@ struct ByteArrayDataPtr
    PDK_STATIC_ARRAY_HEADER_INITIALIZER_WITH_OFFSET(size, offset)
 
 #define PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(size) \
-   PDK_STATIC_BYTE_DATA_HEADER_INITIALIZER_WITH_OFFSET(size)
+   PDK_STATIC_BYTE_DATA_HEADER_INITIALIZER_WITH_OFFSET(size, sizeof(pdk::ds::ByteArrayData))
 
 #define ByteArrayLiteral(str) \
    ([]()-> pdk::ds::ByteArray {\
@@ -88,6 +88,9 @@ private:
    using Data = TypedArrayData<char>;
    
 public:
+   using DataPtr = Data *;
+   
+public:
    enum Base64Option
    {
       Base64Encoding = 0,
@@ -99,10 +102,14 @@ public:
    PDK_DECLARE_FLAGS(Base64Options, Base64Option);
    
    inline ByteArray() noexcept;
-   ByteArray(const char *, int size = -1);
+   ByteArray(const char *data, int size = -1);
    ByteArray(int size, char c);
    ByteArray(int size, pdk::Initialization);
    inline ByteArray(const ByteArray &data) noexcept;
+   inline ByteArray(ByteArrayDataPtr dataPtr)
+      : m_data(static_cast<Data *>(dataPtr.m_ptr))
+   {}
+   
    inline ~ByteArray();
    
    ByteArray &operator=(const ByteArray &other) noexcept;
@@ -297,7 +304,7 @@ public:
    static ByteArray number(long long, int base = 10) PDK_REQUIRED_RESULT;
    static ByteArray number(unsigned long long, int base = 10) PDK_REQUIRED_RESULT;
    static ByteArray number(double, char format = 'g', int prec = 6) PDK_REQUIRED_RESULT;
-   static ByteArray fromRawData(const char *, int size) PDK_REQUIRED_RESULT;
+   static ByteArray fromRawData(const char *data, int size) PDK_REQUIRED_RESULT;
    static ByteArray fromBase64(const ByteArray &base64, Base64Options options) PDK_REQUIRED_RESULT;
    static ByteArray fromHex(const ByteArray &hexEncoded) PDK_REQUIRED_RESULT;
    static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
@@ -380,9 +387,10 @@ public:
    
    bool isNull() const;
    
-   inline ByteArray(ByteArrayDataPtr dataPtr)
-      : m_data(static_cast<Data *>(dataPtr.m_ptr))
-   {}
+   inline DataPtr &getDataPtr()
+   {
+      return m_data;
+   }
    
 private:
    operator pdk::NoImplicitBoolCast() const;
@@ -401,7 +409,6 @@ private:
    
    friend class ByteRef;
    friend class String;
-   friend PDK_CORE_EXPORT ByteArray uncompress(const uchar *data, int nbytes);
 private:
    Data *m_data;
 };
@@ -588,7 +595,7 @@ inline void ByteArray::reserve(int asize)
 
 inline void ByteArray::squeeze()
 {
-   if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size) + 1u > m_data->m_alloc) {
+   if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size) + 1u < m_data->m_alloc) {
       reallocData(static_cast<uint>(size()) + 1u, 
                   m_data->detachFlags() & ~Data::CapacityReserved);
    } else {

@@ -20,4 +20,127 @@
 #include <vector>
 #include <algorithm>
 
+#include "pdk/base/ds/ByteArray.h"
 
+using pdk::ds::ByteArrayData;
+using pdk::ds::ByteArrayDataPtr;
+using pdk::ds::ByteArray;
+
+namespace
+{
+
+struct StaticByteArrays
+{
+   struct Standard 
+   {
+      ByteArrayData m_data;
+      const char m_string[8];
+   }m_standard;
+   
+   struct NotNullTerminated
+   {
+      ByteArrayData m_data;
+      const char m_string[8];
+   }m_notNullTerminated;
+   
+   struct Shifted {
+      ByteArrayData m_data;
+      const char m_dummy;  // added to change offset of string
+      const char m_string[8];
+   } m_shifted;
+   
+   struct ShiftedNotNullTerminated {
+      ByteArrayData m_data;
+      const char m_dummy;  // added to change offset of string
+      const char m_string[8];
+   } m_shiftedNotNullTerminated;
+};
+
+const StaticByteArrays statics = {
+   {PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(4), "data"},
+   {PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(4), "dataBAD"},
+   {PDK_STATIC_BYTE_DATA_HEADER_INITIALIZER_WITH_OFFSET(4, sizeof(ByteArrayData) + sizeof(char)), 0, "data"},
+   {PDK_STATIC_BYTE_DATA_HEADER_INITIALIZER_WITH_OFFSET(4, sizeof(ByteArrayData) + sizeof(char)), 0, "dataBAD"}
+};
+
+const ByteArrayDataPtr staticStandard = {
+   const_cast<ByteArrayData *>(&statics.m_standard.m_data)
+};
+
+const ByteArrayDataPtr staticNotNullTerminated = {
+   const_cast<ByteArrayData *>(&statics.m_notNullTerminated.m_data)
+};
+
+const ByteArrayDataPtr staticShifted = {
+   const_cast<ByteArrayData *>(&statics.m_shifted.m_data)
+};
+
+const ByteArrayDataPtr staticShiftedNotNullTerminated = {
+   const_cast<ByteArrayData *>(&statics.m_shiftedNotNullTerminated.m_data)
+};
+
+template <typename T>
+const T &verify_zero_termination(const T &t)
+{
+   return t;
+}
+
+
+ByteArray verify_zero_termination(const ByteArray &array)
+{
+   ByteArray::DataPtr baDataPtr = const_cast<ByteArray &>(array).getDataPtr();
+   if (baDataPtr->m_ref.isShared()
+       || baDataPtr->m_offset != ByteArray().getDataPtr()->m_offset) {
+      return array;
+   }
+   int baSize = array.size();
+   char baTerminator = array.getConstRawData()[baSize];
+   
+   if ('\0' != baTerminator) {
+      
+   }
+   
+   // Skip mutating checks on shared strings
+   if (baDataPtr->m_ref.isShared()) {
+      return array;
+   }
+
+   const char *baData = array.getConstRawData();
+   const ByteArray baCopy(baData, baSize); // Deep copy
+   
+   const_cast<char *>(baData)[baSize] = 'x';
+   if ('x' != array.getConstRawData()[baSize]) {
+      return "*** Failed to replace null-terminator in "
+             "result ('" + array + "') ***";
+   }
+   if (array != baCopy) {
+      return  "*** Result ('" + array + "') differs from its copy "
+                                     "after null-terminator was replaced ***";
+   }
+   const_cast<char *>(baData)[baSize] = '\0'; // Restore sanity
+   return array;
+}
+
+}
+
+TEST(ByteArrayTest, testConstructor)
+{
+   
+}
+
+TEST(ByteArrayTest, testConstByteArray)
+{
+   const char *ptr = "abc";
+   ByteArray carray = ByteArray::fromRawData(ptr, 3);
+   ASSERT_EQ(carray.getConstRawData(), ptr);
+   carray.squeeze();
+   ASSERT_EQ(carray.getConstRawData(), ptr);
+   carray.detach();
+   ASSERT_EQ(carray.capacaity(), 3);
+   ASSERT_EQ(carray.size(), 3);
+   ASSERT_NE(carray.getConstRawData(), ptr);
+   ASSERT_EQ(carray.getConstRawData()[0], 'a');
+   ASSERT_EQ(carray.getConstRawData()[1], 'b');
+   ASSERT_EQ(carray.getConstRawData()[2], 'c');
+   ASSERT_EQ(carray.getConstRawData()[3], '\0');
+}

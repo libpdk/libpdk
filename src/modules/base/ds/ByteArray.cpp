@@ -15,6 +15,7 @@
 
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/MemoryHelper.h"
+#include "pdk/base/lang/Character.h"
 
 #define PDK_BA_IS_RAW_DATA(data)\
    ((data)->m_offset != sizeof(pdk::ds::ByteArrayData))
@@ -22,6 +23,112 @@
 namespace pdk {
 namespace ds {
 
+namespace
+{
+inline bool is_upper(char c)
+{
+   return c >= 'A' && c <= 'Z';
+}
+
+inline char to_lower(char c)
+{
+   if (c >= 'A' && c <= 'Z') {
+      return c - 'A' + 'a';
+   }
+   return c;
+}
+
+}
+
+ByteArray::ByteArray(const char *data, int size)
+{
+   if (!data) {
+      m_data = Data::getSharedNull();
+   } else {
+      if (size < 0) {
+         size = static_cast<int>(std::strlen(data));
+      }
+      if (!size) {
+         m_data = Data::allocate(0);
+      } else {
+         m_data = Data::allocate(static_cast<uint>(size) + 1u);
+         PDK_CHECK_ALLOC_PTR(m_data);
+         m_data->m_size = size;
+         std::memcpy(m_data->getData(), data, size);
+         m_data->getData()[size] = '\0';
+      }
+   }
+}
+
+ByteArray::ByteArray(int size, char data)
+{
+   if (size <= 0) {
+      m_data = Data::allocate(0);
+   } else {
+      m_data = Data::allocate(static_cast<uint>(size) + 1u);
+      PDK_CHECK_ALLOC_PTR(m_data);
+      m_data->m_size = size;
+      std::memset(m_data->getData(), data, size);
+      m_data->getData()[size] = '\0';
+   }
+}
+
+ByteArray::ByteArray(int size, Initialization)
+{
+   m_data = Data::allocate(static_cast<uint>(size) + 1u);
+   PDK_CHECK_ALLOC_PTR(m_data);
+   m_data->m_size = size;
+   m_data->getData()[size] = '\0';
+}
+
+ByteArray ByteArray::fromRawData(const char *data, int size)
+{
+   Data *ptr;
+   if (!data) {
+      ptr = Data::getSharedNull();
+   } else if (!size) {
+      ptr = Data::allocate(0);
+   } else {
+      ptr = Data::fromRawData(data, size);
+      PDK_CHECK_ALLOC_PTR(ptr);
+   }
+   ByteArrayDataPtr dataPtr{ ptr };
+   return ByteArray(dataPtr);
+}
+
+void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
+{
+   if (m_data->m_ref.isShared() || PDK_BA_IS_RAW_DATA(m_data)) {
+      Data *ptr = Data::allocate(alloc, options);
+      PDK_CHECK_ALLOC_PTR(ptr);
+      ptr->m_size = std::min(static_cast<int>(alloc) - 1, m_data->m_size);
+      std::memcpy(ptr->getData(), m_data->getData(), ptr->m_size);
+      ptr->getData()[ptr->m_size] = '\0';
+      if (!m_data->m_ref.deref()) {
+         Data::deallocate(m_data);
+      }
+      m_data = ptr;
+   } else {
+      size_t blockSize;
+      if (options & Data::Grow) {
+         pdk::utils::CalculateGrowingBlockSizeResult allocResult = 
+               pdk::utils::calculate_growing_block_size(alloc, 
+                                                        sizeof(pdk::lang::Character),
+                                                        sizeof(Data));
+         blockSize = allocResult.m_size;
+         alloc = static_cast<uint>(allocResult.m_elementCount);
+      } else {
+         blockSize = pdk::utils::calculate_block_size(alloc, 
+                                                      sizeof(pdk::lang::Character),
+                                                      sizeof(Data));
+      }
+      Data *ptr = static_cast<Data *>(std::realloc(m_data, blockSize));
+      PDK_CHECK_ALLOC_PTR(ptr);
+      ptr->m_alloc = alloc;
+      ptr->m_capacityReserved = (options & Data::CapacityReserved) ? 1 : 0;
+      m_data = ptr;
+   }
+}
 
 } // ds
 } // pdk
