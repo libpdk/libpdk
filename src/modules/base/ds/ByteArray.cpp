@@ -615,6 +615,13 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
    return *this;
 }
 
+std::list<ByteArray> ByteArray::split(char sep) const
+{
+   std::list<ByteArray> list;
+   int start = 0;
+   int end;
+}
+
 bool ByteArray::isNull() const
 {
    return m_data == Data::getSharedNull();

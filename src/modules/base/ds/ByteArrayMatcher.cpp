@@ -60,7 +60,7 @@ inline int byte_array_m_find(const uchar *cc, int length, int index,
             skip = 1;
          }
       }
-      if (current < end - skip) {
+      if (current > end - skip) {
          break;
       }
       current += skip;
@@ -165,7 +165,7 @@ int ByteArrayMatcher::findIndex(const ByteArray &array, int from) const
 
 int ByteArrayMatcher::findIndex(const char *str, int length, int from) const
 {
-   if (from) {
+   if (from < 0) {
       from = 0;
    }
    return byte_array_m_find(reinterpret_cast<const uchar *>(str), length, from,
