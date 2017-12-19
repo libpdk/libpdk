@@ -1,4 +1,4 @@
-// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+﻿// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -350,5 +350,73 @@ TEST(ByteArrayTest, testStartsWithChar)
 TEST(ByteArrayTest, testEndsWith)
 {
    
+}
+
+TEST(ByteArrayTest, testIterators)
+{
+   {
+      ByteArray array;
+      ByteArray::iterator begin = array.begin();
+      ByteArray::iterator end = array.end();
+      ASSERT_EQ(begin, end);
+   }
+   {
+      ByteArray array("a");
+      ByteArray::iterator begin = array.begin();
+      ByteArray::iterator end = array.end();
+      ASSERT_NE(begin, end);
+      ++begin;
+      ASSERT_EQ(begin, end);
+   }
+   {
+      std::list<char> expected{'a', 'b', 'c'};
+      std::list<char> actual;
+      ByteArray array("abc");
+      ByteArray::iterator begin = array.begin();
+      ByteArray::iterator end = array.end();
+      while (begin != end) {
+         actual.push_back(*begin);
+         ++begin;
+      }
+      ASSERT_EQ(actual, expected);
+   }
+   {
+      std::list<char> expected{'a', 'b', 'c'};
+      std::list<char> actual;
+      const ByteArray array("abc");
+      ByteArray::const_iterator begin = array.begin();
+      ByteArray::const_iterator end = array.end();
+      while (begin != end) {
+         actual.push_back(*begin);
+         ++begin;
+      }
+      ASSERT_EQ(actual, expected);
+   }
+   {
+      std::list<char> expected{'a', 'b', 'c'};
+      std::list<char> actual;
+      const ByteArray array("abc");
+      ByteArray::const_iterator begin = array.cbegin();
+      ByteArray::const_iterator end = array.cend();
+      while (begin != end) {
+         actual.push_back(*begin);
+         ++begin;
+      }
+      ASSERT_EQ(actual, expected);
+   }
+}
+
+TEST(ByteArrayTest, testReverseIterators)
+{
+   ByteArray data = "abcd";
+   ByteArray reverseData = data;
+   std::reverse(reverseData.begin(), reverseData.end());
+   const ByteArray &constReverseData = reverseData;
+   ASSERT_TRUE(std::equal(data.begin(), data.end(), reverseData.rbegin()));
+   ASSERT_TRUE(std::equal(data.begin(), data.end(), reverseData.crbegin()));
+   ASSERT_TRUE(std::equal(data.begin(), data.end(), constReverseData.rbegin()));
+   ASSERT_TRUE(std::equal(reverseData.rbegin(), reverseData.rend(), data.begin()));
+   ASSERT_TRUE(std::equal(reverseData.crbegin(), reverseData.crend(), data.begin()));
+   ASSERT_TRUE(std::equal(constReverseData.rbegin(), constReverseData.rend(), data.begin()));
 }
 
