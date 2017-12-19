@@ -160,12 +160,12 @@ public:
    ByteRef operator [](int i);
    ByteRef operator [](uint i);
    
-   int indexOf(char c, int from = 0) const;
-   int indexOf(const char *str, int from = 0) const;
-   int indexOf(const ByteArray &array, int from = 0) const;
-   int lastIndexOf(char c, int from = -1) const;
-   int lastIndexOf(const char *c, int from = -1);
-   int lastIndexOf(const ByteArray &array, int from = -1);
+   int indexOf(char needle, int from = 0) const;
+   int indexOf(const char *needle, int from = 0) const;
+   int indexOf(const ByteArray &needle, int from = 0) const;
+   int lastIndexOf(char needle, int from = -1) const;
+   int lastIndexOf(const char *needle, int from = -1) const;
+   int lastIndexOf(const ByteArray &needle, int from = -1);
    
    bool contains(char c) const;
    bool contains(const char *array) const;

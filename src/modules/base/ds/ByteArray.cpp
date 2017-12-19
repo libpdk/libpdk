@@ -18,6 +18,8 @@
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/ds/internal/ByteArrayMatcher.h"
 
+#include <limits.h>
+
 #define PDK_BA_IS_RAW_DATA(data)\
    ((data)->m_offset != sizeof(pdk::ds::ByteArrayData))
 
@@ -178,6 +180,66 @@ ByteArray to_case_template(T &input, const uchar *table)
    return s;
 }
 
+#define REHASH(a) \
+   if (needleLengthMinusOne < sizeof(uint) * CHAR_BIT) \
+   hashHayStack -= (a) << needleLengthMinusOne; \
+   hashHayStack <<= 1
+
+int last_indexof_helper(const char *haystack, int haystackLength, const char *needle, 
+                        int needleLength, int from)
+{
+   int delta = haystackLength - needleLength;
+   if (from < 0) {
+      from = delta;
+   }
+   if (from < 0 || from > haystackLength) {
+      return -1;
+   }
+   if (from > delta) {
+      from = delta;
+   }
+   const char *end = haystack;
+   haystack += from;
+   const uint needleLengthMinusOne = needleLength - 1;
+   const char *n = needle + needleLengthMinusOne;
+   const char *h = haystack + needleLengthMinusOne;
+   uint hashNeedle = 0;
+   uint hashHayStack = 0;
+   int idx;
+   for (idx = 0; idx < needleLength; ++idx) {
+      hashNeedle = ((hashNeedle << 1) + *(n - idx));
+      hashHayStack = ((hashHayStack << 1) + *(h - idx));
+   }
+   hashHayStack -= *haystack;
+   while (haystack >= end) {
+      hashHayStack += *haystack;
+      if (hashHayStack == hashNeedle && std::memcmp(needle, haystack, needleLength) == 0) {
+         return haystack - end;
+      }
+      --haystack;
+      REHASH(*(haystack + needleLength));
+   }
+   return -1;
+}
+
+inline ByteArray &bytearray_insert(ByteArray *array, int pos, const char *arr, int length)
+{
+   PDK_ASSERT(pos >= 0);
+   if (pos < 0 || length <= 0 || arr == nullptr) {
+      return *array;
+   }
+   int oldSize = array->size();
+   array->resize(std::max(pos, oldSize) + length);
+   char *dest = array->getRawData();
+   if (pos > oldSize) {
+      std::memset(dest + oldSize, 0x20, pos - oldSize);
+   } else {
+      std::memmove(dest + pos + length, dest + pos, oldSize - pos);
+   }
+   std::memcpy(dest + pos, arr, length);
+   return *array;
+}
+
 }
 
 ByteArray ByteArray::toLowerHelper(const ByteArray &a)
@@ -301,28 +363,28 @@ int find_byte_array(const char *haystack, int haystackLength, int from,
 
 }
 
-int ByteArray::indexOf(const ByteArray &array, int from) const
+int ByteArray::indexOf(const ByteArray &needle, int from) const
 {
-   const int searchedLength = array.m_data->m_size;
+   const int searchedLength = needle.m_data->m_size;
    if (searchedLength == 0) {
       return from;
    }
    if (searchedLength == 1) {
-      return indexOf(*array.m_data->getData(), from);
+      return indexOf(*needle.m_data->getData(), from);
    }
    const int selfLength = m_data->m_size;
    if (from > selfLength || searchedLength + from > selfLength) {
       return -1;
    }
    return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
-                                    array.m_data->getData(), searchedLength);
+                                    needle.m_data->getData(), searchedLength);
 }
 
-int ByteArray::indexOf(const char *str, int from) const
+int ByteArray::indexOf(const char *needle, int from) const
 {
-   const int searchedLength = pdk::strlen(str);
+   const int searchedLength = pdk::strlen(needle);
    if (searchedLength == 1) {
-      return indexOf(*str, from);
+      return indexOf(*needle, from);
    }
    const int selfLength = m_data->m_size;
    if (from > selfLength || searchedLength + from > selfLength) {
@@ -332,10 +394,10 @@ int ByteArray::indexOf(const char *str, int from) const
       return from;
    }
    return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
-                                    str, searchedLength);
+                                    needle, searchedLength);
 }
 
-int ByteArray::indexOf(char c, int from) const
+int ByteArray::indexOf(char needle, int from) const
 {
    if (from < 0) {
       from = std::max(from + m_data->m_size, 0);
@@ -345,8 +407,47 @@ int ByteArray::indexOf(char c, int from) const
       const char *iter = dataPtr + from - 1;
       const char *end = dataPtr + m_data->m_size;
       while (++iter != end) {
-         if (*iter == c) {
+         if (*iter == needle) {
             return iter - dataPtr;
+         }
+      }
+   }
+   return -1;
+}
+
+int ByteArray::lastIndexOf(const ByteArray &needle, int from)
+{
+   const int needleLength = needle.m_data->m_size;
+   if (needleLength == 1) {
+      return lastIndexOf(*m_data->getData(), from);
+   }
+   return last_indexof_helper(m_data->getData(), m_data->m_size, 
+                              needle.m_data->getData(), needleLength, from);
+}
+
+int ByteArray::lastIndexOf(const char *needle, int from) const
+{
+   const int needleLength = pdk::strlen(needle);
+   if (needleLength == 1) {
+      return lastIndexOf(*needle, from);
+   }
+   return last_indexof_helper(m_data->getData(), m_data->m_size, 
+                              needle, needleLength, from);
+}
+
+int ByteArray::lastIndexOf(char needle, int from) const
+{
+   if (from < 0) {
+      from += m_data->m_size;
+   } else if (from > m_data->m_size) {
+      from = m_data->m_size - 1;
+   }
+   if (from >= 0) {
+      const char *end = m_data->getData();
+      const char *start = m_data->getData() + from + 1;
+      while (start-- != end) {
+         if (*start == needle) {
+            return start - end;
          }
       }
    }
@@ -599,29 +700,6 @@ ByteArray &ByteArray::append(char c)
    return *this;
 }
 
-namespace
-{
-
-inline ByteArray &bytearray_insert(ByteArray *array, int pos, const char *arr, int length)
-{
-   PDK_ASSERT(pos >= 0);
-   if (pos < 0 || length <= 0 || arr == nullptr) {
-      return *array;
-   }
-   int oldSize = array->size();
-   array->resize(std::max(pos, oldSize) + length);
-   char *dest = array->getRawData();
-   if (pos > oldSize) {
-      std::memset(dest + oldSize, 0x20, pos - oldSize);
-   } else {
-      std::memmove(dest + pos + length, dest + pos, oldSize - pos);
-   }
-   std::memcpy(dest + pos, arr, length);
-   return *array;
-}
-
-}
-
 ByteArray &ByteArray::insert(int pos, const ByteArray &array)
 {
    ByteArray copy(array);
@@ -662,9 +740,9 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
 
 std::list<ByteArray> ByteArray::split(char sep) const
 {
-//   std::list<ByteArray> list;
-//   int start = 0;
-//   int end;
+   //   std::list<ByteArray> list;
+   //   int start = 0;
+   //   int end;
 }
 
 bool ByteArray::isNull() const
