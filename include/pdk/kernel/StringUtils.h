@@ -70,6 +70,33 @@ PDK_CORE_EXPORT int snprintf(char *str, size_t size, const char *format, ...);
 
 PDK_CORE_EXPORT pdk::puint16 checksum(const char *str, uint length);
 
+constexpr const uint ASCII_SPACE_MASK =  (1 << (' ' - 1)) |
+      (1 << ('\t' - 1)) |   // 9: HT - horizontal tab
+      (1 << ('\n' - 1)) |   // 10: LF - line feed
+      (1 << ('\v' - 1)) |   // 11: VT - vertical tab
+      (1 << ('\f' - 1)) |   // 12: FF - form feed
+      (1 << ('\r' - 1));  // 13: CR - carriage return
+
+constexpr inline bool ascii_isspace(uchar c)
+{
+   return c >= 1U && c <= 32U && ASCII_SPACE_MASK >> static_cast<uint>(c - 1) & 1U;
+}
+
+
+PDK_STATIC_ASSERT(ascii_isspace(' '));
+PDK_STATIC_ASSERT(ascii_isspace('\t'));
+PDK_STATIC_ASSERT(ascii_isspace('\n'));
+PDK_STATIC_ASSERT(ascii_isspace('\v'));
+PDK_STATIC_ASSERT(ascii_isspace('\f'));
+PDK_STATIC_ASSERT(ascii_isspace('\r'));
+PDK_STATIC_ASSERT(!ascii_isspace('\0'));
+PDK_STATIC_ASSERT(!ascii_isspace('\a'));
+PDK_STATIC_ASSERT(!ascii_isspace('a'));
+PDK_STATIC_ASSERT(!ascii_isspace('\177'));
+PDK_STATIC_ASSERT(!ascii_isspace(uchar('\200')));
+PDK_STATIC_ASSERT(!ascii_isspace(uchar('\xA0')));
+PDK_STATIC_ASSERT(!ascii_isspace(uchar('\377')));
+
 } // pdk
 
 #endif // PDK_KERNEL_STRING_UTILS_H

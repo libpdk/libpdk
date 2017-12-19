@@ -454,6 +454,41 @@ int ByteArray::lastIndexOf(char needle, int from) const
    return -1;
 }
 
+int ByteArray::count(const ByteArray &array) const
+{
+   int num = 0;
+   int pos = -1;
+   if (m_data->m_size > 500 && array.m_data->m_size > 5) {
+      internal::ByteArrayMatcher matcher(array);
+      while ((pos = matcher.findIndex(*this, pos + 1)) != -1) {
+         ++num;
+      }
+   } else {
+      while ((pos = indexOf(array, pos + 1)) != -1) {
+         ++num;
+      }
+   }
+   return num;
+}
+
+int ByteArray::count(const char *array) const
+{
+   return count(ByteArray::fromRawData(array, pdk::strlen(array)));
+}
+
+int ByteArray::count(char c) const
+{
+   int num = 0;
+   const char *i = m_data->getData() + m_data->m_size;
+   const char *b = m_data->getData();
+   while (i != b) {
+      if (*--i == c) {
+         ++num;
+      }
+   }
+   return num;
+}
+
 ByteArray ByteArray::left(int length) const
 {
    if (length >= m_data->m_size) {
