@@ -380,6 +380,22 @@ TEST(ByteArrayTest, testEndsWith)
    }
 }
 
+TEST(ByteArrayTest, testEndsWithChar)
+{
+   ASSERT_TRUE(ByteArray("hello").endsWith('o'));
+   ASSERT_FALSE(ByteArray("hello").endsWith('\0'));
+   ASSERT_FALSE(ByteArray("hello").endsWith('h'));
+   ASSERT_TRUE(ByteArray("h").endsWith('h'));
+   ASSERT_FALSE(ByteArray("h").endsWith('\0'));
+   ASSERT_FALSE(ByteArray("h").endsWith('o'));
+   ASSERT_FALSE(ByteArray("hello").endsWith('l'));
+   ASSERT_FALSE(ByteArray("").endsWith('h'));
+   ASSERT_FALSE(ByteArray("").endsWith('\0'));
+   ASSERT_FALSE(ByteArray("").endsWith('a'));
+   ASSERT_FALSE(ByteArray().endsWith('a'));
+   ASSERT_FALSE(ByteArray().endsWith('\0'));
+}
+
 TEST(ByteArrayTest, testIterators)
 {
    {
