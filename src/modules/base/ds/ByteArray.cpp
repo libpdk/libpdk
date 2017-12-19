@@ -325,7 +325,7 @@ bool ByteArray::startsWith(char c) const
 
 bool ByteArray::endsWith(const ByteArray &array) const
 {
-   if (m_data == array.m_data || array.m_data->m_size) {
+   if (m_data == array.m_data || array.m_data->m_size == 0) {
       return true;
    }
    if (m_data->m_size < array.m_data->m_size) {

@@ -349,7 +349,35 @@ TEST(ByteArrayTest, testStartsWithChar)
 
 TEST(ByteArrayTest, testEndsWith)
 {
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, bool>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), true));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray("hello"), false));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(), true));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("h"), false));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("o"), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("hello"), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray(""), true));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray("hellohello"), false));
+   data.push_back(std::make_tuple(ByteArray("hello"), ByteArray(""), true));
    
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray left = std::get<0>(item);
+      ByteArray right = std::get<1>(item);
+      bool result = std::get<2>(item);
+      ASSERT_TRUE(left.endsWith(right) == result);
+      if (right.isNull()) {
+         ASSERT_TRUE(left.endsWith(static_cast<char *>(0)) == result);
+      } else {
+         ASSERT_TRUE(left.endsWith(right.getRawData()) == result);
+      }
+      ++begin;
+   }
 }
 
 TEST(ByteArrayTest, testIterators)
