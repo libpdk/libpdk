@@ -637,11 +637,87 @@ TEST(ByteArrayTest, testIndexOf)
          if (!hasNull) {
             ASSERT_EQ(haystack.indexOf(needle.getRawData()), expected);
          }
-            
+         
          if (needle.size() == 1) {
             ASSERT_EQ(haystack.indexOf(needle.at(0)), expected);
          }
       }
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testLastIndexOf)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, int, int>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("a"), 0, 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("A"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("a"), 1, 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("A"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("a"), -1, 0));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("B"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 1, 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("B"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 2, 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), -1, 1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("C"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("C"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 2, 2));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), -1, 2));
+   
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("bc"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("Bc"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("Bc"), 2, 1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("Bc"), 1, 1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("Bc"), -1, 1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("bC"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("BC"), 0, -1));
+   
+   static const char h25[] = {0x00, (char)0xbc, 0x03, 0x10, 0x0a };
+   static const char n25[] = {0x00, 0x00, 0x01, 0x00};
+   data.push_back(std::make_tuple(ByteArray(h25, sizeof(h25)), ByteArray(n25, sizeof(n25)), 0, -1));
+   
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("x"), -1, -1));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray("x"), -1, -1));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), -1, 0));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(""), -1, 0));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(), -1, 0));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(""), -1, 0));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray haystack = std::get<0>(item);
+      ByteArray needle = std::get<1>(item);
+      int startpos = std::get<2>(item);
+      int expected = std::get<3>(item);
+      
+      bool hasNull = needle.contains('\0');
+      ASSERT_EQ(haystack.lastIndexOf(needle, startpos), expected);
+      if (!hasNull) {
+         ASSERT_EQ(haystack.lastIndexOf(needle.getRawData(), startpos), expected);
+      }
+      
+      if (needle.size() == 1) {
+         ASSERT_EQ(haystack.lastIndexOf(needle.at(0), startpos), expected);
+      }
+      if (startpos == -1) {
+         ASSERT_EQ(haystack.lastIndexOf(needle), expected );
+         if (!hasNull) {
+            ASSERT_EQ(haystack.lastIndexOf(needle.getRawData()), expected);
+         }
+         if (needle.size() == 1) {
+            ASSERT_EQ(haystack.lastIndexOf(needle.at(0)), expected);
+         }
+         
+      }
+      
       ++begin;
    }
 }

@@ -165,7 +165,7 @@ public:
    int indexOf(const ByteArray &needle, int from = 0) const;
    int lastIndexOf(char needle, int from = -1) const;
    int lastIndexOf(const char *needle, int from = -1) const;
-   int lastIndexOf(const ByteArray &needle, int from = -1);
+   int lastIndexOf(const ByteArray &needle, int from = -1) const;
    
    bool contains(char c) const;
    bool contains(const char *array) const;

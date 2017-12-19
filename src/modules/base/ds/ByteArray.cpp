@@ -415,11 +415,11 @@ int ByteArray::indexOf(char needle, int from) const
    return -1;
 }
 
-int ByteArray::lastIndexOf(const ByteArray &needle, int from)
+int ByteArray::lastIndexOf(const ByteArray &needle, int from) const
 {
    const int needleLength = needle.m_data->m_size;
    if (needleLength == 1) {
-      return lastIndexOf(*m_data->getData(), from);
+      return lastIndexOf(*needle.m_data->getData(), from);
    }
    return last_indexof_helper(m_data->getData(), m_data->m_size, 
                               needle.m_data->getData(), needleLength, from);
