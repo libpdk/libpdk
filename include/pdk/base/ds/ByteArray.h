@@ -133,17 +133,17 @@ public:
    }
    
    inline int size() const;
-   bool isEmpty() const;
+   inline bool isEmpty() const;
    void resize(int size);
    
    ByteArray &fill(char c, int size = -1);
-   int capacaity() const;
+   inline int capacaity() const;
    void reserve(int size);
-   void squeeze();
+   inline void squeeze();
    
 #ifndef PDK_NO_CAST_FROM_BYTEARRAY
-   operator const char *() const;
-   operator const void *() const;
+   inline operator const char *() const;
+   inline operator const void *() const;
 #endif
    
    char *getRawData();
@@ -535,6 +535,11 @@ inline bool ByteArray::isEmpty() const
    return m_data->m_size == 0;
 }
 
+inline int ByteArray::capacaity() const
+{
+   return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
+}
+
 #ifndef PDK_NO_CAST_FROM_BYTEARRAY
 inline ByteArray::operator const char *() const
 {
@@ -575,9 +580,9 @@ inline bool ByteArray::isDetached() const
    return !m_data->m_ref.isShared();
 }
 
-inline int ByteArray::capacaity() const
+inline bool ByteArray::isSharedWith(const ByteArray &other) const
 {
-   return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
+   return m_data == other.m_data;
 }
 
 inline void ByteArray::reserve(int asize)

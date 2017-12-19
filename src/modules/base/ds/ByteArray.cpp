@@ -231,6 +231,29 @@ ByteArray &ByteArray::fill(char c, int size)
    return *this;
 }
 
+void ByteArray::clear()
+{
+   if (!m_data->m_ref.deref()) {
+      Data::deallocate(m_data);
+   }
+   m_data = Data::getSharedNull();
+}
+
+int ByteArray::indexOf(const ByteArray &array, int from) const
+{
+//   const int searchedLength = array.m_data->m_size;
+//   if (searchedLength == 0) {
+//      return from;
+//   }
+//   if (searchedLength == 1) {
+//      return indexOf(*array.m_data->getData(), from);
+//   }
+//   const int selfLength = m_data->m_size;
+//   if (from > selfLength || searchedLength + from > selfLength) {
+//      return -1;
+//   }
+}
+
 ByteArray ByteArray::left(int length) const
 {
    if (length >= m_data->m_size) {
@@ -536,14 +559,6 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
 bool ByteArray::isNull() const
 {
    return m_data == Data::getSharedNull();
-}
-
-void ByteArray::clear()
-{
-   if (m_data->m_ref.deref()) {
-      Data::deallocate(m_data);
-   }
-   m_data = Data::getSharedNull();
 }
 
 void ByteArray::truncate(int pos)
