@@ -16,6 +16,7 @@
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/MemoryHelper.h"
 #include "pdk/base/lang/Character.h"
+#include "pdk/base/ds/internal/ByteArrayMatcher.h"
 
 #define PDK_BA_IS_RAW_DATA(data)\
    ((data)->m_offset != sizeof(pdk::ds::ByteArrayData))
@@ -293,19 +294,63 @@ void ByteArray::clear()
    m_data = Data::getSharedNull();
 }
 
+namespace internal {
+
+int find_byte_array(const char *haystack, int haystackLength, int from,
+                    const char *needle, int needleLength);
+
+}
+
 int ByteArray::indexOf(const ByteArray &array, int from) const
 {
-   //   const int searchedLength = array.m_data->m_size;
-   //   if (searchedLength == 0) {
-   //      return from;
-   //   }
-   //   if (searchedLength == 1) {
-   //      return indexOf(*array.m_data->getData(), from);
-   //   }
-   //   const int selfLength = m_data->m_size;
-   //   if (from > selfLength || searchedLength + from > selfLength) {
-   //      return -1;
-   //   }
+   const int searchedLength = array.m_data->m_size;
+   if (searchedLength == 0) {
+      return from;
+   }
+   if (searchedLength == 1) {
+      return indexOf(*array.m_data->getData(), from);
+   }
+   const int selfLength = m_data->m_size;
+   if (from > selfLength || searchedLength + from > selfLength) {
+      return -1;
+   }
+   return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
+                                    array.m_data->getData(), searchedLength);
+}
+
+int ByteArray::indexOf(const char *str, int from) const
+{
+   const int searchedLength = pdk::strlen(str);
+   if (searchedLength == 1) {
+      return indexOf(*str, from);
+   }
+   const int selfLength = m_data->m_size;
+   if (from > selfLength || searchedLength + from > selfLength) {
+      return -1;
+   }
+   if (searchedLength == 0) {
+      return from;
+   }
+   return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
+                                    str, searchedLength);
+}
+
+int ByteArray::indexOf(char c, int from) const
+{
+   if (from < 0) {
+      from = std::max(from + m_data->m_size, 0);
+   }
+   const char *dataPtr = m_data->getData();
+   if (from < m_data->m_size) {
+      const char *iter = dataPtr + from - 1;
+      const char *end = dataPtr + m_data->m_size;
+      while (++iter != end) {
+         if (*iter == c) {
+            return iter - dataPtr;
+         }
+      }
+   }
+   return -1;
 }
 
 ByteArray ByteArray::left(int length) const
@@ -617,9 +662,9 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
 
 std::list<ByteArray> ByteArray::split(char sep) const
 {
-   std::list<ByteArray> list;
-   int start = 0;
-   int end;
+//   std::list<ByteArray> list;
+//   int start = 0;
+//   int end;
 }
 
 bool ByteArray::isNull() const

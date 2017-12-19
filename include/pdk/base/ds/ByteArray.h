@@ -161,7 +161,7 @@ public:
    ByteRef operator [](uint i);
    
    int indexOf(char c, int from = 0) const;
-   int indexOf(const char *c, int from = 0) const;
+   int indexOf(const char *str, int from = 0) const;
    int indexOf(const ByteArray &array, int from = 0) const;
    int lastIndexOf(char c, int from = -1) const;
    int lastIndexOf(const char *c, int from = -1);

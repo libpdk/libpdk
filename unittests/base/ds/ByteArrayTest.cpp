@@ -529,6 +529,119 @@ TEST(ByteArrayTest, testToUpperAndLowercase)
       ByteArray uppercase = std::get<1>(item);
       ByteArray lowercase = std::get<2>(item);
       ASSERT_EQ(lowercase.toLower(), lowercase);
+      ASSERT_EQ(uppercase.toUpper(), uppercase);
+      ASSERT_EQ(input.toUpper(), uppercase);
+      ASSERT_EQ(input.toLower(), lowercase);
+      
+      ByteArray copy = input;
+      ASSERT_TRUE(copy.isSharedWith(input));
+      ASSERT_EQ(std::move(copy).toUpper(), uppercase);
+      copy = input;
+      copy.detach();
+      ASSERT_FALSE(copy.isSharedWith(input));
+      ASSERT_EQ(std::move(copy).toUpper(), uppercase);
+      
+      copy = input;
+      ASSERT_TRUE(copy.isSharedWith(input));
+      ASSERT_EQ(std::move(copy).toLower(), lowercase);
+      copy = input;
+      copy.detach();
+      ASSERT_FALSE(copy.isSharedWith(input));
+      ASSERT_EQ(std::move(copy).toLower(), lowercase);
+      
+      copy = lowercase;
+      ASSERT_TRUE(copy.isSharedWith(lowercase));
+      ASSERT_EQ(std::move(copy).toLower(), lowercase);
+      copy = input;
+      copy.detach();
+      ASSERT_FALSE(copy.isSharedWith(lowercase));
+      ASSERT_EQ(std::move(copy).toLower(), lowercase);
+      
+      copy = uppercase;
+      ASSERT_TRUE(copy.isSharedWith(uppercase));
+      ASSERT_EQ(std::move(copy).toUpper(), uppercase);
+      copy = input;
+      copy.detach();
+      ASSERT_FALSE(copy.isSharedWith(uppercase));
+      ASSERT_EQ(std::move(copy).toUpper(), uppercase);
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testIndexOf)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, int, int>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("a"), 0, 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("A"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("a"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("A"), 1, -1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 0, 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("B"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 1, 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("B"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("b"), 2, -1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 0, 2));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("C"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 1, 2));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("C"), 1, -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("c"), 2, 2));
+   
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("bc"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("Bc"), 0, 1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("bC"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray("aBc"), ByteArray("BC"), 0, -1));
+   
+   static const char h19[] = {'x', 0x00, (char)0xe7, 0x25, 0x1c, 0x0a};
+   static const char n19[] = {0x00, 0x00, 0x01, 0x00};
+   
+   data.push_back(std::make_tuple(ByteArray(h19, sizeof(h19)), ByteArray(n19, sizeof(n19)), 0, -1));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("x"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray("x"), 0, -1));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), 0, 0));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(""), 0, 0));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(), 0, 0));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(""), 0, 0));
+   
+   ByteArray veryBigHaystack(500, 'a');
+   veryBigHaystack += 'B';
+   data.push_back(std::make_tuple(veryBigHaystack, veryBigHaystack, 0, 0));
+   data.push_back(std::make_tuple(ByteArray(veryBigHaystack + 'c'), ByteArray(veryBigHaystack), 0, 0));
+   data.push_back(std::make_tuple(ByteArray('c' + veryBigHaystack), ByteArray(veryBigHaystack), 0, 1));
+   data.push_back(std::make_tuple(ByteArray(veryBigHaystack), ByteArray(veryBigHaystack + 'c'), 0, -1));
+   data.push_back(std::make_tuple(ByteArray(veryBigHaystack), ByteArray('c' + veryBigHaystack), 0, -1));
+   data.push_back(std::make_tuple(ByteArray('d' + veryBigHaystack), ByteArray('c' + veryBigHaystack), 0, -1));
+   data.push_back(std::make_tuple(ByteArray(veryBigHaystack + 'c'), ByteArray('c' + veryBigHaystack), 0, -1));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray haystack = std::get<0>(item);
+      ByteArray needle = std::get<1>(item);
+      int startpos = std::get<2>(item);
+      int expected = std::get<3>(item);
+      
+      bool hasNull = needle.contains('\0');
+      ASSERT_EQ(haystack.indexOf(needle, startpos), expected);
+      if (!hasNull) {
+         ASSERT_EQ(haystack.indexOf(needle.getRawData(), startpos), expected);
+      }
+      if (needle.size() == 1) {
+         ASSERT_EQ(haystack.indexOf(needle.at(0), startpos), expected);
+      }
+      if (startpos == 0) {
+         ASSERT_EQ( haystack.indexOf(needle), expected );
+         if (!hasNull) {
+            ASSERT_EQ(haystack.indexOf(needle.getRawData()), expected);
+         }
+            
+         if (needle.size() == 1) {
+            ASSERT_EQ(haystack.indexOf(needle.at(0)), expected);
+         }
+      }
       ++begin;
    }
 }
