@@ -12,3 +12,19 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2017/12/19.
+
+#ifndef PDK_KERNEL_LOCALE_H
+#define PDK_KERNEL_LOCALE_H
+
+#include "pdk/global/Global.h"
+
+namespace pdk {
+
+class PDK_CORE_EXPORT Locale
+{
+   
+};
+
+} // pdk
+
+#endif // PDK_KERNEL_LOCALE_H
