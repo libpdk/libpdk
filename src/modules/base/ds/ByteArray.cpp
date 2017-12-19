@@ -506,7 +506,7 @@ namespace
 inline ByteArray &bytearray_insert(ByteArray *array, int pos, const char *arr, int length)
 {
    PDK_ASSERT(pos >= 0);
-   if (pos < 0 || length <= 0 || arr) {
+   if (pos < 0 || length <= 0 || arr == nullptr) {
       return *array;
    }
    int oldSize = array->size();
@@ -532,6 +532,11 @@ ByteArray &ByteArray::insert(int pos, const ByteArray &array)
 ByteArray &ByteArray::insert(int pos, const char *str)
 {
    return bytearray_insert(this, pos, str, pdk::strlen(str));
+}
+
+ByteArray &ByteArray::insert(int pos, char c)
+{
+   return bytearray_insert(this, pos, &c, 1);
 }
 
 ByteArray &ByteArray::insert(int pos, const char *str, int length)

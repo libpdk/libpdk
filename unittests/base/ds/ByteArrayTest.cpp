@@ -420,3 +420,45 @@ TEST(ByteArrayTest, testReverseIterators)
    ASSERT_TRUE(std::equal(constReverseData.rbegin(), constReverseData.rend(), data.begin()));
 }
 
+TEST(ByteArrayTest, testInsert)
+{
+   ByteArray array("Meal");
+   ASSERT_EQ(array.insert(1, ByteArray("ontr")), ByteArray("Montreal"));
+   ASSERT_EQ(array.insert(array.size(), ByteArray("foo")), ByteArray("Montrealfoo"));
+   
+   array = "13";
+   ASSERT_EQ(array.insert(1, ByteArray("2")), ByteArray("123"));
+   
+   array = "ac";
+   ASSERT_EQ(array.insert(1, 'b'), ByteArray("abc"));
+   
+   array = "ac";
+   ASSERT_EQ(array.insert(-1, 3, 'b'), ByteArray("ac"));
+   ASSERT_EQ(array.insert(1, 3, 'x'), ByteArray("axxxc"));
+   ASSERT_EQ(array.insert(6, 3, 'x'), ByteArray("axxxc xxx"));
+   ASSERT_EQ(array.size(), 9);
+   
+   array = "ikl";
+   ASSERT_EQ(array.insert(1, 'j'), ByteArray("ijkl"));
+   ASSERT_EQ(array.size(), 4);
+   
+   array = "ab";
+   ASSERT_EQ(array.insert(1, "\0X\0", 3), ByteArray::fromRawData("a\0X\0b", 5));
+   ASSERT_EQ(array.size(), 5);
+}
+
+TEST(ByteArrayTest, testInsertExtended)
+{
+   std::list<ByteArray> data;
+   prepare_prepend_data(data);
+   std::list<ByteArray>::iterator begin = data.begin();
+   std::list<ByteArray>::iterator end = data.end();
+   while (begin != end) {
+      ByteArray array = *begin;
+      ASSERT_EQ(array.insert(1, "i"), ByteArray("diata"));
+      ASSERT_EQ(array.insert(1, 3, 'x'), ByteArray("dxxxiata"));
+      ASSERT_EQ(array.size(), 8);
+      ++begin;
+   }
+   
+}
