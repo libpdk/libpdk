@@ -506,3 +506,29 @@ TEST(ByteArrayTest, testInsertExtended)
    }
    
 }
+
+TEST(ByteArrayTest, testToUpperAndLowercase)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, ByteArray>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), ByteArray()));
+   data.push_back(std::make_tuple(ByteArrayLiteral("Hello World"), 
+                                  ByteArrayLiteral("HELLO WORLD"), 
+                                  ByteArrayLiteral("hello world")));
+   data.push_back(std::make_tuple(ByteArrayLiteral("Hello World, this is a STRING"),
+                                  ByteArrayLiteral("HELLO WORLD, THIS IS A STRING"), 
+                                  ByteArrayLiteral("hello world, this is a string")));
+   data.push_back(std::make_tuple(ByteArrayLiteral("R\311sum\351"),
+                                  ByteArrayLiteral("R\311SUM\311"), 
+                                  ByteArrayLiteral("r\351sum\351")));
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray input = std::get<0>(item);
+      ByteArray uppercase = std::get<1>(item);
+      ByteArray lowercase = std::get<2>(item);
+      ASSERT_EQ(lowercase.toLower(), lowercase);
+      ++begin;
+   }
+}

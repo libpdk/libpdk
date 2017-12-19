@@ -145,6 +145,60 @@ ByteArray ByteArray::nullTerminated() const
    return copy;
 }
 
+namespace
+{
+
+template <typename T>
+PDK_NEVER_INLINE
+ByteArray to_case_template(T &input, const uchar *table)
+{
+   // find the first bad character in input
+   const char *origBegin = input.constBegin();
+   const char *firstBad = origBegin;
+   const char *end = input.constEnd();
+   for ( ; firstBad != end ; ++firstBad) {
+      uchar ch = static_cast<uchar>(*firstBad);
+      uchar converted = table[ch];
+      if (ch != converted) {
+         break;
+      }
+   }
+   if (firstBad == end) {
+      return std::move(input);
+   }
+   // transform the rest
+   ByteArray s = std::move(input);    // will copy if T is const ByteArray
+   char *b = s.begin();            // will detach if necessary
+   char *p = b + (firstBad - origBegin);
+   end = b + s.size();
+   for ( ; p != end; ++p) {
+      *p = char(static_cast<uchar>(table[static_cast<uchar>(*p)]));
+   }
+   return s;
+}
+
+}
+
+ByteArray ByteArray::toLowerHelper(const ByteArray &a)
+{
+   return to_case_template(a, latin1Lowercased);
+}
+
+ByteArray ByteArray::toLowerHelper(ByteArray &a)
+{
+   return to_case_template(a, latin1Lowercased);
+}
+
+ByteArray ByteArray::toUpperHelper(const ByteArray &a)
+{
+   return to_case_template(a, latin1Uppercased);
+}
+
+ByteArray ByteArray::toUpperHelper(ByteArray &a)
+{
+   return to_case_template(a, latin1Uppercased);
+}
+
 ByteArray &ByteArray::operator=(const ByteArray &other) noexcept
 {
    other.m_data->m_ref.ref();
@@ -241,17 +295,17 @@ void ByteArray::clear()
 
 int ByteArray::indexOf(const ByteArray &array, int from) const
 {
-//   const int searchedLength = array.m_data->m_size;
-//   if (searchedLength == 0) {
-//      return from;
-//   }
-//   if (searchedLength == 1) {
-//      return indexOf(*array.m_data->getData(), from);
-//   }
-//   const int selfLength = m_data->m_size;
-//   if (from > selfLength || searchedLength + from > selfLength) {
-//      return -1;
-//   }
+   //   const int searchedLength = array.m_data->m_size;
+   //   if (searchedLength == 0) {
+   //      return from;
+   //   }
+   //   if (searchedLength == 1) {
+   //      return indexOf(*array.m_data->getData(), from);
+   //   }
+   //   const int selfLength = m_data->m_size;
+   //   if (from > selfLength || searchedLength + from > selfLength) {
+   //      return -1;
+   //   }
 }
 
 ByteArray ByteArray::left(int length) const
