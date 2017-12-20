@@ -244,6 +244,11 @@ int strcmp(const ds::ByteArray &lhs, const char *rhs)
    return 0;
 }
 
+int strcmp(const char *lhs, const ds::ByteArray &rhs)
+{
+   return -strcmp(rhs, lhs);
+}
+
 int strcmp(const ds::ByteArray &lhs, const ds::ByteArray &rhs)
 {
    int lhsLength = lhs.length();

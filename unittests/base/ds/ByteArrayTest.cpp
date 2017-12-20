@@ -1226,3 +1226,77 @@ TEST(ByteArrayTest, testCompare)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testCompareWithChar)
+{
+   using DataType = std::list<std::tuple<ByteArray, std::string, int>>;
+   DataType data;
+   
+   data.push_back(std::make_tuple(ByteArray(), std::string(), 0));
+   data.push_back(std::make_tuple(ByteArray(), std::string(""), 0));
+   data.push_back(std::make_tuple(ByteArray(""), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray(), std::string(), 0));
+   data.push_back(std::make_tuple(ByteArray(""), "", 0));
+   data.push_back(std::make_tuple(ByteArray(""), std::string("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 0), std::string(""), 0));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 0), std::string(""), 0));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 0), "abc", -1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), std::string(), 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), "", 1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc", 3), "abc", 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), "abc", 0));
+   data.push_back(std::make_tuple( ByteArray::fromRawData("abcd", 3), "abc", 0));
+   
+   data.push_back(std::make_tuple(ByteArray("ab"), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray("abb"), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 2), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray("", 1), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("", 1), "abc", -1));
+   data.push_back(std::make_tuple(ByteArray("a\0bc", 4), "a.bc", -1));
+   
+   data.push_back(std::make_tuple(ByteArray("ac"), "abc", 1));
+   data.push_back(std::make_tuple(ByteArray("abd"), "abc", 1));
+   data.push_back(std::make_tuple(ByteArray("abcd"), "abc", 1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abcd", 4), "abc", 1));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray str1 = std::get<0>(item);
+      std::string string2 = std::get<1>(item);
+      const char *str2 = string2.c_str();
+      if (string2.empty())
+         str2 = nullptr;
+      int result = std::get<2>(item);
+      const bool isEqual   = result == 0;
+      const bool isLess    = result < 0;
+      const bool isGreater = result > 0;
+      
+      // basic tests:
+      ASSERT_EQ(str1 == str2, isEqual);
+      ASSERT_EQ(str1 < str2, isLess);
+      ASSERT_EQ(str1 > str2, isGreater);
+      
+      ASSERT_EQ(str1 <= str2, isLess | isEqual);
+      ASSERT_EQ(str1 >= str2, isGreater | isEqual);
+      ASSERT_EQ(str1 != str2, !isEqual);
+      
+      ASSERT_EQ(str2 == str1, isEqual);
+      ASSERT_EQ(str2 < str1, isGreater);
+      ASSERT_EQ(str2 > str1, isLess);
+      
+      ASSERT_EQ(str2 <= str1, isGreater | isEqual);
+      ASSERT_EQ(str2 >= str1, isLess | isEqual);
+      ASSERT_EQ(str2 != str1, !isEqual);
+      
+      if (isEqual) {
+         // @TODO
+         //ASSERT_TRUE(pdk::hash(str1) == pdk::hash(str2));
+      }
+      ++begin;
+   }
+}
+
