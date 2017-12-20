@@ -822,6 +822,22 @@ TEST(ByteArrayTest, testToBase64)
       ASSERT_EQ(encoded, base64);
       encoded = rawData.toBase64(ByteArray::Base64Encoding);
       ASSERT_EQ(encoded, base64);
+      
+      ByteArray base64noequals = base64;
+      base64noequals.replace('=', "");
+      encoded = rawData.toBase64(ByteArray::Base64Encoding | ByteArray::OmitTrailingEquals);
+      ASSERT_EQ(encoded, base64noequals);
+      
+      ByteArray base64url = base64;
+      base64url.replace('/', '_').replace('+', '-');
+      encoded = rawData.toBase64(ByteArray::Base64UrlEncoding);
+      ASSERT_EQ(encoded, base64url);
+      
+      ByteArray base64urlnoequals = base64url;
+      base64urlnoequals.replace('=', "");
+      encoded = rawData.toBase64(ByteArray::Base64UrlEncoding | ByteArray::OmitTrailingEquals);
+      ASSERT_EQ(encoded, base64urlnoequals);
+      
       ++begin;
    }
 }
