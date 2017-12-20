@@ -1057,7 +1057,6 @@ TEST(ByteArrayTest, testReserve)
 
 TEST(ByteArrayTest, testReseveExtended)
 {
-   
    std::list<ByteArray> data;
    prepare_prepend_data(data);
    std::list<ByteArray>::iterator begin = data.begin();
@@ -1072,4 +1071,86 @@ TEST(ByteArrayTest, testReseveExtended)
       ASSERT_EQ(array.capacity(), array.size());
       ++begin;
    }
+}
+
+TEST(ByteArrayTest, testMovablity)
+{
+   std::list<ByteArray> data;
+   data.push_back(ByteArray("\x00\x00\x00\x00", 4));
+   data.push_back(ByteArray("\x00\x00\x00\xff", 4));
+   data.push_back(ByteArray(""));
+   data.push_back(ByteArray());
+   data.push_back(ByteArray(3, 's'));
+   prepare_prepend_data(data);
+   
+   std::list<ByteArray>::iterator begin = data.begin();
+   std::list<ByteArray>::iterator end = data.end();
+   while (begin != end) {
+      ByteArray array = *begin;
+      array.reserve(1024);
+      const int size = array.size();
+      const bool isEmpty = array.isEmpty();
+      const bool isNull = array.isNull();
+      const int capacity = array.capacity();
+      ByteArray memSpace;
+      memSpace.~ByteArray();
+      // move array -> memSpace
+      std::memcpy(&memSpace, &array, sizeof(ByteArray));
+      new (&array) ByteArray;
+      ASSERT_EQ(memSpace.size(), size);
+      ASSERT_EQ(memSpace.isEmpty(), isEmpty);
+      ASSERT_EQ(memSpace.isNull(), isNull);
+      ASSERT_EQ(memSpace.capacity(), capacity);
+      PDK_UNUSED(memSpace.toLower());
+      PDK_UNUSED(memSpace.toUpper());
+      memSpace.prepend('a');
+      memSpace.append("b", 1);
+      memSpace.squeeze();
+      memSpace.reserve(array.size() + 16);
+      ByteArray copy(memSpace);
+      // reinitialize base values
+      const int newSize = size + 2;
+      const bool newIsEmpty = false;
+      const bool newIsNull = false;
+      const int newCapacity = 16;
+      // move back memSpace -> array
+      array.~ByteArray();
+      std::memcpy(&array, &memSpace, sizeof(ByteArray));
+      new (&memSpace) ByteArray;
+      ASSERT_EQ(array.size(), newSize);
+      ASSERT_EQ(array.isEmpty(), newIsEmpty);
+      ASSERT_EQ(array.isNull(), newIsNull);
+      ASSERT_EQ(array.capacity(), newCapacity);
+      ASSERT_TRUE(array.startsWith('a'));
+      ASSERT_TRUE(array.endsWith('b'));
+      
+      ASSERT_EQ(copy.size(), newSize);
+      ASSERT_EQ(copy.isEmpty(), newIsEmpty);
+      ASSERT_EQ(copy.isNull(), newIsNull);
+      ASSERT_EQ(copy.capacity(), newCapacity);
+      ASSERT_TRUE(copy.startsWith('a'));
+      ASSERT_TRUE(copy.endsWith('b'));
+      
+      array.squeeze();
+      array.reserve(array.size() + 3);
+      ASSERT_TRUE(true);
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testLiteral)
+{
+   ByteArray str(ByteArrayLiteral("abcd"));
+   ASSERT_EQ(str.length(), 4);
+   ASSERT_TRUE(str == "abcd");
+   ASSERT_TRUE(str.getDataPtr()->m_ref.isStatic());
+   ASSERT_TRUE(str.getDataPtr()->m_offset == sizeof(ByteArrayData));
+   const char *s = str.getConstRawData();
+   ByteArray str2 = str;
+   ASSERT_TRUE(str2.getConstRawData() == s);
+   // detach on non const access
+   ASSERT_TRUE(str.getRawData() != s);
+   ASSERT_TRUE(str2.getConstRawData() == s);
+   ASSERT_TRUE(str2.getRawData() != s);
+   ASSERT_TRUE(str2.getConstRawData() != s);
 }
