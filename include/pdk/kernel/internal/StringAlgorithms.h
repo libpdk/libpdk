@@ -57,6 +57,13 @@ struct StringAlgorithms
       return std::move(str);
    }
    
+   static inline StringType trimmedInplace(const NakedStringType &, const CharType *, const CharType *)
+   {
+      // can't happen, just lie to compiler
+      PDK_UNREACHABLE();
+      return StringType();
+   }
+   
    static inline void trimmedPositions(const CharType *&begin, const CharType *&end)
    {
       while (begin < end && isSpace(*begin)) {

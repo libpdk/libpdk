@@ -17,6 +17,7 @@
 #include "pdk/utils/MemoryHelper.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/ds/internal/ByteArrayMatcher.h"
+#include "pdk/kernel/internal/StringAlgorithms.h"
 
 #include <limits.h>
 
@@ -97,6 +98,48 @@ ByteArray ByteArray::fromRawData(const char *data, int size)
    }
    ByteArrayDataPtr dataPtr{ ptr };
    return ByteArray(dataPtr);
+}
+
+ByteArray ByteArray::fromBase64(const ByteArray &base64, Base64Options options)
+{
+   unsigned int buf = 0;
+   int nbits = 0;
+   ByteArray temp((base64.size() * 3) / 4, pdk::Initialization::Uninitialized);
+   
+   int offset = 0;
+   for (int i = 0; i < base64.size(); ++i) {
+      int ch = base64.at(i);
+      int d;
+      
+      if (ch >= 'A' && ch <= 'Z') {
+         d = ch - 'A';
+      } else if (ch >= 'a' && ch <= 'z') {
+         d = ch - 'a' + 26;
+      } else if (ch >= '0' && ch <= '9') {
+         d = ch - '0' + 52;
+      } else if (ch == '+' && (options & Base64Option::Base64UrlEncoding) == 0) {
+         d = 62; 
+      } else if (ch == '-' && (options & Base64Option::Base64UrlEncoding) != 0) {
+         d = 62;
+      } else if (ch == '/' && (options & Base64Option::Base64UrlEncoding) == 0) {
+         d = 63;
+      } else if (ch == '_' && (options & Base64Option::Base64UrlEncoding) != 0) {
+         d = 63;
+      } else {
+         d = -1;
+      }
+      if (d != -1) {
+         buf = (buf << 6) | d;
+         nbits += 6;
+         if (nbits >= 8) {
+            nbits -= 8;
+            temp[offset++] = buf >> nbits;
+            buf &= (1 << nbits) - 1;
+         }
+      }
+   }
+   temp.truncate(offset);
+   return temp;
 }
 
 void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
@@ -260,6 +303,26 @@ ByteArray ByteArray::toUpperHelper(const ByteArray &a)
 ByteArray ByteArray::toUpperHelper(ByteArray &a)
 {
    return to_case_template(a, latin1Uppercased);
+}
+
+ByteArray ByteArray::trimmedHelper(ByteArray &a)
+{
+   return pdk::internal::StringAlgorithms<ByteArray>::trimmed(a);
+}
+
+ByteArray ByteArray::trimmedHelper(const ByteArray &a)
+{
+   return pdk::internal::StringAlgorithms<const ByteArray>::trimmed(a);
+}
+
+ByteArray ByteArray::simplifiedHelper(ByteArray &a)
+{
+   return pdk::internal::StringAlgorithms<ByteArray>::simplified(a);
+}
+
+ByteArray ByteArray::simplifiedHelper(const ByteArray &a)
+{
+   return pdk::internal::StringAlgorithms<const ByteArray>::simplified(a);
 }
 
 ByteArray &ByteArray::operator=(const ByteArray &other) noexcept
@@ -771,6 +834,65 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
    }
    std::memset(dest + pos, c, count);
    return *this;
+}
+
+ByteArray ByteArray::toBase64(Base64Options options) const
+{
+   const char alphabetBase64[] = "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
+                                 "ghijklmn" "opqrstuv" "wxyz0123" "456789+/";
+   const char alphabetBase64url[] = "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
+                                    "ghijklmn" "opqrstuv" "wxyz0123" "456789-_";
+   const char *const alphabet = options & Base64Option::Base64UrlEncoding
+         ? alphabetBase64url
+         : alphabetBase64;
+   const char padchar = '=';
+   int padLength = 0;
+   ByteArray temp((m_data->m_size + 2) / 3 * 4, pdk::Initialization::Uninitialized);
+   
+   int i = 0;
+   char *out = temp.getRawData();
+   const char *baseDataPtr = m_data->getData();
+   while (i < m_data->m_size) {
+      // encode 3 bytes at a time
+      int chunk = 0;
+      chunk |= int(uchar(baseDataPtr[i++])) << 16;
+      if (i == m_data->m_size) {
+         padLength = 2;
+      } else {
+         chunk |= int(uchar(baseDataPtr[i++])) << 8;
+         if (i == m_data->m_size) {
+            padLength = 1;
+         } else {
+            chunk |= int(uchar(baseDataPtr[i++]));
+         }
+      }
+      
+      int j = (chunk & 0x00fc0000) >> 18;
+      int k = (chunk & 0x0003f000) >> 12;
+      int l = (chunk & 0x00000fc0) >> 6;
+      int m = (chunk & 0x0000003f);
+      *out++ = alphabet[j];
+      *out++ = alphabet[k];
+      
+      if (padLength > 1) {
+         if ((options & Base64Option::OmitTrailingEquals) == 0)
+            *out++ = padchar;
+      } else {
+         *out++ = alphabet[l];
+      }
+      if (padLength > 0) {
+         if ((options & Base64Option::OmitTrailingEquals) == 0) {
+            *out++ = padchar;
+         }
+      } else {
+         *out++ = alphabet[m];
+      }
+   }
+   PDK_ASSERT((options & Base64Option::OmitTrailingEquals) || (out == temp.size() + temp.getRawData()));
+   if (options & Base64Option::OmitTrailingEquals) {
+      temp.truncate(out - temp.getRawData());
+   }
+   return temp;
 }
 
 std::list<ByteArray> ByteArray::split(char sep) const
