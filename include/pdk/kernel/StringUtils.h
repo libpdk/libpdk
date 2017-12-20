@@ -97,6 +97,37 @@ PDK_STATIC_ASSERT(!ascii_isspace(uchar('\200')));
 PDK_STATIC_ASSERT(!ascii_isspace(uchar('\xA0')));
 PDK_STATIC_ASSERT(!ascii_isspace(uchar('\377')));
 
+constexpr inline char to_hex_upper(uint value) noexcept
+{
+   return "0123456789ABCDEF"[value & 0xF];
+}
+
+constexpr inline char to_hex_lower(uint value) noexcept
+{
+   return "0123456789abcdef"[value & 0xF];
+}
+
+constexpr inline int from_hex(uint c) noexcept
+{
+   return ((c >= '0') && (c <= '9')) 
+         ? static_cast<int>(c - '0') 
+         : ((c >= 'A') && (c <= 'F'))
+           ? static_cast<int>(c - 'A' + 10)
+           : ((c >= 'a') && (c <= 'f'))
+             ? static_cast<int>(c - 'a' + 10)
+             : -1;
+}
+
+constexpr inline char to_oct(uint value) noexcept
+{
+   return '0' + static_cast<char>(value & 0x7);
+}
+
+constexpr inline int from_oct(uint c) noexcept
+{
+   return ((c >= '0') && (c <= '7')) ? static_cast<int>(c - '0') : -1;
+}
+
 } // pdk
 
 #endif // PDK_KERNEL_STRING_UTILS_H

@@ -147,6 +147,30 @@ ByteArray ByteArray::fromBase64(const ByteArray &base64)
    return fromBase64(base64, Base64Option::Base64Encoding);  
 }
 
+ByteArray ByteArray::fromHex(const ByteArray &hexEncoded)
+{
+   ByteArray result((hexEncoded.size() + 1) / 2, pdk::Initialization::Uninitialized);
+   uchar *resultDataPtr = reinterpret_cast<uchar *>(result.getRawData()) + result.size();
+   bool oddDigit = true;
+   for (int i = hexEncoded.size() - 1; i >= 0; --i) {
+      uchar ch = static_cast<uchar>(hexEncoded.at(i));
+      int temp = pdk::from_hex(ch);
+      if (temp == -1) {
+         continue;
+      }
+      if (oddDigit) {
+         --resultDataPtr;
+         *resultDataPtr = temp;
+         oddDigit = false;
+      } else {
+         *resultDataPtr |= temp << 4;
+         oddDigit = true;
+      }
+   }
+   result.remove(0, resultDataPtr - reinterpret_cast<const uchar *>(result.getConstRawData()));
+   return result;
+}
+
 void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
 {
    if (m_data->m_ref.isShared() || PDK_BA_IS_RAW_DATA(m_data)) {
@@ -1112,6 +1136,18 @@ ByteArray ByteArray::toBase64(Base64Options options) const
 ByteArray ByteArray::toBase64() const
 {
    return toBase64(Base64Option::Base64Encoding);
+}
+
+ByteArray ByteArray::toHex() const
+{
+   ByteArray hex(m_data->m_size * 2, pdk::Initialization::Uninitialized);
+   char *hexData = hex.getRawData();
+   const uchar *data = reinterpret_cast<const uchar *>(m_data->getData());
+   for (int i = 0; i < m_data->m_size; ++i) {
+      hexData[i*2] = pdk::to_hex_lower(data[i] >> 4);
+      hexData[i*2+1] = pdk::to_hex_lower(data[i] & 0xf);
+   }
+   return hex;
 }
 
 std::list<ByteArray> ByteArray::split(char sep) const

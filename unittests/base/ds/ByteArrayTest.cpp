@@ -1300,3 +1300,50 @@ TEST(ByteArrayTest, testCompareWithChar)
    }
 }
 
+TEST(ByteArrayTest, testToOrFromHex)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, ByteArray>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("libpdk is great!"), ByteArray("6c696270646b20697320677265617421"), 
+                                  ByteArray("6c 69 62 70 64 6b 20 69 73 20 67 72 65 61 74 21")));
+   data.push_back(std::make_tuple(ByteArray("libpdk is so great!"), ByteArray("6c696270646b20697320736f20677265617421"), 
+                                  ByteArray("6c 69 62 70 64 6b 20 69 73 20 73 6f 20 67 72 65 61 74 21")));
+   
+   data.push_back(std::make_tuple(ByteArray(),  ByteArray(), ByteArray()));
+   data.push_back(std::make_tuple(ByteArray(""),  ByteArray(""), ByteArray("")));
+   data.push_back(std::make_tuple(ByteArray("\0", 1),  ByteArray("00"), ByteArray("0")));
+   data.push_back(std::make_tuple(ByteArray("\xf", 1),  ByteArray("0f"), ByteArray("f")));
+   data.push_back(std::make_tuple(ByteArray("\xaf", 1),  ByteArray("af"), ByteArray("xaf")));
+   data.push_back(std::make_tuple(ByteArray("\xd\xde\xad\xc0\xde"),  
+                                  ByteArray("0ddeadc0de"), ByteArray("ddeadc0de")));
+   data.push_back(std::make_tuple(ByteArray("\xC\xde\xeC\xea\xee\xDe\xee\xee"),  
+                                  ByteArray("0cdeeceaeedeeeee"), ByteArray("Code less. Create more. Deploy everywhere.")));
+   data.push_back(std::make_tuple(ByteArray("\x1\x23"),  
+                                  ByteArray("0123"), ByteArray("x123")));
+   data.push_back(std::make_tuple(ByteArray("\x12\x34"),  
+                                  ByteArray("1234"), ByteArray("x1234")));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray str = std::get<0>(item);
+      ByteArray hex = std::get<1>(item);
+      ByteArray hexAlt1 = std::get<2>(item);
+      
+      {
+         const ByteArray th = str.toHex();
+         ASSERT_EQ(th.size(), hex.size());
+         ASSERT_EQ(th, hex);
+      }
+      
+      {
+         const ByteArray th = ByteArray::fromHex(hex);
+         ASSERT_EQ(th.size(), str.size());
+         ASSERT_EQ(th, str);
+      }
+      
+      ASSERT_EQ(ByteArray::fromHex(hexAlt1), str);
+      ++begin;
+   }
+}

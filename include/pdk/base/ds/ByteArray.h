@@ -272,23 +272,23 @@ public:
    std::list<ByteArray> split(char sep) const;
    ByteArray repeated(int times) const PDK_REQUIRED_RESULT;
    
-   short toShort(bool *ok = nullptr, int base = 10) const;
-   ushort toUnsignedShort(bool *ok = nullptr, int base = 10) const;
-   int toInt(bool *ok = nullptr, int base = 10) const;
-   uint toUnsignedInt(bool *ok = nullptr, int base = 10) const;
-   long toLong(bool *ok = nullptr, int base = 10) const;
-   ulong toUnsignedLong(bool *ok = nullptr, int base = 10) const;
-   long long toLongLong(bool *ok = nullptr, int base = 10) const;
-   unsigned long long toUnsignedLongLong(bool *ok = nullptr, int base = 10) const;
-   float toFloat(bool *ok = nullptr) const;
-   double toDouble(bool *ok = nullptr) const;
+//   short toShort(bool *ok = nullptr, int base = 10) const;
+//   ushort toUnsignedShort(bool *ok = nullptr, int base = 10) const;
+//   int toInt(bool *ok = nullptr, int base = 10) const;
+//   uint toUnsignedInt(bool *ok = nullptr, int base = 10) const;
+//   long toLong(bool *ok = nullptr, int base = 10) const;
+//   ulong toUnsignedLong(bool *ok = nullptr, int base = 10) const;
+//   long long toLongLong(bool *ok = nullptr, int base = 10) const;
+//   unsigned long long toUnsignedLongLong(bool *ok = nullptr, int base = 10) const;
+//   float toFloat(bool *ok = nullptr) const;
+//   double toDouble(bool *ok = nullptr) const;
    
    ByteArray toBase64(Base64Options options) const;
    ByteArray toBase64() const;
    ByteArray toHex() const;
-   ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
-                               const ByteArray &include = ByteArray(),
-                               char percent = '%') const;
+//   ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
+//                               const ByteArray &include = ByteArray(),
+//                               char percent = '%') const;
    
 //   ByteArray &setNum(short number, int base = 10);
 //   ByteArray &setNum(ushort number, int base = 10);
@@ -309,7 +309,7 @@ public:
    static ByteArray fromBase64(const ByteArray &base64, Base64Options options) PDK_REQUIRED_RESULT;
    static ByteArray fromBase64(const ByteArray &base64) PDK_REQUIRED_RESULT;
    static ByteArray fromHex(const ByteArray &hexEncoded) PDK_REQUIRED_RESULT;
-   static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
+//   static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
    
    using Iterator = char *;
    using iterator = Iterator;
