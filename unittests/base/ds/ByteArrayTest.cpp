@@ -928,3 +928,25 @@ TEST(ByteArrayTest, testChop)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testSplit)
+{
+   using DataType = std::list<std::tuple<ByteArray, int>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("-rw-r--r--  1 0  0  519240 Jul  9  2002 bigfile"), 14));
+   data.push_back(std::make_tuple(ByteArray("abcde"), 1));
+   data.push_back(std::make_tuple(ByteArray(""), 1));
+   data.push_back(std::make_tuple(ByteArray(" "), 2));
+   data.push_back(std::make_tuple(ByteArray("  "), 3));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray sample = std::get<0>(item);
+      int size = std::get<1>(item);
+      std::list<ByteArray> list = sample.split(' ');
+      ASSERT_EQ(list.size(), size);
+      ++begin;
+   }
+}
