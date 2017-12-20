@@ -224,12 +224,36 @@ int strnicmp(const char *lhs, const char *rhs, uint length)
 
 int strcmp(const ds::ByteArray &lhs, const char *rhs)
 {
+   if (!rhs) {
+      return lhs.isEmpty() ? 0 : 1;
+   }
+   const char *lhsData = lhs.getConstRawData();
+   const char *lhsDataEnd = lhsData + lhs.length();
+   for (; lhsData < lhsDataEnd && *rhs; ++lhsData, ++rhs) {
+      int diff = static_cast<int>(static_cast<uchar>(*lhsData) - static_cast<uchar>(*rhs));
+      if (diff) {
+         return diff;
+      }
+   }
+   if (*rhs != '\0') {
+      return -1;
+   }
+   if (lhsData < lhsDataEnd) {
+      return 1;
+   }
    return 0;
 }
 
 int strcmp(const ds::ByteArray &lhs, const ds::ByteArray &rhs)
 {
-   return 0;
+   int lhsLength = lhs.length();
+   int rhsLength = rhs.length();
+   int ret = std::memcmp(lhs.getConstRawData(), rhs.getConstRawData(), 
+                         std::min(lhsLength, rhsLength));
+   if (ret != 0) {
+      return ret;
+   }
+   return lhsLength - rhsLength;
 }
 
 } 

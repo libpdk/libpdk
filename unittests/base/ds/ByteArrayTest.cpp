@@ -1154,3 +1154,75 @@ TEST(ByteArrayTest, testLiteral)
    ASSERT_TRUE(str2.getRawData() != s);
    ASSERT_TRUE(str2.getConstRawData() != s);
 }
+
+TEST(ByteArrayTest, testCompare)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, int>>;
+   DataType data;
+   
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), 0));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(""), 0));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray(), 0));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray(), +1));
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray(""), +1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 0), ByteArray("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray::fromRawData("abc", 0), +1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("abc"), 0));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc", 3), ByteArray("abc"), 0));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abcdef", 3), ByteArray("abc"), 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray::fromRawData("abc", 3), 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray::fromRawData("abcdef", 3), 0));
+   data.push_back(std::make_tuple(ByteArray("a\0bc", 4), ByteArray::fromRawData("a\0bc", 4), 0));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("a\0bcdef", 4), ByteArray("a\0bc", 4), 0));
+   data.push_back(std::make_tuple(ByteArray("a\0bc", 4), ByteArray::fromRawData("a\0bcdef", 4), 0));
+   
+   data.push_back(std::make_tuple(ByteArray("000"), ByteArray("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("00", 3), ByteArray("abc"), -1));
+   data.push_back(std::make_tuple(ByteArray("000"), ByteArray::fromRawData("abc", 3), -1));
+   data.push_back(std::make_tuple(ByteArray("abc", 3), ByteArray("abc", 4), -1));
+   data.push_back(std::make_tuple(ByteArray::fromRawData("abc\0", 3), ByteArray("abc\0", 4), -1));
+   data.push_back(std::make_tuple(ByteArray("a\0bc", 4), ByteArray("a\0bd", 4), -1));
+   
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("000"), 1));
+   data.push_back(std::make_tuple(ByteArray("000"), ByteArray::fromRawData("00", 3), 1));
+   data.push_back(std::make_tuple(ByteArray("abcd"), ByteArray::fromRawData("abc", 3), 1));
+   data.push_back(std::make_tuple(ByteArray("a\0bc", 4), ByteArray("a\0bb", 4), 1));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray str1 = std::get<0>(item);
+      ByteArray str2 = std::get<1>(item);
+      int result = std::get<2>(item);
+      const bool isEqual   = result == 0;
+      const bool isLess    = result < 0;
+      const bool isGreater = result > 0;
+      
+      // basic tests:
+      ASSERT_EQ(str1 == str2, isEqual);
+      ASSERT_EQ(str1 < str2, isLess);
+      ASSERT_EQ(str1 > str2, isGreater);
+      
+      ASSERT_EQ(str1 <= str2, isLess | isEqual);
+      ASSERT_EQ(str1 >= str2, isGreater | isEqual);
+      ASSERT_EQ(str1 != str2, !isEqual);
+      
+      ASSERT_EQ(str2 == str1, isEqual);
+      ASSERT_EQ(str2 < str1, isGreater);
+      ASSERT_EQ(str2 > str1, isLess);
+      
+      ASSERT_EQ(str2 <= str1, isGreater | isEqual);
+      ASSERT_EQ(str2 >= str1, isLess | isEqual);
+      ASSERT_EQ(str2 != str1, !isEqual);
+      
+      if (isEqual) {
+         // @TODO
+         //ASSERT_TRUE(pdk::hash(str1) == pdk::hash(str2));
+      }
+      ++begin;
+   }
+}
