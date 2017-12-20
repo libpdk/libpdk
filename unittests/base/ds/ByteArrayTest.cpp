@@ -950,3 +950,12 @@ TEST(ByteArrayTest, testSplit)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testSwap)
+{
+   ByteArray b1 = "b1";
+   ByteArray b2 = "b2";
+   b1.swap(b2);
+   ASSERT_EQ(b1, ByteArray("b2"));
+   ASSERT_EQ(b2, ByteArray("b1"));
+}

@@ -1127,6 +1127,41 @@ std::list<ByteArray> ByteArray::split(char sep) const
    return list;
 }
 
+ByteArray ByteArray::repeated(int times) const
+{
+   if (m_data->m_size == 0) {
+      return *this;
+   }
+   if (times <= 1) {
+      if (times == 1) {
+         return *this;
+      }
+      return ByteArray();
+   }
+   int selfLength = m_data->m_size;
+   const int resultSize = times * selfLength;
+   ByteArray result;
+   result.reserve(resultSize);
+   if (result.m_data->m_alloc != static_cast<uint>(result) + 1u) {
+      return ByteArray(); // not enough memory
+   }
+   char *resultDataPtr = result.m_data->getData();
+   char *selfDataPtr = m_data->getData();
+   std::memcpy(resultDataPtr, selfDataPtr, selfLength);
+   int currentSize = selfLength;
+   char *writer = resultDataPtr + currentSize;
+   const int halfResultSize = resultSize >> 1;
+   while (currentSize <= halfResultSize) {
+      std::memcpy(writer, resultDataPtr, currentSize);
+      writer += currentSize;
+      currentSize <<= 1;
+   }
+   std::memcpy(writer, resultDataPtr, resultSize - currentSize);
+   resultDataPtr[resultSize] = '\0';
+   result.m_data->m_size = resultSize;
+   return result;
+}
+
 bool ByteArray::isNull() const
 {
    return m_data == Data::getSharedNull();
