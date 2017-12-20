@@ -841,3 +841,65 @@ TEST(ByteArrayTest, testToBase64)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testFromBase64)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray>>;
+   DataType data;
+   
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("  ")));
+   data.push_back(std::make_tuple(ByteArray("1"), ByteArray("MQ")));
+   data.push_back(std::make_tuple(ByteArray("12"), ByteArray("MTI       ")));
+   data.push_back(std::make_tuple(ByteArray("123"), ByteArray("M=TIz")));
+   data.push_back(std::make_tuple(ByteArray("1234"), ByteArray("MTI zN A ")));
+   
+   data.push_back(std::make_tuple(ByteArray("\n"), ByteArray("Cg")));
+   data.push_back(std::make_tuple(ByteArray("a\n"), ByteArray("======YQo=")));
+   data.push_back(std::make_tuple(ByteArray("ab\n"), ByteArray("Y\nWIK")));
+   data.push_back(std::make_tuple(ByteArray("abc\n"), ByteArray("YWJjCg==")));
+   data.push_back(std::make_tuple(ByteArray("abcd\n"), ByteArray("YWJ\1j\x9cZAo=")));
+   data.push_back(std::make_tuple(ByteArray("abcde\n"), ByteArray("YW JjZ\n G\tUK")));
+   data.push_back(std::make_tuple(ByteArray("abcdef\n"), ByteArray("YWJjZGVmCg=")));
+   data.push_back(std::make_tuple(ByteArray("abcdefg\n"), ByteArray("YWJ\rjZGVmZwo")));
+   data.push_back(std::make_tuple(ByteArray("abcdefgh\n"), ByteArray("YWJjZGVmZ2gK")));
+   
+   ByteArray ba;
+   ba.resize(256);
+   for (int i = 0; i < 256; ++i) {
+      ba[i] = i;
+   }
+   data.push_back(std::make_tuple(ba, ByteArray("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Nj\n"
+                                                "c4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1u\n"
+                                                "b3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpa\n"
+                                                "anqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd\n"
+                                                "3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==                            ")));
+   
+   data.push_back(std::make_tuple(ByteArray("foo\0bar", 7), ByteArray("Zm9vAGJhcg")));
+   data.push_back(std::make_tuple(ByteArray("f\xd1oo\x9ctar"), ByteArray("ZtFvb5x0YXI=")));
+   data.push_back(std::make_tuple(ByteArray("\"\0\0\0\0\0\0\"", 8), ByteArray("IgAAAAAAACI")));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray rawData = std::get<0>(item);
+      ByteArray base64 = std::get<1>(item);
+      ByteArray decoded = ByteArray::fromBase64(base64);
+      ASSERT_EQ(rawData, decoded);
+      decoded = ByteArray::fromBase64(base64, ByteArray::Base64Encoding);
+      ASSERT_EQ(rawData, decoded);
+      // try "base64url" encoding
+      ByteArray base64url = base64;
+      base64url.replace('/', '_').replace('+', '-');
+      decoded = ByteArray::fromBase64(base64url, ByteArray::Base64UrlEncoding);
+      ASSERT_EQ(decoded, rawData);
+      if (base64 != base64url) {
+         // check that the invalid decodings fail
+         decoded = ByteArray::fromBase64(base64, ByteArray::Base64UrlEncoding);
+         ASSERT_FALSE(decoded == rawData);
+         decoded = ByteArray::fromBase64(base64url, ByteArray::Base64Encoding);
+         ASSERT_FALSE(decoded == rawData);
+      }
+      ++begin;
+   }
+}
