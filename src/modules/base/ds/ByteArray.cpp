@@ -1116,9 +1116,15 @@ ByteArray ByteArray::toBase64() const
 
 std::list<ByteArray> ByteArray::split(char sep) const
 {
-   //   std::list<ByteArray> list;
-   //   int start = 0;
-   //   int end;
+   std::list<ByteArray> list;
+   int start = 0;
+   int end;
+   while ((end = indexOf(sep, start)) != -1) {
+      list.push_back(mid(start, end - start));
+      start = end + 1;
+   }
+   list.push_back(mid(start));
+   return list;
 }
 
 bool ByteArray::isNull() const

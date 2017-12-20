@@ -903,3 +903,28 @@ TEST(ByteArrayTest, testFromBase64)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testChop)
+{
+   using DataType = std::list<std::tuple<ByteArray, int, ByteArray>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("short1"), 128, ByteArray()));
+   data.push_back(std::make_tuple(ByteArray("short2"), static_cast<int>(std::strlen("short2")), ByteArray()));
+   data.push_back(std::make_tuple(ByteArray("abcdef\0foo", 10), 2, ByteArray("abcdef\0f", 8)));
+   data.push_back(std::make_tuple(ByteArray("STARTTLS\r\n"), 2, ByteArray("STARTTLS")));
+   data.push_back(std::make_tuple(ByteArray(""), 1, ByteArray()));
+   data.push_back(std::make_tuple(ByteArray("foo"), 0, ByteArray("foo")));
+   data.push_back(std::make_tuple(ByteArray(0), 28, ByteArray()));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray src = std::get<0>(item);
+      int choplength = std::get<1>(item);
+      ByteArray expected = std::get<2>(item);
+      src.chop(choplength);
+      ASSERT_EQ(src, expected);
+      ++begin;
+   }
+}
