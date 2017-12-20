@@ -722,6 +722,62 @@ TEST(ByteArrayTest, testLastIndexOf)
    }
 }
 
+TEST(ByteArrayTest, testReplace)
+{
+   using DataType = std::list<std::tuple<ByteArray, int, int, ByteArray, ByteArray>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray("Say yes!"), 4, 3, 
+                                  ByteArray("no"), ByteArray("Say no!")));
+   data.push_back(std::make_tuple(ByteArray("rock and roll"), 5, 3, 
+                                  ByteArray("&"), ByteArray("rock & roll")));
+   data.push_back(std::make_tuple(ByteArray("foo"), 3, 0, 
+                                  ByteArray("bar"), ByteArray("foobar")));
+   data.push_back(std::make_tuple(ByteArray(), 0, 0, 
+                                  ByteArray(), ByteArray()));
+   data.push_back(std::make_tuple(ByteArray(), 3, 0, 
+                                  ByteArray("hi"), ByteArray("   hi")));
+   
+   data.push_back(std::make_tuple(ByteArray("abcdef"), 3, 12, 
+                                  ByteArray("abcdefghijkl"), ByteArray("abcabcdefghijkl")));
+   data.push_back(std::make_tuple(ByteArray("abcdef"), 3, 4, 
+                                  ByteArray("abcdefghijkl"), ByteArray("abcabcdefghijkl")));
+   data.push_back(std::make_tuple(ByteArray("abcdef"), 3, 4, 
+                                  ByteArray("abcdefghijkl"), ByteArray("abcabcdefghijkl")));
+   data.push_back(std::make_tuple(ByteArray("abcdef"), 3, 2, 
+                                  ByteArray("abcdefghijkl"), ByteArray("abcabcdefghijklf")));
+   data.push_back(std::make_tuple(ByteArray("abcdef"), 2, 2, 
+                                  ByteArray("xx"), ByteArray("abxxef")));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray src = std::get<0>(item);
+      int pos = std::get<1>(item);
+      int length = std::get<2>(item);
+      ByteArray after = std::get<3>(item);
+      ByteArray expected = std::get<4>(item);
+      
+      ByteArray str1 = src;
+      ByteArray str2 = src;
+      ASSERT_STREQ(str1.replace(pos, length, after).getConstRawData(), expected.getConstRawData());
+      ASSERT_STREQ(str2.replace(pos, length, after.getRawData()), expected);
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testReplaceWithSpecifiedLength)
+{
+   const char after[] = "zxc\0vbnmqwert";
+   int lenAfter = 6;
+   ByteArray ba("abcdefghjk");
+   ba.replace(0, 2, after, lenAfter);
+   
+   const char rawexpected[] = "zxc\0vbcdefghjk";
+   ByteArray expected(rawexpected, sizeof(rawexpected) - 1);
+   ASSERT_EQ(ba, expected);
+}
+
 TEST(ByteArrayTest, testToBase64)
 {
    using DataType = std::list<std::tuple<ByteArray, ByteArray>>;
@@ -747,7 +803,7 @@ TEST(ByteArrayTest, testToBase64)
    for (int i = 0; i < 256; ++i) {
       ba[i] = i;
    }
-      
+   
    data.push_back(std::make_tuple(ba, ByteArray("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==")));
    data.push_back(std::make_tuple(ByteArray("foo\0bar", 7), ByteArray("Zm9vAGJhcg==")));
    data.push_back(std::make_tuple(ByteArray("f\xd1oo\x9ctar"), ByteArray("ZtFvb5x0YXI=")));

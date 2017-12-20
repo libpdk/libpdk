@@ -851,7 +851,7 @@ ByteArray &ByteArray::remove(int index, int length)
       resize(index);
    } else {
       std::memmove(m_data->getData() + index, m_data->getData() + index + length, 
-                   m_data->m_size - length - length);
+                   m_data->m_size - index - length);
       resize(m_data->m_size - length);
    }
    return *this;
