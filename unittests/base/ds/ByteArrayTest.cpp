@@ -136,7 +136,7 @@ TEST(ByteArrayTest, testConstByteArray)
    carray.squeeze();
    ASSERT_EQ(carray.getConstRawData(), ptr);
    carray.detach();
-   ASSERT_EQ(carray.capacaity(), 3);
+   ASSERT_EQ(carray.capacity(), 3);
    ASSERT_EQ(carray.size(), 3);
    ASSERT_NE(carray.getConstRawData(), ptr);
    ASSERT_EQ(carray.getConstRawData()[0], 'a');
@@ -933,20 +933,20 @@ TEST(ByteArrayTest, testSplit)
 {
    using DataType = std::list<std::tuple<ByteArray, int>>;
    DataType data;
-   data.push_back(std::make_tuple(ByteArray("-rw-r--r--  1 0  0  519240 Jul  9  2002 bigfile"), 14));
-   data.push_back(std::make_tuple(ByteArray("abcde"), 1));
-   data.push_back(std::make_tuple(ByteArray(""), 1));
-   data.push_back(std::make_tuple(ByteArray(" "), 2));
-   data.push_back(std::make_tuple(ByteArray("  "), 3));
+   data.push_back(std::make_tuple(ByteArray("-rw-r--r--  1 0  0  519240 Jul  9  2002 bigfile"), 14u));
+   data.push_back(std::make_tuple(ByteArray("abcde"), 1u));
+   data.push_back(std::make_tuple(ByteArray(""), 1u));
+   data.push_back(std::make_tuple(ByteArray(" "), 2u));
+   data.push_back(std::make_tuple(ByteArray("  "), 3u));
    
    DataType::iterator begin = data.begin();
    DataType::iterator end = data.end();
    while (begin != end) {
       auto item = *begin;
       ByteArray sample = std::get<0>(item);
-      int size = std::get<1>(item);
+      uint size = std::get<1>(item);
       std::list<ByteArray> list = sample.split(' ');
-      ASSERT_EQ(list.size(), size);
+      ASSERT_EQ(list.size(), static_cast<size_t>(size));
       ++begin;
    }
 }
@@ -958,4 +958,118 @@ TEST(ByteArrayTest, testSwap)
    b1.swap(b2);
    ASSERT_EQ(b1, ByteArray("b2"));
    ASSERT_EQ(b2, ByteArray("b1"));
+}
+
+TEST(ByteArrayTest, testRepeatedSignature)
+{
+   const ByteArray string;
+   PDK_UNUSED(string.repeated(9));
+}
+
+TEST(ByteArrayTest, testRepeated)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray, int>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), 0));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), -1004));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), 1));
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), 5));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray(), -1004));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray(), -1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray(), 0));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("abc"), 1));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("abcabc"), 2));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("abcabcabc"), 3));
+   data.push_back(std::make_tuple(ByteArray("abc"), ByteArray("abcabcabcabc"), 4));
+   data.push_back(std::make_tuple(ByteArray(staticNotNullTerminated), ByteArray("datadatadatadata"), 4));
+   data.push_back(std::make_tuple(ByteArray(staticStandard), ByteArray("datadatadatadata"), 4));
+   data.push_back(std::make_tuple(ByteArray(staticShiftedNotNullTerminated), ByteArray("datadatadatadata"), 4));
+   data.push_back(std::make_tuple(ByteArray(staticShifted), ByteArray("datadatadatadata"), 4));
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray string = std::get<0>(item);
+      ByteArray expected = std::get<1>(item);
+      int count = std::get<2>(item);
+      
+      ASSERT_EQ(string.repeated(count), expected);
+      ++begin;
+   }
+}
+
+TEST(ByteArrayTest, testByteRefDetacting)
+{
+   {
+      ByteArray str = "abc";
+      ByteArray copy = str;
+      copy[0] = 'A';
+      ASSERT_EQ(str, ByteArray("abc"));
+      ASSERT_EQ(copy, ByteArray("Abc"));
+   }
+   {
+      char buf[] = {'a', 'b', 'c'};
+      ByteArray str = ByteArray::fromRawData(buf, 3);
+      str[0] = 'A';
+      ASSERT_EQ(buf[0], static_cast<char>('a'));
+   }
+   {
+      static const char buf[] = {'a', 'b', 'c'};
+      ByteArray str = ByteArray::fromRawData(buf, 3);
+      str[0] = 'A';
+      ASSERT_EQ(buf[0], static_cast<char>('a'));
+   }
+}
+
+TEST(ByteArrayTest, testReserve)
+{
+   int capacity = 100;
+   ByteArray qba;
+   qba.reserve(capacity);
+   ASSERT_TRUE(qba.capacity() == capacity);
+   char *data = qba.getRawData();
+   for (int i = 0; i < capacity; i++) {
+      qba.resize(i);
+      ASSERT_TRUE(capacity == qba.capacity());
+      ASSERT_TRUE(data == qba.getRawData());
+   }
+   qba.resize(capacity);
+   ByteArray copy = qba;
+   qba.reserve(capacity / 2);
+   ASSERT_EQ(qba.size(), capacity); // we didn't shrink the size!
+   ASSERT_EQ(qba.capacity(), capacity);
+   ASSERT_EQ(copy.capacity(), capacity);
+   
+   qba = copy;
+   qba.reserve(capacity * 2);
+   ASSERT_EQ(qba.size(), capacity);
+   ASSERT_EQ(qba.capacity(), capacity * 2);
+   ASSERT_EQ(copy.capacity(), capacity);
+   ASSERT_TRUE(qba.getConstRawData() != data);
+   
+   ByteArray nil1, nil2;
+   nil1.reserve(0);
+   nil2.squeeze();
+   nil1.squeeze();
+   nil2.reserve(0);
+}
+
+TEST(ByteArrayTest, testReseveExtended)
+{
+   
+   std::list<ByteArray> data;
+   prepare_prepend_data(data);
+   std::list<ByteArray>::iterator begin = data.begin();
+   std::list<ByteArray>::iterator end = data.end();
+   while (begin != end) {
+      ByteArray array = *begin;
+      array.reserve(1024);
+      ASSERT_EQ(array.capacity(), 1024);
+      ASSERT_EQ(array, ByteArray("data"));
+      array.squeeze();
+      ASSERT_EQ(array, ByteArray("data"));
+      ASSERT_EQ(array.capacity(), array.size());
+      ++begin;
+   }
 }

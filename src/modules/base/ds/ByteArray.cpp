@@ -1142,7 +1142,7 @@ ByteArray ByteArray::repeated(int times) const
    const int resultSize = times * selfLength;
    ByteArray result;
    result.reserve(resultSize);
-   if (result.m_data->m_alloc != static_cast<uint>(result) + 1u) {
+   if (result.m_data->m_alloc != static_cast<uint>(resultSize) + 1u) {
       return ByteArray(); // not enough memory
    }
    char *resultDataPtr = result.m_data->getData();

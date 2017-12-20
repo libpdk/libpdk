@@ -137,7 +137,7 @@ public:
    void resize(int size);
    
    ByteArray &fill(char c, int size = -1);
-   inline int capacaity() const;
+   inline int capacity() const;
    void reserve(int size);
    inline void squeeze();
    
@@ -537,7 +537,7 @@ inline bool ByteArray::isEmpty() const
    return m_data->m_size == 0;
 }
 
-inline int ByteArray::capacaity() const
+inline int ByteArray::capacity() const
 {
    return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
 }
