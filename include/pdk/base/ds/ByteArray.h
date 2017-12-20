@@ -253,13 +253,13 @@ public:
    
    ByteArray &remove(int index, int length);
    
-   ByteArray &replace(int index, int length, const char *str);
-   ByteArray &replace(int index, int length, const char *str, int alength);
-   ByteArray &replace(int index, int length, const ByteArray &array);
+   ByteArray &replace(int index, int length, const char *after);
+   ByteArray &replace(int index, int length, const char *after, int alength);
+   ByteArray &replace(int index, int length, const ByteArray &after);
    ByteArray &replace(char before, const char *after);
    ByteArray &replace(char before, const ByteArray &after);
    ByteArray &replace(const char *before, const char *after);
-   ByteArray &replace(const char *before, int bsize, const char *after, int asize);
+   ByteArray &replace(const char *before, int blength, const char *after, int alength);
    ByteArray &replace(const ByteArray &before, const ByteArray &after);
    ByteArray &replace(const ByteArray &before, const char *after);
    ByteArray &replace(const char *before, const ByteArray &after);
@@ -284,6 +284,7 @@ public:
    double toDouble(bool *ok = nullptr) const;
    
    ByteArray toBase64(Base64Options options) const;
+   ByteArray toBase64() const;
    ByteArray toHex() const;
    ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
                                const ByteArray &include = ByteArray(),
@@ -306,6 +307,7 @@ public:
 //   static ByteArray number(double, char format = 'g', int prec = 6) PDK_REQUIRED_RESULT;
    static ByteArray fromRawData(const char *data, int size) PDK_REQUIRED_RESULT;
    static ByteArray fromBase64(const ByteArray &base64, Base64Options options) PDK_REQUIRED_RESULT;
+   static ByteArray fromBase64(const ByteArray &base64) PDK_REQUIRED_RESULT;
    static ByteArray fromHex(const ByteArray &hexEncoded) PDK_REQUIRED_RESULT;
    static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
    

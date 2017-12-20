@@ -142,6 +142,11 @@ ByteArray ByteArray::fromBase64(const ByteArray &base64, Base64Options options)
    return temp;
 }
 
+ByteArray ByteArray::fromBase64(const ByteArray &base64)
+{
+   return fromBase64(base64, Base64Option::Base64Encoding);  
+}
+
 void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
 {
    if (m_data->m_ref.isShared() || PDK_BA_IS_RAW_DATA(m_data)) {
@@ -836,6 +841,215 @@ ByteArray &ByteArray::insert(int pos, int count, char c)
    return *this;
 }
 
+ByteArray &ByteArray::remove(int index, int length)
+{
+   if (length <= 0 || static_cast<uint>(index) >= static_cast<uint>(m_data->m_size)) {
+      return *this;
+   }
+   detach();
+   if (length >= m_data->m_size - index) {
+      resize(index);
+   } else {
+      std::memmove(m_data->getData() + index, m_data->getData() + index + length, 
+                   m_data->m_size - length - length);
+      resize(m_data->m_size - length);
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::replace(int index, int length, const ByteArray &after)
+{
+   if (length == after.m_data->m_size && (index + length) <= m_data->m_size) {
+      detach();
+      std::memmove(m_data->getData() + index, after.m_data->getData(), length * sizeof(char));
+      return *this;
+   } else {
+      ByteArray copy(after);
+      // @TODO optimize me
+      remove(index, length);
+      return insert(index, copy);
+   }
+}
+
+ByteArray &ByteArray::replace(int index, int length, const char *after)
+{
+   return replace(index, length, after, pdk::strlen(after));
+}
+
+ByteArray &ByteArray::replace(int index, int length, const char *after, int alength)
+{
+   if (length == alength && (index + length <= m_data->m_size)) {
+      detach();
+      std::memcpy(m_data->getData() + index, after, length * sizeof(char));
+      return *this;
+   } else {
+      remove(index, length);
+      return bytearray_insert(this, index, after, alength);
+   }
+}
+
+ByteArray &ByteArray::replace(const ByteArray &before, const ByteArray &after)
+{
+   if (isNull() || before.m_data == after.m_data) {
+      return *this;
+   }
+   ByteArray replacement = after;
+   if (after.m_data == m_data) {
+      replacement.detach();
+   }
+   return replace(before.getConstRawData(), before.size(), 
+                  replacement.getConstRawData(), replacement.size());
+}
+
+ByteArray &ByteArray::replace(const char *before, const ByteArray &after)
+{
+   ByteArray replacement = after;
+   if (after.m_data == m_data) {
+      replacement.detach();      
+   }
+   return replace(before, pdk::strlen(before), 
+                  replacement.getConstRawData(), replacement.size());
+}
+
+ByteArray &ByteArray::replace(const char *before, int blength, const char *after, int alength)
+{
+   if (isNull() || (before == after && blength == alength)) {
+      return *this;
+   }
+   const char *a = after;
+   const char *b = before;
+   char *selfDataPtr = m_data->getData();
+   int selfLength = m_data->m_size;
+   if (after >= selfDataPtr && after < selfDataPtr + selfLength) {
+      char *copy = static_cast<char *>(malloc(alength));
+      PDK_CHECK_ALLOC_PTR(copy);
+      std::memcpy(copy, after, alength);
+      a = copy;
+   }
+   if (before >= selfDataPtr && before < selfDataPtr + selfLength) {
+      char *copy = static_cast<char *>(malloc(blength));
+      PDK_CHECK_ALLOC_PTR(copy);
+      std::memcpy(copy, before, blength);
+      b = copy;
+   }
+   
+   internal::ByteArrayMatcher matcher(before, blength);
+   int index = 0;
+   
+   if (blength == alength) {
+      if (blength) {
+         while ((index = matcher.findIndex(*this, index)) != -1) {
+            std::memcpy(selfDataPtr + index, after, alength);
+            index += blength;
+         }
+      }
+   } else if (alength < blength){
+      uint to = 0;
+      uint movestart = 0;
+      uint num = 0;
+      while ((index = matcher.findIndex(*this, index)) != -1) {
+         if (num) {
+            int msize = index - movestart;
+            if (msize > 0) {
+               std::memmove(selfDataPtr + to, selfDataPtr + movestart, msize);
+               to += msize;
+            }
+         } else {
+            to = index;
+         }
+         if (alength) {
+            std::memcpy(selfDataPtr + to, after, alength);
+         }
+         index += blength;
+         movestart = index;
+         ++num;
+      }
+      if (num) {
+         int msize = selfLength - movestart;
+         if (msize > 0) {
+            std::memmove(selfDataPtr + to, selfDataPtr + movestart, msize);
+         }
+         resize(selfLength - num * (blength - alength));
+      }
+   } else {
+      // the most complex case. We don't want to lose performance by doing repeated
+      // copies and reallocs of the string.
+      while (index != -1) {
+         uint indices[4096];
+         uint pos = 0;
+         while(pos < 4095) {
+            index = matcher.findIndex(*this, index);
+            if (index == -1) {
+               break;
+            }
+            indices[pos++] = index;
+            index += blength;
+            // avoid infinite loop
+            if (!blength) {
+               index++;
+            }
+         }
+         if (!pos) {
+            break;
+         }
+         
+         // we have a table of replacement positions, use them for fast replacing
+         int adjust = pos * (alength - blength);
+         // index has to be adjusted in case we get back into the loop above.
+         if (index != -1) {
+            index += adjust;
+         }
+         int newlen = selfLength + adjust;
+         int moveend = selfLength;
+         if (newlen > selfLength) {
+            resize(newlen);
+            selfLength = newlen;
+         }
+         selfDataPtr = this->m_data->getData();
+         
+         while(pos) {
+            pos--;
+            int movestart = indices[pos] + blength;
+            int insertstart = indices[pos] + pos * (alength - blength);
+            int moveto = insertstart + alength;
+            std::memmove(selfDataPtr + moveto, selfDataPtr + movestart, (moveend - movestart));
+            if (alength) {
+               std::memcpy(selfDataPtr + insertstart, after, alength);
+            }
+            moveend = movestart - blength;
+         }
+      }
+   }
+   if (a != after) {
+      ::free(const_cast<char *>(a));
+   }
+   if (b != before) {
+      ::free(const_cast<char *>(b));
+   }
+   return *this;
+}
+
+ByteArray &ByteArray::replace(char before, const ByteArray &after)
+{
+   char b[2] = { before, '\0'};
+   ByteArray cb = fromRawData(b, 1);
+   return replace(cb, after);
+}
+
+ByteArray &ByteArray::replace(char before, char after)
+{
+   if (m_data->m_size) {
+      char *i = getRawData();
+      char *e = i + m_data->m_size;
+      for (; i != e; ++i) {
+         if (*i == before) {
+            *i = after;
+         }
+      }
+   }
+   return *this;
+}
+
 ByteArray ByteArray::toBase64(Base64Options options) const
 {
    const char alphabetBase64[] = "ABCDEFGH" "IJKLMNOP" "QRSTUVWX" "YZabcdef"
@@ -893,6 +1107,11 @@ ByteArray ByteArray::toBase64(Base64Options options) const
       temp.truncate(out - temp.getRawData());
    }
    return temp;
+}
+
+ByteArray ByteArray::toBase64() const
+{
+   return toBase64(Base64Option::Base64Encoding);
 }
 
 std::list<ByteArray> ByteArray::split(char sep) const

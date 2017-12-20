@@ -721,3 +721,51 @@ TEST(ByteArrayTest, testLastIndexOf)
       ++begin;
    }
 }
+
+TEST(ByteArrayTest, testToBase64)
+{
+   using DataType = std::list<std::tuple<ByteArray, ByteArray>>;
+   DataType data;
+   data.push_back(std::make_tuple(ByteArray(""), ByteArray("")));
+   data.push_back(std::make_tuple(ByteArray("1"), ByteArray("MQ==")));
+   data.push_back(std::make_tuple(ByteArray("12"), ByteArray("MTI=")));
+   data.push_back(std::make_tuple(ByteArray("123"), ByteArray("MTIz")));
+   data.push_back(std::make_tuple(ByteArray("1234"), ByteArray("MTIzNA==")));
+   
+   data.push_back(std::make_tuple(ByteArray("\n"), ByteArray("Cg==")));
+   data.push_back(std::make_tuple(ByteArray("a\n"), ByteArray("YQo=")));
+   data.push_back(std::make_tuple(ByteArray("ab\n"), ByteArray("YWIK")));
+   data.push_back(std::make_tuple(ByteArray("abc\n"), ByteArray("YWJjCg==")));
+   data.push_back(std::make_tuple(ByteArray("abcd\n"), ByteArray("YWJjZAo=")));
+   data.push_back(std::make_tuple(ByteArray("abcde\n"), ByteArray("YWJjZGUK")));
+   data.push_back(std::make_tuple(ByteArray("abcdef\n"), ByteArray("YWJjZGVmCg==")));
+   data.push_back(std::make_tuple(ByteArray("abcdefg\n"), ByteArray("YWJjZGVmZwo=")));
+   data.push_back(std::make_tuple(ByteArray("abcdefgh\n"), ByteArray("YWJjZGVmZ2gK")));
+   
+   ByteArray ba;
+   ba.resize(256);
+   for (int i = 0; i < 256; ++i) {
+      ba[i] = i;
+   }
+      
+   data.push_back(std::make_tuple(ba, ByteArray("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==")));
+   data.push_back(std::make_tuple(ByteArray("foo\0bar", 7), ByteArray("Zm9vAGJhcg==")));
+   data.push_back(std::make_tuple(ByteArray("f\xd1oo\x9ctar"), ByteArray("ZtFvb5x0YXI=")));
+   data.push_back(std::make_tuple(ByteArray("\"\0\0\0\0\0\0\"", 8), ByteArray("IgAAAAAAACI="))); 
+   
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      ByteArray rawData = std::get<0>(item);
+      ByteArray base64 = std::get<1>(item);
+      ByteArray decoded = ByteArray::fromBase64(base64);
+      ASSERT_EQ(decoded, rawData);
+      
+      ByteArray encoded = rawData.toBase64();
+      ASSERT_EQ(encoded, base64);
+      encoded = rawData.toBase64(ByteArray::Base64Encoding);
+      ASSERT_EQ(encoded, base64);
+      ++begin;
+   }
+}
