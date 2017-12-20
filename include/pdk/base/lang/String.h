@@ -17,6 +17,13 @@
 #define PDK_M_BASE_LANG_STRING_H
 
 #include "pdk/global/Global.h"
+#include "pdk/base/lang/Character.h"
+#include "pdk/base/ds/ByteArray.h"
+#include "pdk/utils/RefCount.h"
+
+#include <stdarg.h>
+#include <string>
+#include <iterator>
 
 #ifdef truncate
 #error String.h must be included before any header file that defines truncate
@@ -29,6 +36,93 @@ PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
 
 namespace pdk {
 namespace lang {
+
+using pdk::ds::ByteArray;
+
+class CharacterRef;
+class String;
+class StringRef;
+class StringList;
+
+class Latin1String
+{
+public:
+   constexpr inline Latin1String() noexcept
+      : m_size(0),
+        m_data(nullptr)
+   {}
+   
+   constexpr inline explicit Latin1String(const char *str) noexcept
+      : m_size(str ? std::strlen(str) : 0),
+        m_data(str)
+   {}
+   
+   constexpr inline explicit Latin1String(const char *str, int size) noexcept
+      : m_size(size),
+        m_data(str)
+   {}
+   
+   inline explicit Latin1String(const ByteArray &str) noexcept
+      : m_size(pdk::strnlen(str.getConstRawData(), str.size())),
+        m_data(str.getConstRawData())
+   {}
+   
+   constexpr const char *latin1() const noexcept
+   {
+      return m_data;
+   }
+   
+   constexpr int size() const noexcept
+   {
+      return m_size;
+   }
+   
+   constexpr const char *getRawData() const noexcept
+   {
+      return m_data;
+   }
+   
+   constexpr Latin1Character at(int i) const
+   {
+      return Latin1Character(m_data[i]);
+   }
+   
+   constexpr Latin1Character operator[](int i) const
+   {
+      return at(i);
+   }
+   
+   constexpr Latin1String substring(int pos) const
+   {
+      return Latin1String(m_data + pos, m_size - pos);
+   }
+   
+   constexpr Latin1String substring(int pos, int n) const
+   {
+      return Latin1String(m_data + pos, n);
+   }
+   
+   constexpr Latin1String left(int n) const
+   {
+      return Latin1String(m_data, n);
+   }
+   
+   constexpr Latin1String right(int n) const
+   {
+      return Latin1String(m_data + m_size - n, n);
+   }
+   
+   inline bool operator==(const String &s) const noexcept;
+   inline bool operator!=(const String &s) const noexcept;
+   inline bool operator>(const String &s) const noexcept;
+   inline bool operator<(const String &s) const noexcept;
+   inline bool operator>=(const String &s) const noexcept;
+   inline bool operator<=(const String &s) const noexcept;
+   
+private:
+   int m_size;
+   const char *m_data;
+};
 
 class PDK_CORE_EXPORT String
 {
