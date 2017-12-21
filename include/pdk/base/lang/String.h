@@ -225,7 +225,7 @@ public:
    explicit String(const Character *unicode, int size = -1);
    String(Character c);
    String(int size, Character c);
-   inline String(Latin1Character latin1);
+   inline String(Latin1String other);
    template <int N>
    inline String(const char (&str)[N])
    {
@@ -240,7 +240,7 @@ public:
    String &operator =(const Null &);
    String &operator =(Character c);
    String &operator =(const String &other) noexcept;
-   inline String &operator =(Latin1String latin1)
+   inline String &operator =(Latin1String other)
    {
       
    }
@@ -689,8 +689,8 @@ private:
    static ByteArray toLatin1HelperInplace(String &str);
    static ByteArray toUtf8Helper(const String &str);
    static ByteArray toLocal8BitHelper(const Character *str, int size);
-   static int toUcs4Helper(const char32_t *str, int length, char32_t *out);
-   void replaceHelper(uint *indices, int nIndices, int blen, const QChar *after, int alen);
+   static int toUcs4Helper(const char16_t *str, int length, char32_t *out);
+   void replaceHelper(uint *indices, int nIndices, int blength, const Character *after, int alength);
    
    friend class CharacterRef;
    friend class StringRef;
@@ -704,18 +704,116 @@ private:
 };
 
 inline String::String() noexcept
+   : m_data(Data::getSharedNull())
 {}
 
-inline String::String(Latin1Character latin1)
+inline String::String(Latin1String other)
+   : m_data(fromLatin1Helper(other.latin1(), other.size()))
 {}
 
 inline String::String(const String &other) noexcept
+   : m_data(other.m_data)
 {
-   
+   PDK_ASSERT(&other != this);
+   m_data->m_ref.ref();
 }
 
 inline String::~String()
-{}
+{
+   if (!m_data->m_ref.deref()) {
+      Data::deallocate(m_data);
+   }
+}
+
+inline int String::length() const
+{
+   return m_data->m_size;
+}
+
+inline const Character String::at(int i) const
+{
+   PDK_ASSERT(static_cast<uint>(i) < static_cast<uint>(size()));
+   return m_data->getData()[i];
+}
+
+inline const Character String::operator [](int i) const
+{
+   PDK_ASSERT(static_cast<uint>(i) < static_cast<uint>(size()));
+   return m_data->getData()[i];
+}
+
+inline const Character String::operator [](uint i) const
+{
+   PDK_ASSERT(i < static_cast<uint>(size()));
+   return m_data->getData()[i];
+}
+
+inline bool String::isEmpty() const
+{
+   return m_data->m_size == 0;
+}
+
+inline const Character *String::unicode() const
+{
+   return reinterpret_cast<const Character *>(m_data->getData());
+}
+
+inline Character *String::getRawData()
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline const Character *String::getRawData() const
+{
+   return reinterpret_cast<const Character *>(m_data->getData());
+}
+
+inline const Character *String::getConstRawData() const
+{
+   return reinterpret_cast<const Character *>(m_data->getData());
+}
+
+inline void String::detach()
+{
+   if (m_data->m_ref.isShared() || (m_data->m_offset != sizeof(StringData))) {
+      reallocData(static_cast<uint>(m_data->m_size) + 1u);
+   }
+}
+
+inline bool String::isDetached() const
+{
+   return !m_data->m_ref.isShared();
+}
+
+inline void String::clear()
+{
+   if (!isNull()) {
+      *this = String();
+   }
+}
+
+inline int String::capacity() const
+{
+   return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
+}
+
+inline int String::toWCharArray(wchar_t *array) const
+{
+   int length = size();
+   if (sizeof(wchar_t) == sizeof(Character)) {
+      std::memcpy(array, m_data->getData(), sizeof(Character) * length);
+      return length;
+   } else {
+      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
+   }
+}
+
+inline String String::fromWCharArray(const wchar_t *string, int size)
+{
+   return sizeof(wchar_t) == sizeof(Character)
+         ? fromUtf16(reinterpret_cast<const char16_t *>(string), size)
+         : fromUcs4(reinterpret_cast<const char32_t *>(string), size);
+}
 
 } // lang
 } // pdk
