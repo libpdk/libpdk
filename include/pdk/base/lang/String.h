@@ -815,6 +815,216 @@ inline String String::fromWCharArray(const wchar_t *string, int size)
          : fromUcs4(reinterpret_cast<const char32_t *>(string), size);
 }
 
+class PDK_CORE_EXPORT CharacterRef
+{
+public:
+   inline operator Character() const
+   {
+      return m_idx < m_str.m_data->m_size ? m_str.m_data->getData()[m_idx] : 0;
+   }
+   
+   inline CharacterRef &operator =(Character c)
+   {
+      if (m_idx > m_str.m_data->m_size) {
+         m_str.resize(m_idx + 1, Latin1Character(' '));
+      } else {
+         m_str.detach();
+      }
+      m_str.m_data->getData()[m_idx] = c.unicode();
+      return *this;
+   }
+   
+   inline CharacterRef &operator =(const CharacterRef &c)
+   {
+      return operator =(Character(c));
+   }
+   
+   inline CharacterRef &operator =(ushort c)
+   {
+      return operator =(Character(c));
+   }
+   
+   inline CharacterRef &operator =(short c)
+   {
+      return operator =(Character(c));
+   }
+   
+   inline CharacterRef &operator =(uint c)
+   {
+      return operator =(Character(c));
+   }
+   
+   inline CharacterRef &operator =(int c)
+   {
+      return operator =(Character(c));
+   }
+   
+   inline bool isNull() const
+   {
+      return Character(*this).isNull();
+   }
+   
+   inline bool isPrint() const
+   {
+      return Character(*this).isPrintable();
+   }
+   
+   inline bool isPunct() const
+   {
+      return Character(*this).isPunct();
+   }
+   
+   inline bool isSpace() const
+   {
+      return Character(*this).isSpace();
+   }
+   
+   inline bool isMark() const
+   {
+      return Character(*this).isMark();
+   }
+   
+   inline bool isLetter() const
+   {
+      return Character(*this).isLetter();
+   }
+   
+   inline bool isNumber() const
+   {
+      return Character(*this).isNumber();
+   }
+   
+   inline bool isLetterOrNumber() const
+   {
+      return Character(*this).isLetterOrNumber();
+   }
+   
+   inline bool isDigit() const
+   {
+      return Character(*this).isDigit();
+   }
+   
+   inline bool isLower() const
+   {
+      return Character(*this).isLower();
+   }
+   
+   inline bool isUpper() const
+   {
+      return Character(*this).isUpper();
+   }
+   
+   inline bool isTitleCase() const
+   {
+      return Character(*this).isTitleCase();  
+   }
+   
+   inline int getDigitValue() const
+   {
+      return Character(*this).getDigitValue();
+   }
+   
+   inline Character toLower() const
+   {
+      return Character(*this).toLower();
+   }
+   
+   inline Character toUpper() const
+   {
+      return Character(*this).toUpper();
+   }
+   
+   inline Character toTitleCase() const
+   {
+      return Character(*this).toTitleCase();
+   }
+   
+   inline Character::Category getCategory() const
+   {
+      return Character(*this).getCategory();
+   }
+   
+   inline Character::Direction getDirection() const
+   {
+      return Character(*this).getDirection();
+   }
+   
+   inline Character::JoiningType getJoinType() const
+   {
+      return Character(*this).getJoiningType();
+   }
+   
+   inline bool hasMirrored() const
+   {
+      return Character(*this).hasMirrored();
+   }
+   
+   inline Character getMirroredCharacter() const
+   {
+      return Character(*this).getMirroredCharacter();
+   }
+   
+   inline String getDecomposition() const
+   {
+      return Character(*this).getDecomposition();
+   }
+   
+   inline Character::Decomposition getDecompositionTag() const
+   {
+      return Character(*this).getDecompositionTag();
+   }
+   
+   inline uchar getCombiningClass()
+   {
+      return Character(*this).getCombiningClass();
+   }
+   
+   inline Character::Script getScript() const
+   {
+      return Character(*this).getScript();
+   }
+   
+   inline Character::UnicodeVersion getUnicodeVersion() const
+   {
+      return Character(*this).getUnicodeVersion();
+   }
+   
+   inline uchar getCell() const
+   {
+      return Character(*this).getCell();
+   }
+   
+   inline uchar getRow() const
+   {
+      return Character(*this).getRow();
+   }
+   
+   char toLatin1() const
+   { 
+      return Character(*this).toLatin1();
+   }
+   char16_t unicode() const
+   {
+      return Character(*this).unicode();
+   }
+   
+   char16_t &unicode() 
+   {
+      return m_str.getRawData()[m_idx].unicode();
+   }
+   
+private:
+   inline CharacterRef(String &str, int idx)
+      : m_str(str),
+        m_idx(idx)
+   {}
+   
+private:
+   friend class String;
+   String &m_str;
+   int m_idx;
+};
+
 } // lang
 } // pdk
 

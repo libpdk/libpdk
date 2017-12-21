@@ -365,10 +365,6 @@ public:
       : m_data(ch)
    {}
    
-   constexpr Character(ushort ch) noexcept
-      : m_data(char16_t(ch))
-   {}
-   
    constexpr Character(short ch) noexcept
       : m_data(char16_t(ch))
    {}
@@ -382,6 +378,10 @@ public:
    {}
    
    constexpr Character(int rc) noexcept
+      : m_data(char16_t(rc & 0xffff))
+   {}
+   
+   constexpr Character(uint rc) noexcept
       : m_data(char16_t(rc & 0xffff))
    {}
    
@@ -572,12 +572,12 @@ public:
       return Character::isSurrogate(m_data);
    }
    
-   constexpr inline uchar cell() const noexcept
+   constexpr inline uchar getCell() const noexcept
    {
       return uchar(m_data & 0xff);
    }
    
-   constexpr inline uchar row() const noexcept
+   constexpr inline uchar getRow() const noexcept
    {
       return uchar((m_data >> 8) & 0xff);
    }
