@@ -27,6 +27,12 @@ enum class Initialization
 
 static constexpr PDK_DECL_UNUSED Initialization Uninitialized = Initialization::Uninitialized;
 
+enum class CaseSensitivity
+{
+   Insensitive,
+   Sensitive
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H

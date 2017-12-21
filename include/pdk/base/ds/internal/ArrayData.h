@@ -420,7 +420,7 @@ struct TypedArrayData : ArrayData
    {
       PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
       return static_cast<TypedArrayData *>(ArrayData::allocate(
-                                                   sizeof(T), alignof(AlignmentDummy), capacity, options));
+                                              sizeof(T), alignof(AlignmentDummy), capacity, options));
    }
    
    static void deallocate(ArrayData *data)
