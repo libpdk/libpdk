@@ -524,7 +524,7 @@ public:
    
    int compare(const String &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
    int compare(Latin1String str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
-   int compare(const StringRef &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   inline int compare(const StringRef &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
    
    static inline int compare(const String &lhs, const String &rhs,
                              pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
@@ -852,6 +852,74 @@ inline void String::squeeze()
    }
 }
 
+inline String &String::insert(int i, const StringRef &str)
+{
+   return insert(i, str.getConstRawData(), str.length());
+}
+
+inline String operator +(const String &lhs, const StringRef &rhs)
+{
+   String result;
+   lhs.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs; 
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, const String &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs; 
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, Latin1String rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(Latin1String lhs, const StringRef &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, const StringRef &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, Character rhs)
+{
+   String result;
+   result.reserve(lhs.size() + 1);
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(Character lhs, const StringRef &rhs)
+{ 
+   String result;
+   result.reserve(1 + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result; 
+}
+
 inline int String::toWCharArray(wchar_t *array) const
 {
    int length = size();
@@ -1071,6 +1139,66 @@ inline const String operator +(Character lhs, const String &rhs)
    String result(lhs);
    result += rhs;
    return result;
+}
+
+inline bool operator ==(Character lhs, const String &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.length()) == 0;
+}
+
+inline bool operator <(Character lhs, const String &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.length()) < 0;
+}
+
+inline bool operator >(Character lhs, const String &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.length()) > 0;
+}
+
+inline bool operator !=(Character lhs, const String &rhs) noexcept
+{
+   return !(lhs == rhs);
+}
+
+inline bool operator >=(Character lhs, const String &rhs) noexcept
+{
+   return !(lhs < rhs);
+}
+
+inline bool operator <=(Character lhs, const String &rhs) noexcept
+{
+   return !(lhs > rhs);
+}
+
+inline bool operator ==(const String &lhs, Character rhs) noexcept
+{
+   return rhs == lhs;
+}
+
+inline bool operator <(const String &lhs, Character rhs) noexcept
+{
+   return rhs > lhs;
+}
+
+inline bool operator >(const String &lhs, Character rhs) noexcept
+{
+   return rhs < lhs;
+}
+
+inline bool operator !=(const String &lhs, Character rhs) noexcept
+{
+   return !(rhs == lhs);
+}
+
+inline bool operator >=(const String &lhs, Character rhs) noexcept
+{
+   return !(rhs > lhs);
+}
+
+inline bool operator <=(const String &lhs, Character rhs) noexcept
+{
+   return !(rhs < rhs);
 }
 
 class PDK_CORE_EXPORT CharacterRef
@@ -1443,22 +1571,22 @@ public:
    
    inline const_reverse_iterator rbegin() const
    {
-      return unicode();
+      return const_reverse_iterator(end());
    }
    
    inline const_reverse_iterator rcbegin() const
    {
-      return unicode();
+      return rbegin();
    }
    
    inline const_reverse_iterator rend() const
    {
-      return unicode() + size();
+      return const_reverse_iterator(begin());
    }
    
    inline const_reverse_iterator rcend() const
    {
-      return unicode() + size();
+      return rend();
    }
    
    ByteArray toLatin1() const PDK_REQUIRED_RESULT;
@@ -1500,12 +1628,12 @@ public:
    int compare(const StringRef &rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
    int compare(Latin1String rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
    
-   static int compare(const StringRef &rhs, const String &rhs, 
-                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
-   static int compare(const StringRef &rhs, const StringRef &rhs, 
-                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
-   static int compare(const StringRef &rhs, Latin1String rhs, 
-                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   static int compare(const StringRef &lhs, const String &rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+   static int compare(const StringRef &lhs, const StringRef &rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+   static int compare(const StringRef &lhs, Latin1String rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
    
    StringRef trimmed() const PDK_REQUIRED_RESULT;
 private:
@@ -1513,6 +1641,341 @@ private:
    int m_position;
    int m_size;
 };
+
+inline StringRef::StringRef(const String *str, int position, int size)
+   : m_str(str),
+     m_position(position),
+     m_size(size)
+{}
+
+inline StringRef::StringRef(const String *str)
+   : m_str(str),
+     m_position(0),
+     m_size(str ? str->size() : 0)
+{}
+
+inline StringRef &StringRef::operator =(const String *str)
+{
+   m_str = str;
+   m_position = 0;
+   m_size = str ? str->size() : 0;
+   return *this;
+}
+
+PDK_CORE_EXPORT bool operator ==(const StringRef &lhs, const StringRef &rhs) noexcept;
+inline bool operator !=(const StringRef &lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs == rhs);
+}
+
+PDK_CORE_EXPORT bool operator <(const StringRef &lhs, const StringRef &rhs) noexcept;
+inline bool operator >(const StringRef &lhs, const StringRef &rhs) noexcept
+{
+   return rhs < lhs;
+}
+
+inline bool operator <=(const StringRef &lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs > rhs);
+}
+
+inline bool operator >=(const StringRef &lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs < rhs);
+}
+
+PDK_CORE_EXPORT bool operator ==(const String &lhs, const StringRef &rhs) noexcept;
+inline bool operator !=(const String &lhs, const StringRef &rhs) noexcept
+{
+   return lhs.compare(rhs) != 0;   
+}
+
+inline bool operator <(const String &lhs, const StringRef &rhs) noexcept
+{
+   return lhs.compare(rhs) < 0;
+}
+
+inline bool operator >(const String &lhs, const StringRef &rhs) noexcept
+{
+   return lhs.compare(rhs) > 0;
+}
+
+inline bool operator <=(const String &lhs, const StringRef &rhs) noexcept
+{
+   return lhs.compare(rhs) <= 0;
+}
+
+inline bool operator >=(const String &lhs, const StringRef &rhs) noexcept
+{
+   return lhs.compare(rhs) >= 0;
+}
+
+inline bool operator ==(const StringRef &lhs, const String &rhs) noexcept
+{
+   return rhs == lhs;   
+}
+
+inline bool operator !=(const StringRef &lhs, const String &rhs) noexcept
+{
+   return !(rhs == lhs);   
+}
+
+inline bool operator <(const StringRef &lhs, const String &rhs) noexcept
+{
+   return rhs > lhs;   
+}
+
+inline bool operator >(const StringRef &lhs, const String &rhs) noexcept
+{
+   return rhs < lhs;   
+}
+
+inline bool operator <=(const StringRef &lhs, const String &rhs) noexcept
+{
+   return rhs >= lhs;   
+}
+
+inline bool operator >=(const StringRef &lhs, const String &rhs) noexcept
+{
+   return rhs <= lhs;
+}
+
+
+inline int String::compare(const StringRef &str, CaseSensitivity cs) const noexcept
+{
+   return String::compareHelper(getConstRawData(), length(), str.getConstRawData(), str.length(), cs);
+}
+
+inline int String::compare(const String &lhs, const StringRef &rhs, CaseSensitivity cs) noexcept
+{
+   return String::compareHelper(lhs.getConstRawData(), lhs.length(), rhs.getConstRawData(), rhs.length(), cs);
+}
+
+inline int StringRef::compare(const String &rhs, CaseSensitivity cs) const noexcept
+{
+   return String::compareHelper(getConstRawData(), length(), rhs.getConstRawData(), rhs.length(), cs);
+}
+
+inline int StringRef::compare(const StringRef &rhs, CaseSensitivity cs) const noexcept
+{
+   return String::compareHelper(getConstRawData(), length(), rhs.getConstRawData(), rhs.length(), cs);
+}
+
+inline int StringRef::compare(Latin1String rhs, CaseSensitivity cs) const noexcept
+{
+   return String::compareHelper(getConstRawData(), length(), rhs, cs);
+}
+
+inline int StringRef::compare(const StringRef &lhs, const String &rhs, CaseSensitivity cs) noexcept
+{
+   return String::compareHelper(lhs.getConstRawData(), lhs.length(), rhs.getConstRawData(), rhs.length(), cs);
+}
+
+inline int StringRef::compare(const StringRef &lhs, const StringRef &rhs, CaseSensitivity cs) noexcept
+{
+   return String::compareHelper(lhs.getConstRawData(), lhs.length(), rhs.getConstRawData(), rhs.length(), cs);
+}
+
+inline int StringRef::compare(const StringRef &lhs, Latin1String rhs, CaseSensitivity cs) noexcept
+{
+   return String::compareHelper(lhs.getConstRawData(), lhs.length(), rhs, cs);
+}
+
+PDK_CORE_EXPORT bool operator ==(Latin1String lhs, const StringRef &rhs) noexcept;
+inline bool operator !=(Latin1String lhs, const StringRef &rhs) noexcept
+{
+   return rhs.compare(lhs) != 0;
+}
+
+inline bool operator <(Latin1String lhs, const StringRef &rhs) noexcept
+{
+   return rhs.compare(lhs) > 0;
+}
+
+inline bool operator >(Latin1String lhs, const StringRef &rhs) noexcept
+{
+   return rhs.compare(lhs) < 0;   
+}
+
+inline bool operator <=(Latin1String lhs, const StringRef &rhs) noexcept
+{
+   return rhs.compare(lhs) >= 0;
+}
+
+inline bool operator >=(Latin1String lhs, const StringRef &rhs) noexcept
+{
+   return rhs.compare(lhs) <= 0;
+}
+
+inline bool operator ==(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return rhs == lhs;
+}
+
+inline bool operator !=(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return !(rhs == lhs);
+}
+
+inline bool operator <(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return rhs > lhs;
+}
+
+inline bool operator >(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return rhs < lhs;
+}
+
+inline bool operator <=(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return rhs >= lhs;
+}
+
+inline bool operator >=(const StringRef &lhs, Latin1String rhs) noexcept
+{
+   return rhs <= lhs;
+}
+
+inline bool operator ==(Character lhs, const StringRef &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.size()) == 0;
+}
+
+inline bool operator !=(Character lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs == rhs);
+}
+
+inline bool operator <(Character lhs, const StringRef &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.size()) < 0;
+}
+
+inline bool operator >(Character lhs, const StringRef &rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs.getRawData(), rhs.size()) > 0;
+}
+
+inline bool operator <=(Character lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs > rhs);
+}
+
+inline bool operator >=(Character lhs, const StringRef &rhs) noexcept
+{
+   return !(lhs < rhs);
+}
+
+inline bool operator ==(const StringRef &lhs, Character rhs) noexcept
+{
+   return rhs == lhs;
+}
+
+inline bool operator !=(const StringRef &lhs, Character rhs) noexcept
+{
+   return !(rhs == lhs);
+}
+
+inline bool operator <(const StringRef &lhs, Character rhs) noexcept
+{
+   return rhs > lhs;
+}
+
+inline bool operator >(const StringRef &lhs, Character rhs) noexcept
+{
+   return rhs < lhs;
+}
+
+inline bool operator <=(const StringRef &lhs, Character rhs) noexcept
+{
+   return !(rhs < lhs);
+}
+
+inline bool operator >=(const StringRef &lhs, Character rhs) noexcept
+{
+   return !(rhs > lhs);
+}
+
+inline bool operator ==(Character lhs, Latin1String rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs) == 0;
+}
+
+inline bool operator !=(Character lhs, Latin1String rhs) noexcept
+{
+   return !(lhs == rhs);
+}
+
+inline bool operator <(Character lhs, Latin1String rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs) < 0;
+}
+
+inline bool operator >(Character lhs, Latin1String rhs) noexcept
+{
+   return String::compareHelper(&lhs, 1, rhs) > 0;
+}
+
+inline bool operator <=(Character lhs, Latin1String rhs) noexcept
+{
+   return !(lhs > rhs);
+}
+
+inline bool operator >=(Character lhs, Latin1String rhs) noexcept
+{
+   return !(lhs < rhs);
+}
+
+inline bool operator ==(Latin1String lhs, Character rhs) noexcept
+{
+   return rhs == lhs;
+}
+
+inline bool operator !=(Latin1String lhs, Character rhs) noexcept
+{
+   return !(rhs == lhs);
+}
+
+inline bool operator <(Latin1String lhs, Character rhs) noexcept
+{
+   return rhs > lhs;
+}
+
+inline bool operator >(Latin1String lhs, Character rhs) noexcept
+{
+   return rhs < lhs;
+}
+
+inline bool operator <=(Latin1String lhs, Character rhs) noexcept
+{
+   return !(rhs < lhs);
+}
+
+inline bool operator >=(Latin1String lhs, Character rhs) noexcept
+{
+   return !(rhs > lhs);
+}
+
+inline bool StringRef::contains(const String &str, CaseSensitivity cs) const
+{
+   return indexOf(str, 0, cs) != -1;
+}
+
+inline bool StringRef::contains(Latin1String str, CaseSensitivity cs) const
+{
+   return indexOf(str, 0, cs) != -1;
+}
+
+inline bool StringRef::contains(Character c, CaseSensitivity cs) const
+{
+   return indexOf(str, 0, cs) != -1;
+}
+
+inline bool StringRef::contains(const StringRef &str, CaseSensitivity cs) const
+{
+   return indexOf(str, 0, cs) != -1;
+}
 
 } // lang
 } // pdk
