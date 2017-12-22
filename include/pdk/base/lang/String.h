@@ -190,6 +190,8 @@ public:
    using difference_type = pdk::ptrdiff;
    using reference = Character &;
    using const_reference = const Character &;
+   using pointer = Character *;
+   using const_pointer = const Character *;
    using value_type = Character;
    
    // compatibility
@@ -272,7 +274,7 @@ public:
    
    inline bool isNull() const
    {
-      m_data == Data::getSharedNull();
+      return m_data == Data::getSharedNull();
    }
    
    bool isSimpleText() const;
@@ -463,7 +465,7 @@ public:
    
    String normalized(NormalizationForm mode, Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const PDK_REQUIRED_RESULT;
    String repeated(int times) const PDK_REQUIRED_RESULT;
-   const char16_t *utf16();
+   const char16_t *utf16() const;
    
    ByteArray toLatin1() const & PDK_REQUIRED_RESULT;
    ByteArray toLatin1() const && PDK_REQUIRED_RESULT;
@@ -638,7 +640,7 @@ public:
    static inline String fromStdU16String(const std::u16string &str);
    inline std::u16string toStdU16String() const;
    static inline String fromStdU32String(const std::u32string &str);
-   inline std::u32string toStd32String() const;
+   inline std::u32string toStdU32String() const;
    
 private:
    String &operator +=(const char *str);
@@ -702,6 +704,38 @@ public:
 private:
    Data *m_data;
 };
+
+PDK_DECLARE_OPERATORS_FOR_FLAGS(String::SectionFlags)
+
+inline bool Latin1String::operator ==(const String &str) const noexcept
+{
+   return str == *this;
+}
+
+inline bool Latin1String::operator !=(const String &str) const noexcept
+{
+   return str != *this;
+}
+
+inline bool Latin1String::operator >(const String &str) const noexcept
+{
+   return str < *this;
+}
+
+inline bool Latin1String::operator <(const String &str) const noexcept
+{
+   return str > *this;
+}
+
+inline bool Latin1String::operator <=(const String &str) const noexcept
+{
+   return str >= *this;
+}
+
+inline bool Latin1String::operator >=(const String &str) const noexcept
+{
+   return str <= *this;
+}
 
 inline String::String() noexcept
    : m_data(Data::getSharedNull())
@@ -797,6 +831,27 @@ inline int String::capacity() const
    return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
 }
 
+inline void String::reserve(int size)
+{
+   if (m_data->m_ref.isShared() || static_cast<uint>(size) >= m_data->m_alloc) {
+      reallocData(std::max(size, m_data->m_size) + 1u);
+   }
+   if (!m_data->m_capacityReserved) {
+      m_data->m_capacityReserved = true;
+   }
+}
+
+inline void String::squeeze()
+{
+   if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size) + 1u < m_data->m_alloc)
+   {
+      reallocData(static_cast<uint>(m_data->m_size) + 1u);
+   }
+   if (m_data->m_capacityReserved) {
+      m_data->m_capacityReserved = false;
+   }
+}
+
 inline int String::toWCharArray(wchar_t *array) const
 {
    int length = size();
@@ -813,6 +868,209 @@ inline String String::fromWCharArray(const wchar_t *string, int size)
    return sizeof(wchar_t) == sizeof(Character)
          ? fromUtf16(reinterpret_cast<const char16_t *>(string), size)
          : fromUcs4(reinterpret_cast<const char32_t *>(string), size);
+}
+
+inline String &String::setUtf16(const char16_t *utf16, int size)
+{
+   return setUnicode(reinterpret_cast<const Character *>(utf16), size);
+}
+
+inline String::iterator String::begin()
+{
+   detach();
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::begin() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::cbegin() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::constBegin() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::iterator String::end()
+{
+   detach();
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::end() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::cend() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline String::const_iterator String::constEnd() const
+{
+   return reinterpret_cast<Character *>(m_data->getData());
+}
+
+inline bool String::contains(const String &needle, CaseSensitivity cs) const
+{
+   return indexOf(needle, 0, cs) != -1;
+}
+
+inline bool String::contains(const StringRef &needle, CaseSensitivity cs) const
+{
+   return indexOf(needle, 0, cs) != -1;
+}
+
+inline bool String::contains(Latin1String needle, CaseSensitivity cs) const
+{
+   return indexOf(needle, 0, cs) != -1;
+}
+
+inline bool String::contains(Character needle, CaseSensitivity cs) const
+{
+   return indexOf(needle, 0, cs) != -1;
+}
+
+inline std::string String::toStdString() const
+{
+   return toUtf8().toStdString();
+}
+
+inline String String::fromStdString(const std::string &str)
+{
+   return fromUtf8(str.data(), static_cast<int>(str.size()));
+}
+
+inline std::wstring String::toStdWString() const
+{
+   std::wstring str;
+   str.resize(length());
+   
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+   // VS2005 crashes if the string is empty
+   if (!length()) {
+      return str;
+   }
+#endif
+   str.resize(toWCharArray(&(*str.begin())));
+   return str;
+}
+
+inline String String::fromStdWString(const std::wstring &str)
+{
+   return fromWCharArray(str.data(), static_cast<int>(str.size()));
+}
+
+inline String String::fromStdU16String(const std::u16string &str)
+{
+   return fromUtf16(str.data(), str.length());
+}
+
+inline std::u16string String::toStdU16String() const
+{
+   return std::u16string(reinterpret_cast<const char16_t *>(utf16()));
+}
+
+inline String String::fromStdU32String(const std::u32string &str)
+{
+   return fromUcs4(str.data(), str.size());
+}
+
+inline std::u32string String::toStdU32String() const
+{
+   std::u32string u32Str(length(), char32_t(0));
+   int len = toUcs4Helper(m_data->getData(), length(), reinterpret_cast<char32_t *>(&u32Str[0]));
+   u32Str.resize(len);
+   return u32Str;
+}
+
+inline bool operator ==(String::Null, String::Null)
+{
+   return true;
+}
+
+inline bool operator ==(String::Null, const String &rhs)
+{
+   return rhs.isNull();
+}
+
+inline bool operator ==(const String &lhs, String::Null)
+{
+   return lhs.isNull();
+}
+
+inline bool operator !=(String::Null, String::Null)
+{
+   return false;
+}
+
+inline bool operator !=(String::Null, const String &rhs)
+{
+   return !rhs.isNull();
+}
+
+inline bool operator !=(const String &lhs, String::Null)
+{
+   return !lhs.isNull();
+}
+
+inline bool operator ==(Latin1String lhs, Latin1String rhs) noexcept
+{
+   return lhs.size() == rhs.size() && (!lhs.size() || !std::memcmp(lhs.latin1(), rhs.latin1(), lhs.size()));
+}
+
+inline bool operator !=(Latin1String lhs, Latin1String rhs) noexcept
+{
+   return !operator ==(lhs, rhs);
+}
+
+inline bool operator <(Latin1String lhs, Latin1String rhs) noexcept
+{
+   const int length = std::min(lhs.size(), rhs.size());
+   const int result = length ? std::memcmp(lhs.latin1(), rhs.latin1(), length) : 0;
+   return result < 0 || (result == 0 && lhs.size() < rhs.size());
+}
+
+inline bool operator >(Latin1String lhs, Latin1String rhs) noexcept
+{
+   return operator <(rhs, lhs);
+}
+
+inline bool operator <=(Latin1String lhs, Latin1String rhs) noexcept
+{
+   return !operator >(lhs, rhs);
+}
+
+inline bool operator >=(Latin1String lhs, Latin1String rhs) noexcept
+{
+   return !operator <(lhs, rhs);
+}
+
+inline const String operator +(const String &lhs, const String &rhs)
+{
+   String result(lhs);
+   result += rhs;
+   return result;
+}
+
+inline const String operator +(const String &lhs, Character rhs)
+{
+   String result(lhs);
+   result += rhs;
+   return result;
+}
+
+inline const String operator +(Character lhs, const String &rhs)
+{
+   String result(lhs);
+   result += rhs;
+   return result;
 }
 
 class PDK_CORE_EXPORT CharacterRef
@@ -999,6 +1257,9 @@ public:
       return Character(*this).getRow();
    }
    
+   inline void setCell(uchar cell);
+   inline void setRow(uchar row);
+   
    char toLatin1() const
    { 
       return Character(*this).toLatin1();
@@ -1023,6 +1284,234 @@ private:
    friend class String;
    String &m_str;
    int m_idx;
+};
+
+inline void CharacterRef::setRow(uchar row)
+{
+   Character(*this).setRow(row);
+}
+
+inline void CharacterRef::setCell(uchar cell)
+{
+   Character(*this).setCell(cell);
+}
+
+inline CharacterRef String::operator [](int i)
+{
+   PDK_ASSERT(i >= 0);
+   return CharacterRef(*this, i);
+}
+
+inline CharacterRef String::operator [](uint i)
+{
+   return CharacterRef(*this, i);
+}
+
+class PDK_CORE_EXPORT StringRef
+{
+public:
+   using size_type = String::size_type;
+   using value_type = String::value_type;
+   using const_iterator = const Character *;
+   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+   using const_pointer = String::const_pointer;
+   using const_reference = String::const_reference;
+   
+   inline constexpr StringRef()
+      : m_str(nullptr),
+        m_position(0),
+        m_size(0)
+   {}
+   
+   inline StringRef(const String *str, int position, int size);
+   inline StringRef(const String *str);
+   
+   inline const String *getStr() const
+   {
+      return m_str;
+   }
+   
+   inline int getPosition() const
+   {
+      return m_position;
+   }
+   
+   inline int size() const
+   {
+      return m_size;
+   }
+   
+   inline int count() const
+   {
+      return m_size;
+   }
+   
+   inline int length() const
+   {
+      return m_size;
+   }
+   
+   int indexOf(const String &str, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int indexOf(Character c, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int indexOf(Latin1String str, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int indexOf(const StringRef &str, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int lastIndexOf(const String &str, int from = -1, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int lastIndexOf(Character c, int from = -1, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int lastIndexOf(Latin1String str, int from = -1, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int lastIndexOf(const StringRef &str, int from = -1, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   
+   inline bool contains(const String &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   inline bool contains(Character c, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   inline bool contains(Latin1String str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   inline bool contains(const StringRef &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   
+   int count(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int count(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   int count(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   
+   std::vector<StringRef> split(const String &separator, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
+   std::vector<StringRef> split(Character separator, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
+   
+   StringRef left(int n) const PDK_REQUIRED_RESULT;
+   StringRef right(int n) const PDK_REQUIRED_RESULT;
+   StringRef substring(int pos, int n = -1) const PDK_REQUIRED_RESULT;
+   
+   void truncate(int pos) noexcept
+   {
+      m_size = pdk::bound(0, pos, m_size);
+   }
+   
+   void chop(int n) noexcept
+   {
+      if (n >= m_size) {
+         m_size = 0;
+      } else if (n > 0) {
+         m_size -= n;
+      }
+   }
+   
+   bool startsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool startsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool startsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool startsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   
+   bool endsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool endsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool endsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   bool endsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   
+   inline StringRef &operator =(const String *str);
+   inline const Character *unicode() const 
+   {
+      if (!m_str) {
+         return reinterpret_cast<const Character *>(String::Data::getSharedNull()->getData());
+      }
+      return m_str->unicode() + m_position;
+   }
+   
+   inline const Character *getRawData() const
+   {
+      return unicode();
+   }
+   
+   inline const Character *getConstRawData() const
+   {
+      return unicode();
+   }
+   
+   inline const_iterator begin() const
+   {
+      return unicode();
+   }
+   
+   inline const_iterator cbegin() const
+   {
+      return unicode();
+   }
+   
+   inline const_iterator end() const
+   {
+      return unicode() + size();
+   }
+   
+   inline const_iterator cend() const
+   {
+      return unicode() + size();
+   }
+   
+   inline const_reverse_iterator rbegin() const
+   {
+      return unicode();
+   }
+   
+   inline const_reverse_iterator rcbegin() const
+   {
+      return unicode();
+   }
+   
+   inline const_reverse_iterator rend() const
+   {
+      return unicode() + size();
+   }
+   
+   inline const_reverse_iterator rcend() const
+   {
+      return unicode() + size();
+   }
+   
+   ByteArray toLatin1() const PDK_REQUIRED_RESULT;
+   ByteArray toUtf8() const PDK_REQUIRED_RESULT;
+   ByteArray toLocal8Bit() const PDK_REQUIRED_RESULT;
+   std::vector<char32_t> toUcs4() const PDK_REQUIRED_RESULT;
+   
+   inline void clear()
+   {
+      m_str = nullptr;
+      m_position = 0;
+      m_size = 0;
+   }
+   
+   inline bool isEmpty() const
+   {
+      return m_size == 0;
+   }
+   
+   inline bool isNull() const
+   {
+      return m_str == nullptr || m_str->isNull();
+   }
+   
+   StringRef appendTo(String *str) const;
+   
+   inline const Character at(int i) const
+   {
+      PDK_ASSERT(static_cast<uint>(i) < static_cast<uint>(size()));
+      return m_str->at(i + m_position);
+   }
+   
+   Character operator [](int i) const
+   {
+      return at(i);
+   }
+   
+   int compare(const String &rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   int compare(const StringRef &rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   int compare(Latin1String rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   
+   static int compare(const StringRef &rhs, const String &rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   static int compare(const StringRef &rhs, const StringRef &rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   static int compare(const StringRef &rhs, Latin1String rhs, 
+                      pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
+   
+   StringRef trimmed() const PDK_REQUIRED_RESULT;
+private:
+   const String *m_str; 
+   int m_position;
+   int m_size;
 };
 
 } // lang

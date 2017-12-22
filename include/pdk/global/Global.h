@@ -240,6 +240,58 @@ using NoImplicitBoolCast = int;
 
 #define PDK_CHECK_ALLOC_PTR(ptr) do { if (!(ptr)) throw std::bad_alloc(); } while (0)
 
+template <typename T>
+constexpr inline T abs(const T &value)
+{
+   return value >= 0 ? value : -value;
+}
+
+constexpr inline int round(double value)
+{
+   return value >= 0.0
+         ? static_cast<int>(value + 0.5) 
+         : static_cast<int>(value - static_cast<double>(static_cast<int>(value - 1)) + 0.5) + static_cast<int>(value - 1);
+}
+
+constexpr inline int round(float value)
+{
+   return value >= 0.0f
+         ? static_cast<int>(value + 0.5) 
+         : static_cast<int>(value - static_cast<float>(static_cast<int>(value - 1)) + 0.5) + static_cast<int>(value - 1);
+}
+
+constexpr inline int round64(double value)
+{
+   return value >= 0.0
+         ? static_cast<pint64>(value + 0.5) 
+         : static_cast<pint64>(value - static_cast<double>(static_cast<pint64>(value - 1)) + 0.5) + static_cast<pint64>(value - 1);
+}
+
+constexpr inline int round64(float value)
+{
+   return value >= 0.0f
+         ? static_cast<pint64>(value + 0.5) 
+         : static_cast<pint64>(value - static_cast<float>(static_cast<pint64>(value - 1)) + 0.5) + static_cast<pint64>(value - 1);
+}
+
+template <typename T>
+constexpr const T &min(const T &lhs, const T &rhs)
+{
+   return lhs < rhs ? lhs : rhs;
+}
+
+template <typename T>
+constexpr const T &max(const T &lhs, const T &rhs)
+{
+   return lhs < rhs ? rhs : lhs;
+}
+
+template <typename T>
+constexpr const T &bound(const T &min, const T &value, const T &max)
+{
+   return std::max(min, std::min(value, max));
+}
+
 } // pdk
 
 #include "pdk/global/Flags.h"
