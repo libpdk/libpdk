@@ -292,6 +292,16 @@ constexpr const T &bound(const T &min, const T &value, const T &max)
    return std::max(min, std::min(value, max));
 }
 
+// just as std::as_const
+template <typename T>
+constexpr typename std::add_const<T>::type &as_const(T &value) noexcept
+{
+   return value;
+}
+
+template <typename T>
+void as_const(const T &&) = delete;
+
 } // pdk
 
 #include "pdk/global/Flags.h"

@@ -852,74 +852,6 @@ inline void String::squeeze()
    }
 }
 
-inline String &String::insert(int i, const StringRef &str)
-{
-   return insert(i, str.getConstRawData(), str.length());
-}
-
-inline String operator +(const String &lhs, const StringRef &rhs)
-{
-   String result;
-   lhs.reserve(lhs.size() + rhs.size());
-   result += lhs;
-   result += rhs; 
-   return result;
-}
-
-inline String operator +(const StringRef &lhs, const String &rhs)
-{
-   String result;
-   result.reserve(lhs.size() + rhs.size());
-   result += lhs;
-   result += rhs; 
-   return result;
-}
-
-inline String operator +(const StringRef &lhs, Latin1String rhs)
-{
-   String result;
-   result.reserve(lhs.size() + rhs.size());
-   result += lhs;
-   result += rhs;
-   return result;
-}
-
-inline String operator +(Latin1String lhs, const StringRef &rhs)
-{
-   String result;
-   result.reserve(lhs.size() + rhs.size());
-   result += lhs;
-   result += rhs;
-   return result;
-}
-
-inline String operator +(const StringRef &lhs, const StringRef &rhs)
-{
-   String result;
-   result.reserve(lhs.size() + rhs.size());
-   result += lhs;
-   result += rhs;
-   return result;
-}
-
-inline String operator +(const StringRef &lhs, Character rhs)
-{
-   String result;
-   result.reserve(lhs.size() + 1);
-   result += lhs;
-   result += rhs;
-   return result;
-}
-
-inline String operator +(Character lhs, const StringRef &rhs)
-{ 
-   String result;
-   result.reserve(1 + rhs.size());
-   result += lhs;
-   result += rhs;
-   return result; 
-}
-
 inline int String::toWCharArray(wchar_t *array) const
 {
    int length = size();
@@ -1969,12 +1901,80 @@ inline bool StringRef::contains(Latin1String str, CaseSensitivity cs) const
 
 inline bool StringRef::contains(Character c, CaseSensitivity cs) const
 {
-   return indexOf(str, 0, cs) != -1;
+   return indexOf(c, 0, cs) != -1;
 }
 
 inline bool StringRef::contains(const StringRef &str, CaseSensitivity cs) const
 {
    return indexOf(str, 0, cs) != -1;
+}
+
+inline String &String::insert(int i, const StringRef &str)
+{
+   return insert(i, str.getConstRawData(), str.length());
+}
+
+inline String operator +(const String &lhs, const StringRef &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs; 
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, const String &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs; 
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, Latin1String rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(Latin1String lhs, const StringRef &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, const StringRef &rhs)
+{
+   String result;
+   result.reserve(lhs.size() + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(const StringRef &lhs, Character rhs)
+{
+   String result;
+   result.reserve(lhs.size() + 1);
+   result += lhs;
+   result += rhs;
+   return result;
+}
+
+inline String operator +(Character lhs, const StringRef &rhs)
+{ 
+   String result;
+   result.reserve(1 + rhs.size());
+   result += lhs;
+   result += rhs;
+   return result; 
 }
 
 } // lang
