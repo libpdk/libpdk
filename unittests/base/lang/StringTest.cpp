@@ -16,6 +16,8 @@
 #include "gtest/gtest.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/ds/ByteArray.h"
+#include "pdk/kernel/StringUtils.h"
 #include <list>
 #include <utility>
 #include <string>
@@ -23,7 +25,10 @@
 #include <type_traits>
 
 using pdk::lang::String;
+using pdk::lang::StringRef;
 using pdk::lang::Character;
+using pdk::lang::Latin1String;
+using pdk::ds::ByteArray;
 
 namespace
 {
@@ -45,27 +50,237 @@ protected:
 };
 
 template <>
-class Arg<Character> : protected ArgBase
+class Arg<Character> : public ArgBase
 {
+public:
    explicit Arg(const char *str) : ArgBase(str)
    {}
    
    template <typename MemFunc>
    void apply0(String &s, MemFunc mf) const
    {
+      for (Character ch : pdk::as_const(this->m_pinned)) {
+         (s.*mf)(ch);
+      }
    }
    
-   template <typename MemFunc, typename A1>
-   void apply1(String &s, MemFunc mf, A1 a1) const
+   template <typename MemFunc, typename Arg>
+   void apply1(String &s, MemFunc mf, Arg arg) const
    {
-      
+      for (Character ch : pdk::as_const(this->m_pinned)) {
+         (s.*mf)(arg, ch);
+      }
    }
 };
 
 template <>
-class Arg<Reversed<Character>> : private Arg<Character>
+class Arg<Reversed<Character>> : public Arg<Character>
 {
+public:
+   explicit Arg(const char *str) : Arg<Character>(str)
+   {
+      std::reverse(this->m_pinned.begin(), this->m_pinned.end());
+   }
+   using Arg<Character>::apply0;
+   using Arg<Character>::apply1;
+};
+
+template <>
+class Arg<String> : ArgBase
+{
+public:
+   explicit Arg(const char *str) : ArgBase(str)
+   {
+      
+   }
    
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf) const
+   {
+      return (str.*mf)(this->m_pinned);
+   }
+   
+   template <typename MemFun, typename ArgType>
+   void apply1(String &str, MemFun mf, ArgType arg) const
+   {
+      return (str.*mf)(arg, this->m_pinned);
+   }
+};
+
+template <>
+class Arg<StringRef> : ArgBase
+{
+public:
+   explicit Arg(const char *str) : ArgBase(str)
+   {
+      
+   }
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf) const
+   {
+      (str.*mf)(ref());
+   }
+   
+   template <typename MemFun, typename ArgType>
+   void apply1(String &str, MemFun mf, Arg arg) const
+   {
+      (str.*mf)(arg, ref());
+   }
+private:
+   StringRef ref() const
+   {
+      return StringRef(&m_pinned);
+   }
+};
+
+template <>
+class Arg<std::pair<const Character *, int>> : ArgBase
+{
+public:
+   explicit Arg(const char *str) : ArgBase(str)
+   {}
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf) const
+   {
+      (str.*mf)(this->m_pinned.getConstRawData(), this->m_pinned.length());
+   }
+   
+   template <typename MemFun, typename Arg>
+   void apply1(String &str, MemFun mf, Arg arg) const
+   {
+      (str.*mf)(arg, this->m_pinned.getConstRawData(), this->m_pinned.length());
+   }
+};
+
+template <>
+class Arg<Latin1String>
+{
+public:
+   explicit Arg(const char *str)
+      : m_str(str)
+   {}
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf) const
+   {
+      (str.*mf)(m_str);
+   }
+   
+   template <typename MemFun, typename Arg>
+   void apply1(String &str, MemFun mf, Arg arg) const
+   {
+      (str.*mf)(arg, m_str);
+   }
+   
+private:
+   Latin1String m_str;
+};
+
+template<>
+class Arg<char>
+{
+protected:
+   const char *m_str;
+public:
+   explicit Arg(const char *str)
+      : m_str(str)
+   {
+      
+   }
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf)
+   {
+      if (m_str) {
+         for (const char *it = m_str; *it; ++it) {
+            (str.*mf)(*it);
+         }
+      }
+   }
+   
+   template <typename MemFun, typename Arg>
+   void apply1(String &str, MemFun mf, Arg arg)
+   {
+      if (m_str) {
+         for (const char *it = m_str; *it; ++it) {
+            (str.*mf)(arg ,*it);
+         }
+      }
+   }
+};
+
+template <>
+class Arg<Reversed<char>> : public Arg<char>
+{
+   static const char *dupAndReverse(const char *str)
+   {
+      char *s2 = pdk::strdup(str);
+      std::reverse(s2, s2 + pdk::strlen(s2));
+      return s2;
+   }
+   
+public:
+   explicit Arg(const char *str)
+      : Arg<char>(dupAndReverse(str))
+   {}
+   ~Arg()
+   {
+      delete[] m_str;
+   }
+   
+   using Arg<char>::apply0;
+   using Arg<char>::apply1;
+};
+
+template<>
+class Arg<const char *>
+{
+protected:
+   const char *m_str;
+public:
+   explicit Arg(const char *str)
+      : m_str(str)
+   {
+      
+   }
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf)
+   {
+      (str.*mf)(str);
+   }
+   
+   template <typename MemFun, typename Arg>
+   void apply1(String &str, MemFun mf, Arg arg)
+   {
+      (str.*mf)(arg, str);
+   }
+};
+
+template <>
+class Arg<ByteArray>
+{
+   ByteArray m_array;
+public:
+   explicit Arg(const char *str)
+      : m_array(str)
+   {
+      
+   }
+   
+   template <typename MemFun>
+   void apply0(String &str, MemFun mf) const
+   {
+      (str.*mf)(m_array);
+   }
+   
+   template <typename MemFun, typename Arg>
+   void apply1(String &str, MemFun mf, Arg arg) const
+   {
+      (str.*mf)(arg, m_array);
+   }
 };
 
 }
