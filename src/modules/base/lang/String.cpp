@@ -16,6 +16,7 @@
 #include "pdk/base/lang/String.h"
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/pal/kernel/Simd.h"
+#include "pdk/base/lang/internal/StringHelper.h"
 
 namespace pdk {
 namespace lang {
@@ -71,6 +72,49 @@ inline RetType UnrollTailLoop<0>::exec(int, RetType returnIfExited, Functor1, Fu
 }
 
 #endif
+
+int unicode_stricmp(const char16_t *lhsBegin, const char16_t *lhsEnd, 
+                    const char16_t *rhsBegin, const char16_t *rhsEnd)
+{
+   if (lhsBegin == rhsBegin) {
+      return (lhsEnd - rhsEnd);
+   }
+   if (lhsBegin == 0) {
+      return -1;
+   }
+   if (rhsBegin == 0) {
+      return 1;
+   }
+   const char16_t *e = rhsEnd;
+   
+   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
+      e = rhsBegin + (lhsEnd - lhsBegin);
+   }
+   char32_t lhsLast = 0;
+   char32_t rhsLast = 0;
+   while (lhsBegin < e) {
+      int diff = internal::fold_case(*rhsBegin, rhsLast) - internal::fold_case(*lhsBegin, lhsLast);
+      if (diff) {
+         return diff;
+      }
+      ++lhsBegin;
+      ++rhsBegin;
+   }
+   if (rhsBegin == rhsEnd) {
+      if (lhsBegin == lhsEnd) {
+         return 0;
+      }
+      return 1;
+   }
+   return -1;
+}
+
+bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
+{
+   if (lhs == rhs || !length) {
+      return true;
+   }
+}
 
 }
 

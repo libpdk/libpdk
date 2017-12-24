@@ -304,4 +304,9 @@ TEST(StringTest, testAccess)
    temp[8] = 'X';
    temp[9] = '\0';
    String d(temp, 8);
+   String ca(a);
+   String cb(b);
+   String cc(c);
+   
+   ASSERT_EQ(a, ca);
 }

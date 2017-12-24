@@ -17,6 +17,7 @@
 #include "pdk/base/lang/internal/UnicodeTables.h"
 #include "UnicodeTables.cpp"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/lang/internal/StringHelper.h"
 
 namespace pdk {
 namespace lang {
@@ -239,7 +240,12 @@ PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
    return ucs + Traits::caseDiff(prop);
 }
 
-inline char32_t fold_case(const ushort *ch, const ushort *start) noexcept
+}
+
+
+namespace internal {
+
+char32_t fold_case(const char32_t *ch, const char32_t *start) noexcept
 {
     char32_t ucs4 = *ch;
     if (Character::isLowSurrogate(ucs4) && ch > start && Character::isHighSurrogate(*(ch - 1))) {
@@ -248,7 +254,7 @@ inline char32_t fold_case(const ushort *ch, const ushort *start) noexcept
     return convert_case_helper<CasefoldTraits>(ucs4);
 }
 
-static inline char32_t fold_case(char32_t ch, uint &last) noexcept
+char32_t fold_case(char32_t ch, char32_t &last) noexcept
 {
     char32_t ucs4 = ch;
     if (Character::isLowSurrogate(ucs4) && Character::isHighSurrogate(last)) {
@@ -258,7 +264,7 @@ static inline char32_t fold_case(char32_t ch, uint &last) noexcept
     return convert_case_helper<CasefoldTraits>(ucs4);
 }
 
-static inline char16_t fold_case(char16_t ch) noexcept
+char16_t fold_case(char16_t ch) noexcept
 {
     return convert_case_helper<CasefoldTraits>(ch);
 }
