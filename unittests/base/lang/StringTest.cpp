@@ -291,5 +291,17 @@ TEST(StringTest, testAccess)
    String a;
    String b;
    String bb;
-//   String c("String C");
+   String c = String::fromLatin1("String C");
+   Character temp[10];
+   temp[0] = 'S';
+   temp[1] = 't';
+   temp[2] = 'r';
+   temp[3] = 'i';
+   temp[4] = 'n';
+   temp[5] = 'g';
+   temp[6] = ' ';
+   temp[7] = 'D';
+   temp[8] = 'X';
+   temp[9] = '\0';
+   String d(temp, 8);
 }

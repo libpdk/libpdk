@@ -128,12 +128,6 @@ constexpr inline int from_oct(uint c) noexcept
    return ((c >= '0') && (c <= '7')) ? static_cast<int>(c - '0') : -1;
 }
 
-namespace internal {
-
-void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;
-
-} // internal
-
 } // pdk
 
 #endif // PDK_KERNEL_STRING_UTILS_H

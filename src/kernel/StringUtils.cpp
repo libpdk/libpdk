@@ -15,7 +15,6 @@
 
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/base/ds/ByteArray.h"
-#include "pdk/pal/kernel/Simd.h"
 
 namespace pdk {
 
@@ -261,37 +260,5 @@ int strcmp(const ds::ByteArray &lhs, const ds::ByteArray &rhs)
    }
    return lhsLength - rhsLength;
 }
-
-namespace internal {
-
-void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept
-{
-   /* SIMD:
-    * Unpacking with SSE has been shown to improve performance on recent CPUs
-    * The same method gives no improvement with NEON.
-    */
-#if defined(__SSE2__)
-   const char *end = str + size;
-   pdk::ptrdiff offset = 0;
-   // we're going to read str[offset..offset+15] (16 bytes)
-   for (; str + offset + 15 < end; offset += 16) {
-      const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(str + offset));
-#ifdef __AVX2__
-      // zero extend to an YMM register
-      const __m256i extended = _mm256_cvtepu8_epi16(chunk);
-      // store
-      _mm256_storeu_si256(reinterpret_cast<__m256i *>(dest + offset), extended);
-#else
-      const __m128i nullMask = _mm_set1_epi32(0);
-      const __m128i firstHalf = _mm_unpacklo_epi8(chunk, nullMask);
-      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset), firstHalf);
-      const __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
-      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset + 8), secondHalf);
-#endif
-   }
-#endif
-}
-
-} // internal
 
 } // pdk

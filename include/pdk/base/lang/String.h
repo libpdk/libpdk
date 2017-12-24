@@ -490,7 +490,8 @@ public:
    
    static inline String fromLatin1(const char *str, int size = -1)
    {
-      
+      StringDataPtr dataPtr = { fromLatin1Helper(str, (str && size == -1) ? static_cast<int>(std::strlen(str)) : size) };
+      return String(dataPtr);
    }
    
    static inline String fromUtf8(const char *str, int size = -1)
@@ -505,7 +506,10 @@ public:
    
    static inline String fromLatin1(const ByteArray &str)
    {
-      
+      if (str.isNull()) {
+         return String();
+      }
+      return fromLatin1(str.getRawData(), pdk::strnlen(str.getRawData(), str.size()));
    }
    
    static inline String fromUtf8(const ByteArray &str)
@@ -1979,6 +1983,12 @@ inline String operator +(Character lhs, const StringRef &rhs)
    result += rhs;
    return result; 
 }
+
+namespace internal {
+
+void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;
+
+} // internal
 
 } // lang
 } // pdk
