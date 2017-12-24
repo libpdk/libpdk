@@ -17,6 +17,7 @@
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/pal/kernel/Simd.h"
 #include "pdk/base/lang/internal/StringHelper.h"
+#include "pdk/kernel/Algorithms.h"
 
 namespace pdk {
 namespace lang {
@@ -107,6 +108,126 @@ int unicode_stricmp(const char16_t *lhsBegin, const char16_t *lhsEnd,
       return 1;
    }
    return -1;
+}
+
+int unicode_stricmp(const char16_t *lhs, const char16_t *lhsEnd, const uchar *rhs, const uchar *rhsEnd)
+{
+   if (lhs == 0) {
+      if (rhs == 0) {
+         return 0;
+      }
+      return -1;
+   }
+   if (rhs == 0) {
+      return 1;
+   }
+   const char16_t *e = lhs;
+   if (rhsEnd - rhs < lhsEnd - lhs) {
+      e = lhs + (rhsEnd - rhs);
+   }
+   while (lhs < e) {
+      int diff = internal::fold_case(*lhs) - internal::fold_case(*rhs);
+      if (diff) {
+         return diff;
+      }
+      ++lhs;
+      ++rhs;
+   }
+   if (lhs == lhsEnd) {
+      if (rhs == rhsEnd) {
+         return 0;
+      }
+      return -1;
+   }
+   return 1;
+}
+
+// Unicode case-sensitive compare two same-sized strings
+int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
+{
+#ifdef __OPTIMIZE_SIZE__
+   const Character *end = lhs + length;
+   while (lhs < end) {
+      if (int diff = (int)lhs->unicode() - (int)rhs->unicode()) {
+         return diff;
+      }
+      ++lhs;
+      ++rhs;
+   }
+   return 0;
+#else
+#  ifdef __SSE2__
+   const char *ptr = reinterpret_cast<const char *>(lhs);
+   pdk::ptrdiff distance = reinterpret_cast<const char *>(rhs) - ptr;
+   lhs += length & ~7;
+   rhs += length & ~7;
+   length &= 7;
+   // we're going to read ptr[0..15] (16 bytes)
+   for (; ptr + 15 < reinterpret_cast<const char *>(rhs); ptr += 16) {
+      __m128i lhsData = _mm_loadu_si128((const __m128i*)ptr);
+      __m128i rhsData = _mm_loadu_si128((const __m128i*)(ptr + distance));
+      __m128i result = _mm_cmpeq_epi16(lhsData, rhsData);
+      uint mask = ~_mm_movemask_epi8(result);
+      if (static_cast<ushort>(mask)) {
+         // found a different byte
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return reinterpret_cast<const Character *>(ptr + idx)->unicode()
+               - reinterpret_cast<const Character *>(ptr + distance + idx)->unicode();
+      }
+   }
+   const auto &lambda = [=](int i) -> int {
+      return reinterpret_cast<const Character *>(ptr)[i].unicode()
+            - reinterpret_cast<const Character *>(ptr + distance)[i].unicode();
+   };
+   return UnrollTailLoop<7>::exec(length, 0, lambda, lambda);
+#  endif
+   
+   if (!length) {
+      return 0;
+   }
+   // check alignment
+   if ((reinterpret_cast<pdk::uintptr>(lhs) & 2) == reinterpret_cast<pdk::uintptr>(rhs) & 2) {
+      // both addresses have the same alignment
+      if (reinterpret_cast<pdk::uintptr>(lhs) & 2) {
+         // both addresses are not aligned to 4-bytes boundaries
+         // compare the first character
+         if (*lhs != *rhs) {
+            return lhs->unicode() - rhs->unicode();
+         }
+         --length;
+         ++lhs;
+         ++rhs;
+         
+      }
+      // both addresses are 4-bytes aligned
+      // do a fast 32-bit comparison
+      const char32_t *dlhs = reinterpret_cast<const char32_t *>(lhs);
+      const char32_t *drhs = reinterpret_cast<const char32_t *>(rhs);
+      const quint32 *e = dlhs + (length >> 1);
+      for (; dlhs != e; ++dlhs, drhs) {
+         if (*dlsh != *drhs) {
+            lhs = reinterpret_cast<const Character *>(dlhs);
+            rhs = reinterpret_cast<const Character *>(drhs);
+            if (*lhs != *rhs) {
+               return lhs->unicode() - rhs->unicode();
+            }
+            return lhs[1].unicode() - rhs[1].unicode();
+         }
+      }
+      lhs = reinterpret_cast<const Character *>(dlhs);
+      rhs = reinterpret_cast<const Character *>(drhs);
+      return (length & 1) ? lhs->unicode() - rhs->unicode() : 0;
+   } else {
+      const Character *e = lhs + length;
+      for (; lhs != e; ++lhs, ++rhs) {
+         if (*lhs != *rhs) {
+            return lhs->unicode() - rhs->unicode();
+         }
+      }
+   }
+   return 0;
+#endif
+   
 }
 
 bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
