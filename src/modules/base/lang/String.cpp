@@ -12,3 +12,35 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2017/12/19.
+
+#include "pdk/base/lang/String.h"
+
+#if defined(__mips_dsp)
+#error "asdasda"
+#endif
+
+namespace pdk {
+namespace lang {
+
+String::Data *String::fromLatin1Helper(const char *str, int size)
+{
+   Data *dptr;
+   if (!str) {
+      dptr = Data::getSharedNull();
+   } else if (size == 0 || (!*str && size < 0)) {
+      dptr = Data::allocate(0);
+   } else {
+      if (size < 0) {
+         size = pdk::strlen(str);
+      }
+      dptr = Data::allocate(size + 1);
+      PDK_CHECK_ALLOC_PTR(dptr);
+      dptr->m_size = size;
+      dptr->getData()[size] = '\0';
+      char16_t *dest = dptr->getData();
+   }
+   return dptr;
+}
+
+} // lang
+} // pdk

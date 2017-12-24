@@ -284,3 +284,12 @@ public:
 };
 
 }
+
+
+TEST(StringTest, testAccess)
+{
+   String a;
+   String b;
+   String bb;
+//   String c("String C");
+}

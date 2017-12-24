@@ -235,9 +235,19 @@ public:
    }
    inline String(const Null &);
    inline String(const String &other) noexcept;
+   
+   String(const char *str) = delete;
+   String(const ByteArray &str) = delete;
+  
+   
    String(int size, pdk::Initialization);
    constexpr inline String(StringDataPtr dataPtr) : m_data(dataPtr.m_ptr) {}
    inline ~String();
+   
+   String &operator +=(const char *str) = delete;
+   String &operator +=(const ByteArray &str) = delete;
+   String &operator =(const char *str) = delete;
+   String &operator =(const ByteArray &str) = delete;
    
    String &operator =(const Null &);
    String &operator =(Character c);
@@ -643,13 +653,6 @@ public:
    inline std::u32string toStdU32String() const;
    
 private:
-   String &operator +=(const char *str);
-   String &operator +=(const ByteArray &str);
-   String(const char *str);
-   String(const ByteArray &str);
-   String &operator =(const char *str);
-   String &operator =(const ByteArray &str);
-   
    friend inline bool operator ==(Character lhs, const String &rhs) noexcept;
    friend inline bool operator <(Character lhs, const String &rhs) noexcept;
    friend inline bool operator >(Character lhs, const String &rhs) noexcept;
