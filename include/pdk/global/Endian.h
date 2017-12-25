@@ -37,6 +37,20 @@ PDK_ALWAYS_INLINE void to_unaligned(void *dest, const T src)
          (dest, &src, size);
 }
 
+template <typename T>
+PDK_ALWAYS_INLINE T from_unaligned(const void *src)
+{
+   T dest;
+   const size_t size = sizeof(T);
+#if PDK_HAS_BUILTIN(__builtin_memcpy)
+   __builtin_memcpy
+      #else
+   std::memcpy
+      #endif
+         (&dest, src, size);
+   return dest;
+}
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENDIAN_H
