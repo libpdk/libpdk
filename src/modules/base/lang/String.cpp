@@ -306,11 +306,37 @@ int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
    return 0;
 }
 
+// Unicode case-insensitive compare two same-sized strings
+int unicode_strnicmp(const char16_t *lhs, const char16_t *rhs, int length)
+{
+   return unicode_stricmp(lhs, lhs + length, rhs, rhs + length);
+}
+
 bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
 {
    if (lhs == rhs || !length) {
       return true;
    }
+   return unicode_strncmp(reinterpret_cast<const Character *>(lhs), 
+                          reinterpret_cast<const Character *>(rhs), length) == 0;
+}
+
+// Unicode case-sensitive comparison
+int unicode_strcmp(const Character *lhs, int lhsLength, const Character *rhs, int rhsLength)
+{
+   if (lhs == rhs && lhsLength == rhsLength) {
+      return 0;
+   }
+   int length = std::min(lhsLength, rhsLength);
+   int result = unicode_strncmp(lhs, rhs, length);
+   return result ? result : (lhsLength - rhsLength);
+}
+
+int unicode_strcmp(const Character *lhs, int lhsLength, const uchar *rhs, int rhsLength)
+{
+   int length = std::min(lhsLength, rhsLength);
+   int result = unicode_strncmp(lhs, rhs, length);
+   return result ? result : (lhsLength - rhsLength);
 }
 
 }
