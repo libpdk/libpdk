@@ -34,15 +34,36 @@ template<typename T, int PreAlloc>
 class VarLengthArray
 {
 public:
+   using SizeType = int;
+   using ValueType = T;
+   using Pointer = SizeType *;
+   using ConstPointer = const SizeType *;
+   using Reference = ValueType &;
+   using ConstReference = const ValueType &;
+   using DifferenceType = pdk::ptrdiff;
    
-   inline explicit VarLengthArray(int size = 0)
-   {
-      
-   }
+   using size_type = SizeType;
+   using value_type = ValueType;
+   using pointer = Pointer;
+   using const_pointer = ConstPointer;
+   using reference =  Reference;
+   using const_reference = ConstReference;
+   using difference_type = DifferenceType;
    
+   using Iterator = T *;
+   using ConstIterator = const T *;
+   using ReverseIterator = std::reverse_iterator<Iterator>;
+   using ConstReverseIterator = std::reverse_iterator<ConstIterator>;
+   
+public:
+   
+   inline explicit VarLengthArray(int size = 0);
    inline VarLengthArray(const VarLengthArray<T, PreAlloc> &other)
+      : m_capacity(PreAlloc),
+        m_size(0),
+        m_ptr(reinterpret_cast<T *>(m_array))
    {
-      
+      append(other.getConstRawData(), other.size());
    }
    
    VarLengthArray(std::initializer_list<T> args)
@@ -51,7 +72,20 @@ public:
         ptr(reinterpret_cast<T *>(m_array))
    {
       if (args) {
-         
+         append(args.begin(), static_cast<int>(args.size()));
+      }
+   }
+   
+   inline ~VarLengthArray()
+   {
+      if (pdk::TypeInfo<T>::isComplex) {
+         T *i = m_ptr + m_size;
+         while (i-- != m_ptr) {
+            i->~T();
+         }
+      }
+      if (m_ptr != reinterpret_cast<T *>(m_array)) {
+         free(m_ptr);
       }
    }
    
@@ -90,9 +124,150 @@ public:
    inline void reserve(int size);
    inline int indexOf(const T &value, int from = 0);
    inline int lastIndexOf(const T &value, int from = -1);
+   inline bool contains(const T &value) const;
+   inline T &operator[](int idx)
+   {
+      
+   }
+   inline const T &operator[](int idx) const
+   {
+      
+   }
+   
+   inline const T &at(int idx) const
+   {
+      
+   }
+   
+   T value(int i) const;
+   T value(int i, const T &defaultValue) const;
+   
+   inline void append(const T &value)
+   {
+      
+   }
+   
+   void append(const T *buf, int size);
+   
+   inline VarLengthArray<T, PreAlloc> &operator<<(const T &value);
+   inline VarLengthArray<T, PreAlloc> &operator+=(const T &value);
+   
+   void prepend(const T &value);
+   void insert(int i, const T &value);
+   void insert(int i, int n, const T &value);
+   void replace(int i, const T &value);
+   void remove(int i);
+   void remove(int i, int n);
+   
+   inline T *getRawData()
+   {
+      
+   }
+   
+   inline const T *getRawData() const
+   {
+      
+   }
+   
+   inline const T *getConstRawData() const
+   {
+      
+   }
+   
+   inline Iterator begin()
+   {}
+   
+   inline ConstIterator begin() const
+   {
+      
+   }
+   
+   inline ConstIterator cbegin() const
+   {
+      
+   }
+   
+   inline ConstIterator constBegin() const
+   {
+      
+   }
+   
+   inline Iterator end()
+   {}
+   
+   inline ConstIterator cend() const 
+   {}
+   
+   inline ConstIterator constEnd() const
+   {
+      
+   }
+   
+   ReverseIterator rbegin()
+   {}
+   
+   ReverseIterator rend()
+   {}
+   
+   ConstReverseIterator rbegin() const
+   {
+      
+   }
+   
+   ConstReverseIterator rend() const
+   {}
+   
+   ConstReverseIterator crbegin() const
+   {}
+   
+   ConstReverseIterator crend() const
+   {
+      
+   }
+   
+   inline Iterator insert(ConstIterator pos, int n, const T &value)
+   {}
+   
+   Iterator erase(ConstIterator begin, ConstIterator end)
+   {
+      
+   }
+   
+   inline Iterator erase(ConstIterator pos)
+   {}
+   
+   // STL compatibility:
+   inline bool empty() const
+   {}
+   
+   inline void push_back(const T &value)
+   {}
+   
+   inline void pop_back()
+   {}
+   
+   inline T &front()
+   {
+      
+   }
+   
+   inline const T &front() const
+   {
+      
+   }
+   
+   inline T &back()
+   {
+      
+   }
+   
+   inline const T &back() const
+   {}
+   
 private:
    friend class PodList<T, PreAlloc>;
    void realloc(int size, int alloc);
+   
    bool isValidIterator(const const_iterator &iter) const
    {
       
