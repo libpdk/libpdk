@@ -426,6 +426,40 @@ String::String(const Character *unicode, int size)
    }
 }
 
+int String::compareHelper(const Character *lhs, int lhsLength, 
+                          const char *rhs, int rhsLength, CaseSensitivity cs) noexcept
+{
+   if (!rhs) {
+      return lhsLength;
+   }
+   if (PDK_UNLIKELY(rhsLength < 0)) {
+      rhsLength = static_cast<int>(std::strlen(rhs));
+   }
+}
+
+int String::compareHelper(const Character *lhs, int lhsLength, Latin1String rhs, 
+                          CaseSensitivity cs) noexcept
+{
+   
+}
+
+int String::compareHelper(const Character *lhs, int lhsLength, 
+                          const Character *rhs, int rhsLength, CaseSensitivity cs) noexcept
+{
+   
+}
+
+bool String::operator ==(Latin1String other) const noexcept
+{
+   if (m_data->m_size != other.size()) {
+      return false;
+   }
+   if (!other.size()) {
+      return isEmpty();
+   }
+   return compareHelper(getRawData(), size(), other, pdk::CaseSensitivity::Sensitive) == 0;
+}
+
 bool operator ==(const String &lhs, const String &rhs) noexcept
 {
    if (lhs.size() != rhs.size()) {
