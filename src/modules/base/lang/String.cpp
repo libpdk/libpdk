@@ -18,6 +18,7 @@
 #include "pdk/pal/kernel/Simd.h"
 #include "pdk/base/lang/internal/StringHelper.h"
 #include "pdk/kernel/Algorithms.h"
+#include "pdk/global/Endian.h"
 
 namespace pdk {
 namespace lang {
@@ -270,11 +271,39 @@ int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
    constexpr const int MAX_TAIL_LENGTH = 7;
    if (ulhs + offset + 7 < end) {
       // same, but we're using an 8-byte load
-//      __m128i chunck = _mm_cvtsi64_si128();
+      __m128i chunk = _mm_cvtsi64_si128(pdk::from_unaligned<long long>(rhs + offset));
+      __m128i secondHalf = _mm_unpacklo_epi8(chunk, nullMask);
+      __m128i lhsdata = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
+      __m128i result = _mm_cmpeq_epi16(secondHalf, lhsdata);
+      uint mask = ~_mm_movemask_epi8(result);
+      if (static_cast<ushort>(mask)) {
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
+      }
+      offset += 8;
    }
+#  else
+   PDK_UNUSED(nullMask);
+   constexpr const int MAX_TAIL_LENGTH = 15;
 #  endif
-   
+   ulhs += offset;
+   rhs += offset;
+#  if !defined(__OPTIMIZE_SIZE__)
+   const auto &lambda = [=](int i) {
+      return ulhs[i] - static_cast<ushort>(rhs[i]);
+   };
+   return UnrollTailLoop<MAX_TAIL_LENGTH>::exec(end - ulhs, 0, lambda, lambda);
+#  endif
 #endif
+   while (ulhs < end) {
+      int diff = *ulhs - *rhs;
+      if (diff) {
+         return diff;
+      }
+      ++ulhs;
+      ++rhs;
+   }
+   return 0;
 }
 
 bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
