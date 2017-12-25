@@ -312,15 +312,6 @@ int unicode_strnicmp(const char16_t *lhs, const char16_t *rhs, int length)
    return unicode_stricmp(lhs, lhs + length, rhs, rhs + length);
 }
 
-bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
-{
-   if (lhs == rhs || !length) {
-      return true;
-   }
-   return unicode_strncmp(reinterpret_cast<const Character *>(lhs), 
-                          reinterpret_cast<const Character *>(rhs), length) == 0;
-}
-
 // Unicode case-sensitive comparison
 int unicode_strcmp(const Character *lhs, int lhsLength, const Character *rhs, int rhsLength)
 {
@@ -337,6 +328,15 @@ int unicode_strcmp(const Character *lhs, int lhsLength, const uchar *rhs, int rh
    int length = std::min(lhsLength, rhsLength);
    int result = unicode_strncmp(lhs, rhs, length);
    return result ? result : (lhsLength - rhsLength);
+}
+
+bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
+{
+   if (lhs == rhs || !length) {
+      return true;
+   }
+   return unicode_strncmp(reinterpret_cast<const Character *>(lhs), 
+                          reinterpret_cast<const Character *>(rhs), length) == 0;
 }
 
 }
@@ -425,6 +425,15 @@ String::String(const Character *unicode, int size)
       }
    }
 }
+
+bool operator ==(const String &lhs, const String &rhs) noexcept
+{
+   if (lhs.size() != rhs.size()) {
+      return false;
+   }
+   return mem_equals(lhs.m_data->getData(), rhs.m_data->getData(), lhs.size());
+}
+
 
 } // lang
 } // pdk
