@@ -304,6 +304,7 @@ void as_const(const T &&) = delete;
 
 } // pdk
 
+#include "pdk/global/TypeInfo.h"
 #include "pdk/global/Flags.h"
 #include "pdk/global/Numeric.h"
 

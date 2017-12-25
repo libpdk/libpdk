@@ -30,7 +30,50 @@ namespace ds {
 template <typename T, int PreAlloc>
 class PodList;
 
-
+template<typename T, int PreAlloc>
+class VarLengthArray
+{
+public:
+   
+   inline explicit VarLengthArray(int size = 0)
+   {
+      
+   }
+   
+   inline VarLengthArray(const VarLengthArray<T, PreAlloc> &other)
+   {
+      
+   }
+   
+   VarLengthArray(std::initializer_list<T> args)
+      : m_array(PreAlloc),
+        m_size(0),
+        ptr(reinterpret_cast<T *>(m_array))
+   {
+      if (args) {
+         
+      }
+   }
+   
+private:
+   friend class PodList<T, PreAlloc>;
+   void realloc(int size, int alloc);
+   bool isValidIterator(const const_iterator &iter) const
+   {
+      
+   }
+   
+private:
+   int m_capacity;
+   int m_size;
+   T *m_ptr;
+   union {
+      char m_array[PreAlloc * sizeof(T)];
+      pint64 m_alignment1;
+      double m_alignment2;
+   };
+   
+};
 
 } // ds
 } // pdk

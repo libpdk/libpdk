@@ -88,21 +88,21 @@ constexpr int PDK_RELOCATABLE_TYPE = 0x4;
 #define PDK_DECLARE_TYPEINFO_BODY(TYPE, FLAGS)\
    class pdk::TypeInfo<TYPE>\
 {\
-public: \
+   public: \
    enum { \
-      isComplex = (((FLAGS) & PDK_PRIMITIVE_TYPE) == 0), \
-      isStatic = (((FLAGS) & (PDK_MOVABLE_TYPE | PDK_PRIMITIVE_TYPE)) == 0), \
-      isRelocatable = !isStatic || ((FLAGS) & PDK_RELOCATABLE_TYPE), \
-      isLarge = (sizeof(TYPE)>sizeof(void*)), \
-      isPointer = false, \
-      isIntegral = std::is_integral<TYPE>::value, \
-      sizeOf = sizeof(TYPE) \
-   }; \
+   isComplex = (((FLAGS) & PDK_PRIMITIVE_TYPE) == 0), \
+   isStatic = (((FLAGS) & (PDK_MOVABLE_TYPE | PDK_PRIMITIVE_TYPE)) == 0), \
+   isRelocatable = !isStatic || ((FLAGS) & PDK_RELOCATABLE_TYPE), \
+   isLarge = (sizeof(TYPE)>sizeof(void*)), \
+   isPointer = false, \
+   isIntegral = std::is_integral<TYPE>::value, \
+   sizeOf = sizeof(TYPE) \
+}; \
    static inline const char *getName() { return #TYPE; } \
 }
 
 #define PDK_DECLARE_TYPEINFO(TYPE, FLAGS)\
-template<> \
+   template<> \
    PDK_DECLARE_TYPEINFO_BODY(TYPE, FLAGS)
 
 template<typename T> class Flags;
@@ -110,8 +110,26 @@ template<typename T>
 PDK_DECLARE_TYPEINFO_BODY(Flags<T>, PDK_PRIMITIVE_TYPE);
 
 /*
-   TypeInfo primitive specializations
-*/
+ * Specialize a shared type with:
+ * PDK_DECLARE_SHARED(type)
+ 
+ * where 'type' is the name of the type to specialize.  NOTE: shared
+ * types must define a member-swap, and be defined in the same
+ * namespace as PDK for this to work.
+ 
+ * If the type was already released without PDK_DECLARE_SHARED applied,
+ * _and_ without an explicit PDK_DECLARE_TYPEINFO(type, PDK_MOVABLE_TYPE)
+ */
+#define PDK_DECLARE_SHARED_IMPL(TYPE, FLAGS)\
+   PDK_DECLARE_TYPEINFO(TYPE, FLAGS);\
+   inline void swap(TYPE &lhs, TYPE &rhs) noexcept(noexcept(lhs.swap(rhs)))\
+{return lhs.swap(rhs);}
+
+#define PDK_DECLARE_SHARED(TYPE) PDK_DECLARE_SHARED_IMPL(TYPE, PDK_MOVABLE_TYPE)
+
+/*
+ * TypeInfo primitive specializations
+ */
 PDK_DECLARE_TYPEINFO(bool, PDK_PRIMITIVE_TYPE);
 PDK_DECLARE_TYPEINFO(char, PDK_PRIMITIVE_TYPE);
 PDK_DECLARE_TYPEINFO(signed char, PDK_PRIMITIVE_TYPE);
@@ -129,6 +147,7 @@ PDK_DECLARE_TYPEINFO(double, PDK_PRIMITIVE_TYPE);
 #ifndef PDK_OS_DARWIN
 PDK_DECLARE_TYPEINFO(long double, PDK_PRIMITIVE_TYPE);
 #endif
+
 
 } // pdk
 
