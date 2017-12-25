@@ -186,7 +186,7 @@ int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
       return 0;
    }
    // check alignment
-   if ((reinterpret_cast<pdk::uintptr>(lhs) & 2) == reinterpret_cast<pdk::uintptr>(rhs) & 2) {
+   if ((reinterpret_cast<pdk::uintptr>(lhs) & 2) == (reinterpret_cast<pdk::uintptr>(rhs) & 2)) {
       // both addresses have the same alignment
       if (reinterpret_cast<pdk::uintptr>(lhs) & 2) {
          // both addresses are not aligned to 4-bytes boundaries
@@ -203,9 +203,9 @@ int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
       // do a fast 32-bit comparison
       const char32_t *dlhs = reinterpret_cast<const char32_t *>(lhs);
       const char32_t *drhs = reinterpret_cast<const char32_t *>(rhs);
-      const quint32 *e = dlhs + (length >> 1);
-      for (; dlhs != e; ++dlhs, drhs) {
-         if (*dlsh != *drhs) {
+      const char32_t *e = dlhs + (length >> 1);
+      for (; dlhs != e; ++dlhs, ++drhs) {
+         if (*dlhs != *drhs) {
             lhs = reinterpret_cast<const Character *>(dlhs);
             rhs = reinterpret_cast<const Character *>(drhs);
             if (*lhs != *rhs) {
@@ -228,6 +228,53 @@ int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
    return 0;
 #endif
    
+}
+
+int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
+{
+   const char16_t *ulhs = reinterpret_cast<const char16_t *>(lhs);
+   const char16_t *end = ulhs + length;
+   
+#ifdef __SSE2__
+   __m128i nullMask = _mm_setzero_si128();
+   pdk::ptrdiff offset = 0;
+   // we're going to read uc[offset..offset+15] (32 bytes)
+   // and c[offset..offset+15] (16 bytes)
+   for (; ulhs + offset + 15 < end; offset += 16) {
+      __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(rhs + offset));
+#  ifdef __AVX2__
+      // expand Latin 1 data via zero extension
+      __m256i rhsData = _mm256_cvtepu8_epi16(chunk);
+      // load UTF-16 data and compare
+      __m256i lhsData = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ulhs + offset));
+      __m256i result = _mm256_cmpeq_epi16(lhsData, rhsData);
+      uint mask = ~_mm256_movemask_epi8(result);
+#  else
+      // expand via unpacking
+      __m128i firstHalf = _mm_unpackhi_epi8(chunk, nullMask);
+      __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
+      // load UTF-16 data and compare
+      __m128i lhsData1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
+      __m128i lhsData2 = _mm_loadu_si128((const __m128i*)(ulhs + offset + 8));
+      // load UTF-16 data and compare
+      __m128i result1 = _mm_cmpeq_epi16(firstHalf, lhsData1);
+      __m128i result2 = _mm_cmpeq_epi16(secondHalf, lhsData2);
+      uint mask = ~(_mm_movemask_epi8(result1) | _mm_movemask_epi8(result2) << 16);
+#  endif
+      if (mask) {
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
+      }
+   }
+#  ifdef PDK_PROCESSOR_X86_64
+   constexpr const int MAX_TAIL_LENGTH = 7;
+   if (ulhs + offset + 7 < end) {
+      // same, but we're using an 8-byte load
+//      __m128i chunck = _mm_cvtsi64_si128();
+   }
+#  endif
+   
+#endif
 }
 
 bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
