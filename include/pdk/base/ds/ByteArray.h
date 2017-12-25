@@ -906,6 +906,9 @@ inline ByteArray ByteArray::fromStdString(const std::string &str)
 }
 
 } // ds
+
+PDK_DECLARE_SHARED(ds::ByteArray)
+
 } // pdk
 
 #endif // PDK_M_BASE_DS_BYTE_ARRAY_H

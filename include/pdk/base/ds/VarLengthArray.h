@@ -55,6 +55,41 @@ public:
       }
    }
    
+   inline int size() const
+   {
+      return m_size;
+   }
+   
+   inline int count() const
+   {
+      return m_size;
+   }
+   
+   inline int length() const
+   {
+      return m_size;
+   }
+   
+   inline bool isEmpty() const
+   {
+      return m_size == 0;
+   }
+   
+   inline void resize(int size);
+   inline void clear()
+   {
+      resize(0);
+   }
+   
+   inline void squeeze();
+   inline int capacity() const
+   {
+      return m_capacity;
+   }
+   
+   inline void reserve(int size);
+   inline int indexOf(const T &value, int from = 0);
+   inline int lastIndexOf(const T &value, int from = -1);
 private:
    friend class PodList<T, PreAlloc>;
    void realloc(int size, int alloc);
