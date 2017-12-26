@@ -648,6 +648,55 @@ VarLengthArray<T, PreAlloc>::erase(ConstIterator begin, ConstIterator end)
    return m_ptr + f;
 }
 
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator ==(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+{
+   if (lhs.size() != rhs.size()) {
+      return false;
+   }
+   
+   const T *lhsBegin = lhs.begin();
+   const T *lhsEnd = lhs.end();
+   const T *rhsBegin = rhs.begin();
+   return std::equal(lhsBegin, lhsEnd, rhsBegin);
+}
+
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator ==(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+{
+   return !(lhs == rhs);
+}
+
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator <(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+noexcept(noexcept(std::lexicographical_compare(lhs.begin(), lhs.end(),
+                                               rhs.begin(), rhs.end)))
+{
+   return std::lexicographical_compare(lhs.begin(), lhs.end(),
+                                       rhs.begin(), rhs.end);
+}
+
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator >(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+noexcept(noexcept(rhs < lhs))
+{
+   return rhs < lhs;
+}
+
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator <=(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+noexcept(noexcept(!(lhs > rhs)))
+{
+   return !(lhs > rhs);
+}
+
+template <typename T, int LhsPreAlloc, int RhsPreAlloc>
+bool operator >=(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+noexcept(noexcept(!(lhs > rhs)))
+{
+   return !(lhs < rhs);
+}
+
 } // ds
 } // pdk
 
