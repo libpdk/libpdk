@@ -593,7 +593,7 @@ inline void VarLengthArray<T, PreAlloc>::replace(int i, const T &value)
 }
 
 template <typename T, int PreAlloc>
-inline typename VarLengthArray<T, PreAlloc>::Iterator 
+inline typename VarLengthArray<T, PreAlloc>::Iterator
 VarLengthArray<T, PreAlloc>::insert(ConstIterator before, SizeType n, const T &value)
 {
    PDK_ASSERT_X(isValidIterator(before), "VarLengthArray::insert", 
@@ -623,6 +623,29 @@ VarLengthArray<T, PreAlloc>::insert(ConstIterator before, SizeType n, const T &v
       }
    }
    return m_ptr + offset;
+}
+
+template <typename T, int PreAlloc>
+inline typename VarLengthArray<T, PreAlloc>::Iterator
+VarLengthArray<T, PreAlloc>::erase(ConstIterator begin, ConstIterator end)
+{
+   PDK_ASSERT_X(isValidIterator(begin), "VarLengthArray::erase", "The specified const_iterator argument 'begin' is invalid");
+   PDK_ASSERT_X(isValidIterator(end), "VarLengthArray::erase", "The specified const_iterator argument 'end' is invalid");
+   int f = static_cast<int>(begin - m_ptr);
+   int l = static_cast<int>(end - m_ptr);
+   int n = l - f;
+   if (pdk::TypeInfo<T>::isComplex) {
+      std::copy(m_ptr + l, m_ptr + m_size, m_ptr + f);
+      T *iter = m_ptr + m_size;
+      T *stop = m_ptr + m_size - n;
+      while (iter != stop) {
+         (--iter)->~T();
+      }
+   } else {
+      std::memmove(m_ptr + f, m_ptr + l, (m_size - l) * sizeof(T));
+   }
+   m_size -= n;
+   return m_ptr + f;
 }
 
 } // ds
