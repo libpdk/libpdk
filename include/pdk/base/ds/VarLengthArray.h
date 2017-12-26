@@ -396,6 +396,84 @@ inline void VarLengthArray<T, PreAlloc>::reserve(int size)
 }
 
 template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::squeeze()
+{
+   realloc(m_size, m_size);  
+}
+
+template <typename T, int PreAlloc>
+inline int VarLengthArray<T, PreAlloc>::indexOf(const T &value, int from) const
+{
+   if (from < 0) {
+      from = std::max(from + m_size, 0);
+   }
+   if (from < m_size) {
+      T *iter = m_ptr + from - 1;
+      T *end = m_ptr + m_size;
+      while (++iter != end) {
+         if (*iter == value) {
+            return iter - m_ptr;
+         }
+      }
+   }
+   return -1;
+}
+
+template <typename T, int PreAlloc>
+inline int VarLengthArray<T, PreAlloc>::lastIndexOf(const T &value, int from) const
+{
+   if (from < 0) {
+      from += m_size;
+   } else if (from >= m_size) {
+      from = m_size - 1;
+   }
+   if (from >= 0) {
+      T *begin = m_ptr;
+      T *iter = m_ptr + from + 1;
+      while (iter != begin) {
+         if (*--iter == value) {
+            return iter - begin;
+         }
+      }
+   }
+}
+
+template <typename T, int PreAlloc>
+bool VarLengthArray<T, PreAlloc>::contains(const T &value) const
+{
+   T *begin = m_ptr;
+   T *iter = m_ptr + m_size;
+   while (iter != begin) {
+      if (*--iter == value) {
+         return true;
+      }
+   }
+   return false;
+}
+
+template <typename T, int PreAlloc>
+void VarLengthArray<T, PreAlloc>::append(const T *buf, int increment)
+{
+   PDK_ASSERT(buf);
+   if (increment <= 0) {
+      return;
+   }
+   const int newSize = m_size + increment;
+   if (newSize >= m_capacity) {
+      realloc(m_size, std::max(m_size * 2, newSize));
+   }
+   if (pdk::TypeInfo<T>::isComplex) {
+      // call constructor for new objects (which can throw)
+      while (m_size < m_capacity) {
+         new (m_ptr + (m_size++)) T(*buf++);
+      }
+   } else {
+      std::memcpy(&m_ptr[m_size], buf, increment * sizeof(T));
+      m_size = newSize;
+   }
+}
+
+template <typename T, int PreAlloc>
 inline void VarLengthArray::realloc(int size, int allocSize)
 {
    PDK_ASSERT(allocSize);
@@ -455,6 +533,96 @@ inline void VarLengthArray::realloc(int size, int allocSize)
          m_size = size;
       }
    }
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::value(int i) const
+{
+   if (static_cast<uint>(i) >= static_cast<uint>(size())) {
+      return T();
+   }
+   return at(i);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::value(int i, const T &defaultValue) const
+{
+   return (static_cast<uint>(i) >= static_cast<uint>(size())) ? defaultValue : at(i);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::insert(int i, const T &value)
+{
+   PDK_ASSERT_X(i >= 0 && i <= m_size, "VarLengthArray::insert", "index out of range");
+   insert(begin() + i, 1, value);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::insert(int i, int n, const T &value)
+{
+   PDK_ASSERT_X(i >= 0 && i <= m_size, "VarLengthArray::insert", "index out of range");
+   insert(begin() + i, n, value);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::remove(int i, int n)
+{
+   PDK_ASSERT_X(i >= 0 && n >= 0 && i + n <= m_size, "VarLengthArray::remove", "index out of range");
+   erase(begin() + i, begin() + i + n);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::remove(int i)
+{
+   PDK_ASSERT_X(i >= 0 && i < m_size, "VarLengthArray::remove", "index out of range");
+   erase(begin() + i, begin() + i + 1);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::prepend(const T &value)
+{
+   insert(begin(), 1, value);
+}
+
+template <typename T, int PreAlloc>
+inline void VarLengthArray<T, PreAlloc>::replace(int i, const T &value)
+{
+   PDK_ASSERT_X(i >= 0 && i < m_size, "VarLengthArray::replace", "index out of range");
+   const T copy(value);
+   data()[i] = copy;
+}
+
+template <typename T, int PreAlloc>
+inline typename VarLengthArray<T, PreAlloc>::Iterator 
+VarLengthArray<T, PreAlloc>::insert(ConstIterator before, SizeType n, const T &value)
+{
+   PDK_ASSERT_X(isValidIterator(before), "VarLengthArray::insert", 
+                "The specified const_iterator argument 'before' is invalid");
+   int offset = static_cast<int>(before - m_ptr);
+   if (n != 0) {
+      resize(m_size + n);
+      const T copy(value);
+      if (pdk::TypeInfo<T>::isStatic) {
+         T *begin = m_ptr + offset;
+         T *end = m_ptr + m_size;
+         T *iter = end - n;
+         while (iter != begin) {
+            *--end = *--iter;
+         }
+         iter = begin + n;
+         while (iter != begin) {
+            *--iter = copy;
+         }
+      } else {
+         T *begin = m_ptr + offset;
+         T *iter = begin + n;
+         std::memmove(iter, begin, (m_size - offset - n) * sizeof(T));
+         while (iter != begin) {
+            new (--iter) T(copy);
+         }
+      }
+   }
+   return m_ptr + offset;
 }
 
 } // ds
