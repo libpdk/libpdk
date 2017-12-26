@@ -945,13 +945,13 @@ ByteArray &ByteArray::replace(const char *before, int blength, const char *after
    char *selfDataPtr = m_data->getData();
    int selfLength = m_data->m_size;
    if (after >= selfDataPtr && after < selfDataPtr + selfLength) {
-      char *copy = static_cast<char *>(malloc(alength));
+      char *copy = static_cast<char *>(std::malloc(alength));
       PDK_CHECK_ALLOC_PTR(copy);
       std::memcpy(copy, after, alength);
       a = copy;
    }
    if (before >= selfDataPtr && before < selfDataPtr + selfLength) {
-      char *copy = static_cast<char *>(malloc(blength));
+      char *copy = static_cast<char *>(std::malloc(blength));
       PDK_CHECK_ALLOC_PTR(copy);
       std::memcpy(copy, before, blength);
       b = copy;
@@ -1045,10 +1045,10 @@ ByteArray &ByteArray::replace(const char *before, int blength, const char *after
       }
    }
    if (a != after) {
-      ::free(const_cast<char *>(a));
+      std::free(const_cast<char *>(a));
    }
    if (b != before) {
-      ::free(const_cast<char *>(b));
+      std::free(const_cast<char *>(b));
    }
    return *this;
 }

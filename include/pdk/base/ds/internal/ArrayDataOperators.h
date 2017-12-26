@@ -20,7 +20,7 @@
 #include "pdk/global/TypeInfo.h"
 
 #include <new>
-#include <string.h>
+#include <cstring>
 
 namespace pdk {
 namespace ds {

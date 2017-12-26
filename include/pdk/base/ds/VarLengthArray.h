@@ -18,8 +18,8 @@
 
 #include "pdk/global/Global.h"
 #include <new>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <algorithm>
 #include <initializer_list>
 #include <iterator>

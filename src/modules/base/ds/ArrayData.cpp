@@ -102,7 +102,7 @@ void ArrayData::deallocate(ArrayData *data, size_t objectSize, size_t alignment)
 #endif
    PDK_ASSERT_X(data == 0 || !data->m_ref.isStatic(), "ArrayData::deallocate",
                 "Static data can not be deleted");
-   ::free(data);
+   std::free(data);
 }
 
 ContainerImplHelper::CutResult ContainerImplHelper::mid(int originalLength, int *position, int *length)

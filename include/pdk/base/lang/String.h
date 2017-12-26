@@ -21,7 +21,7 @@
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/RefCount.h"
 
-#include <stdarg.h>
+#include <cstdarg>
 #include <string>
 #include <iterator>
 #include <vector>

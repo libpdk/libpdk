@@ -16,9 +16,9 @@
 #ifndef PDK_M_BASE_DS_BYTE_ARRAY_H
 #define PDK_M_BASE_DS_BYTE_ARRAY_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 
 #include <string>
 #include <iterator>
