@@ -17,6 +17,7 @@
 #define PDK_M_BASE_DS_VAR_LENGTH_ARRAY_H
 
 #include "pdk/global/Global.h"
+#include "pdk/base/ds/internal/ContainerFwd.h"
 #include <new>
 #include <cstring>
 #include <cstdlib>
@@ -55,6 +56,11 @@ public:
    using ReverseIterator = std::reverse_iterator<Iterator>;
    using ConstReverseIterator = std::reverse_iterator<ConstIterator>;
    
+   using iterator = Iterator;
+   using const_iterator = ConstIterator;
+   using reverse_iterator = ReverseIterator;
+   using const_reverse_iterator = ConstReverseIterator;
+   
 public:
    
    inline explicit VarLengthArray(int size = 0);
@@ -69,7 +75,7 @@ public:
    VarLengthArray(std::initializer_list<T> args)
       : m_array(PreAlloc),
         m_size(0),
-        ptr(reinterpret_cast<T *>(m_array))
+        m_ptr(reinterpret_cast<T *>(m_array))
    {
       if (args) {
          append(args.begin(), static_cast<int>(args.size()));
@@ -79,9 +85,9 @@ public:
    inline ~VarLengthArray()
    {
       if (pdk::TypeInfo<T>::isComplex) {
-         T *i = m_ptr + m_size;
-         while (i-- != m_ptr) {
-            i->~T();
+         T *iter = m_ptr + m_size;
+         while (iter-- != m_ptr) {
+            m_ptr->~T();
          }
       }
       if (m_ptr != reinterpret_cast<T *>(m_array)) {
@@ -122,8 +128,8 @@ public:
    }
    
    inline void reserve(int size);
-   inline int indexOf(const T &value, int from = 0);
-   inline int lastIndexOf(const T &value, int from = -1);
+   inline int indexOf(const T &value, int from = 0) const;
+   inline int lastIndexOf(const T &value, int from = -1) const;
    inline bool contains(const T &value) const;
    
    inline T &operator[](int idx)
@@ -151,7 +157,7 @@ public:
       if (m_size == m_capacity) { // i.e. s != 0
          realloc(m_size, m_size << 1);
       }
-      const int idx = ++m_size;
+      const int idx = m_size++;
       if (pdk::TypeInfo<T>::isComplex) {
          new (m_ptr + idx) T(value);
       } else {
@@ -275,7 +281,7 @@ public:
    
    inline void removeLast()
    {
-      PDK_ASSERT(s > 0);
+      PDK_ASSERT(m_size > 0);
       realloc(m_size - 1, m_capacity);
    }
    
@@ -343,7 +349,7 @@ private:
    friend class PodList<T, PreAlloc>;
    void realloc(int size, int alloc);
    
-   bool isValidIterator(const const_iterator &iter) const
+   bool isValidIterator(const ConstIterator &iter) const
    {
       return (iter <= constEnd()) && (constBegin() <= iter);
    }
@@ -361,7 +367,7 @@ private:
 
 template <typename T, int PreAlloc>
 inline VarLengthArray<T, PreAlloc>::VarLengthArray(int size)
-   : m_capacity(size)
+   : m_size(size)
 {
    PDK_STATIC_ASSERT_X(PreAlloc > 0, "VarLengthArray PreAlloc must be greater than 0.");
    PDK_ASSERT_X(m_size >= 0, "VarLengthArray::VarLengthArray()", "Size must be greater than or equal to 0.");
@@ -374,7 +380,7 @@ inline VarLengthArray<T, PreAlloc>::VarLengthArray(int size)
       m_capacity = PreAlloc;
    }
    if (pdk::TypeInfo<T>::isComplex) {
-      T *iter = m_ptr + s;
+      T *iter = m_ptr + m_size;
       while (iter != m_ptr) {
          new (--iter) T;
       }
@@ -474,7 +480,7 @@ void VarLengthArray<T, PreAlloc>::append(const T *buf, int increment)
 }
 
 template <typename T, int PreAlloc>
-inline void VarLengthArray::realloc(int size, int allocSize)
+inline void VarLengthArray<T, PreAlloc>::realloc(int size, int allocSize)
 {
    PDK_ASSERT(allocSize);
    T *oldPtr = m_ptr;
@@ -536,7 +542,7 @@ inline void VarLengthArray::realloc(int size, int allocSize)
 }
 
 template <typename T, int PreAlloc>
-inline void VarLengthArray<T, PreAlloc>::value(int i) const
+inline T VarLengthArray<T, PreAlloc>::value(int i) const
 {
    if (static_cast<uint>(i) >= static_cast<uint>(size())) {
       return T();
@@ -545,7 +551,7 @@ inline void VarLengthArray<T, PreAlloc>::value(int i) const
 }
 
 template <typename T, int PreAlloc>
-inline void VarLengthArray<T, PreAlloc>::value(int i, const T &defaultValue) const
+inline T VarLengthArray<T, PreAlloc>::value(int i, const T &defaultValue) const
 {
    return (static_cast<uint>(i) >= static_cast<uint>(size())) ? defaultValue : at(i);
 }
@@ -589,7 +595,7 @@ inline void VarLengthArray<T, PreAlloc>::replace(int i, const T &value)
 {
    PDK_ASSERT_X(i >= 0 && i < m_size, "VarLengthArray::replace", "index out of range");
    const T copy(value);
-   data()[i] = copy;
+   getRawData()[i] = copy;
 }
 
 template <typename T, int PreAlloc>
@@ -662,7 +668,7 @@ bool operator ==(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray
 }
 
 template <typename T, int LhsPreAlloc, int RhsPreAlloc>
-bool operator ==(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
+bool operator !=(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
 {
    return !(lhs == rhs);
 }
