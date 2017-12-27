@@ -59,7 +59,65 @@ TEST(VarLengthArrayTest, testAppend)
 {
    VarLengthArray<std::string> v(0);
    v.append(std::string("a"));
-//   char buf[256];
-//   std::string *p = new (buf) std::string("abc");
-//   p->~basic_string();
+   VarLengthArray<int> v2;
+   v2.append(5);
+}
+
+TEST(VarLengthArrayTest, removeLast)
+{
+   {
+      VarLengthArray<char, 2> v;
+      v.append(0);
+      v.append(1);
+      ASSERT_EQ(v.size(), 2);
+      v.append(2);
+      v.append(3);
+      ASSERT_EQ(v.size(), 4);
+      v.removeLast();
+      ASSERT_EQ(v.size(), 3);
+      v.removeLast();
+      ASSERT_EQ(v.size(), 2);
+   }
+   {
+      VarLengthArray<std::string, 2> v;
+      v.append("0");
+      v.append("1");
+      ASSERT_EQ(v.size(), 2);
+      v.append("2");
+      v.append("3");
+      ASSERT_EQ(v.size(), 4);
+      v.removeLast();
+      ASSERT_EQ(v.size(), 3);
+      v.removeLast();
+      ASSERT_EQ(v.size(), 2);
+   }
+}
+
+TEST(VarLengthArrayTest, testDataAccess)
+{
+   {
+      VarLengthArray<int, 256> array(128);
+      ASSERT_TRUE(array.getRawData() == &array[0]);
+      array[0] = 0xfee;
+      array[10] = 0xff;
+      ASSERT_EQ(array[0], 0xfee);
+      ASSERT_EQ(array[10], 0xff);
+      array.resize(512);
+      ASSERT_TRUE(array.getRawData() == &array[0]);
+      array[0] = 0xfee;
+      array[10] = 0xff;
+      ASSERT_EQ(array.at(0), 0xfee);
+      ASSERT_EQ(array.at(10), 0xff);
+      ASSERT_EQ(array.value(0), 0xfee);
+      ASSERT_EQ(array.value(10), 0xff);
+      ASSERT_EQ(array.value(1000), 0);
+      ASSERT_EQ(array.value(1000, 12), 12);
+      ASSERT_EQ(array.size(), 512);
+      array.reserve(1024);
+      ASSERT_EQ(array.capacity(), 1024);
+      ASSERT_EQ(array.size(), 512);
+   }
+   {
+      
+   }
 }

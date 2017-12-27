@@ -535,9 +535,9 @@ inline void VarLengthArray<T, PreAlloc>::realloc(int size, int allocSize)
       // call default constructor for new objects (which can throw)
       while (m_size < size) {
          new (m_ptr + (m_size++)) T;
-      } {
-         m_size = size;
       }
+   } else {
+      m_size = size;
    }
 }
 
