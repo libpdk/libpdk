@@ -544,3 +544,92 @@ TEST(VarLengthArrayTest, testReverseIterators)
    ASSERT_TRUE(std::equal(vr.crbegin(), vr.crend(), v.begin()));
    ASSERT_TRUE(std::equal(cvr.rbegin(), cvr.rend(), v.begin()));
 }
+
+TEST(VarLengthArrayTest, testCount)
+{
+   {
+      const VarLengthArray<int> list;
+      ASSERT_EQ(list.length(), 0);
+      ASSERT_EQ(list.count(), 0);
+      ASSERT_EQ(list.size(), 0);
+   }
+   {
+      VarLengthArray<int> list;
+      list.append(0);
+      ASSERT_EQ(list.length(), 1);
+      ASSERT_EQ(list.count(), 1);
+      ASSERT_EQ(list.size(), 1);
+   }
+   {
+      VarLengthArray<int> list;
+      list.append(0);
+      list.append(1);
+      ASSERT_EQ(list.length(), 2);
+      ASSERT_EQ(list.count(), 2);
+      ASSERT_EQ(list.size(), 2);
+   }
+   {
+      VarLengthArray<int> list;
+      list.append(0);
+      list.append(1);
+      list.append(2);
+      ASSERT_EQ(list.length(), 3);
+      ASSERT_EQ(list.count(), 3);
+      ASSERT_EQ(list.size(), 3);
+   }
+   {
+      VarLengthArray<int> list;
+      list.append(0);
+      list.append(1);
+      list.append(2);
+      ASSERT_EQ(list.length(), 3);
+      ASSERT_EQ(list.count(), 3);
+      ASSERT_EQ(list.size(), 3);
+      list.removeLast();
+      ASSERT_EQ(list.length(), 2);
+      ASSERT_EQ(list.count(), 2);
+      ASSERT_EQ(list.size(), 2);
+      list.removeLast();
+      ASSERT_EQ(list.length(), 1);
+      ASSERT_EQ(list.count(), 1);
+      ASSERT_EQ(list.size(), 1);
+   }
+}
+
+TEST(VarLengthArrayTest, testFirst)
+{
+   VarLengthArray<int> list;
+   list.append(27);
+   ASSERT_EQ(list.first(), 27);
+   list.append(4);
+   ASSERT_EQ(list.first(), 27);
+   list.append(1987);
+   ASSERT_EQ(list.first(), 27);
+   ASSERT_EQ(list.size(), 3);
+   // remove some, make sure it stays sane
+   list.removeLast();
+   ASSERT_EQ(list.first(), 27);
+   ASSERT_EQ(list.size(), 2);
+   list.removeLast();
+   ASSERT_EQ(list.first(), 27);
+   ASSERT_EQ(list.size(), 1);
+}
+
+TEST(VarLengthArrayTest, testLast)
+{
+   VarLengthArray<int> list;
+   list.append(27);
+   ASSERT_EQ(list.last(), 27);
+   list.append(4);
+   ASSERT_EQ(list.last(), 4);
+   list.append(1987);
+   ASSERT_EQ(list.last(), 1987);
+   ASSERT_EQ(list.size(), 3);
+   // remove some, make sure it stays sane
+   list.removeLast();
+   ASSERT_EQ(list.last(), 4);
+   ASSERT_EQ(list.size(), 2);
+   list.removeLast();
+   ASSERT_EQ(list.last(), 27);
+   ASSERT_EQ(list.size(), 1);
+}
