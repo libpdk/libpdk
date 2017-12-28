@@ -528,3 +528,19 @@ TEST(VarLengthArrayTest, testRealloc)
    realloc_test<MyComplex>();
    ASSERT_TRUE(reallocTestProceed);
 }
+
+TEST(VarLengthArrayTest, testReverseIterators)
+{
+   VarLengthArray<int> v;
+   v << 1 << 2 << 3 << 4;
+   VarLengthArray<int> vr = v;
+   std::reverse(vr.begin(), vr.end());
+   const VarLengthArray<int> &cvr = vr;
+   ASSERT_TRUE(std::equal(v.begin(), v.end(), vr.rbegin()));
+   ASSERT_TRUE(std::equal(v.begin(), v.end(), vr.crbegin()));
+   ASSERT_TRUE(std::equal(v.begin(), v.end(), cvr.rbegin()));
+   
+   ASSERT_TRUE(std::equal(vr.rbegin(), vr.rend(), v.begin()));
+   ASSERT_TRUE(std::equal(vr.crbegin(), vr.crend(), v.begin()));
+   ASSERT_TRUE(std::equal(cvr.rbegin(), cvr.rend(), v.begin()));
+}

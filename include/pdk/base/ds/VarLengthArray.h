@@ -242,6 +242,11 @@ public:
       return m_ptr + m_size;
    }
    
+   inline ConstIterator end() const
+   {
+      return m_ptr + m_size;
+   }
+   
    inline ConstIterator cend() const 
    {
       return m_ptr + m_size;
