@@ -103,7 +103,7 @@ public:
       if (pdk::TypeInfo<T>::isComplex) {
          T *iter = m_ptr + m_size;
          while (iter-- != m_ptr) {
-            m_ptr->~T();
+            iter->~T();
          }
       }
       if (m_ptr != reinterpret_cast<T *>(m_array)) {

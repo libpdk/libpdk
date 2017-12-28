@@ -22,8 +22,10 @@
 #include <string>
 
 #include "pdk/base/ds/VarLengthArray.h"
+#include "pdk/base/ds/ByteArray.h"
 
 using pdk::ds::VarLengthArray;
+using pdk::ds::ByteArray;
 
 namespace
 {
@@ -173,5 +175,48 @@ TEST(VarLengthArrayTest, testDataAccess)
       ASSERT_EQ(array2[5], 5);
       VarLengthArray<int> array3(array1);
       ASSERT_EQ(array2[5], 5);
+   }
+}
+
+TEST(VarLengthArrayTest, testAppendCausingRealloc)
+{
+   VarLengthArray<float, 1> array(1);
+   for (int i = 0; i < 30; i++) {
+      array.append(i);
+   }
+   
+}
+
+TEST(VarLengthArrayTest, testResize)
+{
+   //MOVABLE
+   {
+      VarLengthArray<ByteArray> array(1);
+      ASSERT_EQ(array.size(), 1);
+      array[0].append('A');
+      array.resize(2);
+   }
+   // POD
+   {
+      VarLengthArray<int,1> array(1);
+      ASSERT_EQ(array.size(), 1);
+      array[0] = 1;
+      array.resize(2);
+      ASSERT_EQ(array.size(), 2);
+      array[1] = 2;
+      ASSERT_EQ(array[1], 2);
+      ASSERT_EQ(array.size(), 2);
+   }
+   // COMPLEX
+   {
+      VarLengthArray<VarLengthArray<std::string, 15>, 1> array(1);
+      ASSERT_EQ(array.size(), 1);
+      array[0].resize(10);
+      array.resize(2);
+      ASSERT_EQ(array[1].size(), 0);
+      ASSERT_EQ(array[0].size(), 10);
+      array[1].resize(20);
+      ASSERT_EQ(array[1].size(), 20);
+      ASSERT_EQ(array.size(), 2);
    }
 }
