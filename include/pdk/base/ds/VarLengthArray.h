@@ -73,11 +73,11 @@ public:
    }
    
    VarLengthArray(std::initializer_list<T> args)
-      : m_array(PreAlloc),
+      : m_capacity(PreAlloc),
         m_size(0),
         m_ptr(reinterpret_cast<T *>(m_array))
    {
-      if (args) {
+      if (args.size() > 0) {
          append(args.begin(), static_cast<int>(args.size()));
       }
    }
@@ -463,6 +463,7 @@ inline int VarLengthArray<T, PreAlloc>::lastIndexOf(const T &value, int from) co
          }
       }
    }
+   return -1;
 }
 
 template <typename T, int PreAlloc>
@@ -697,10 +698,10 @@ bool operator !=(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray
 template <typename T, int LhsPreAlloc, int RhsPreAlloc>
 bool operator <(const VarLengthArray<T, LhsPreAlloc> &lhs, const VarLengthArray<T, RhsPreAlloc> &rhs)
 noexcept(noexcept(std::lexicographical_compare(lhs.begin(), lhs.end(),
-                                               rhs.begin(), rhs.end)))
+                                               rhs.begin(), rhs.end())))
 {
    return std::lexicographical_compare(lhs.begin(), lhs.end(),
-                                       rhs.begin(), rhs.end);
+                                       rhs.begin(), rhs.end());
 }
 
 template <typename T, int LhsPreAlloc, int RhsPreAlloc>

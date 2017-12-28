@@ -656,3 +656,162 @@ TEST(VarLengthArrayTest, testSqueeze)
    list.squeeze();
    ASSERT_EQ(list.capacity(), sizeOnHeap);
 }
+
+TEST(VarLengthArrayTest, testOperators)
+{
+   VarLengthArray<std::string> array1;
+   array1 << "A" << "B" << "C";
+   VarLengthArray<std::string> array2;
+   array2 << "D" << "E" << "F";
+   VarLengthArray<std::string> combined;
+   combined << "A" << "B" << "C" << "D" << "E" << "F";
+   ASSERT_NE(array1, array2);
+   for (const std::string &str : array2) {
+      array1.push_back(str);
+   }
+   ASSERT_EQ(array1, combined);
+   ASSERT_TRUE(!(array1 < combined));
+   ASSERT_TRUE(!(array1 > combined));
+   ASSERT_TRUE(array1 >= combined);
+   ASSERT_TRUE(array1 <= combined);
+   
+   combined.push_back("G");
+   ASSERT_TRUE(array1 < combined);
+   ASSERT_TRUE(!(array1 > combined));
+   ASSERT_TRUE(!(array1 >= combined));
+   ASSERT_TRUE(array1 <= combined);
+   ASSERT_TRUE(array1 < combined);
+   
+   ASSERT_EQ(array1[0], "A");
+   ASSERT_EQ(array1[1], "B");
+   ASSERT_EQ(array1[2], "C");
+   ASSERT_EQ(array1[3], "D");
+   ASSERT_EQ(array1[4], "E");
+   ASSERT_EQ(array1[5], "F");
+}
+
+TEST(VarLengthArrayTest, testIndexOf)
+{
+   VarLengthArray<std::string> array;
+   array << "A" << "B" << "C" << "B" << "A";
+   ASSERT_TRUE(array.indexOf("B") == 1);
+   ASSERT_TRUE(array.indexOf("B", 1) == 1);
+   ASSERT_TRUE(array.indexOf("B", 2) == 3);
+   ASSERT_TRUE(array.indexOf("X") == -1);
+   ASSERT_TRUE(array.indexOf("X", 2) == -1);
+   
+   array << "X";
+   ASSERT_TRUE(array.indexOf("X") == 5);
+   ASSERT_TRUE(array.indexOf("X", 5) == 5);
+   ASSERT_TRUE(array.indexOf("X", 6) == -1);
+   // remove first A
+   array.remove(0);
+   ASSERT_TRUE(array.indexOf("A") == 3);
+   ASSERT_TRUE(array.indexOf("A", 3) == 3);
+   ASSERT_TRUE(array.indexOf("A", 4) == -1);
+}
+
+TEST(VarLengthArrayTest, testLastIndexOf)
+{
+   VarLengthArray<std::string> array;
+   array << "A" << "B" << "C" << "B" << "A";
+   ASSERT_TRUE(array.lastIndexOf("B") == 3);
+   ASSERT_TRUE(array.lastIndexOf("B", 2) == 1);
+   ASSERT_TRUE(array.lastIndexOf("X") == -1);
+   ASSERT_TRUE(array.lastIndexOf("X", 2) == -1);
+   // add an X
+   array << "X";
+   ASSERT_TRUE(array.lastIndexOf("X") == 5);
+   ASSERT_TRUE(array.lastIndexOf("X", 5) == 5);
+   ASSERT_TRUE(array.lastIndexOf("X", 3) == -1);
+   // remove first A
+   array.remove(0);
+   ASSERT_TRUE(array.lastIndexOf("A") == 3);
+   ASSERT_TRUE(array.lastIndexOf("A", 3) == 3);
+   ASSERT_TRUE(array.lastIndexOf("A", 2) == -1);
+}
+
+TEST(VarLengthArrayTest, testContains)
+{
+   VarLengthArray<std::string> array;
+   array << "aaa" << "bbb" << "ccc";
+   ASSERT_TRUE(array.contains("aaa"));
+   ASSERT_TRUE(array.contains("bbb"));
+   ASSERT_TRUE(array.contains("ccc"));
+   ASSERT_FALSE(array.contains("don't exist"));
+   array << "don't exist";
+   ASSERT_TRUE(array.contains("don't exist"));
+}
+
+TEST(VarLengthArrayTest, testClear)
+{
+   VarLengthArray<std::string, 5> array;
+   for(int i = 0; i < 10; ++i) {
+      array << "aaa";
+   }
+   ASSERT_EQ(array.size(), 10);
+   ASSERT_TRUE(array.capacity() >= array.size());
+   const int oldCapacity = array.capacity();
+   array.clear();
+   ASSERT_EQ(array.size(), 0);
+   ASSERT_EQ(array.capacity(), oldCapacity);
+}
+
+template <typename T>
+void initialize_list_test()
+{
+   T val1(110);
+   T val2(105);
+   T val3(101);
+   T val4(114);
+   VarLengthArray<T> v1 {val1, val2, val3};
+   ASSERT_EQ(v1, VarLengthArray<T>() << val1 << val2 << val3);
+   ASSERT_EQ(v1, (VarLengthArray<T>{val1, val2, val3}));
+   
+   VarLengthArray<VarLengthArray<T>, 4> v2{ v1, {val4}, VarLengthArray<T>(), {val1, val2, val3} };
+   VarLengthArray<VarLengthArray<T>, 4> v3;
+   v3 << v1 << (VarLengthArray<T>() << val4) << VarLengthArray<T>() << v1;
+   ASSERT_EQ(v2, v3);
+   
+   VarLengthArray<T> v4({});
+   ASSERT_EQ(v4.size(), 0);
+   
+   // operator=(std::initializer_list<>)
+   VarLengthArray<T> v5({val2, val1});
+   v1 = {val1, val2};
+   v4 = {val1, val2};
+   v5 = {val1, val2};
+   ASSERT_EQ(v1, VarLengthArray<T>() << val1 << val2);
+   ASSERT_EQ(v4, v1);
+   ASSERT_EQ(v5, v1);
+   
+   VarLengthArray<T, 1> v6 = { val1 };
+   v6 = { val1, val2 };
+   ASSERT_EQ(v6.size(), 2);
+   ASSERT_EQ(v6.first(), val1);
+   ASSERT_EQ(v6.last(), val2);
+   
+   v6 = {};
+   ASSERT_EQ(v6.size(), 0);
+}
+
+
+TEST(VarLengthArrayTest, testInitializeListInt)
+{
+   initialize_list_test<int>();
+}
+
+TEST(VarLengthArrayTest, testInitializeListMovable)
+{
+   const int instancesCount = MyMovable::sm_liveCount;
+   initialize_list_test<MyMovable>();
+   ASSERT_EQ(instancesCount, MyMovable::sm_liveCount);
+}
+
+TEST(VarLengthArrayTest, testInitializeListComplex)
+{
+   const int instancesCount = MyMovable::sm_liveCount;
+   initialize_list_test<MyComplex>();
+   ASSERT_EQ(instancesCount, MyMovable::sm_liveCount);
+}
+
