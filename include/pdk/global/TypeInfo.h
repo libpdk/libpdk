@@ -79,11 +79,15 @@ struct TypeInfoQuery<T, typename std::enable_if<TypeInfo<T>::isRelocatable || tr
       : public TypeInfo<T>
 {};
 
+}
+
 constexpr int PDK_COMPLEX_TYPE = 0;
 constexpr int PDK_PRIMITIVE_TYPE = 0x1;
 constexpr int PDK_STATIC_TYPE = 0;
 constexpr int PDK_MOVABLE_TYPE = 0x2;
 constexpr int PDK_RELOCATABLE_TYPE = 0x4;
+
+namespace pdk {
 
 #define PDK_DECLARE_TYPEINFO_BODY(TYPE, FLAGS)\
    class pdk::TypeInfo<TYPE>\

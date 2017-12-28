@@ -532,7 +532,7 @@ inline void VarLengthArray<T, PreAlloc>::realloc(int size, int allocSize)
             throw;
          }
       } else {
-         std::memcmp(m_ptr, oldPtr, copySize * sizeof(T));
+         std::memcpy(m_ptr, oldPtr, copySize * sizeof(T));
       }
    }
    m_size = copySize;
