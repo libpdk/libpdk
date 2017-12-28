@@ -633,3 +633,26 @@ TEST(VarLengthArrayTest, testLast)
    ASSERT_EQ(list.last(), 27);
    ASSERT_EQ(list.size(), 1);
 }
+
+TEST(VarLengthArrayTest, testSqueeze)
+{
+   VarLengthArray<int> list;
+   int sizeOnStack = list.capacity();
+   int sizeOnHeap = sizeOnStack * 2;
+   list.resize(0);
+   ASSERT_EQ(list.capacity(), sizeOnStack);
+   list.resize(sizeOnHeap);
+   ASSERT_EQ(list.capacity(), sizeOnHeap);
+   list.resize(sizeOnStack);
+   ASSERT_EQ(list.capacity(), sizeOnHeap);
+   list.resize(0);
+   ASSERT_EQ(list.capacity(), sizeOnHeap);
+   list.squeeze();
+   ASSERT_EQ(list.capacity(), sizeOnStack);
+   list.resize(sizeOnStack);
+   list.squeeze();
+   ASSERT_EQ(list.capacity(), sizeOnStack);
+   list.resize(sizeOnHeap);
+   list.squeeze();
+   ASSERT_EQ(list.capacity(), sizeOnHeap);
+}
