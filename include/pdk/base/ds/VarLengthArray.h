@@ -82,6 +82,22 @@ public:
       }
    }
    
+   inline VarLengthArray<T, PreAlloc> &operator =(std::initializer_list<T> list)
+   {
+      resize(list.size());
+      std::copy(list.begin(), list.end(), this->begin());
+      return *this;
+   }
+   
+   inline VarLengthArray<T, PreAlloc> &operator =(const VarLengthArray<T, PreAlloc> &other)
+   {
+      if (this != &other) {
+         clear();
+         append(other.getConstRawData(), other.size());
+      }
+      return *this;
+   }
+   
    inline ~VarLengthArray()
    {
       if (pdk::TypeInfo<T>::isComplex) {
@@ -470,7 +486,7 @@ void VarLengthArray<T, PreAlloc>::append(const T *buf, int increment)
    }
    if (pdk::TypeInfo<T>::isComplex) {
       // call constructor for new objects (which can throw)
-      while (m_size < m_capacity) {
+      while (m_size < newSize) {
          new (m_ptr + (m_size++)) T(*buf++);
       }
    } else {

@@ -118,6 +118,60 @@ TEST(VarLengthArrayTest, testDataAccess)
       ASSERT_EQ(array.size(), 512);
    }
    {
+      VarLengthArray<std::string> array(10);
+      array[0] = "Hello";
+      array[9] = "World";
+      ASSERT_STREQ(array.getRawData()->c_str(), "Hello");
+      ASSERT_EQ(array[9], "World");
+      array.reserve(512);
+      ASSERT_STREQ(array.getRawData()->c_str(), "Hello");
+      ASSERT_EQ(array[9], "World");
+      array.resize(512);
+      ASSERT_STREQ(array.getRawData()->c_str(), "Hello");
+      ASSERT_EQ(array[9], "World");
+   }
+   {
+      int rawArray[2] = {1, 2};
+      VarLengthArray<int> array(10);
+      ASSERT_EQ(array.size(), 10);
+      array.append(rawArray, 2);
+      ASSERT_EQ(array.size(), 12);
+      ASSERT_EQ(array[10], 1);
+      ASSERT_EQ(array[11], 2);
+   }
+   {
+      std::string strArray[2]{std::string("hello"), std::string("world")};
+      VarLengthArray<std::string> array(10);
+      ASSERT_EQ(array.size(), 10);
+      array.append(strArray, 2);
+      ASSERT_EQ(array.size(), 12);
+      ASSERT_EQ(array[10], "hello");
+      ASSERT_EQ(array[11], "world");
+      ASSERT_EQ(array.at(10), "hello");
+      ASSERT_EQ(array.at(11), "world");
+      ASSERT_EQ(array.value(10), "hello");
+      ASSERT_EQ(array.value(11), "world");
+      ASSERT_EQ(array.value(1000), std::string());
+      ASSERT_EQ(array.value(1000, std::string("null")), std::string("null"));
+      ASSERT_EQ(array.value(-12, std::string("neg")), std::string("neg"));
       
+      array.append(strArray, 1);
+      ASSERT_EQ(array.size(), 13);
+      ASSERT_EQ(array[12], std::string("hello"));
+      
+      array.append(strArray, 0);
+      ASSERT_EQ(array.size(), 13);
+   }
+   {
+      // assignment operator and copy constructor
+      VarLengthArray<int> array1(10);
+      array1[5] = 5;
+      
+      VarLengthArray<int> array2(10);
+      array2[5] = 6;
+      array2 = array1;
+      ASSERT_EQ(array2[5], 5);
+      VarLengthArray<int> array3(array1);
+      ASSERT_EQ(array2[5], 5);
    }
 }
