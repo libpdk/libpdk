@@ -116,7 +116,7 @@ public:
    
    inline operator bool() const
    {
-      return isNull() ? nullptr : &ScopedPointer::m_data;
+      return isNull() ? false : static_cast<bool>(&ScopedPointer::m_data);
    }
    
    T *getData() const noexcept
