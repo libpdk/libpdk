@@ -17,14 +17,77 @@
 #define PDK_M_BASE_TEXT_CODECS_TEXT_CODEC_H
 
 #include "pdk/base/lang/String.h"
+#include <list>
 
 namespace pdk {
 namespace text {
 namespace codecs {
 
+using pdk::ds::ByteArray;
+using pdk::lang::Character;
+using pdk::lang::String;
+
+class TextDecoder;
+class TextEncoder;
+
 class PDK_CORE_EXPORT TextCodec
 {
- 
+public:
+   enum class ConversionFlag : unsigned int
+   {
+      DefaultConversion,
+      ConvertInvalidToNull = 0x80000000,
+      IgnoreHeader = 0x1,
+      FreeFunction = 0x2
+   };
+   PDK_DECLARE_FLAGS(ConversionFlags, ConversionFlag);
+   
+   struct PDK_CORE_EXPORT ConverterState
+   {
+      ConverterState(ConversionFlags flag = ConversionFlag::DefaultConversion)
+         : m_flags(flag),
+           m_remainingChars(0),
+           m_invalidChars(0),
+           m_data(nullptr)
+      {
+         m_stateData[0] = m_stateData[1] = m_stateData[2] = 0;
+      }
+      
+      ~ConverterState();
+      
+   public:
+      ConversionFlags m_flags;
+      int m_remainingChars;
+      int m_invalidChars;
+      uint m_stateData[3];
+      void *m_data;
+      
+   private:
+      PDK_DISABLE_COPY(ConverterState);
+   };
+   
+public:
+   static TextCodec *codecForName(const ByteArray &name);
+   static TextCodec *codecForName(const char *name);
+   static TextCodec *codecForMib(int mib);
+   static std::list<ByteArray> getAvailableCodecs();
+   static std::list<int> getAvailableMibs();
+   
+   static TextCodec *getCodecForLocale();
+   static void setCodecForLocale(TextCodec *codec);
+   
+   static TextCodec *codecForUtfText(const ByteArray &ba);
+   static TextCodec *codecForUtfText(const ByteArray &ba, TextCodec *defaultCodec);
+   
+   bool canEncode(Character c) const;
+   bool canEncode(const String &str) const;
+   
+   String toUnicode(const ByteArray &str) const;
+   String toUnicode(const char *str) const;
+   ByteArray fromUnicode(const String &unicodeStr) const;
+   
+private:
+   PDK_DISABLE_COPY(TextCodec);
 };
 
 } // codecs

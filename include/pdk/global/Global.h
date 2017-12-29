@@ -50,6 +50,10 @@
 #  define PDK_CORE_IMPORT PDK_DECL_IMPORT
 #endif
 
+#define PDK_DISABLE_COPY(Class)\
+   Class(const Class &) = delete;\
+   Class &operator=(const Class &) = delete
+
 #if defined(__i386__) || defined(_WIN32)
 #  if defined(PDK_CC_GNU)
 #     define PDK_FASTCALL __attribute__((regparm(3)))
