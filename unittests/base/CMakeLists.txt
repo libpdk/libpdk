@@ -22,7 +22,8 @@ pdk_add_files(PDK_DS_TEST_SRCS
     ds/arraydata/ArrayDataTest.cpp
     ds/ByteArrayTest.cpp
     ds/ByteArrayMatcherTest.cpp
-    ds/VarLengthArrayTest.cpp)
+    ds/VarLengthArrayTest.cpp
+    ds/BitArrayTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests DsTest ${PDK_DS_TEST_SRCS})
 

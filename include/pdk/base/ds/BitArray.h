@@ -110,7 +110,8 @@ public:
    {
       return m_data == other.m_data;
    }
-   inline bool operator|=(const BitArray &other) const
+   
+   inline bool operator!=(const BitArray &other) const
    {
       return m_data != other.m_data;
    }

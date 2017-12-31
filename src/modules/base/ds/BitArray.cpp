@@ -50,6 +50,24 @@ BitArray::BitArray(int size, bool value)
    }
 }
 
+void BitArray::fill(bool value, int first, int last)
+{
+   while (first < last && (first & 0x7)) {
+      setBit(first++, value);
+   }
+   int length = last - first;
+   if (length <= 0) {
+      return;
+   }
+   int actualSize = length & ~0x7;
+   uchar *data = reinterpret_cast<uchar *>(m_data.getRawData());
+   std::memset(data + 1 + (first >> 3), value ? 0xff : 0, actualSize >> 3);
+   first += actualSize;
+   while (first < last) {
+      setBit(first++, value);
+   }
+}
+
 int BitArray::count(bool on) const
 {
    int numBits = 0;
@@ -65,7 +83,7 @@ int BitArray::count(bool on) const
    if (bits + 3 <= end) {
       puint32 v = pdk::from_unaligned<puint32>(bits);
       bits += 4;
-      numBits += static_cast<int>(v);
+      numBits += static_cast<int>(pdk::population_count(v));
    }
    if (bits + 1 < end) {
       puint16 v = pdk::from_unaligned<puint16>(bits);
@@ -148,6 +166,7 @@ BitArray BitArray::operator ~() const
    if (sz && sz % 8) {
       *(data2 - 1) &= (1 << (sz % 8)) - 1;
    }
+   return result;
 }
 
 BitArray operator &(const BitArray &lhs, const BitArray &rhs)
