@@ -907,8 +907,140 @@ inline WeakPointer<TargetType> weak_pointer_cast(const SharedPointer<SourceType>
    return shared_pointer_cast<TargetType, SourceType>(src).toWeakRef();
 }
 
+template <class T, class X>
+bool operator==(const SharedPointer<T> &lhs, const SharedPointer<X> &rhs) noexcept
+{
+    return lhs.getData() == rhs.getData();
+}
+
+template <class T, class X>
+bool operator!=(const SharedPointer<T> &lhs, const SharedPointer<X> &rhs) noexcept
+{
+    return lhs.getData() != rhs.getData();
+}
+
+template <class T, class X>
+bool operator==(const SharedPointer<T> &lhs, const X *rhs) noexcept
+{
+    return lhs.getData() == rhs;
+}
+
+template <class T, class X>
+bool operator==(const T *lhs, const SharedPointer<X> &rhs) noexcept
+{
+    return lhs == rhs.getData();
+}
+
+template <class T, class X>
+bool operator!=(const SharedPointer<T> &lhs, const X *rhs) noexcept
+{
+    return !(lhs == rhs);
+}
+
+template <class T, class X>
+bool operator!=(const T *lhs, const SharedPointer<X> &rhs) noexcept
+{
+    return !(rhs == lhs);
+}
+
+template <typename T, typename X>
+bool operator ==(const SharedPointer<T> &lhs, const WeakPointer<X> &rhs) noexcept
+{
+   return rhs == lhs;
+}
+
+template <typename T, typename X>
+bool operator !=(const SharedPointer<T> &lhs, const WeakPointer<X> &rhs) noexcept
+{
+   return rhs != lhs;
+}
+
+template <typename T>
+bool operator ==(const SharedPointer<T> &lhs, std::nullptr_t) noexcept
+{
+   return lhs.isNull();
+}
+
+template <typename T>
+bool operator !=(const SharedPointer<T> &lhs, std::nullptr_t) noexcept
+{
+   return !lhs.isNull();
+}
+
+template <typename T>
+bool operator ==(std::nullptr_t, const SharedPointer<T> &rhs) noexcept
+{
+   return rhs.isNull();
+}
+
+template <typename T>
+bool operator !=(std::nullptr_t, const SharedPointer<T> &rhs) noexcept
+{
+   return !rhs.isNull();
+}
+
+template <typename T>
+bool operator ==(const WeakPointer<T> &lhs, std::nullptr_t) noexcept
+{
+   return lhs.isNull();
+}
+
+template <typename T>
+bool operator !=(const WeakPointer<T> &lhs, std::nullptr_t) noexcept
+{
+   return !lhs.isNull();
+}
+
+template <typename T>
+bool operator ==(std::nullptr_t, const WeakPointer<T> &rhs) noexcept
+{
+   return rhs.isNull();
+}
+
+template <typename T>
+bool operator !=(std::nullptr_t, const WeakPointer<T> &rhs) noexcept
+{
+   return !rhs.isNull();
+}
+
+template <typename T, typename X>
+inline typename SharedPointer<T>::DifferenceType operator-(const SharedPointer<T> &lhs, const SharedPointer<X> &rhs)
+{
+    return lhs.getData() - rhs.getData();
+}
+
+template <typename T, typename X>
+inline typename SharedPointer<T>::DifferenceType operator-(const SharedPointer<T> &lhs, X *rhs)
+{
+    return lhs.getData() - rhs;
+}
+
+template <typename T, typename X>
+inline typename SharedPointer<T>::DifferenceType operator-(T *lhs, const SharedPointer<X> &rhs)
+{
+    return lhs - rhs.getData();
+}
+
+template <class T, class X>
+inline bool operator<(const SharedPointer<T> &lhs, const SharedPointer<X> &rhs)
+{
+    return lhs.getData() < rhs.data();
+}
+template <class T, class X>
+inline bool operator<(const SharedPointer<T> &lhs, X *rhs)
+{
+    return lhs.getData() < rhs;
+}
+template <class T, class X>
+inline bool operator<(T *lhs, const SharedPointer<X> &rhs)
+{
+    return lhs < rhs.getData();
+}
+
 } // utils
 } // pdk
 
+template<typename T> PDK_DECLARE_TYPEINFO_BODY(pdk::utils::WeakPointer<T>, PDK_MOVABLE_TYPE);
+template<typename T> PDK_DECLARE_TYPEINFO_BODY(pdk::utils::SharedPointer<T>, PDK_MOVABLE_TYPE);
 
 #endif // PDK_UTILS_SHARED_POINTER_H

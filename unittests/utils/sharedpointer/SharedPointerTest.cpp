@@ -147,6 +147,11 @@ TEST(SharedPointerTest, testBasics)
          ASSERT_EQ(bool(ptr), !isNull);
          ASSERT_EQ(!ptr, isNull);
          ASSERT_EQ(ptr.getData(), aData);
+         if (!isNull) {
+            Data &dataReference = *ptr;
+            ASSERT_EQ(&dataReference, aData);
+         }
+         ASSERT_TRUE(ptr == aData);
       }
       ++begin;
    }
