@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/base/os/thread/Atomic.h"
 #include "pdk/kernel/Object.h"
+#include "pdk/kernel/HashFuncs.h"
 
 namespace pdk {
 namespace utils {
@@ -387,7 +388,7 @@ public:
    template <typename X>
    inline SharedPointer<T> &operator =(const WeakPointer<X> &other)
    {
-      internalSet(other.m_refCountData, other.m_value);
+      internalSet(other.m_refcountData, other.m_value);
       return *this;
    }
    
@@ -1024,7 +1025,7 @@ inline typename SharedPointer<T>::DifferenceType operator-(T *lhs, const SharedP
 template <class T, class X>
 inline bool operator<(const SharedPointer<T> &lhs, const SharedPointer<X> &rhs)
 {
-    return lhs.getData() < rhs.data();
+    return lhs.getData() < rhs.getData();
 }
 template <class T, class X>
 inline bool operator<(const SharedPointer<T> &lhs, X *rhs)
@@ -1035,6 +1036,12 @@ template <class T, class X>
 inline bool operator<(T *lhs, const SharedPointer<X> &rhs)
 {
     return lhs < rhs.getData();
+}
+
+template <typename T>
+inline uint hash(const SharedPointer<T> &ptr, uint seed = 0)
+{
+   return pdk::hash(ptr.getData(), seed);
 }
 
 } // utils

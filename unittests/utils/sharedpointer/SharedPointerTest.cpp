@@ -16,8 +16,6 @@
 #include "pdk/utils/SharedPointer.h"
 
 #include "gtest/gtest.h"
-#include "pdk/utils/ScopedPointer.h"
-#include "pdk/base/os/thread/Atomic.h"
 #include <list>
 #include <utility>
 #include <tuple>
@@ -27,6 +25,7 @@
 using pdk::utils::SharedPointer;
 using pdk::utils::WeakPointer;
 using pdk::utils::internal::ExternalRefCountData;
+using pdk::hash;
 
 template <typename T>
 static inline ExternalRefCountData *refcount_data(const SharedPointer<T> &b)
@@ -38,6 +37,7 @@ static inline ExternalRefCountData *refcount_data(const SharedPointer<T> &b)
    };
    PDK_STATIC_ASSERT(sizeof(SharedPointer<T>) == sizeof(Dummy));
    PDK_ASSERT(static_cast<const Dummy*>(static_cast<const void*>(&b))->m_value == b.getData());
+   return static_cast<const Dummy*>(static_cast<const void*>(&b))->m_data;
 }
 
 class Data
@@ -141,6 +141,7 @@ TEST(SharedPointerTest, testBasics)
       if (!isNull) {
          aData = new Data;
       }
+      Data *otherData = new Data;
       SharedPointer<Data> ptr(aData);
       {
          ASSERT_EQ(ptr.isNull(), isNull);
@@ -152,7 +153,96 @@ TEST(SharedPointerTest, testBasics)
             ASSERT_EQ(&dataReference, aData);
          }
          ASSERT_TRUE(ptr == aData);
+         ASSERT_TRUE(!(ptr != aData));
+         ASSERT_TRUE(aData == ptr);
+         ASSERT_TRUE(!(aData != ptr));
+         
+         ASSERT_TRUE(ptr != otherData);
+         ASSERT_TRUE(otherData != ptr);
+         ASSERT_TRUE(!(ptr == otherData));
+         ASSERT_TRUE(!(otherData == ptr));
       }
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_weakRef.load() == 1);
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_strongRef.load() == 1);
+      
+      {
+         // create another object:
+         SharedPointer<Data> otherCopy(otherData);
+         ASSERT_TRUE(ptr != otherCopy);
+         ASSERT_TRUE(otherCopy != ptr);
+         ASSERT_TRUE(! (ptr == otherCopy));
+         ASSERT_TRUE(! (otherCopy == ptr));
+         // otherData is deleted here
+      }
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_weakRef.load() == 1);
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_strongRef.load() == 1);
+      
+      {
+         // create a copy:
+         SharedPointer<Data> copy(ptr);
+         ASSERT_TRUE(copy == ptr);
+         ASSERT_TRUE(ptr == copy);
+         ASSERT_TRUE(!(copy != ptr));
+         ASSERT_TRUE(!(ptr != copy));
+         // otherData is deleted here
+         ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_weakRef.load() == 2);
+         ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_strongRef.load() == 2);
+         
+      }
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_weakRef.load() == 1);
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_strongRef.load() == 1);
+      // create a weak reference:
+      {
+         WeakPointer<Data> weak(ptr);
+         ASSERT_EQ(weak.isNull(), isNull);
+         ASSERT_EQ(!weak, isNull);
+         ASSERT_EQ(static_cast<bool>(weak), !isNull);
+         
+         ASSERT_TRUE(ptr == weak);
+         ASSERT_TRUE(weak == ptr);
+         ASSERT_TRUE(!(ptr != weak));
+         ASSERT_TRUE(!(weak != ptr));
+         
+         WeakPointer<Data> weak2(weak);
+         ASSERT_EQ(weak2.isNull(), isNull);
+         ASSERT_EQ(!weak2, isNull);
+         ASSERT_TRUE(!(ptr != weak));
+         ASSERT_TRUE(!(weak != ptr));
+         SharedPointer<Data> strong(weak);
+         ASSERT_TRUE(strong == weak);
+         ASSERT_TRUE(strong == ptr);
+         ASSERT_EQ(strong.getData(), aData);
+      }
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_weakRef.load() == 1);
+      ASSERT_TRUE(!refcount_data(ptr) || refcount_data(ptr)->m_strongRef.load() == 1);
       ++begin;
    }
+}
+
+TEST(SharedPointerTest, testOperators)
+{
+   SharedPointer<char> p1;
+   SharedPointer<char> p2(new char);
+   pdk::ptrdiff diff = p2.getData() - p1.getData();
+   ASSERT_NE(p1.getData(), p2.getData());
+   ASSERT_TRUE(diff != 0);
+   
+   // operator-
+   ASSERT_EQ(p2 - p1.getData(), diff);
+   ASSERT_EQ(p2.getData() - p1, diff);
+   ASSERT_TRUE(p2 - p1 == diff);
+   ASSERT_TRUE(p1 - p2 == -diff);
+   ASSERT_EQ(p1 - p1, static_cast<pdk::ptrdiff>(0));
+   ASSERT_EQ(p2 - p2, static_cast<pdk::ptrdiff>(0));
+   
+   // operator<
+   ASSERT_TRUE(p1 < p2.getData());
+   ASSERT_TRUE(p1.getData() < p2);
+   ASSERT_TRUE(p1 < p2);
+   ASSERT_TRUE(!(p2 < p1));
+   ASSERT_TRUE(!(p2 < p2));
+   ASSERT_TRUE(!(p1 < p1));
+   
+   ASSERT_EQ(hash(p1), hash(p1.getData()));
+   ASSERT_EQ(hash(p2), hash(p2.getData()));
 }
