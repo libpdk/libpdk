@@ -5,6 +5,9 @@ set(PDK_UTILS_TEST_SRCS)
 pdk_add_files(PDK_UTILS_TEST_SRCS
     MemoryHelperTest.cpp
     RefCountTest.cpp
-    ScopedPointerTest.cpp)
+    ScopedPointerTest.cpp
+    sharedpointer/SharedPointerTest.cpp
+    sharedpointer/Wrapper.h
+    sharedpointer/Wrapper.cpp)
 
 pdk_add_unittest(UtilsUnittests UtilsTest ${PDK_UTILS_TEST_SRCS})

@@ -13,7 +13,6 @@
 //
 // Created by softboy on 2017/12/29.
 
-
 #include "gtest/gtest.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/os/thread/Atomic.h"

@@ -311,5 +311,6 @@ void as_const(const T &&) = delete;
 #include "pdk/global/TypeInfo.h"
 #include "pdk/global/Flags.h"
 #include "pdk/global/Numeric.h"
+#include "pdk/global/EnumDefs.h"
 
 #endif // PDK_GLOBAL_GLOBAL_H

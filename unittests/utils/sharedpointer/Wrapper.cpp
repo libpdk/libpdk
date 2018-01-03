@@ -12,19 +12,3 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2018/01/03.
-
-#ifndef PDK_KERNEL_OBJECT_H
-#define PDK_KERNEL_OBJECT_H
-
-namespace pdk {
-namespace kernel {
-
-class Object
-{
-   
-};
-
-} // kernel
-} // pdk
-
-#endif // PDK_KERNEL_OBJECT_H
