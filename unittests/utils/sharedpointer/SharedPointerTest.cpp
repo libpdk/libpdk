@@ -294,5 +294,53 @@ TEST(SharedPointerTest, testSwap)
    SharedPointer<int> p1;
    SharedPointer<int> p2(new int(42));
    SharedPointer<int> control = p2;
+   ASSERT_NE(p1, control);
+   ASSERT_TRUE(p1.isNull());
+   ASSERT_EQ(p2, control);
+   ASSERT_FALSE(p2.isNull());
+   ASSERT_EQ(*p2, 42);
    
+   p1.swap(p2);
+   ASSERT_EQ(p1, control);
+   ASSERT_FALSE(p1.isNull());
+   ASSERT_NE(p2, control);
+   ASSERT_TRUE(p2.isNull());
+   ASSERT_EQ(*p1, 42);
+   
+   p1.swap(p2);
+   ASSERT_NE(p1, control);
+   ASSERT_TRUE(p1.isNull());
+   ASSERT_EQ(p2, control);
+   ASSERT_FALSE(p2.isNull());
+   ASSERT_EQ(*p2, 42);
+   
+   swap(p1, p2);
+   ASSERT_EQ(p1, control);
+   ASSERT_FALSE(p1.isNull());
+   ASSERT_NE(p2, control);
+   ASSERT_TRUE(p2.isNull());
+   ASSERT_EQ(*p1, 42);
+   
+   WeakPointer<int> w1;
+   WeakPointer<int> w2 = control;
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_FALSE(w2.isNull());
+   ASSERT_EQ(w2.lock(), control);
+   
+   w1.swap(w2);
+   ASSERT_FALSE(w1.isNull());
+   ASSERT_TRUE(w2.isNull());
+   ASSERT_EQ(w1.lock(), control);
+   ASSERT_FALSE(w2.lock());
+   
+   swap(w1, w2);
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_EQ(w2.lock(), control);
+   
+   p1.reset();
+   p2.reset();
+   control.reset();
+   
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_TRUE(w2.isNull());
 }

@@ -848,6 +848,12 @@ inline void swap(SharedPointer<T> &lhs, SharedPointer<T> &rhs)
     lhs.swap(rhs);
 }
 
+template <class T>
+inline void swap(WeakPointer<T> &lhs, WeakPointer<T> &rhs)
+{
+    lhs.swap(rhs);
+}
+
 namespace internal {
 
 template <typename TargetType, typename SourceType>
