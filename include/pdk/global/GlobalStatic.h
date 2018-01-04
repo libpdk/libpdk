@@ -75,9 +75,9 @@ enum GuardValues
        static Type *data;                                                 \
        static std::mutex mutex;                                       \
        int x = guard.loadAcquire();                                    \
-       if (PDK_UNLIKELY(x >= (pdk::globalstatic::Uninitialized)) {           \
-          std::lock_guard<std::mutex> guard(mutex);                              \
-          if (guard.load() == (pdk::globalstatic::Uninitialized) {        \
+       if (PDK_UNLIKELY(x >= pdk::globalstatic::Uninitialized)) {           \
+          std::lock_guard<std::mutex> locker(mutex);                              \
+          if (guard.load() == pdk::globalstatic::Uninitialized) {        \
              data = new Type ARGS;                                      \
              static struct Cleanup {                                 \
                 ~Cleanup() {                                        \
@@ -115,7 +115,7 @@ struct GlobalStatic
       if (isDestroyed()) {
          return 0;
       } 
-      return innerFunction();
+      return inner_function();
    }
    
    Type *operator()()
@@ -123,7 +123,7 @@ struct GlobalStatic
       if (isDestroyed()) {
          return 0;
       }
-      return innerFunction();
+      return inner_function();
    }
    
    Type *operator->()
@@ -146,7 +146,7 @@ struct GlobalStatic
    } }                                                                     \
    static pdk::GlobalStatic<TYPE,                                              \
    PDK_GS_ ## NAME::inner_function,                     \
-   PDK_GS_ ## NAME::guard> NAME;
+   PDK_GS_ ## NAME::guard> NAME
 
 #define PDK_GLOBAL_STATIC(TYPE, NAME)                                         \
    PDK_GLOBAL_STATIC_WITH_ARGS(TYPE, NAME, ())
