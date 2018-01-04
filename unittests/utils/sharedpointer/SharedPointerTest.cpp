@@ -14,6 +14,7 @@
 // Created by softboy on 2018/01/03.
 
 #include "pdk/utils/SharedPointer.h"
+#include "ForwardDeclared.h"
 
 #include "gtest/gtest.h"
 #include <list>
@@ -343,4 +344,73 @@ TEST(SharedPointerTest, testSwap)
    
    ASSERT_TRUE(w1.isNull());
    ASSERT_TRUE(w2.isNull());
+}
+
+TEST(SharedPointerTest, testMoveSemantics)
+{
+   SharedPointer<int> p1;
+   SharedPointer<int> p2(new int(42));
+   SharedPointer<int> control = p2;
+   ASSERT_NE(p1, control);
+   ASSERT_TRUE(p1.isNull());
+   ASSERT_EQ(p2, control);
+   ASSERT_FALSE(p2.isNull());
+   ASSERT_EQ(*p2, 42);
+   
+   // move assignment
+   p1 = std::move(p2);
+   ASSERT_EQ(p1, control);
+   ASSERT_FALSE(p1.isNull());
+   ASSERT_NE(p2, control);
+   ASSERT_TRUE(p2.isNull());
+   ASSERT_EQ(*p1, 42);
+   
+   // move construction
+   SharedPointer<int> p3 = std::move(p1);
+   ASSERT_NE(p1, control);
+   ASSERT_TRUE(p1.isNull());
+   ASSERT_EQ(p3, control);
+   ASSERT_FALSE(p3.isNull());
+   ASSERT_EQ(*p3, 42);
+   
+   WeakPointer<int> w1;
+   WeakPointer<int> w2 = control;
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_FALSE(w2.isNull());
+   ASSERT_FALSE(w1.lock());
+   
+   // move assignment
+   w1 = std::move(w2);
+   ASSERT_TRUE(w2.isNull());
+   ASSERT_FALSE(w1.isNull());
+   ASSERT_EQ(w1.lock(), control);
+   ASSERT_FALSE(w2.lock());
+   
+   // move construction
+   WeakPointer<int> w3 = std::move(w1);
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_FALSE(w3.isNull());
+   ASSERT_EQ(w3.lock(), control);
+   ASSERT_FALSE(w1.lock());
+   
+   p1.reset();
+   p2.reset();
+   p3.reset();
+   control.reset();
+   ASSERT_TRUE(w1.isNull());
+   ASSERT_TRUE(w2.isNull());
+   ASSERT_TRUE(w3.isNull());
+}
+
+TEST(SharedPointerTest, testUseOfForwardDeclared)
+{
+   SharedPointer<ForwardDeclared> ptr;
+   SharedPointer<ForwardDeclared> ptr2 = ptr;
+   SharedPointer<ForwardDeclared> ptr3;
+   ptr3 = ptr;
+   SharedPointer<ForwardDeclared> ptr4;
+   ptr4 = std::move(ptr);
+   SharedPointer<ForwardDeclared> ptr5 = std::move(ptr2);
+   ptr4.swap(ptr3);
+   ptr3.swap(ptr4);
 }

@@ -11,11 +11,25 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2018/01/03.
+// Created by softboy on 2018/01/04.
 
-#ifndef PDK_UNITTEST_UTILS_WRAPPER_H
-#define PDK_UNITTEST_UTILS_WRAPPER_H
+#include "ForwardDeclared.h"
+#include "pdk/utils/SharedPointer.h"
 
+class ForwardDeclared
+{
+public:
+    ~ForwardDeclared();
+};
 
+SharedPointer<ForwardDeclared> *forward_pointer()
+{
+    return new SharedPointer<ForwardDeclared>(new ForwardDeclared);
+}
 
-#endif // PDK_UNITTEST_UTILS_WRAPPER_H
+int forwardDeclaredDestructorRunCount;
+
+ForwardDeclared::~ForwardDeclared()
+{
+    ++forwardDeclaredDestructorRunCount;
+}
