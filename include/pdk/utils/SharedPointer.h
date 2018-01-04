@@ -330,8 +330,10 @@ public:
    
    SharedPointer &operator =(const SharedPointer &other) noexcept
    {
-      SharedPointer copy(other);
-      swap(copy);
+      if (this != &other) {
+         SharedPointer copy(other);
+         swap(copy);
+      }
       return *this;
    }
    
@@ -345,6 +347,7 @@ public:
    
    SharedPointer &operator =(SharedPointer &&other) noexcept
    {
+      PDK_ASSERT(this != &other);
       SharedPointer moved(std::move(other));
       swap(moved);
       return *this;
@@ -707,6 +710,7 @@ public:
    
    WeakPointer &operator =(WeakPointer &&other) noexcept
    {
+      PDK_ASSERT(this != &other);
       WeakPointer moved(std::move(other));
       swap(moved);
       return *this;
@@ -714,8 +718,10 @@ public:
    
    WeakPointer &operator =(const WeakPointer &other) noexcept
    {
-      WeakPointer copy(other);
-      swap(copy);
+      if (this != &other) {
+         WeakPointer copy(other);
+         swap(copy);
+      }
       return *this;
    }
    

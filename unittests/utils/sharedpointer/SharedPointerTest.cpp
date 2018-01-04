@@ -414,3 +414,61 @@ TEST(SharedPointerTest, testUseOfForwardDeclared)
    ptr4.swap(ptr3);
    ptr3.swap(ptr4);
 }
+
+TEST(SharedPointerTest, testMemoryManagement)
+{
+   int generation = Data::sm_generatorCounter + 1;
+   int destructorCounter = Data::sm_destructorCounter;
+   SharedPointer<Data> ptr = SharedPointer<Data>(new Data);
+   ASSERT_EQ(ptr->m_generation, generation);
+   ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+   ASSERT_EQ(Data::sm_generatorCounter, generation);
+   
+   ptr = ptr;
+   ASSERT_EQ(ptr->m_generation, generation);
+   ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+   ASSERT_EQ(Data::sm_generatorCounter, generation);
+   
+   {
+      SharedPointer<Data> copy = ptr;
+      ASSERT_EQ(ptr->m_generation, generation);
+      ASSERT_EQ(copy->m_generation, generation);
+   }
+   ASSERT_EQ(ptr->m_generation, generation);
+   ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+   ASSERT_EQ(Data::sm_generatorCounter, generation);
+   {
+      WeakPointer<Data> weak = ptr;
+      weak = ptr;
+      ASSERT_EQ(ptr->m_generation, generation);
+      ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+      ASSERT_EQ(Data::sm_generatorCounter, generation);
+      weak = weak;
+      ASSERT_EQ(ptr->m_generation, generation);
+      ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+      ASSERT_EQ(Data::sm_generatorCounter, generation);
+      
+      SharedPointer<Data> strong = weak;
+      ASSERT_EQ(ptr->m_generation, generation);
+      ASSERT_EQ(strong->m_generation, generation);
+      ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+      ASSERT_EQ(Data::sm_generatorCounter, generation);
+   }
+   ASSERT_EQ(ptr->m_generation, generation);
+   ASSERT_EQ(Data::sm_destructorCounter, destructorCounter);
+   ASSERT_EQ(Data::sm_generatorCounter, generation);
+   
+   WeakPointer<Data> weak = ptr;
+   ptr = SharedPointer<Data>();
+   
+   // destructor must have been called
+   ASSERT_EQ(Data::sm_destructorCounter, destructorCounter + 1);
+   ASSERT_TRUE(ptr.isNull());
+   ASSERT_TRUE(weak.isNull());
+   
+   // if we create a strong pointer from the weak, it must still be null
+   ptr = weak;
+   ASSERT_TRUE(ptr.isNull());
+   ASSERT_TRUE(ptr == nullptr);
+   ASSERT_EQ(ptr.getData(), reinterpret_cast<Data *>(0));
+}
