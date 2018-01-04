@@ -246,3 +246,53 @@ TEST(SharedPointerTest, testOperators)
    ASSERT_EQ(hash(p1), hash(p1.getData()));
    ASSERT_EQ(hash(p2), hash(p2.getData()));
 }
+
+TEST(SharedPointerTest, testNullPtrOps)
+{
+   SharedPointer<char> p1(nullptr);
+   SharedPointer<char> p2 = nullptr;
+   SharedPointer<char> null;
+   ASSERT_EQ(p1, nullptr);
+   ASSERT_FALSE(p1);
+   ASSERT_FALSE(p1.getData());
+   ASSERT_EQ(p2, null);
+   ASSERT_EQ(p2, nullptr);
+   ASSERT_EQ(nullptr, p2);
+   ASSERT_FALSE(p2);
+   ASSERT_FALSE(p2.getData());
+   ASSERT_TRUE(p1 == p2);
+   
+   SharedPointer<char> p3 = p1;
+   ASSERT_EQ(p3, p1);
+   ASSERT_EQ(p3, null);
+   ASSERT_EQ(p3, nullptr);
+   ASSERT_EQ(nullptr, p3);
+   ASSERT_FALSE(p3.getData());
+   
+   p3 = nullptr;
+   
+   // check for non-ambiguity
+   SharedPointer<char> p1Zero(0);
+   SharedPointer<char> p2Zero = 0;
+   
+   p3 = 0;
+   SharedPointer<char> p4(new char);
+   ASSERT_TRUE(p4);
+   ASSERT_TRUE(p4.getData());
+   ASSERT_TRUE(p4 != nullptr);
+   ASSERT_TRUE(nullptr != p4);
+   ASSERT_TRUE(p4 != p1);
+   ASSERT_TRUE(p1 != p4);
+   ASSERT_TRUE(p4 != p1);
+   ASSERT_TRUE(p4 != p2);
+   ASSERT_TRUE(p4 != null);
+   ASSERT_TRUE(p4 != p3);
+}
+
+TEST(SharedPointerTest, testSwap)
+{
+   SharedPointer<int> p1;
+   SharedPointer<int> p2(new int(42));
+   SharedPointer<int> control = p2;
+   
+}
