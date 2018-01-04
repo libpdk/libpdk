@@ -25,7 +25,7 @@
 
 using pdk::utils::SharedPointer;
 using pdk::utils::WeakPointer;
-using pdk::utils::internal::ExternalRefCountData;
+using pdk::utils::internal::sharedptr::ExternalRefCountData;
 using pdk::hash;
 
 template <typename T>
@@ -710,4 +710,45 @@ TEST(SharedPointerTest, testUpCast)
    }
    ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 1);
    ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 1);
+}
+
+TEST(SharedPointerTest, testDifferentPointers)
+{
+   {
+      DiffPtrDerivedData *aData = new DiffPtrDerivedData;
+      Data *aBase = aData;
+      if (*reinterpret_cast<pdk::uintptr *>(&aData) == *reinterpret_cast<pdk::uintptr *>(&aBase))
+      {
+         FAIL() << "Something went very wrong -- we couldn't create two different pointers to the same object";
+      }
+      if (aData != aBase || aBase != aData) {
+         FAIL() << "Broken compiler";
+      }
+      SharedPointer<DiffPtrDerivedData> ptr = SharedPointer<DiffPtrDerivedData>(aData);
+      SharedPointer<Data> baseptr = pdk::utils::shared_pointer_cast<Data>(ptr);
+      ASSERT_TRUE(ptr.getData() == baseptr.getData());
+      ASSERT_TRUE(baseptr.getData() == ptr.getData());
+      ASSERT_TRUE(baseptr == ptr);
+      ASSERT_TRUE(ptr == baseptr);
+      
+      ASSERT_TRUE(ptr.getData() == aBase);
+      ASSERT_TRUE(aBase == ptr.getData());
+      ASSERT_TRUE(ptr.getData() == aData);
+      ASSERT_TRUE(aData == ptr.getData());
+      
+      ASSERT_TRUE(ptr == aBase);
+      ASSERT_TRUE(aBase == ptr);
+      ASSERT_TRUE(ptr == aData);
+      ASSERT_TRUE(aData == ptr);
+      
+      ASSERT_TRUE(baseptr.getData() == aBase);
+      ASSERT_TRUE(aBase == baseptr.getData());
+      ASSERT_TRUE(baseptr == aBase);
+      ASSERT_TRUE(aBase == baseptr);
+      
+      ASSERT_TRUE(baseptr.getData() == aData);
+      ASSERT_TRUE(aData == baseptr.getData());
+      ASSERT_TRUE(baseptr == aData);
+      ASSERT_TRUE(aData == baseptr);
+   }
 }

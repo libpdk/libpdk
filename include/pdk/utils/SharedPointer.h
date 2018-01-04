@@ -48,6 +48,7 @@ template <class X, class T>
 SharedPointer<X> shared_pointer_constcast(const SharedPointer<T> &ptr);
 
 namespace internal {
+namespace sharedptr {
 
 using pdk::os::thread::BasicAtomicInt;
 
@@ -264,13 +265,14 @@ private:
    PDK_DISABLE_COPY(ExternalRefCountWithContiguousData);
 };
 
+} // sharedptr
 } // internal
 
 template <typename T>
 class SharedPointer
 {
    using RestrictedBool = T *SharedPointer:: *;
-   using RefCountData = internal::ExternalRefCountData;
+   using RefCountData = internal::sharedptr::ExternalRefCountData;
 public:
    using Type = T;
    using ElementType = T;
@@ -303,7 +305,7 @@ public:
    inline explicit SharedPointer(X *ptr)
       : m_value(ptr)
    {
-      internalConstruct(ptr, internal::NormalDeleter());
+      internalConstruct(ptr, internal::sharedptr::NormalDeleter());
    }
    
    template <typename X, typename Deleter>
@@ -482,7 +484,7 @@ public:
    template <typename... Args>
    static SharedPointer create(Args && ...arguments)
    {
-      using Private = internal::ExternalRefCountWithContiguousData<T>;
+      using Private = internal::sharedptr::ExternalRefCountWithContiguousData<T>;
 #ifdef PDK_SHAREDPOINTER_TRACK_POINTERS
       typename Private::DestroyerFn destroy = &Private::safetyCheckDeleter;
 #else
@@ -493,7 +495,7 @@ public:
       new (result.getData()) T(std::forward<Args>(arguments)...);
       result.m_refCountData->setObjectShared(result.m_value, true);
 #ifdef PDK_SHAREDPOINTER_TRACK_POINTERS
-      internal::internal_safety_check_add(result.m_refCountData, result.m_value);
+      internal::sharedptr::internal_safety_check_add(result.m_refCountData, result.m_value);
 #endif
       result.enableSharedFromThis(result.getData());
       return result;
@@ -509,7 +511,7 @@ private:
          m_refCountData = nullptr;
          return;
       }
-      using Private = internal::ExternalRefCountWithCustomDeleter<X, Deleter>;
+      using Private = internal::sharedptr::ExternalRefCountWithCustomDeleter<X, Deleter>;
 #ifdef PDK_SHAREDPOINTER_TRACK_POINTERS
       typename Private::DestroyerFn actualDeleter = &Private::safetyCheckDeleter;
 #else
@@ -517,7 +519,7 @@ private:
 #endif
       m_refCountData = Private::create(ptr, deleter, actualDeleter);
 #ifdef PDK_SHAREDPOINTER_TRACK_POINTERS
-      internal::internal_safety_check_add(m_refCountData, ptr);
+      internal::sharedptr::internal_safety_check_add(m_refCountData, ptr);
 #endif
       m_refCountData->setObjectShared(ptr, true);
       enableSharedFromThis(ptr);
@@ -570,7 +572,7 @@ public:
    template <typename X>
    friend class WeakPointer;
    template <typename TargetType, typename SourceType>
-   friend SharedPointer<TargetType> internal::copy_and_set_pointer(TargetType *ptr, const SharedPointer<SourceType> &src);
+   friend SharedPointer<TargetType> internal::sharedptr::copy_and_set_pointer(TargetType *ptr, const SharedPointer<SourceType> &src);
 #endif
    
    inline void internalSet(RefCountData *refcountData, T *actual)
@@ -606,7 +608,7 @@ template <typename T>
 class WeakPointer
 {
    using RestrictedBool = T *WeakPointer:: *;
-   using RefCountData = internal::ExternalRefCountData;
+   using RefCountData = internal::sharedptr::ExternalRefCountData;
    
 public:
    using ElementType = T;
@@ -861,6 +863,7 @@ inline void swap(WeakPointer<T> &lhs, WeakPointer<T> &rhs)
 }
 
 namespace internal {
+namespace sharedptr {
 
 template <typename TargetType, typename SourceType>
 inline SharedPointer<TargetType> copy_and_set_pointer(TargetType *ptr, const SharedPointer<SourceType> &src)
@@ -870,13 +873,14 @@ inline SharedPointer<TargetType> copy_and_set_pointer(TargetType *ptr, const Sha
    return result;
 }
 
+} // sharedptr
 } // internal
 
 template <typename TargetType, typename SourceType>
 inline SharedPointer<TargetType> shared_pointer_cast(const SharedPointer<SourceType> &src)
 {
    TargetType *ptr = static_cast<TargetType *>(src.getData());
-   return internal::copy_and_set_pointer(ptr, src);
+   return internal::sharedptr::copy_and_set_pointer(ptr, src);
 }
 
 template <typename TargetType, typename SourceType>
@@ -892,7 +896,7 @@ inline SharedPointer<TargetType> shared_pointer_dynamiccast(const SharedPointer<
    if (!ptr) {
       return SharedPointer<TargetType>();
    }
-   return internal::copy_and_set_pointer(ptr, src);
+   return internal::sharedptr::copy_and_set_pointer(ptr, src);
 }
 
 template <typename TargetType, typename SourceType>
@@ -905,7 +909,7 @@ template <typename TargetType, typename SourceType>
 inline SharedPointer<TargetType> shared_pointer_constcast(const SharedPointer<SourceType> &src)
 {
    TargetType *ptr = const_cast<TargetType *>(src.getData());
-   return internal::copy_and_set_pointer(ptr, src);
+   return internal::sharedptr::copy_and_set_pointer(ptr, src);
 }
 
 template <typename TargetType, typename SourceType>

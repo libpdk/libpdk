@@ -50,6 +50,9 @@
 #  define PDK_CORE_IMPORT PDK_DECL_IMPORT
 #endif
 
+#define PDK_UNITTEST_EXPORT PDK_DECL_EXPORT
+#define PDK_UNITTEST_IMPORT PDK_DECL_IMPORT
+
 #define PDK_DISABLE_COPY(Class)\
    Class(const Class &) = delete;\
    Class &operator=(const Class &) = delete
