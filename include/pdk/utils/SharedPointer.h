@@ -456,7 +456,7 @@ public:
    template <typename X>
    SharedPointer<X> staticCast() const
    {
-      return shared_pointer_constcast<X, T>(*this);
+      return shared_pointer_cast<X, T>(*this);
    }
    
    template <typename X>
@@ -468,7 +468,7 @@ public:
    template <typename X>
    SharedPointer<X> constCast() const
    {
-      return shared_pointer_cast<X, T>(*this);
+      return shared_pointer_constcast<X, T>(*this);
    }
    
    inline void clear()

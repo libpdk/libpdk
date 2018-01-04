@@ -472,3 +472,242 @@ TEST(SharedPointerTest, testMemoryManagement)
    ASSERT_TRUE(ptr == nullptr);
    ASSERT_EQ(ptr.getData(), reinterpret_cast<Data *>(0));
 }
+
+// NVD for "non-virtual destructor"
+struct NVDData
+{
+   static int sm_destructorCounter;
+   ~NVDData() 
+   { 
+      ++sm_destructorCounter;
+   }
+   
+   int m_dummy;
+};
+
+int NVDData::sm_destructorCounter;
+
+struct NVDDerivedData : NVDData
+{
+   static int sm_destructorCounter;
+   ~NVDDerivedData()
+   {
+      ++sm_destructorCounter;
+   }
+};
+
+int NVDDerivedData::sm_destructorCounter;
+
+TEST(SharedPointerTest, testNonVirtualDestructors)
+{
+   NVDData::sm_destructorCounter = NVDDerivedData::sm_destructorCounter = 0;
+   {
+      SharedPointer<NVDData> ptr(new NVDData);
+   }
+   ASSERT_EQ(NVDData::sm_destructorCounter, 1);
+   ASSERT_EQ(NVDDerivedData::sm_destructorCounter, 0);
+   NVDData::sm_destructorCounter = NVDDerivedData::sm_destructorCounter = 0;
+   {
+      SharedPointer<NVDDerivedData> ptr(new NVDDerivedData);
+   }
+   ASSERT_EQ(NVDData::sm_destructorCounter, 1);
+   ASSERT_EQ(NVDDerivedData::sm_destructorCounter, 1);
+   NVDData::sm_destructorCounter = NVDDerivedData::sm_destructorCounter = 0;
+   {
+      SharedPointer<NVDData> bptr;
+      SharedPointer<NVDDerivedData> ptr(new NVDDerivedData);
+      bptr = ptr;
+   }
+   ASSERT_EQ(NVDData::sm_destructorCounter, 1);
+   ASSERT_EQ(NVDDerivedData::sm_destructorCounter, 1);
+   
+   NVDData::sm_destructorCounter = NVDDerivedData::sm_destructorCounter = 0;
+   {
+      SharedPointer<NVDData> ptr(new NVDDerivedData);
+   }
+   ASSERT_EQ(NVDData::sm_destructorCounter, 1);
+   ASSERT_EQ(NVDDerivedData::sm_destructorCounter, 1);
+}
+
+TEST(SharedPointerTest, testLock)
+{
+   SharedPointer<int> ptr = SharedPointer<int>::create();
+   ASSERT_TRUE(ptr);
+   WeakPointer<int> weakPtr = ptr;
+   ASSERT_TRUE(ptr == weakPtr);
+   ASSERT_TRUE(ptr == weakPtr.lock());
+   ASSERT_TRUE(ptr == weakPtr.toStrongRef());
+   
+   ptr.reset();
+   ASSERT_TRUE(!weakPtr);
+   ASSERT_TRUE(ptr != weakPtr);
+   ASSERT_TRUE(ptr == weakPtr.lock());
+   ASSERT_TRUE(ptr == weakPtr.toStrongRef());
+}
+
+class DerivedData: public Data
+{
+public:
+   static int sm_derivedDestructorCounter;
+   int m_moreData;
+   DerivedData() 
+      : m_moreData(0) 
+   { }
+   ~DerivedData()
+   {
+      ++sm_derivedDestructorCounter;
+   }
+   
+   virtual void virtualDelete()
+   {
+      delete this;
+   }
+   
+   virtual int classLevel()
+   { 
+      return 2;
+   }
+};
+int DerivedData::sm_derivedDestructorCounter = 0;
+
+class Stuffing
+{
+public:
+   char m_buffer[16];
+   Stuffing() 
+   {
+      for (uint i = 0; i < sizeof m_buffer; ++i) {
+         m_buffer[i] = 16 - i;
+      } 
+   }
+   virtual ~Stuffing()
+   {}
+};
+
+class DiffPtrDerivedData: public Stuffing, public Data
+{
+public:
+   virtual int classLevel() 
+   { 
+      return 3;
+   }
+};
+
+class VirtualDerived: virtual public Data
+{
+public:
+   int m_moreData;
+   
+   VirtualDerived() 
+      : m_moreData(0xc0ffee)
+   {}
+   virtual int classLevel() 
+   { 
+      return 4;
+   }
+};
+
+TEST(SharedPointerTest, testDownCast)
+{
+   {
+      SharedPointer<DerivedData> ptr = SharedPointer<DerivedData>(new DerivedData);
+      SharedPointer<Data> basePtr = pdk::utils::shared_pointer_cast<Data>(ptr);
+      SharedPointer<Data> other;
+      
+      ASSERT_TRUE(ptr == basePtr);
+      ASSERT_TRUE(basePtr == ptr);
+      ASSERT_TRUE(!(ptr != basePtr));
+      ASSERT_TRUE(!(basePtr != ptr));
+      
+      ASSERT_TRUE(ptr != other);
+      ASSERT_TRUE(other != ptr);
+      ASSERT_TRUE(!(ptr == other));
+      ASSERT_TRUE(!(other == ptr));
+   }
+   {
+      SharedPointer<DerivedData> ptr = SharedPointer<DerivedData>(new DerivedData);
+      SharedPointer<Data> baseptr = ptr;
+   }
+   int destructorCount;
+   destructorCount = DerivedData::sm_derivedDestructorCounter;
+   {
+      SharedPointer<Data> baseptr;
+      {
+         SharedPointer<DerivedData> ptr = SharedPointer<DerivedData>(new DerivedData);
+         baseptr = ptr;
+         ASSERT_EQ(baseptr, ptr);
+      }
+   }
+   ASSERT_EQ(DerivedData::sm_derivedDestructorCounter, destructorCount + 1);
+   destructorCount = DerivedData::sm_derivedDestructorCounter;
+   {
+      SharedPointer<DerivedData> ptr = SharedPointer<DerivedData>(new DerivedData);
+      WeakPointer<Data> baseptr = ptr;
+      ASSERT_EQ(baseptr, ptr);
+      ptr = SharedPointer<DerivedData>();
+      ASSERT_TRUE(baseptr.isNull());
+   }
+   ASSERT_EQ(DerivedData::sm_derivedDestructorCounter, destructorCount + 1);
+   destructorCount = DerivedData::sm_derivedDestructorCounter;
+   {
+      SharedPointer<DerivedData> ptr = SharedPointer<DerivedData>(new DerivedData);
+      WeakPointer<Data> weakptr(ptr);
+      SharedPointer<Data> baseptr = weakptr;
+      ASSERT_EQ(baseptr, ptr);
+      WeakPointer<Data> baseweakptr = weakptr;
+      ASSERT_EQ(baseweakptr, ptr);
+   }
+   ASSERT_EQ(DerivedData::sm_derivedDestructorCounter, destructorCount + 1);
+}
+
+void function_data_by_value(SharedPointer<Data> ptr) 
+{ 
+   PDK_UNUSED(ptr);
+}
+void function_data_by_ref(const SharedPointer<Data> &ptr)
+{ 
+   PDK_UNUSED(ptr);
+}
+
+TEST(SharedPointerTest, testFunctionCallDownCast)
+{
+   SharedPointer<DerivedData> p(new DerivedData());
+   function_data_by_ref(p);
+   function_data_by_value(p);
+}
+
+TEST(SharedPointerTest, testUpCast)
+{
+   SharedPointer<Data> baseptr = SharedPointer<Data>(new DerivedData);
+   {
+      SharedPointer<DerivedData> derivedptr = pdk::utils::shared_pointer_cast<DerivedData>(baseptr);
+      ASSERT_TRUE(baseptr == derivedptr);
+      ASSERT_EQ(static_cast<Data *>(derivedptr.getData()), baseptr.getData());
+      ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 2);
+      ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 2);
+   }
+   ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 1);
+   ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 1);
+   {
+      WeakPointer<DerivedData> derivedptr = pdk::utils::weak_pointer_cast<DerivedData>(baseptr);
+      ASSERT_TRUE(baseptr == derivedptr);
+   }
+   ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 1);
+   ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 1);
+   {
+      WeakPointer<Data> weakptr = baseptr;
+      SharedPointer<DerivedData> derivedptr = pdk::utils::shared_pointer_cast<DerivedData>(weakptr);
+      ASSERT_TRUE(baseptr == derivedptr);
+      ASSERT_EQ(static_cast<Data *>(derivedptr.getData()), baseptr.getData());
+   }
+   ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 1);
+   ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 1);
+   
+   {
+      SharedPointer<DerivedData> derivedptr = baseptr.staticCast<DerivedData>();
+      ASSERT_TRUE(baseptr == derivedptr);
+      ASSERT_EQ(static_cast<Data *>(derivedptr.getData()), baseptr.getData());
+   }
+   ASSERT_EQ(int(refcount_data(baseptr)->m_weakRef.load()), 1);
+   ASSERT_EQ(int(refcount_data(baseptr)->m_strongRef.load()), 1);
+}
