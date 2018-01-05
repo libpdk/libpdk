@@ -352,6 +352,8 @@ constexpr typename std::add_const<T>::type &as_const(T &value) noexcept
 template <typename T>
 void as_const(const T &&) = delete;
 
+using HANDLE = void *;
+
 } // pdk
 
 #include "pdk/global/TypeInfo.h"
