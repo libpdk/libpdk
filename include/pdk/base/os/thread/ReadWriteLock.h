@@ -51,7 +51,119 @@ public:
    
 private:
    PDK_DISABLE_COPY(ReadWriteLock);
+   AtomicPointer<internal::ReadWriteLockPrivate> m_implPtr;
+   enum class StateForWaitCondition
+   {
+      LockedForRead,
+      LockedForWrite,
+      Unlocked,
+      RecursivelyLocked
+   };
+   StateForWaitCondition stateForWaitCondition() const;
 };
+
+#if defined(PDK_CC_MSVC)
+#pragma warning( push )
+#pragma warning( disable : 4312 ) // ignoring the warning from /Wp64
+#endif
+
+class PDK_CORE_EXPORT ReadLocker
+{
+public:
+   inline ReadLocker(ReadWriteLock *readWriteLock);
+   inline ~ReadLocker()
+   {
+      unlock();
+   }
+   
+   inline void unlock()
+   {
+      if (m_qval) {
+         if ((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(1u)){
+            m_qval &= ~static_cast<pdk::uintptr>(1u);
+            readWriteLock()->unlock();
+         }
+      }
+   }
+   
+   inline void relock()
+   {
+      if (m_qval) {
+         if ((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(0u)) {
+            readWriteLock()->lockForRead();
+            m_qval |= static_cast<pdk::uintptr>(1u);
+         }
+      }
+   }
+   
+   inline ReadWriteLock *readWriteLock() const
+   {
+      return reinterpret_cast<ReadWriteLock *>(m_qval & ~static_cast<pdk::uintptr>(1u));
+   }
+   
+private:
+   PDK_DISABLE_COPY(ReadLocker);
+   pdk::uintptr m_qval;
+};
+
+inline ReadLocker::ReadLocker(ReadWriteLock *readWriteLock)
+   : m_qval(reinterpret_cast<pdk::uintptr>(readWriteLock))
+{
+   PDK_ASSERT_X((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(0u),
+                "ReadLocker", "ReadWriteLock pointer is misaligned");
+   relock();
+}
+
+class PDK_CORE_EXPORT WriteLocker
+{
+public:
+   inline WriteLocker(ReadWriteLock *readWriteLock);
+   inline ~WriteLocker()
+   {
+      unlock();
+   }
+   
+   inline void unlock()
+   {
+      if (m_qval) {
+         if ((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(1u)){
+            m_qval &= ~static_cast<pdk::uintptr>(1u);
+            readWriteLock()->unlock();
+         }
+      }
+   }
+   
+   inline void relock()
+   {
+      if (m_qval) {
+         if ((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(0u)) {
+            readWriteLock()->lockForWrite();
+            m_qval |= static_cast<pdk::uintptr>(1u);
+         }
+      }
+   }
+   
+   inline ReadWriteLock *readWriteLock() const
+   {
+      return reinterpret_cast<ReadWriteLock *>(m_qval & ~static_cast<pdk::uintptr>(1u));
+   }
+   
+private:
+   PDK_DISABLE_COPY(WriteLocker);
+   pdk::uintptr m_qval;
+};
+
+inline WriteLocker::WriteLocker(ReadWriteLock *readWriteLock)
+   : m_qval(reinterpret_cast<pdk::uintptr>(readWriteLock))
+{
+   PDK_ASSERT_X((m_qval & static_cast<pdk::uintptr>(1u)) == static_cast<pdk::uintptr>(0u),
+                "ReadLocker", "ReadWriteLock pointer is misaligned");
+   relock();
+}
+
+#if defined(PDK_CC_MSVC)
+#pragma warning( pop )
+#endif
 
 } // pdk
 } // os
