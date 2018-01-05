@@ -226,6 +226,49 @@ using uintptr = typename IntegerForSizeof<void *>::Unsigned;
 using intptr = typename IntegerForSizeof<void *>::Signed;
 using ptrdiff = intptr;
 
+template <typename T>
+static inline T *get_ptr_helper(T *ptr)
+{
+   return ptr;
+}
+
+template <typename T>
+static inline typename T::pointer get_ptr_helper(const T &p)
+{
+   return p.get();
+}
+
+template <typename T>
+static inline T *get_ptr_helper(const std::shared_ptr<T> &p)
+{
+   return p.get();
+}
+
+#define PDK_DECLARE_PRIVATE(Class)\
+   inline Class##Private* getImplPtr()\
+   {\
+      return reinterpret_cast<Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
+   }\
+   inline const Class##Private* getImplPtr() const\
+   {\
+      return reinterpret_cast<const Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
+   }\
+   friend class Class##Private;
+
+#define PDK_DECLARE_PUBLIC(Class)\
+   inline Class* getApiPtr()\
+   {\
+      return static_cast<Class *>(m_apiPtr);\
+   }\
+   inline const Class* getApiPtr() const\
+   {\
+      return static_cast<const Class *>(m_apiPtr);\
+   }\
+   friend class Class;
+
+#define PDK_D(Class) Class##Private * const implPtr = getImplPtr()
+#define PDK_Q(Class) Class * const apiPtr = getApiPtr()
+
 #ifndef PDK_CC_MSVC
 PDK_NORETURN
 #endif
