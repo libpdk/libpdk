@@ -28,10 +28,10 @@ enum {
    Size0 = Offset1  - Offset0,
    Size1 = Offset2  - Offset1,
    Size2 = Offset3  - Offset2,
-   Size3 = FreeListDefaultConstants::MaxIndex - Offset3
+   Size3 = LockFreeListDefaultConstants::MaxIndex - Offset3
 };
 
-const int FreeListDefaultConstants::sm_sizes[FreeListDefaultConstants::BlockCount] = {
+const int LockFreeListDefaultConstants::sm_sizes[LockFreeListDefaultConstants::BlockCount] = {
    Size0,
    Size1,
    Size2,

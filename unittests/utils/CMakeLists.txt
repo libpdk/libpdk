@@ -10,6 +10,7 @@ pdk_add_files(PDK_UTILS_TEST_SRCS
     sharedpointer/Wrapper.h
     sharedpointer/Wrapper.cpp
     sharedpointer/ForwardDeclared.h
-    sharedpointer/ForwardDeclared.cpp)
+    sharedpointer/ForwardDeclared.cpp
+    LockFreeListTest.cpp)
 
 pdk_add_unittest(UtilsUnittests UtilsTest ${PDK_UTILS_TEST_SRCS})

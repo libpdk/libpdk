@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/01/05.
 
-#ifndef PDK_UTILS_INTERNAL_FREELIST_PRIVATE_H
-#define PDK_UTILS_INTERNAL_FREELIST_PRIVATE_H
+#ifndef PDK_UTILS_INTERNAL_LOCKFREELIST_PRIVATE_H
+#define PDK_UTILS_INTERNAL_LOCKFREELIST_PRIVATE_H
 
 #include "pdk/global/Global.h"
 #include "pdk/base/os/thread/Atomic.h"
@@ -27,7 +27,7 @@ using pdk::os::thread::AtomicInt;
 using pdk::os::thread::AtomicPointer;
 
 template <typename T>
-struct FreeListElement
+struct LockFreeListElement
 {
    using ConstReferenceType = const T &;
    using ReferenceType = T &;
@@ -47,7 +47,7 @@ struct FreeListElement
 };
 
 template <>
-struct FreeListElement<void>
+struct LockFreeListElement<void>
 {
    using ConstReferenceType = void;
    using ReferenceType = void;
@@ -61,7 +61,7 @@ struct FreeListElement<void>
    AtomicInt m_next;
 };
 
-struct PDK_UNITTEST_EXPORT FreeListDefaultConstants
+struct PDK_UNITTEST_EXPORT LockFreeListDefaultConstants
 {
    enum {
       InitialNextValue = 0,
@@ -74,17 +74,17 @@ struct PDK_UNITTEST_EXPORT FreeListDefaultConstants
    static const int sm_sizes[BlockCount];
 };
 
-template <typename T, typename ConstantTypes = FreeListDefaultConstants>
-class FreeList
+template <typename T, typename ConstantTypes = LockFreeListDefaultConstants>
+class LockFreeList
 {
    using ValueType = T;
-   using ElementType = FreeListElement<T>;
+   using ElementType = LockFreeListElement<T>;
    using ConstReferenceType = typename ElementType::ConstReferenceType;
    using ReferenceType = typename ElementType::ReferenceType;
    
 public:
-   constexpr inline FreeList();
-   ~FreeList();
+   constexpr inline LockFreeList();
+   ~LockFreeList();
    
    inline ConstReferenceType at(int offset) const;
    inline ReferenceType operator[](int offset);
@@ -121,7 +121,7 @@ private:
                               ((static_cast<uint>(o) + ConstantTypes::SerialCounter) & ConstantTypes::SerialMask));
    }
    
-   PDK_DISABLE_COPY(FreeList);
+   PDK_DISABLE_COPY(LockFreeList);
    
    AtomicPointer<ElementType> m_blocks[ConstantTypes::BlockCount];
    AtomicInt m_next;
@@ -129,12 +129,12 @@ private:
 };
 
 template <typename T, typename ConstantTypes>
-constexpr inline FreeList<T, ConstantTypes>::FreeList()
+constexpr inline LockFreeList<T, ConstantTypes>::LockFreeList()
    : m_next(ConstantTypes::InitialNextValue)
 {}
 
 template <typename T, typename ConstantTypes>
-inline FreeList<T, ConstantTypes>::~FreeList()
+inline LockFreeList<T, ConstantTypes>::~LockFreeList()
 {
    for (int i = 0; i < ConstantTypes::BlockCount; ++i) {
       delete [] m_blocks[i].load();
@@ -142,23 +142,23 @@ inline FreeList<T, ConstantTypes>::~FreeList()
 }
 
 template <typename T, typename ConstantTypes>
-inline typename FreeList<T, ConstantTypes>::ConstReferenceType
-FreeList<T, ConstantTypes>::at(int offset) const
+inline typename LockFreeList<T, ConstantTypes>::ConstReferenceType
+LockFreeList<T, ConstantTypes>::at(int offset) const
 {
    const int bidx = blockfor(offset);
    return (m_blocks[bidx].load())[offset].getType();
 }
 
 template <typename T, typename ConstantTypes>
-inline typename FreeList<T, ConstantTypes>::ReferenceType
-FreeList<T, ConstantTypes>::operator[](int offset)
+inline typename LockFreeList<T, ConstantTypes>::ReferenceType
+LockFreeList<T, ConstantTypes>::operator[](int offset)
 {
    const int bidx = blockfor(offset);
    return (m_blocks[bidx].load())[offset].getType();
 }
 
 template <typename T, typename ConstantTypes>
-inline int FreeList<T, ConstantTypes>::next()
+inline int LockFreeList<T, ConstantTypes>::next()
 {
    int id;
    int newId;
@@ -186,7 +186,7 @@ inline int FreeList<T, ConstantTypes>::next()
 }
 
 template <typename T, typename ConstantTypes>
-inline void FreeList<T, ConstantTypes>::release(int id)
+inline void LockFreeList<T, ConstantTypes>::release(int id)
 {
    int offset = id & ConstantTypes::IndexMask;
    const int bidx = blockfor(offset);
@@ -204,4 +204,4 @@ inline void FreeList<T, ConstantTypes>::release(int id)
 } // utils
 } // pdk
 
-#endif // PDK_UTILS_INTERNAL_FREELIST_PRIVATE_H
+#endif // PDK_UTILS_INTERNAL_LOCKFREELIST_PRIVATE_H
