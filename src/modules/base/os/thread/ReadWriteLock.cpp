@@ -120,7 +120,6 @@ bool ReadWriteLockPrivate::lockForRead(int timeout, std::unique_lock<std::mutex>
 
 bool ReadWriteLockPrivate::lockForWrite(int timeout, std::unique_lock<std::mutex> &mutexLocker)
 {
-   PDK_ASSERT(!mutexLocker.try_lock());
    typename SystemClock::time_point start;
    if (timeout > 0) {
       start = SystemClock::now();
