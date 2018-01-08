@@ -95,7 +95,7 @@ bool Semaphore::tryAcquire(int num, int timeout)
          m_implPtr->m_condVar.wait(locker);
       }
    } else {
-      std::chrono::system_clock::time_point start;
+      std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
       while (num > m_implPtr->m_num) {
          int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count();
          if (timeout - elapsed <= 0 ||
