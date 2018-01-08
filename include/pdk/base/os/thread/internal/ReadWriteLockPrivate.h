@@ -20,6 +20,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <map>
+#include <thread>
 
 namespace pdk {
 namespace os {
@@ -35,13 +36,12 @@ public:
         m_waitingReaders(0),
         m_waitingWriters(0),
         m_recursive(isRecursive),
-        m_id(0),
-        m_currentWriter(nullptr)
+        m_id(0)
    {}
    
-   bool lockForWrite(int timeout);
-   bool lockForRead(int timeout);
-   void unlock();
+   bool lockForWrite(int timeout, std::unique_lock<std::mutex> &mutexLocker);
+   bool lockForRead(int timeout, std::unique_lock<std::mutex> &mutexLocker);
+   void unlock(std::unique_lock<std::mutex> &mutexLocker);
    
    bool recursiveLockForWrite(int timeout);
    bool recursiveLockForRead(int timeout);
@@ -51,16 +51,16 @@ public:
    static ReadWriteLockPrivate *allocate();
    
    std::mutex m_mutex;
-   std::condition_variable m_writeCond;
-   std::condition_variable m_readCond;
+   std::condition_variable m_writerCond;
+   std::condition_variable m_readerCond;
    int m_readerCount;
    int m_writerCount;
    int m_waitingReaders;
    int m_waitingWriters;
    bool m_recursive;
    int m_id;
-   pdk::HANDLE m_currentWriter;
-   std::map<pdk::HANDLE, int> m_currentReaders;
+   std::thread::id m_currentWriter;
+   std::map<std::thread::id, int> m_currentReaders;
 };
 
 } // internal

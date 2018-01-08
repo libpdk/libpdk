@@ -402,6 +402,26 @@ public:
       return Operations::testAndSetOrdered(m_atomic, expectedValue, newValue);
    }
    
+   bool testAndSetRelaxed(Type expectedValue, Type newValue, Type &currentValue) noexcept
+   {
+      return Operations::testAndSetRelaxed(m_atomic, expectedValue, newValue, &currentValue);
+   }
+   
+   bool testAndSetAcquire(Type expectedValue, Type newValue, Type &currentValue) noexcept
+   {
+      return Operations::testAndSetAcquire(m_atomic, expectedValue, newValue, &currentValue);
+   }
+   
+   bool testAndSetRelease(Type expectedValue, Type newValue, Type &currentValue) noexcept
+   {
+      return Operations::testAndSetRelease(m_atomic, expectedValue, newValue, &currentValue);
+   }
+   
+   bool testAndSetOrdered(Type expectedValue, Type newValue, Type &currentValue) noexcept
+   {
+      return Operations::testAndSetOrdered(m_atomic, expectedValue, newValue, &currentValue);
+   }   
+   
    static constexpr bool isFetchAndStoreNative() noexcept
    {
       return Operations::isFetchAndStoreNative();

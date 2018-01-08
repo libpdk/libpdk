@@ -165,7 +165,7 @@ inline WriteLocker::WriteLocker(ReadWriteLock *readWriteLock)
 #pragma warning( pop )
 #endif
 
-} // pdk
+} // thread
 } // os
 } // pdk
 
