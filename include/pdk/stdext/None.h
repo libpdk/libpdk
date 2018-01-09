@@ -24,3 +24,36 @@
 // You are welcome to contact the author at:
 //  akrzemi1@gmail.com
 //
+
+#ifndef PDK_STDEXT_NONE_H
+#define PDK_STDEXT_NONE_H
+
+namespace pdk {
+namespace stdext {
+
+namespace internal {
+namespace optional {
+
+template <typename T>
+struct NoneInstance
+{
+   static const T m_instance;
+};
+
+template <typename T>
+const T NoneInstance<T>::m_instance = T();
+
+} // optional
+} // internal
+
+class None
+{};
+
+namespace {
+   const None &none = internal::optional::NoneInstance<None>::m_instance;
+}
+
+} // stdext
+} // pdk
+
+#endif // PDK_STDEXT_NONE_H
