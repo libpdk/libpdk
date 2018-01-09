@@ -25,8 +25,8 @@
 //  akrzemi1@gmail.com
 //
 
-#ifndef PDK_STDEXT_OPTIONAL_BAD_ACCESS_H
-#define PDK_STDEXT_OPTIONAL_BAD_ACCESS_H
+#ifndef PDK_STDEXT_OPTIONAL_OPTIONAL_FWD_H
+#define PDK_STDEXT_OPTIONAL_OPTIONAL_FWD_H
 
 namespace pdk {
 namespace stdext {
@@ -41,3 +41,5 @@ template <typename T> void swap(optional<T&> &, optional<T&> &) noexcept;
 } // optional
 } // stdext
 } // pdk
+
+#endif // PDK_STDEXT_OPTIONAL_OPTIONAL_FWD_H
