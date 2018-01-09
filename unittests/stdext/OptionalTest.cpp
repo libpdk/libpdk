@@ -13,37 +13,9 @@
 //
 // Created by softboy on 2017/01/09.
 
-// Copyright (C) 2014, Andrzej Krzemienski.
-//
-// Use, modification, and distribution is subject to the Boost Software
-// License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
-//
-// See http://www.boost.org/libs/optional for documentation.
-//
-// You are welcome to contact the author at:
-//  akrzemi1@gmail.com
-//
+#include "gtest/gtest.h"
+#include "pdk/stdext/optional/Optional.h"
+#include <list>
+#include <utility>
+#include <tuple>
 
-#ifndef PDK_STDEXT_OPTIONAL_BAD_ACCESS_H
-#define PDK_STDEXT_OPTIONAL_BAD_ACCESS_H
-
-#include <stdexcept>
-
-namespace pdk {
-namespace stdext {
-namespace optional {
-
-class BadAccess : public std::logic_error
-{
-public:
-   BadAccess()
-      : std::logic_error("Attempted to access the value of an uninitialized optional object.")
-   {}
-};
-
-} // optional
-} // stdext
-} // pdk
-
-#endif // PDK_STDEXT_OPTIONAL_BAD_ACCESS_H

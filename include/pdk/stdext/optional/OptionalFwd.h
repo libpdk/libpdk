@@ -36,7 +36,7 @@ template <typename T> class Optional;
 template <typename T> void swap(Optional<T> &, Optional<T> &);
 template <typename T> struct SwapShouldUseDefaultConstructor;
 template <typename T> class Optional<T &>;
-template <typename T> void swap(optional<T&> &, optional<T&> &) noexcept;
+template <typename T> void swap(Optional<T&> &, Optional<T&> &) noexcept;
 
 } // optional
 } // stdext

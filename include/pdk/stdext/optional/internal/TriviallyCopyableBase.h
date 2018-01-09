@@ -25,19 +25,11 @@
 //  akrzemi1@gmail.com
 //
 
-#ifndef PDK_STDEXT_OPTIONAL_TRIVIALLY_COPYABLE_BASE_H
-#define PDK_STDEXT_OPTIONAL_TRIVIALLY_COPYABLE_BASE_H
-
-namespace pdk {
-namespace stdext {
-namespace optional {
-namespace internal {
-
-template <typename>
-class TriviallyCopyableOptionBase : public OptionalTag
+template <typename T>
+class TriviallyCopyableOptionalBase : public OptionalTag
 {
 private:
-   using ThisType = TriviallyCopyableOptionBase<T>;
+   using ThisType = TriviallyCopyableOptionalBase<T>;
    
 protected:
    using ValueType = T;
@@ -58,33 +50,33 @@ protected:
    using argument_type = ArgumentType;
    
 protected:
-   TriviallyCopyableOptionBase()
+   TriviallyCopyableOptionalBase()
       : m_initialized(false)
    {}
    
-   TriviallyCopyableOptionBase(None)
+   TriviallyCopyableOptionalBase(None)
       : m_initialized(false)
    {}
    
-   TriviallyCopyableOptionBase(ArgumentType value)
+   TriviallyCopyableOptionalBase(ArgumentType value)
       : m_initialized(true),
         m_storage(value)
    {}
    
-   TriviallyCopyableOptionBase(bool cond, ArgumentType value)
+   TriviallyCopyableOptionalBase(bool cond, ArgumentType value)
       : m_initialized(cond),
         m_storage(value)
    {}
    
    template <typename Expr, typename PtrExpr>
-   explicit TriviallyCopyableOptionBase(Expr &&expr, const PtrExpr *tag)
+   explicit TriviallyCopyableOptionalBase(Expr &&expr, const PtrExpr *tag)
       : m_initialized(false)
    {
       construct(std::forward<Expr>(expr), tag);
    }
    
    // Assigns from another Optional<T> (deep-copies the other value)
-   void assign(const TriviallyCopyableOptionBase &other)
+   void assign(const TriviallyCopyableOptionalBase &other)
    {
       this->operator= (other);
    }
@@ -141,22 +133,22 @@ protected:
    template <typename... Args>
    void emplaceAssign(Args&&... args)
    {
-      construct(InPlaceInt, std::forward<Args>(args)...);
+      construct(in_place_init, std::forward<Args>(args)...);
    }
    
    template <typename... Args>
-   explicit TriviallyCopyableOptionBase(InPlaceInt, Args&&... args)
+   explicit TriviallyCopyableOptionalBase(InPlaceInit, Args&&... args)
       : m_initialized(false)
    {
-      construct(InPlaceInt, std::forward<Args>(args)...);
+      construct(in_place_init, std::forward<Args>(args)...);
    }
    
    template <typename... Args>
-   explicit TriviallyCopyableOptionBase(InPlaceIntIf, bool cond, Args&&... args)
+   explicit TriviallyCopyableOptionalBase(InPlaceInitIf, bool cond, Args&&... args)
       : m_initialized(false)
    {
       if (cond) {
-         construct(InPlaceInt, std::forward<Args>(args)...);
+         construct(in_place_init, std::forward<Args>(args)...);
       }
    }
    
@@ -220,10 +212,3 @@ private:
    bool m_initialized;
    T m_storage;
 };
-
-} // internal
-} // optional
-} // stdext
-} // pdk
-
-#endif // PDK_STDEXT_OPTIONAL_TRIVIALLY_COPYABLE_BASE_H
