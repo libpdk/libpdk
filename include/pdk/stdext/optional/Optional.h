@@ -664,7 +664,7 @@ class Optional
    
    ReferenceTypeOfTemporaryWrapper operator *() &&
    {
-      std::move(get());
+      return std::move(get());
    }
    
    ReferenceConstType value() const &
@@ -709,8 +709,7 @@ class Optional
       return std::forward<U>(value);
    }
    
-   template <typename F>
-   ValueType valueOrEval(F f) const &
+   ValueType valueOrEval(std::function<ValueType()> f) const &
    {
       if (this->isInitialized()) {
          return get();
@@ -719,8 +718,7 @@ class Optional
       }
    }
    
-   template <typename F>
-   ValueType valueOrEval(F f) &&
+   ValueType valueOrEval(std::function<ValueType()> f) &&
    {
       if (this->isInitialized()) {
          return std::move(get());
