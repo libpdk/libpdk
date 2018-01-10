@@ -570,11 +570,19 @@ void test_throwing_swap( T const* )
    reset_throw_on_copy(ARG(T));
 }
 
+TEST(OptionalTest, testWithBuiltinTypes)
+{
+   test_basics(ARG(double));
+   test_conditional_ctor_and_get_valur_or(ARG(double));
+   test_uninitialized_access(ARG(double));
+   test_no_throwing_swap(ARG(double));
+   test_relops(ARG(double));
+   test_none(ARG(double));
+}
+
 
 TEST(OptionalTest, testWithClassTypes)
 {
-   //   Optional<X> a(1);
-   //   Optional<X> b(3);
    test_basics(ARG(X));
    test_basics(ARG(VBase));
    test_conditional_ctor_and_get_valur_or(ARG(X));
@@ -589,3 +597,74 @@ TEST(OptionalTest, testWithClassTypes)
    test_none(ARG(X));
    ASSERT_TRUE(X::m_count == 0);
 }
+
+int eat(bool)
+{
+   return 1;
+}
+
+int eat(char)
+{
+   return 1;
+}
+
+int eat(int)
+{
+   return 1;
+}
+
+int eat(const void *)
+{
+   return 1;
+}
+
+template<class T>
+int eat(T)
+{
+   return 0;
+}
+
+template<class T>
+void test_no_implicit_conversions_impl(const T &)
+{
+   Optional<T> def;
+   ASSERT_TRUE(eat(def) == 0);
+}
+
+TEST(OptionalTest, testNoImplicitConversions)
+{
+   bool b = false;
+   char c = 0;
+   int i = 0;
+   void const* p = 0;
+   test_no_implicit_conversions_impl(b);
+   test_no_implicit_conversions_impl(c);
+   test_no_implicit_conversions_impl(i);
+   test_no_implicit_conversions_impl(p);
+}
+
+class CustomAddressOfClass  
+{
+   int n;
+   
+public:
+   CustomAddressOfClass() : n(0) {}
+   CustomAddressOfClass(CustomAddressOfClass const& that) : n(that.n) {}
+   explicit CustomAddressOfClass(int m) : n(m) {}
+   int* operator& () { return &n; }
+   bool operator== (CustomAddressOfClass const& that) const { return n == that.n; }
+};
+
+TEST(OptionalTest, testCustomAddressofOperator)
+{
+   Optional<CustomAddressOfClass> o1(CustomAddressOfClass(10));
+   ASSERT_TRUE(!!o1);
+   ASSERT_TRUE(o1.get() == CustomAddressOfClass(10));
+   o1 = CustomAddressOfClass(20);
+   ASSERT_TRUE(!!o1);
+   ASSERT_TRUE(o1.get() == CustomAddressOfClass(20));
+   
+   o1 = pdk::stdext::none;
+   ASSERT_TRUE(!o1);
+}
+
