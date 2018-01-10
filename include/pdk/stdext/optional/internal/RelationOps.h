@@ -37,11 +37,200 @@ namespace internal {
 
 using pdk::stdext::optional::Optional;
 
+//
+// Optional<T> vs Optional<T> cases
+//
 template <typename T>
 inline bool operator ==(const Optional<T> &lhs, const Optional<T> &rhs)
 {
    return static_cast<bool>(lhs) && static_cast<bool>(rhs) ?
             *lhs == *rhs : static_cast<bool>(lhs) == static_cast<bool>(rhs);
+}
+
+template <typename T>
+inline bool operator <(const Optional<T> &lhs, const Optional<T> &rhs)
+{
+   return less_pointees(lhs, rhs);
+}
+
+template <typename T>
+inline bool operator !=(const Optional<T> &lhs, const Optional<T> &rhs)
+{
+   return !(lhs == rhs);
+}
+
+template <typename T>
+inline bool operator >(const Optional<T> &lhs, const Optional<T> &rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(const Optional<T> &lhs, const Optional<T> &rhs)
+{
+   return !(lhs > rhs);
+}
+
+template <typename T>
+inline bool operator >=(const Optional<T> &lhs, const Optional<T> &rhs)
+{
+   return !(lhs < rhs);
+}
+
+//
+// Optional<T> vs T cases
+//
+template <typename T>
+inline bool operator ==(const Optional<T> &lhs, const T &rhs)
+{
+   return equal_pointees(lhs, Optional<T>(rhs));
+}
+
+template <typename T>
+inline bool operator <(const Optional<T> &lhs, const T &rhs)
+{
+   return less_pointees(lhs, Optional<T>(rhs));
+}
+
+template <typename T>
+inline bool operator !=(const Optional<T> &lhs, const T &rhs)
+{
+   return !(lhs == rhs);
+}
+
+template <typename T>
+inline bool operator >(const Optional<T> &lhs, const T &rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(const Optional<T> &lhs, const T &rhs)
+{
+   return !(lhs > rhs);
+}
+
+template <typename T>
+inline bool operator >=(const Optional<T> &lhs, const T &rhs)
+{
+   return !(lhs < rhs);
+}
+
+//
+// T vs Optional<T> cases
+//
+template <typename T>
+inline bool operator ==(const T &lhs, const Optional<T> &rhs)
+{
+   return equal_pointees(Optional<T>(lhs), rhs);
+}
+
+template <typename T>
+inline bool operator <(const T &lhs, const Optional<T> &rhs)
+{
+   return less_pointees(Optional<T>(lhs), rhs);
+}
+
+template <typename T>
+inline bool operator !=(const T &lhs, const Optional<T> &rhs)
+{
+   return !(lhs == rhs);
+}
+
+template <typename T>
+inline bool operator >(const T &lhs, const Optional<T> &rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(const T &lhs, const Optional<T> &rhs)
+{
+   return !(lhs > rhs);
+}
+
+template <typename T>
+inline bool operator >=(const T &lhs, const Optional<T> &rhs)
+{
+   return !(lhs < rhs);
+}
+
+//
+// Optional<T> vs none cases
+//
+template <typename T>
+inline bool operator ==(const Optional<T> &lhs, None rhs)
+{
+   return !lhs;
+}
+
+template <typename T>
+inline bool operator <(const Optional<T> &lhs, None rhs)
+{
+   return equal_pointees(lhs, Optional<T>(rhs));
+}
+
+template <typename T>
+inline bool operator !=(const Optional<T> &lhs, None rhs)
+{
+   return static_cast<bool>(lhs);
+}
+
+template <typename T>
+inline bool operator >(const Optional<T> &lhs, None rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(const Optional<T> &lhs, None rhs)
+{
+   return !(lhs > rhs);
+}
+
+template <typename T>
+inline bool operator >=(const Optional<T> &lhs, None rhs)
+{
+   return !(lhs < rhs);
+}
+
+//
+// none vs Optional<T> cases
+//
+template <typename T>
+inline bool operator ==(None lhs, const Optional<T> &rhs) noexcept
+{
+   return !rhs;
+}
+
+template <typename T>
+inline bool operator <(None lhs, const Optional<T> &rhs)
+{
+   return equal_pointees(Optional<T>(lhs), rhs);
+}
+
+template <typename T>
+inline bool operator !=(None lhs, const Optional<T> &rhs) noexcept
+{
+   return static_cast<bool>(rhs);
+}
+
+template <typename T>
+inline bool operator >(None lhs, const Optional<T> &rhs)
+{
+   return rhs < lhs;
+}
+
+template <typename T>
+inline bool operator <=(None lhs, const Optional<T> &rhs)
+{
+   return !(lhs > rhs);
+}
+
+template <typename T>
+inline bool operator >=(None lhs, const Optional<T> &rhs)
+{
+   return !(lhs < rhs);
 }
 
 } // internal
