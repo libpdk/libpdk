@@ -378,22 +378,22 @@ protected:
    
    ReferenceConstType getImpl() const
    {
-      return m_storage;
+      return *getPtrImpl();
    }
    
    ReferenceType getImpl()
    {
-      return m_storage;
+      return const_cast<ReferenceType>(const_cast<const ThisType *>(this)->getImpl());
    }
    
    PointerConstType getPtrImpl() const
    {
-      return &m_storage;
+      return reinterpret_cast<PointerConstType>(&m_storage);
    }
    
    PointerType getPtrImpl()
    {
-      return &m_storage;
+      return const_cast<PointerType>(const_cast<const ThisType *>(this)->getPtrImpl());
    }
 private:
    
@@ -639,13 +639,13 @@ class Optional
    PointerConstType operator ->() const
    {
       PDK_ASSERT(this->isInitialized());
-      return this->getPointerImpl();
+      return this->getPtrImpl();
    }
    
    PointerType operator ->()
    {
       PDK_ASSERT(this->isInitialized());
-      return this->getPointerImpl();
+      return this->getPtrImpl();
    }
    
    // Returns a reference to the value if this is initialized, otherwise,
@@ -728,7 +728,7 @@ class Optional
       }
    }
    
-   bool operator!() noexcept
+   bool operator!() const noexcept
    {
       return !this->isInitialized();
    }
