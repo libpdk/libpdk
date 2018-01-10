@@ -13,15 +13,24 @@
 //
 // Created by softboy on 2017/11/13.
 
+#include "pdk/global/Global.h"
+#include <iostream>
+
 namespace pdk
 {
 
 void pdk_assert(const char *assertion, const char *file, 
                 int line) noexcept
-{}
+{
+   std::string errMsg(assertion);
+   errMsg += " is fail";
+   std::cerr << errMsg << std::endl;
+}
 
 void pdk_assert_x(const char *where, const char *what, 
                   const char *file, int line) noexcept
-{}
+{
+   std::cerr << what << std::endl;
+}
 
 } // pdk

@@ -145,13 +145,13 @@ void test_conditional_ctor_and_get_valur_or(T const*)
    
    T& rzz = def0.getValueOr(rz);
    ASSERT_TRUE( rzz == rz);
-
+   
    T const& crb = o0.getValueOr(crz);
    ASSERT_TRUE( crb == a);
    
    T& rb = o0.getValueOr(rz);
    ASSERT_TRUE( rb == b);
-
+   
    T& ra = a;
    
    Optional<T&> defref(false, ra);
@@ -171,8 +171,175 @@ void test_conditional_ctor_and_get_valur_or(T const*)
    ASSERT_TRUE(r2 == a);
 }
 
+template<class T>
+void test_uninitialized_access( T const* )
+{
+   //   Optional<T> def ;
+   
+   //   bool passed = false ;
+   //   try
+   //   {
+   //      // This should throw because 'def' is uninitialized
+   //      T const& n = def.get();
+   //      PDK_UNUSED(n);
+   //      passed = true ;
+   //   }
+   //   catch (...) {}
+   //   ASSERT_TRUE(!passed);
+   
+   //   passed = false ;
+   //   try
+   //   {
+   //      // This should throw because 'def' is uninitialized
+   //      T const& n = *def;
+   //      PDK_UNUSED(n);
+   //      passed = true ;
+   //   }
+   //   catch (...) {}
+   //   ASSERT_TRUE(!passed);
+   
+   //   passed = false;
+   //   try
+   //   {
+   //      T v(5) ;
+   //      PDK_UNUSED(v);
+   //      // This should throw because 'def' is uninitialized
+   //      *def = v ;
+   //      passed = true ;
+   //   }
+   //   catch (...) {}
+   //   ASSERT_TRUE(!passed);
+   
+   //   passed = false ;
+   //   try
+   //   {
+   //      // This should throw because 'def' is uninitialized
+   //      T v = *(def.operator->()) ;
+   //      PDK_UNUSED(v);
+   //      passed = true ;
+   //   }
+   //   catch (...) {}
+   //   ASSERT_TRUE(!passed);
+}
+
+template<class T>
+void test_no_throwing_swap(T const*)
+{  
+   T z(0);
+   T a(14);
+   T b(15);
+   
+   Optional<T> def0 ;
+   Optional<T> def1 ;
+   Optional<T> opt0(a) ;
+   Optional<T> opt1(b) ;
+   
+   int count = get_instance_count(ARG(T)) ;
+   
+   swap(def0, def1);
+   check_uninitialized(def0);
+   check_uninitialized(def1);
+   
+   swap(def0, opt0);
+   check_uninitialized(opt0);
+   check_initialized(def0);
+   check_value(def0, a, z);
+   
+   // restore def0 and opt0
+   swap(def0,opt0);
+   
+   swap(opt0,opt1);
+   check_instance_count(count, ARG(T));
+   check_initialized(opt0);
+   check_initialized(opt1);
+   check_value(opt0, b, z);
+   check_value(opt1, a, z);
+}
+
+template<class T>
+void test_relops( T const* )
+{
+   T v0(0);
+   T v1(1);
+   T v2(1);
+   
+   Optional<T> def0 ;
+   Optional<T> def1 ;
+   Optional<T> opt0(v0);
+   Optional<T> opt1(v1);
+   Optional<T> opt2(v2);
+   
+   // Check identity
+   ASSERT_TRUE(def0 == def0);
+   ASSERT_TRUE(opt0 == opt0);
+   ASSERT_TRUE(!(def0 != def0));
+   ASSERT_TRUE(!(opt0 != opt0));
+   
+   // Check when both are uininitalized.
+   ASSERT_TRUE(  def0 == def1); // both uninitialized compare equal
+   ASSERT_TRUE(!(def0 <  def1)); // uninitialized is never less    than uninitialized
+   ASSERT_TRUE(!(def0 >  def1)); // uninitialized is never greater than uninitialized
+   ASSERT_TRUE(!(def0 != def1));
+   ASSERT_TRUE(  def0 <= def1);
+   ASSERT_TRUE(  def0 >= def1);
+   
+   // Check when only lhs is uninitialized.
+   ASSERT_TRUE(  def0 != opt0); // uninitialized is never equal to initialized
+   ASSERT_TRUE(!(def0 == opt0));
+   ASSERT_TRUE(  def0 <  opt0); // uninitialized is always less than initialized
+   ASSERT_TRUE(!(def0 >  opt0));
+   ASSERT_TRUE(  def0 <= opt0);
+   ASSERT_TRUE(!(def0 >= opt0));
+   
+   // Check when only rhs is uninitialized.
+   ASSERT_TRUE(  opt0 != def0); // initialized is never equal to uninitialized
+   ASSERT_TRUE(!(opt0 == def0));
+   ASSERT_TRUE(!(opt0 <  def0)); // initialized is never less than uninitialized
+   ASSERT_TRUE(  opt0 >  def0);
+   ASSERT_TRUE(!(opt0 <= def0));
+   ASSERT_TRUE(  opt0 >= opt0);
+   
+   // If both are initialized, values are compared
+   ASSERT_TRUE(opt0 != opt1);
+   ASSERT_TRUE(opt1 == opt2);
+   ASSERT_TRUE(opt0 <  opt1);
+   ASSERT_TRUE(opt1 >  opt0);
+   ASSERT_TRUE(opt1 <= opt2);
+   ASSERT_TRUE(opt1 >= opt0);
+   
+   // Compare against a value directly
+   ASSERT_TRUE(opt0 == v0);
+   ASSERT_TRUE(opt0 != v1);
+   ASSERT_TRUE(opt1 == v2);
+   ASSERT_TRUE(opt0 <  v1);
+   ASSERT_TRUE(opt1 >  v0);
+   ASSERT_TRUE(opt1 <= v2);
+   ASSERT_TRUE(opt1 >= v0);
+   ASSERT_TRUE(v0 != opt1);
+   ASSERT_TRUE(v1 == opt2);
+   ASSERT_TRUE(v0 <  opt1);
+   ASSERT_TRUE(v1 >  opt0);
+   ASSERT_TRUE(v1 <= opt2);
+   ASSERT_TRUE(v1 >= opt0);
+   ASSERT_TRUE(  def0 != v0);
+   ASSERT_TRUE(!(def0 == v0));
+   ASSERT_TRUE(  def0 <  v0);
+   ASSERT_TRUE(!(def0 >  v0));
+   ASSERT_TRUE(  def0 <= v0);
+   ASSERT_TRUE(!(def0 >= v0));
+   ASSERT_TRUE(  v0 != def0);
+   ASSERT_TRUE(!(v0 == def0));
+   ASSERT_TRUE(!(v0 <  def0));
+   ASSERT_TRUE(  v0 >  def0);
+   ASSERT_TRUE(!(v0 <= def0));
+   ASSERT_TRUE(  v0 >= opt0);
+}
+
 TEST(OptionalTest, testWithBuiltinTypes)
 {
    test_basics(ARG(double));
    test_conditional_ctor_and_get_valur_or(ARG(double));
+   test_uninitialized_access(ARG(double));
+   test_no_throwing_swap(ARG(double));
+   test_relops(ARG(double));
 }

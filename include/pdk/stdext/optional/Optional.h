@@ -32,6 +32,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/stdext/optional/OptionalFwd.h"
 #include "pdk/stdext/optional/BadAccess.h"
+#include "pdk/stdext/utility/OptionalPointee.h"
 #include <type_traits>
 
 namespace pdk {
@@ -739,6 +740,25 @@ class Optional
    }
 };
 
+template <class T>
+inline void swap(Optional<T> &lhs, Optional<T> &rhs)
+noexcept(::std::is_nothrow_move_constructible<T>::value && noexcept(std::swap(*lhs, *rhs)))
+{
+   if (lhs) {
+      if (rhs) {
+         std::swap(*lhs, *rhs);
+      } else {
+         rhs = std::move(*lhs);
+         lhs = none;
+      }
+   } else {
+      if (rhs) {
+         lhs = std::move(*rhs);
+         rhs = none;
+      }
+   }
+}
+
 template<class T>
 class Optional<T &&>
 {
@@ -766,6 +786,5 @@ inline optional::Optional<typename std::decay<T>::type> make_optional(bool cond,
 
 #include "pdk/stdext/optional/internal/ReferenceSpec.h"
 #include "pdk/stdext/optional/internal/RelationOps.h"
-#include "pdk/stdext/optional/internal/Swap.h"
 
 #endif // PDK_STDEXT_OPTIONAL_OPTIONAL_H

@@ -157,9 +157,9 @@ using ulong = unsigned long;
 namespace pdk 
 {
 
-#ifndef PDK_CC_MSVC
-PDK_NORETURN
-#endif
+//#ifndef PDK_CC_MSVC
+//PDK_NORETURN
+//#endif
 PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file, 
                                 int line) noexcept;
 
@@ -269,9 +269,9 @@ static inline T *get_ptr_helper(const std::shared_ptr<T> &p)
 #define PDK_D(Class) Class##Private * const implPtr = getImplPtr()
 #define PDK_Q(Class) Class * const apiPtr = getApiPtr()
 
-#ifndef PDK_CC_MSVC
-PDK_NORETURN
-#endif
+//#ifndef PDK_CC_MSVC
+//PDK_NORETURN
+//#endif
 PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what, 
                                   const char *file, int line) noexcept;
 

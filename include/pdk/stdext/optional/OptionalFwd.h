@@ -33,7 +33,8 @@ namespace stdext {
 namespace optional {
 
 template <typename T> class Optional;
-template <typename T> void swap(Optional<T> &, Optional<T> &);
+template <typename T> void swap(Optional<T> &lhs, Optional<T> &rhs) 
+noexcept(::std::is_nothrow_move_constructible<T>::value && noexcept(std::swap(*lhs, *rhs)));
 template <typename T> struct SwapShouldUseDefaultConstructor;
 template <typename T> class Optional<T &>;
 template <typename T> void swap(Optional<T&> &, Optional<T&> &) noexcept;

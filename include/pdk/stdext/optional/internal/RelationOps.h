@@ -40,7 +40,8 @@ using pdk::stdext::optional::Optional;
 template <typename T>
 inline bool operator ==(const Optional<T> &lhs, const Optional<T> &rhs)
 {
-   
+   return static_cast<bool>(lhs) && static_cast<bool>(rhs) ?
+            *lhs == *rhs : static_cast<bool>(lhs) == static_cast<bool>(rhs);
 }
 
 } // internal
