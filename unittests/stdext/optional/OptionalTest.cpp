@@ -29,6 +29,17 @@ void test_implicit_construction (Optional<X> opt, const X &v, const X &z )
 {
    check_value(opt, v, z);
 }
+
+void test_default_implicit_construction(double, Optional<double> opt)
+{
+   ASSERT_TRUE(!opt);
+}
+
+void test_default_implicit_construction (const X&, Optional<X> opt)
+{
+   ASSERT_TRUE(!opt);
+}
+
 template <typename T>
 void test_basics(const T *)
 {
@@ -335,6 +346,31 @@ void test_relops( T const* )
    ASSERT_TRUE(  v0 >= opt0);
 }
 
+template<class T>
+void test_none( T const* )
+{
+   TRACE( std::endl << BOOST_CURRENT_FUNCTION   );
+   
+   using pdk::stdext::none;
+   
+   Optional<T> def0;
+   Optional<T> def1(none);
+   Optional<T> non_def(T(1234));
+   
+   ASSERT_TRUE(def0 == none);
+   ASSERT_TRUE(non_def != none);
+   ASSERT_TRUE(!def1);
+   ASSERT_TRUE(!(non_def < none));
+   ASSERT_TRUE(non_def > none);
+   ASSERT_TRUE(!(non_def <= none));
+   ASSERT_TRUE(non_def >= none);
+   
+   non_def = none;
+   ASSERT_TRUE(!non_def);
+   
+   test_default_implicit_construction(T(1), none);
+}
+
 TEST(OptionalTest, testWithBuiltinTypes)
 {
    test_basics(ARG(double));
@@ -342,4 +378,5 @@ TEST(OptionalTest, testWithBuiltinTypes)
    test_uninitialized_access(ARG(double));
    test_no_throwing_swap(ARG(double));
    test_relops(ARG(double));
+   test_none(ARG(double));
 }

@@ -167,7 +167,7 @@ inline bool operator ==(const Optional<T> &lhs, None rhs)
 template <typename T>
 inline bool operator <(const Optional<T> &lhs, None rhs)
 {
-   return equal_pointees(lhs, Optional<T>(rhs));
+   return less_pointees(lhs, Optional<T>(rhs));
 }
 
 template <typename T>
@@ -206,7 +206,7 @@ inline bool operator ==(None lhs, const Optional<T> &rhs) noexcept
 template <typename T>
 inline bool operator <(None lhs, const Optional<T> &rhs)
 {
-   return equal_pointees(Optional<T>(lhs), rhs);
+   return less_pointees(Optional<T>(lhs), rhs);
 }
 
 template <typename T>
