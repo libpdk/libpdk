@@ -739,8 +739,33 @@ class Optional
    }
 };
 
+template<class T>
+class Optional<T &&>
+{
+   PDK_STATIC_ASSERT_X(sizeof(T) == 0, "Optional rvalue references are illegal.");
+};
+
 } // optional
+
+// Returns Optional<T>(value)
+template <typename T>
+inline optional::Optional<typename std::decay<T>::type> make_optional(T &&value)
+{
+   return optional::Optional<typename std::decay<T>::type>(std::forward<T>(value));
+}
+
+// Returns Optional<T>(cond, value)
+template <typename T>
+inline optional::Optional<typename std::decay<T>::type> make_optional(bool cond, T &&value)
+{
+   return optional::Optional<typename std::decay<T>::type>(cond, std::forward<T>(value));
+}
+
 } // stdext
 } // pdk
+
+#include "pdk/stdext/optional/internal/ReferenceSpec.h"
+#include "pdk/stdext/optional/internal/RelationOps.h"
+#include "pdk/stdext/optional/internal/Swap.h"
 
 #endif // PDK_STDEXT_OPTIONAL_OPTIONAL_H

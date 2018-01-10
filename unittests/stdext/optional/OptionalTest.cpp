@@ -102,13 +102,77 @@ void test_basics(const T *)
    // (Dtor is not called this time)
    set_pending_dtor(ARG(T));
    set_pending_copy(ARG(T));
-   oa = def ;
+   oa = def;
    check_is_pending_dtor(ARG(T));
    check_is_pending_copy(ARG(T));
    check_uninitialized(oa);
 }
 
+template<class T>
+void test_conditional_ctor_and_get_valur_or(T const*)
+{   
+   T a(321);
+   
+   T z(123);
+   
+   Optional<T> const cdef0(false,a);
+   Optional<T> def0(false,a);
+   Optional<T> def1 = pdk::stdext::make_optional(false, a); //  T is not within boost so ADL won't find make_optional unqualified
+   check_uninitialized(def0);
+   check_uninitialized(def1);
+   
+   Optional<T> const co0(true,a);
+   
+   Optional<T> o0(true,a);
+   Optional<T> o1 = pdk::stdext::make_optional(true, a); //  T is not within boost so ADL won't find make_optional unqualified
+   
+   check_initialized(o0);
+   check_initialized(o1);
+   check_value(o0,a,z);
+   check_value(o1,a,z);
+   
+   T b = def0.getValueOr(z);
+   ASSERT_TRUE(b == z);
+   
+   b = o0.getValueOr(z);
+   ASSERT_TRUE(b == a);
+   
+   T const& crz = z;
+   T&        rz = z;
+   
+   T const& crzz = def0.getValueOr(crz);
+   ASSERT_TRUE( crzz == crz);
+   
+   T& rzz = def0.getValueOr(rz);
+   ASSERT_TRUE( rzz == rz);
+
+   T const& crb = o0.getValueOr(crz);
+   ASSERT_TRUE( crb == a);
+   
+   T& rb = o0.getValueOr(rz);
+   ASSERT_TRUE( rb == b);
+
+   T& ra = a;
+   
+   Optional<T&> defref(false, ra);
+   ASSERT_TRUE(!defref);
+   
+   Optional<T&> ref(true, ra);
+   ASSERT_TRUE(!!ref);
+   
+   a = T(432);
+   
+   ASSERT_TRUE(*ref == a);
+   
+   T& r1 = defref.getValueOr(z);
+   ASSERT_TRUE(r1 == z);
+   
+   T& r2 = ref.getValueOr(z);
+   ASSERT_TRUE(r2 == a);
+}
+
 TEST(OptionalTest, testWithBuiltinTypes)
 {
    test_basics(ARG(double));
+   test_conditional_ctor_and_get_valur_or(ARG(double));
 }
