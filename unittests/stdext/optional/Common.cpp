@@ -46,7 +46,7 @@ public :
         ++ m_count ;
     }
     
-    ~X()
+    virtual ~X()
     {
         m_pendingDtor = false ;
         -- m_count ;

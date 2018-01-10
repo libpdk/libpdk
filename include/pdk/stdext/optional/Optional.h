@@ -65,7 +65,7 @@ template <typename T>
 class OptionalBase : public OptionalTag
 {
 private:
-   using StorageType = std::aligned_storage<sizeof(T), alignof(T)>;
+   using StorageType = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
    using ThisType = OptionalBase<T>;
    
 protected:

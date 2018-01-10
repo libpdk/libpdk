@@ -87,7 +87,7 @@ void test_basics(const T *)
    // Assignment initialization.
    // T::T (T const& x ) is used to copy new value.
    set_pending_copy(ARG(T));
-   Optional<T> const oa2 (oa);
+   Optional<T> oa2(a);
    check_is_not_pending_copy(ARG(T));
    check_initialized_const(oa2);
    check_value_const(oa2, a, z);
@@ -371,12 +371,27 @@ void test_none( T const* )
    test_default_implicit_construction(T(1), none);
 }
 
-TEST(OptionalTest, testWithBuiltinTypes)
+struct VBase : virtual X
 {
-   test_basics(ARG(double));
-   test_conditional_ctor_and_get_valur_or(ARG(double));
-   test_uninitialized_access(ARG(double));
-   test_no_throwing_swap(ARG(double));
-   test_relops(ARG(double));
-   test_none(ARG(double));
+    VBase(int v) : X(v) {}
+    // MSVC 8.0 doesn't generate this correctly...
+    VBase(const VBase& other) : X(static_cast<const X&>(other)) {}
+};
+
+//TEST(OptionalTest, testWithBuiltinTypes)
+//{
+//   test_basics(ARG(double));
+//   test_conditional_ctor_and_get_valur_or(ARG(double));
+//   test_uninitialized_access(ARG(double));
+//   test_no_throwing_swap(ARG(double));
+//   test_relops(ARG(double));
+//   test_none(ARG(double));
+//}
+
+TEST(OptionalTest, testWithClassTypes)
+{
+//   Optional<X> a(1);
+//   Optional<X> b(3);
+   test_basics(ARG(X));
+   test_basics(ARG(VBase));
 }
