@@ -732,7 +732,7 @@ class Optional
       return !this->isInitialized();
    }
    
-   operator bool () const noexcept
+   explicit operator bool () const noexcept
    {
       return !this->operator!();
    }

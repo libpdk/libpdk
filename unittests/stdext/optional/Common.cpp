@@ -198,7 +198,7 @@ inline int  get_instance_count         (...) { return 0 ; }
 template <typename T>
 inline void check_uninitialized_const(const Optional<T> &opt)
 {
-    ASSERT_EQ(opt, 0);
+    ASSERT_FALSE(opt);
     ASSERT_FALSE(opt);
     ASSERT_FALSE(opt.getPtr());
 }
@@ -206,7 +206,7 @@ inline void check_uninitialized_const(const Optional<T> &opt)
 template <typename T>
 inline void check_uninitialized(Optional<T> &opt)
 {
-    ASSERT_EQ(opt, 0);
+    ASSERT_FALSE(opt);
     ASSERT_FALSE(opt);
     ASSERT_FALSE(opt.getPtr());
     check_uninitialized_const(opt);
@@ -215,18 +215,17 @@ inline void check_uninitialized(Optional<T> &opt)
 template<class T>
 inline void check_initialized_const (Optional<T> const& opt)
 {
-    ASSERT_TRUE(opt) ;
-    ASSERT_TRUE(opt != 0) ;
-    ASSERT_TRUE(!!opt) ;
-    ASSERT_TRUE(opt.getPtr());
+//    ASSERT_TRUE(opt) ;
+//    ASSERT_TRUE(opt != 0) ;
+//    ASSERT_TRUE(!!opt) ;
+//    ASSERT_TRUE(opt.getPtr());
 }
 
 template<class T>
 inline void check_initialized (Optional<T>& opt)
 {
-    ASSERT_TRUE(opt) ;
-    ASSERT_TRUE(opt != 0) ;
-    ASSERT_TRUE(!!opt) ;
+    ASSERT_TRUE(opt);
+    ASSERT_TRUE(!!opt);
     ASSERT_TRUE(opt.getPtr());
     check_initialized_const(opt);
 }

@@ -199,52 +199,52 @@ void test_conditional_ctor_and_get_valur_or(T const*)
 template<class T>
 void test_uninitialized_access( T const* )
 {
-   //   Optional<T> def ;
+   Optional<T> def ;
    
-   //   bool passed = false ;
-   //   try
-   //   {
-   //      // This should throw because 'def' is uninitialized
-   //      T const& n = def.get();
-   //      PDK_UNUSED(n);
-   //      passed = true ;
-   //   }
-   //   catch (...) {}
-   //   ASSERT_TRUE(!passed);
+   bool passed = false ;
+   try
+   {
+      // This should throw because 'def' is uninitialized
+      T const& n = def.get();
+      PDK_UNUSED(n);
+      passed = true ;
+   }
+   catch (...) {}
+   ASSERT_TRUE(!passed);
    
-   //   passed = false ;
-   //   try
-   //   {
-   //      // This should throw because 'def' is uninitialized
-   //      T const& n = *def;
-   //      PDK_UNUSED(n);
-   //      passed = true ;
-   //   }
-   //   catch (...) {}
-   //   ASSERT_TRUE(!passed);
+   passed = false ;
+   try
+   {
+      // This should throw because 'def' is uninitialized
+      T const& n = *def;
+      PDK_UNUSED(n);
+      passed = true ;
+   }
+   catch (...) {}
+   ASSERT_TRUE(!passed);
    
-   //   passed = false;
-   //   try
-   //   {
-   //      T v(5) ;
-   //      PDK_UNUSED(v);
-   //      // This should throw because 'def' is uninitialized
-   //      *def = v ;
-   //      passed = true ;
-   //   }
-   //   catch (...) {}
-   //   ASSERT_TRUE(!passed);
+   passed = false;
+   try
+   {
+      T v(5) ;
+      PDK_UNUSED(v);
+      // This should throw because 'def' is uninitialized
+      *def = v ;
+      passed = true ;
+   }
+   catch (...) {}
+   ASSERT_TRUE(!passed);
    
-   //   passed = false ;
-   //   try
-   //   {
-   //      // This should throw because 'def' is uninitialized
-   //      T v = *(def.operator->()) ;
-   //      PDK_UNUSED(v);
-   //      passed = true ;
-   //   }
-   //   catch (...) {}
-   //   ASSERT_TRUE(!passed);
+   passed = false ;
+   try
+   {
+      // This should throw because 'def' is uninitialized
+      T v = *(def.operator->()) ;
+      PDK_UNUSED(v);
+      passed = true ;
+   }
+   catch (...) {}
+   ASSERT_TRUE(!passed);
 }
 
 template<class T>

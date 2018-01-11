@@ -133,8 +133,14 @@ TEST(OptionalFailureTest, testEvalForDiffType)
 TEST(OptionalFailureTest, testImplicitConversionToBool)
 {
    Optional<int> opt;
-   bool b = opt;
-   ASSERT_FALSE(b);
+   // Optional<int>' to 'bool'
+   // bool b = opt;
+   // ASSERT_FALSE(b);
 }
 
-
+TEST(OptionalFailureTest, testStreamingOutOptional)
+{
+   Optional<int> opt;
+   // Optional<int>' to 'bool'
+   // std::cout << opt;
+}

@@ -225,7 +225,7 @@ public:
       return m_ptr == nullptr;
    }
    
-   operator bool () const noexcept
+   explicit operator bool () const noexcept
    {
       return !this->operator!();
    }
