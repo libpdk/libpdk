@@ -34,6 +34,8 @@
 #include "pdk/stdext/optional/BadAccess.h"
 #include "pdk/stdext/utility/OptionalPointee.h"
 #include <type_traits>
+#include <istream>
+#include <ostream>
 
 namespace pdk {
 namespace stdext {
@@ -72,7 +74,7 @@ protected:
    using ValueType = T;
    using value_type = ValueType;
    using ReferenceType = T &;
-   using ReferenceConstType = T const &;
+   using ReferenceConstType = const T &;
    using RvalReferenceType = T &&;
    using ReferenceTypeOfTemporaryWrapper = T &&;
    using PointerType = T *;

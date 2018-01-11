@@ -20,6 +20,20 @@
 #include <utility>
 #include <tuple>
 
+struct VBase : virtual X
+{
+   VBase(int v) : X(v) {}
+   // MSVC 8.0 doesn't generate this correctly...
+   VBase(const VBase& other) : X(static_cast<const X&>(other)) {}
+};
+
+std::ostream& operator<<(std::ostream& os, const VBase &value)  
+{  
+   PDK_UNUSED(value);
+   return os;
+}
+
+
 void test_implicit_construction (Optional<double> opt, double v, double z )
 {
    check_value(opt, v, z);
@@ -370,13 +384,6 @@ void test_none( T const* )
    
    test_default_implicit_construction(T(1), none);
 }
-
-struct VBase : virtual X
-{
-   VBase(int v) : X(v) {}
-   // MSVC 8.0 doesn't generate this correctly...
-   VBase(const VBase& other) : X(static_cast<const X&>(other)) {}
-};
 
 template<class T>
 void test_direct_value_manip( T const* )
