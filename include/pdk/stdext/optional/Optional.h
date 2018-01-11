@@ -547,9 +547,7 @@ class Optional
    template<class U>
    Optional &operator= (const Optional<U> &other)
    {
-      if (this != other) {
-         this->assign(other);
-      }
+      this->assign(other);
       return *this ;
    }
    
