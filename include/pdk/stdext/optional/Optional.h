@@ -239,7 +239,7 @@ protected:
       using RefType = typename Optional<U>::RvalReferenceType;
       if (isInitialized()) {
          if (other.isInitialized()) {
-            assignValue( static_cast<RefType>(other.get()) );
+            assignValue(static_cast<RefType>(other.get()) );
          } else {
             destroy();
          }
@@ -273,6 +273,16 @@ protected:
    void assign(None) noexcept
    {
       destroy();
+   }
+   
+   template<class Expr, class ExprPtr>
+   void assignExpr(Expr&& expr, ExprPtr const* tag)
+   {
+      if (isInitialized()) {
+         assginExprToInitialized(std::forward<Expr>(expr),tag);
+      } else {
+         construct(std::forward<Expr>(expr), tag);
+      }
    }
    
 public:
@@ -411,7 +421,7 @@ struct IsOptionalRelated
       : std::conditional<std::is_base_of<OptionalTag, typename std::decay<U>::type>::value
       || std::is_same<typename std::decay<U>::type, None>::value
       || std::is_same<typename std::decay<U>::type, InPlaceInit>::value
-      || std::is_same<typename std::decay<U>::type, InPlaceInitIf>::vaue,
+      || std::is_same<typename std::decay<U>::type, InPlaceInitIf>::value,
       std::true_type, std::false_type>::type
 {};
 
@@ -538,6 +548,21 @@ class Optional
       }
    }
    
+   // Creates an optional<T> with an expression which can be either
+   //  (a) An instance of InPlaceFactory (i.e. in_place(a,b,...,n);
+   //  (b) An instance of TypedInPlaceFactory ( i.e. in_place<T>(a,b,...,n);
+   //  (c) Any expression implicitly convertible to the single type
+   //      of a one-argument T's constructor.
+   //  (d*) Weak compilers (BCB) might also resolved Expr as optional<T> and optional<U>
+   //       even though explicit overloads are present for these.
+   // Depending on the above some T ctor is called.
+   // Can throw if the resolved T ctor throws.
+   template<class Expr>
+   explicit Optional(Expr&& expr, 
+                     typename std::enable_if<internal::IsOptionalValInitCandidate<T, Expr>::value>::type * = nullptr)
+      : BaseType(std::forward<Expr>(expr), std::addressof(expr)) 
+   {}
+   
    // Creates a deep copy of another Optional<T>
    // Can throw if T::T(const T &) does
    Optional(const Optional &) = default;
@@ -559,7 +584,7 @@ class Optional
    template <typename U>
    Optional &operator =(Optional<U> &&other)
    {
-      this->assign(other);
+      this->assign(std::move(other));
       return *this;
    }
    
@@ -581,6 +606,14 @@ class Optional
    Optional &operator =(None none) noexcept
    {
       this->assign(none);
+      return *this;
+   }
+   
+   template<class Expr>
+   typename std::enable_if<internal::IsOptionalValInitCandidate<T, Expr>::value, Optional&>::type 
+         operator= (Expr&& expr)
+   {
+      this->assignExpr(std::forward<Expr>(expr), std::addressof(expr));
       return *this;
    }
    

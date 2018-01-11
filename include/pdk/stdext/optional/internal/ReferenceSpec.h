@@ -43,6 +43,8 @@ void PreventBindingRvalue()
                        "binding rvalue references to optional lvalue references is disallowed");
 }
 
+
+
 template <typename T>
 typename std::remove_reference<T>::type &forward_reference(T &&value)
 {
@@ -50,6 +52,20 @@ typename std::remove_reference<T>::type &forward_reference(T &&value)
                        "binding rvalue references to optional lvalue references is disallowed");
    return std::forward<T>(value);
 }
+
+template <class T>
+struct IsConstIntegralBadForConversion
+{
+   static const bool value = std::is_const<T>::value && std::is_integral<T>::value;
+};
+
+template <typename T>
+struct IsConstIntegral
+{
+   static const bool value = std::is_const<T>::value && std::is_integral<T>::value;
+};
+
+
 
 template <typename T>
 struct IsOptional
@@ -107,6 +123,20 @@ public:
    template <typename U>
    explicit Optional(const Optional<U &> &other) noexcept
       : m_ptr(other.getPtr())
+   {}
+   
+   template <typename U>
+   explicit Optional(U &other, typename std::enable_if<
+                     internal::IsSameDecayed<T, U>::value && internal::IsConstIntegralBadForConversion<U>::value
+                     >::type * = nullptr) noexcept
+      : m_ptr(std::addressof(other))
+   {}
+   
+   template <typename U>
+   Optional(U &other, typename std::enable_if<
+                     internal::IsSameDecayed<T, U>::value && !internal::IsConstIntegralBadForConversion<U>::value
+                     >::type * = nullptr) noexcept
+      : m_ptr(std::addressof(other))
    {}
    
    Optional(const Optional &other) noexcept
