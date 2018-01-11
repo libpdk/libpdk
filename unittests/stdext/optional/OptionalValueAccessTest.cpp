@@ -179,6 +179,8 @@ TEST(OptionalValueAccessTest, testConstMove)
 }
 
 
+namespace {
+
 struct MoveOnly
 {
    explicit MoveOnly(int){}
@@ -197,6 +199,8 @@ Optional<MoveOnly> make_move_only()
 MoveOnly move_only_default()
 {
    return MoveOnly(1);
+}
+
 }
 
 TEST(OptionalValueAccessTest, testMoveOnlyGetters)

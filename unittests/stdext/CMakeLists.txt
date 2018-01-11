@@ -6,6 +6,7 @@ pdk_add_files(PDK_STDEXT_TEST_SRCS
     optional/OptionalTest.cpp
     optional/OptionalValueAccessTest.cpp
     optional/OptionalFailureTest.cpp
-    optional/OptionalIoTest.cpp)
+    optional/OptionalIoTest.cpp
+    optional/MakeOptionalTest.cpp)
 
 pdk_add_unittest(StdextUnittests StdExtTest ${PDK_STDEXT_TEST_SRCS})
