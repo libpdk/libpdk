@@ -15,9 +15,6 @@
 
 #include "gtest/gtest.h"
 #include "pdk/stdext/optional/Optional.h"
-#include <list>
-#include <utility>
-#include <tuple>
 
 using pdk::stdext::optional::Optional;
 
@@ -143,4 +140,15 @@ TEST(OptionalFailureTest, testStreamingOutOptional)
    Optional<int> opt;
    // Optional<int>' to 'bool'
    // std::cout << opt;
+   // std::cout << pdk::stdext::none;
 }
+
+TEST(OptionalFailureTest, testRValueRef)
+{
+   // in instantiation of template class 'pdk::stdext::optional::Optional<int &&>' requested here
+   //  Optional<int &&> opt;
+}
+
+
+
+

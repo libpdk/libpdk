@@ -28,24 +28,28 @@
 #ifndef PDK_STDEXT_OPTIONAL_OPTIONAL_IO_H
 #define PDK_STDEXT_OPTIONAL_OPTIONAL_IO_H
 
-#include "pdk/stdext/optional/OptionalIo.h"
+#include "pdk/stdext/optional/Optional.h"
+#include "pdk/stdext/None.h"
 
 #include <istream>
 #include <ostream>
 
 namespace pdk {
 namespace stdext {
-namespace optional {
+
+using pdk::stdext::None;
 
 template<typename CharType, typename CharTrait>
 inline std::basic_ostream<CharType, CharTrait>&
-operator <<(std::basic_ostream<CharType, CharTrait>& out, None)
+operator <<(std::basic_ostream<CharType, CharTrait>& out, const None &)
 {
    if (out.good()) {
       out << "--";
    }
    return out;
 }
+
+namespace optional {
 
 template<typename CharType, typename CharTrait, typename T>
 inline std::basic_ostream<CharType, CharTrait>&
@@ -84,7 +88,6 @@ operator>>(std::basic_istream<CharType, CharTrait> &in, Optional<T> &value)
    }
    return in;
 }
-
 
 } // optional
 } // stdext
