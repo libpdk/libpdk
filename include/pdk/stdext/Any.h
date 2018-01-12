@@ -77,16 +77,25 @@ public:
       return *this;
    }
    
-   template <typename ValueType>
-   Any &operator =(const ValueType &other)
+   Any &operator=(const Any &other)
    {
       Any(other).swap(*this);
       return *this;
    }
    
-   Any &operator =(Any other)
+   // move assignement
+   Any &operator=(Any &&other) noexcept
    {
-      Any(other).swap(*this);
+      other.swap(*this);
+      Any().swap(other);
+      return *this;
+   }
+   
+   // Perfect forwarding of ValueType
+   template <class ValueType>
+   Any &operator=(ValueType &&rhs)
+   {
+      Any(static_cast<ValueType&&>(rhs)).swap(*this);
       return *this;
    }
    

@@ -300,3 +300,195 @@ TEST(AnyTest, testAddressof)
    ASSERT_TRUE(!!any_cast<classWithAddressOp<int> >(&test_val));
    ASSERT_EQ(unsafe_any_cast<classWithAddressOp<int> >(&test_val)->get(), ptr);
 }
+
+namespace {
+class move_copy_conting_class {
+public:
+   static unsigned int moves_count;
+   static unsigned int copy_count;
+   
+   move_copy_conting_class(){}
+   move_copy_conting_class(move_copy_conting_class&& /*param*/) {
+      ++ moves_count;
+   }
+   
+   move_copy_conting_class& operator=(move_copy_conting_class&& /*param*/) {
+      ++ moves_count;
+      return *this;
+   }
+   
+   move_copy_conting_class(const move_copy_conting_class&) {
+      ++ copy_count;
+   }
+   move_copy_conting_class& operator=(const move_copy_conting_class& /*param*/) {
+      ++ copy_count;
+      return *this;
+   }
+};
+
+unsigned int move_copy_conting_class::moves_count = 0;
+unsigned int move_copy_conting_class::copy_count = 0;
+}
+
+TEST(AnyTest, testMoveConstruction)
+{
+   Any value0 = move_copy_conting_class();
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   Any value(std::move(value0)); 
+   
+   ASSERT_TRUE(value0.empty());
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 0u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+TEST(AnyTest, testMoveAssignment)
+{
+   Any value0 = move_copy_conting_class();
+   Any value = move_copy_conting_class();
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   value = std::move(value0); 
+   ASSERT_TRUE(value0.empty());
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 0u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+TEST(AnyTest, testCopyConstruction)
+{
+   Any value0 = move_copy_conting_class();
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   Any value(value0); 
+   
+   ASSERT_FALSE(value0.empty());
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 1u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+TEST(AnyTest, testCopyAssignment)
+{
+   Any value0 = move_copy_conting_class();
+   Any value = move_copy_conting_class();
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   value = value0; 
+   
+   ASSERT_FALSE(value0.empty());
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 1u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+TEST(AnyTest, testMoveConstructionFromValue)
+{
+   move_copy_conting_class value0;
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   
+   Any value(std::move(value0)); 
+   
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 0u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 1u);
+}
+
+TEST(AnyTest, testMoveAssignmentFromValue)
+{
+   move_copy_conting_class value0;
+   Any value;
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   value = std::move(value0); 
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 0u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 1u);
+   
+}
+
+TEST(AnyTest, testCopyConstructionFromValue)
+{
+   move_copy_conting_class value0;
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   Any value(value0); 
+   
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   
+   ASSERT_EQ(move_copy_conting_class::copy_count, 1u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+TEST(AnyTest, testCopyAssignmentFromValue)
+{
+   move_copy_conting_class value0;
+   Any value;
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   value = value0;
+   
+   ASSERT_FALSE(value.empty());
+   ASSERT_EQ(value.getType(), typeid(move_copy_conting_class));
+   ASSERT_TRUE(any_cast<move_copy_conting_class>(&value) != nullptr);
+   ASSERT_EQ(move_copy_conting_class::copy_count, 1u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+}
+
+const Any helper_method()
+{
+   return true;
+}
+
+bool helper_method1()
+{
+   return true;
+}
+
+TEST(AnyTest, testConstructionFromConstAnyRv)
+{
+   Any values[] = {helper_method(), helper_method1() };
+   (void)values;
+}
+
+TEST(AnyTest, testCastToRv)
+{
+   move_copy_conting_class value0;
+   Any value;
+   value = value0;
+   move_copy_conting_class::copy_count = 0; 
+   move_copy_conting_class::moves_count = 0;
+   
+   move_copy_conting_class value1 = any_cast<move_copy_conting_class&&>(value);
+   
+   ASSERT_EQ(move_copy_conting_class::copy_count, 0u);
+   ASSERT_EQ(move_copy_conting_class::moves_count, 1u);
+   (void)value1;
+   //Following code shall fail to compile
+   //   const Any cvalue = value0;
+   //   move_copy_conting_class::copy_count = 0; 
+   //   move_copy_conting_class::moves_count = 0;
+   
+   //   move_copy_conting_class value2 = any_cast<move_copy_conting_class&&>(cvalue);
+   
+   //   ASSERT_EQ(move_copy_conting_class::copy_count, 1u);
+   //   ASSERT_EQ(move_copy_conting_class::moves_count, 0u);
+   //   (void)value2;
+}
+
