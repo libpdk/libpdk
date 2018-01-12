@@ -28,6 +28,9 @@
 #ifndef PDK_STDEXT_UTILITY_DISABLE_IF_H
 #define PDK_STDEXT_UTILITY_DISABLE_IF_H
 
+namespace pdk {
+namespace stdext {
+
 template <bool B, typename T = void>
 struct DisableIfCond
 {
@@ -38,8 +41,8 @@ template <typename T>
 struct DisableIfCond<true, T>
 {};
 
-template <typename Cond, typename T = void>
-struct DisableIf : public DisableIfCond<Cond::value, T>
+template <bool Cond, typename T = void>
+struct DisableIf : public DisableIfCond<Cond, T>
 {};
 
 template <bool B, typename T>
@@ -52,8 +55,11 @@ template <typename T>
 struct LazyDisableIfCond<true, T>
 {};
 
-template <typename Cond, typename T>
-struct LazyDisableIf : public LazyDisableIfCond<Cond::value, T>
+template <bool Cond, typename T>
+struct LazyDisableIf : public LazyDisableIfCond<Cond, T>
 {};
+
+} // stdext
+} // pdk
 
 #endif // PDK_STDEXT_UTILITY_DISABLE_IF_H

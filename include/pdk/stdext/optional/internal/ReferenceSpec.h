@@ -247,7 +247,7 @@ public:
    
    T &value() const
    {
-      return m_ptr ? *m_ptr : (throw BadAccess(), m_ptr);
+      return m_ptr ? *m_ptr : (throw BadAccess(), *m_ptr);
    }
    
    bool operator!() const noexcept

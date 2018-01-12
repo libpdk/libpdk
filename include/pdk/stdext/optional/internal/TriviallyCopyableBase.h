@@ -82,7 +82,7 @@ protected:
    }
    
    template <typename U>
-   void assign(Optional<U> &other)
+   void assign(const Optional<U> &other)
    {
       if (other.isInitialized()) {
          m_storage = static_cast<ValueType>(other.get());

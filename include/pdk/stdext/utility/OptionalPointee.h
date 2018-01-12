@@ -30,6 +30,10 @@
 
 #include <functional>
 
+namespace pdk {
+namespace stdext {
+
+
 // template<class OP> bool equal_pointees(const OP &lhs, const OP &rhs);
 // template<class OP> struct EqualPointees;
 //
@@ -86,5 +90,9 @@ struct LessPointees
       return less_pointees(lhs, rhs);
    }
 };
+
+
+} // stdext
+} // pdk
 
 #endif // PDK_STDEXT_UTILITY_OPTIONAL_POINTEE_H
