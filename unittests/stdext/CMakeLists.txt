@@ -12,6 +12,7 @@ pdk_add_files(PDK_STDEXT_TEST_SRCS
     optional/OptionalMoveTest.cpp
     optional/OptionalRefTest.cpp
     optional/OptionalSfinaeFriendluCtorTest.cpp
-    optional/OptionalStaticPropertiesTest.cpp)
+    optional/OptionalStaticPropertiesTest.cpp
+    optional/OptionalSwapTest.cpp)
 
 pdk_add_unittest(StdextUnittests StdExtTest ${PDK_STDEXT_TEST_SRCS})
