@@ -1012,5 +1012,25 @@ TEST(OptionalRefTest, testRefToVal)
 
 TEST(OptionalRefTest, testFailure)
 {
+#if 0
+   Optional<int&> opt;
+   double v = 1;
+   double& r = v;
+   opt = r;
    
+   Optional<short&> opt1;
+   Optional<int&> opt2 = opt1;
+   
+   short v = 1;
+   short& r = v;
+   Optional<int&> opt(r);
+   
+   Optional<const int&> opt;
+   opt = int(3);
+   opt = long(3);
+   
+   Optional<const int&> opt = int(3);
+   Optional<const int&> opt = long(3);
+   PDK_UNUSED(opt);
+#endif
 }
