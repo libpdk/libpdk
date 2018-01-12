@@ -796,6 +796,24 @@ class Optional<T &&>
    PDK_STATIC_ASSERT_X(sizeof(T) == 0, "Optional rvalue references are illegal.");
 };
 
+// some trait defines
+//template <typename T>
+//struct IsTypeTriviallyCopyable
+//      : std::conditional<(std::is_trivially_copy_constructible<T>::value &&
+//                          std::is_trivially_move_constructible<T>::value &&
+//                          std::is_trivially_destructible<T>::value &&
+//                          std::is_trivially_move_assignable<T>::value &&
+//                          std::is_trivially_assignable<T>::value),
+//std::true_type, std::false_type>::type
+//{};
+
+//template <typename T>
+//struct OptionalUsesDirectStorageFor
+//      : std::conditional< (IsTypeTriviallyCopyable<T>::value && std::is_trivially_default_constructible<T>::value) ||
+//(std::is_scalar<T>::value && !std::is_const<T>::value && !std::is_volatile<T>::value)
+//, std::true_type, std::false_type>::type
+//{};
+
 } // optional
 
 // Returns Optional<T>(value)

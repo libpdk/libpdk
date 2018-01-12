@@ -96,7 +96,9 @@ public:
    }
    
    void clear() noexcept
-   {}
+   {
+      Any().swap(*this);
+   }
    
    const std::type_info &getType() const noexcept
    {
@@ -145,9 +147,9 @@ private:
 private: // representation
    
    template<typename ValueType>
-   friend ValueType *any_cast(any *) noexcept;
+   friend ValueType *any_cast(Any *) noexcept;
    template<typename ValueType>
-   friend ValueType *unsafe_any_cast(any *) noexcept;
+   friend ValueType *unsafe_any_cast(Any *) noexcept;
 private:
    PlaceHolder *m_content;
 };
@@ -196,7 +198,7 @@ ValueType any_cast(Any &operand)
    // `static_cast<std::string>(*result);` 
    // which is equal to `std::string(*result);`
    using RefType = typename std::conditional<
-   std::is_reference<ValueType>,
+   std::is_reference<ValueType>::value,
    ValueType,
    typename std::add_lvalue_reference<ValueType>::type
    >::type;
