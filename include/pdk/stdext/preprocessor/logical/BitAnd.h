@@ -24,10 +24,13 @@
 // ****************************************************************************
 // 
 // See http://www.boost.org for most recent version.
+
 #ifndef PDK_STDEXT_PREPROCESSOR_LOGICAL_BIT_AND_H
 #define PDK_STDEXT_PREPROCESSOR_LOGICAL_BIT_AND_H
 
 #include "pdk/stdext/preprocessor/config/Config.h"
+
+// PDK_PP_BITAND
 
 # if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MWCC()
 #    define PDK_PP_BITAND(x, y) PDK_PP_BITAND_I(x, y)
