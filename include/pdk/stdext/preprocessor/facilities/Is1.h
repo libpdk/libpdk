@@ -25,23 +25,15 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_OR_1_H
-#define PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_OR_1_H
+#ifndef PDK_STDEXT_PREPROCESSOR_FACILITIES_IS1_H
+#define PDK_STDEXT_PREPROCESSOR_FACILITIES_IS1_H
 
-#include "pdk/stdext/preprocessor/control/Iif.h"
-#include "pdk/stdext/preprocessor/facilities/Empty.h"
-#include "pdk/stdext/preprocessor/facilities/Identity.h"
-#include "pdk/stdext/preprocessor/facilities/Is1.h"
+#include "pdk/stdext/preprocessor/Cat.h"
 #include "pdk/stdext/preprocessor/facilities/IsEmpty.h"
 
-// PDK_PP_IS_EMPTY_OR_1
+// PDK_PP_IS_1
 
-# define PDK_PP_IS_EMPTY_OR_1(x) \
-    PDK_PP_IIF( \
-        PDK_PP_IS_EMPTY(x PDK_PP_EMPTY()), \
-        PDK_PP_IDENTITY(1), \
-        PDK_PP_IS_1 \
-    )(x) \
-    /**/
+# define PDK_PP_IS_1(x) PDK_PP_IS_EMPTY(PDK_PP_CAT(PDK_PP_IS_1_HELPER_, x))
+# define PDK_PP_IS_1_HELPER_1
 
-#endif // PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_OR_1_H
+#endif // PDK_STDEXT_PREPROCESSOR_FACILITIES_IS1_H
