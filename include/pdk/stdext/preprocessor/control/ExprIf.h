@@ -28,6 +28,17 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IF_H
 #define PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IF_H
 
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/control/ExprIif.h"
+#include "pdk/stdext/preprocessor/logical/Bool.h"
 
+// PDK_PP_EXPR_IF
+
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_EXPR_IF(cond, expr) PDK_PP_EXPR_IIF(PDK_PP_BOOL(cond), expr)
+# else
+#    define PDK_PP_EXPR_IF(cond, expr) PDK_PP_EXPR_IF_I(cond, expr)
+#    define PDK_PP_EXPR_IF_I(cond, expr) PDK_PP_EXPR_IIF(PDK_PP_BOOL(cond), expr)
+# endif
 
 #endif // PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IF_H
