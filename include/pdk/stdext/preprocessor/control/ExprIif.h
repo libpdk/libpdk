@@ -28,6 +28,20 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IIF_H
 #define PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IIF_H
 
+#include "pdk/stdext/preprocessor/config/Config.h"
 
+// PDK_PP_EXPR_IIF
+
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MWCC()
+#    define PDK_PP_EXPR_IIF(bit, expr) PDK_PP_EXPR_IIF_I(bit, expr)
+# else
+#    define PDK_PP_EXPR_IIF(bit, expr) PDK_PP_EXPR_IIF_OO((bit, expr))
+#    define PDK_PP_EXPR_IIF_OO(par) PDK_PP_EXPR_IIF_I ## par
+# endif
+
+# define PDK_PP_EXPR_IIF_I(bit, expr) PDK_PP_EXPR_IIF_ ## bit(expr)
+
+# define PDK_PP_EXPR_IIF_0(expr)
+# define PDK_PP_EXPR_IIF_1(expr) expr
 
 #endif // PDK_STDEXT_PREPROCESSOR_CONTROL_EXPR_IIF_H
