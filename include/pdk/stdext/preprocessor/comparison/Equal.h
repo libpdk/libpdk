@@ -28,12 +28,21 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
 #define PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
 
-// BOOST_PP_EQUAL
+// PDK_PP_EQUAL
 
 #include "pdk/stdext/preprocessor/config/Config.h"
 #include "pdk/stdext/preprocessor/comparison/NotEqual.h"
 #include "pdk/stdext/preprocessor/logical/Compl.h"
 
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_EQUAL(x, y) PDK_PP_COMPL(PDK_PP_NOT_EQUAL(x, y))
+# else
+#    define PDK_PP_EQUAL(x, y) PDK_PP_EQUAL_I(x, y)
+#    define PDK_PP_EQUAL_I(x, y) PDK_PP_COMPL(PDK_PP_NOT_EQUAL(x, y))
+# endif
 
+// PDK_PP_EQUAL_D
+
+# define PDK_PP_EQUAL_D(d, x, y) PDK_PP_EQUAL(x, y)
 
 #endif // PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
