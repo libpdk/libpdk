@@ -28,10 +28,13 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_FACILITIES_IDENTITY_H
 #define PDK_STDEXT_PREPROCESSOR_FACILITIES_IDENTITY_H
 
-#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/tuple/Eat.h"
+#include "pdk/stdext/preprocessor/facilities/Empty.h"
 
-// BOOST_PP_EAT
+// PDK_PP_IDENTITY
 
+# define PDK_PP_IDENTITY(item) item PDK_PP_EMPTY
+# define PDK_PP_IDENTITY_N(item, n) item PDK_PP_TUPLE_EAT_N(n)
 
 
 #endif // PDK_STDEXT_PREPROCESSOR_FACILITIES_IDENTITY_H
