@@ -28,7 +28,25 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_COMPARISON_GREATER_H
 #define PDK_STDEXT_PREPROCESSOR_COMPARISON_GREATER_H
 
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/comparison/Less.h"
 
-
+# /* PDK_PP_GREATER */
+#
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_GREATER(x, y) PDK_PP_LESS(y, x)
+# else
+#    define PDK_PP_GREATER(x, y) PDK_PP_GREATER_I(x, y)
+#    define PDK_PP_GREATER_I(x, y) PDK_PP_LESS(y, x)
+# endif
+#
+# /* PDK_PP_GREATER_D */
+#
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_GREATER_D(d, x, y) PDK_PP_LESS_D(d, y, x)
+# else
+#    define PDK_PP_GREATER_D(d, x, y) PDK_PP_GREATER_D_I(d, x, y)
+#    define PDK_PP_GREATER_D_I(d, x, y) PDK_PP_LESS_D(d, y, x)
+# endif
 
 #endif // PDK_STDEXT_PREPROCESSOR_COMPARISON_GREATER_H
