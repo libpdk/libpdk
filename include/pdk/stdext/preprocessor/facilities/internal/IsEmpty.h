@@ -25,51 +25,47 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_VARIADIC_H
-#define PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_VARIADIC_H
+#ifndef PDK_STDEXT_PREPROCESSOR_FACILITIES_INTERNAL_IS_EMPTY_H
+#define PDK_STDEXT_PREPROCESSOR_FACILITIES_INTERNAL_IS_EMPTY_H
 
-#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/punctuation/IsBeginParens.h"
 
-# if PDK_PP_VARIADICS
-#
-# include "pdk/stdext/preprocessor/punctuation/IsBeginParens.h"
-# include "pdk/stdext/preprocessor/facilities/internal/IsEmpty.h"
+#if PDK_PP_VARIADICS_MSVC
+
+# pragma warning(once:4002)
+
+#define PDK_PP_DETAIL_IS_EMPTY_IIF_0(t, b) b
+#define PDK_PP_DETAIL_IS_EMPTY_IIF_1(t, b) t
+
+#else
+
+#define PDK_PP_DETAIL_IS_EMPTY_IIF_0(t, ...) __VA_ARGS__
+#define PDK_PP_DETAIL_IS_EMPTY_IIF_1(t, ...) t
+
+#endif
 
 #if PDK_PP_VARIADICS_MSVC && _MSC_VER <= 1400
-#
-#define PDK_PP_IS_EMPTY(param) \
-    PDK_PP_DETAIL_IS_EMPTY_IIF \
-      ( \
-      PDK_PP_IS_BEGIN_PARENS \
-        ( \
-        param \
+
+#define PDK_PP_DETAIL_IS_EMPTY_PROCESS(param) \
+	PDK_PP_IS_BEGIN_PARENS \
+    	( \
+        PDK_PP_DETAIL_IS_EMPTY_NON_FUNCTION_C param () \
         ) \
-      ) \
-      ( \
-      PDK_PP_IS_EMPTY_ZERO, \
-      PDK_PP_DETAIL_IS_EMPTY_PROCESS \
-      ) \
-    (param) \
-/**/
-#define PDK_PP_IS_EMPTY_ZERO(param) 0
-# else
-#define PDK_PP_IS_EMPTY(...) \
-    PDK_PP_DETAIL_IS_EMPTY_IIF \
-      ( \
-      PDK_PP_IS_BEGIN_PARENS \
-        ( \
-        __VA_ARGS__ \
-        ) \
-      ) \
-      ( \
-      PDK_PP_IS_EMPTY_ZERO, \
-      PDK_PP_DETAIL_IS_EMPTY_PROCESS \
-      ) \
-    (__VA_ARGS__) \
 /**/
 
-#define PDK_PP_IS_EMPTY_ZERO(...) 0
-# endif /* PDK_PP_VARIADICS_MSVC && _MSC_VER <= 1400 */
-# endif /* PDK_PP_VARIADICS */
+#else
 
-#endif // PDK_STDEXT_PREPROCESSOR_FACILITIES_IS_EMPTY_VARIADIC_H
+#define PDK_PP_DETAIL_IS_EMPTY_PROCESS(...) \
+	PDK_PP_IS_BEGIN_PARENS \
+        ( \
+        PDK_PP_DETAIL_IS_EMPTY_NON_FUNCTION_C __VA_ARGS__ () \
+        ) \
+/**/
+
+#endif
+
+#define PDK_PP_DETAIL_IS_EMPTY_PRIMITIVE_CAT(a, b) a ## b
+#define PDK_PP_DETAIL_IS_EMPTY_IIF(bit) PDK_PP_DETAIL_IS_EMPTY_PRIMITIVE_CAT(PDK_PP_DETAIL_IS_EMPTY_IIF_, bit)
+#define PDK_PP_DETAIL_IS_EMPTY_NON_FUNCTION_C(...) ()
+
+#endif // PDK_STDEXT_PREPROCESSOR_FACILITIES_INTERNAL_IS_EMPTY_H
