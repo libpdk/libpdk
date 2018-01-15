@@ -25,9 +25,26 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_IF_H
-#define PDK_STDEXT_PREPROCESSOR_IF_H
+#ifndef PDK_STDEXT_PREPROCESSOR_CONTROL_IIF_H
+#define PDK_STDEXT_PREPROCESSOR_CONTROL_IIF_H
 
+#include "pdk/stdext/preprocessor/config/Config.h"
 
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MWCC()
+#    define PDK_PP_IIF(bit, t, f) PDK_PP_IIF_I(bit, t, f)
+# else
+#    define PDK_PP_IIF(bit, t, f) PDK_PP_IIF_OO((bit, t, f))
+#    define PDK_PP_IIF_OO(par) PDK_PP_IIF_I ## par
+# endif
+#
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MSVC()
+#    define PDK_PP_IIF_I(bit, t, f) PDK_PP_IIF_ ## bit(t, f)
+# else
+#    define PDK_PP_IIF_I(bit, t, f) PDK_PP_IIF_II(PDK_PP_IIF_ ## bit(t, f))
+#    define PDK_PP_IIF_II(id) id
+# endif
+#
+# define PDK_PP_IIF_0(t, f) f
+# define PDK_PP_IIF_1(t, f) t
 
-#endif // PDK_STDEXT_PREPROCESSOR_IF_H
+#endif // PDK_STDEXT_PREPROCESSOR_CONTROL_IIF_H
