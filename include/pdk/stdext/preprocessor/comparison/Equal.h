@@ -25,12 +25,15 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_TUPLE_ENUM_H
-#define PDK_STDEXT_PREPROCESSOR_TUPLE_ENUM_H
+#ifndef PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
+#define PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
 
-#include "pdk/stdext/preprocessor/tuple/Rem.h"
+// BOOST_PP_EQUAL
 
-// PDK_PP
-# define PDK_PP PDK_PP_TUPLE_REM_CTOR
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/comparison/NotEqual.h"
+#include "pdk/stdext/preprocessor/logical/Compl.h"
 
-#endif // PDK_STDEXT_PREPROCESSOR_TUPLE_ENUM_H
+
+
+#endif // PDK_STDEXT_PREPROCESSOR_COMPARISON_EQUAL_H
