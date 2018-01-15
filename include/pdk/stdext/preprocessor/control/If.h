@@ -28,6 +28,17 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_CONTROL_IF_H
 #define PDK_STDEXT_PREPROCESSOR_CONTROL_IF_H
 
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/control/Iif.h"
+#include "pdk/stdext/preprocessor/logical/Bool.h"
 
+// PDK_PP_IF
+
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_IF(cond, t, f) PDK_PP_IIF(PDK_PP_BOOL(cond), t, f)
+# else
+#    define PDK_PP_IF(cond, t, f) PDK_PP_IF_I(cond, t, f)
+#    define PDK_PP_IF_I(cond, t, f) PDK_PP_IIF(PDK_PP_BOOL(cond), t, f)
+# endif
 
 #endif // PDK_STDEXT_PREPROCESSOR_CONTROL_IF_H
