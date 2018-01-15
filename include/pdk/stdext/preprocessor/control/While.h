@@ -28,5 +28,8 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_CONTROL_WHILE_H
 #define PDK_STDEXT_PREPROCESSOR_CONTROL_WHILE_H
 
+#include "pdk/stdext/preprocessor/Cat.h"
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/internal/AutoRec.h"
 
 #endif // PDK_STDEXT_PREPROCESSOR_CONTROL_WHILE_H
