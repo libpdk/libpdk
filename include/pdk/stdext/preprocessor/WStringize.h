@@ -25,11 +25,20 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_DEBUG_LINE_H
-#define PDK_STDEXT_PREPROCESSOR_DEBUG_LINE_H
+#ifndef PDK_STDEXT_PREPROCESSOR_WSTRINGIZE_H
+#define PDK_STDEXT_PREPROCESSOR_WSTRINGIZE_H
 
 #include "pdk/stdext/preprocessor/config/Config.h"
-#include "pdk/stdext/preprocessor/Cat.h"
 
+// PDK_PP_WSTRINGIZE
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MWCC()
+#    define PDK_PP_WSTRINGIZE(text) PDK_PP_WSTRINGIZE_I(text)
+# else
+#    define PDK_PP_WSTRINGIZE(text) PDK_PP_WSTRINGIZE_OO((text))
+#    define PDK_PP_WSTRINGIZE_OO(par) PDK_PP_WSTRINGIZE_I ## par
+# endif
 
-#endif // PDK_STDEXT_PREPROCESSOR_DEBUG_LINE_H
+# define PDK_PP_WSTRINGIZE_I(text) PDK_PP_WSTRINGIZE_II(#text)
+# define PDK_PP_WSTRINGIZE_II(str) L ## str
+
+#endif // PDK_STDEXT_PREPROCESSOR_WSTRINGIZE_H
