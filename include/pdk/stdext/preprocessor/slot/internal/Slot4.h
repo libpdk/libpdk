@@ -25,9 +25,4 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_SLOT_INTERNAL_SLOT4_H
-#define PDK_STDEXT_PREPROCESSOR_SLOT_INTERNAL_SLOT4_H
-
-
-
-#endif // PDK_STDEXT_PREPROCESSOR_SLOT_INTERNAL_SLOT4_H
+# include "pdk/stdext/preprocessor/slot/internal/Shared.h"
