@@ -25,3 +25,43 @@
 // 
 // See http://www.boost.org for most recent version.
 
+#ifndef PDK_STDEXT_PREPROCESSOR_LIST_REST_N_H
+#define PDK_STDEXT_PREPROCESSOR_LIST_REST_N_H
+
+#include "pdk/stdext/preprocessor/arithmetic/Dec.h"
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/control/While.h"
+#include "pdk/stdext/preprocessor/list/Adt.h"
+#include "pdk/stdext/preprocessor/tuple/Element.h"
+
+// PDK_PP_LIST_REST_N
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_LIST_REST_N(count, list) PDK_PP_TUPLE_ELEM(2, 0, PDK_PP_WHILE(PDK_PP_LIST_REST_N_P, PDK_PP_LIST_REST_N_O, (list, count)))
+# else
+#    define PDK_PP_LIST_REST_N(count, list) PDK_PP_LIST_REST_N_I(count, list)
+#    define PDK_PP_LIST_REST_N_I(count, list) PDK_PP_TUPLE_ELEM(2, 0, PDK_PP_WHILE(PDK_PP_LIST_REST_N_P, PDK_PP_LIST_REST_N_O, (list, count)))
+# endif
+
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_LIST_REST_N_P(d, lc) PDK_PP_TUPLE_ELEM(2, 1, lc)
+# else
+#    define PDK_PP_LIST_REST_N_P(d, lc) PDK_PP_LIST_REST_N_P_I lc
+#    define PDK_PP_LIST_REST_N_P_I(list, count) count
+# endif
+
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_LIST_REST_N_O(d, lc) (PDK_PP_LIST_REST(PDK_PP_TUPLE_ELEM(2, 0, lc)), PDK_PP_DEC(PDK_PP_TUPLE_ELEM(2, 1, lc)))
+# else
+#    define PDK_PP_LIST_REST_N_O(d, lc) PDK_PP_LIST_REST_N_O_I lc
+#    define PDK_PP_LIST_REST_N_O_I(list, count) (PDK_PP_LIST_REST(list), PDK_PP_DEC(count))
+# endif
+
+// PDK_PP_LIST_REST_N_D
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_LIST_REST_N_D(d, count, list) PDK_PP_TUPLE_ELEM(2, 0, PDK_PP_WHILE_ ## d(PDK_PP_LIST_REST_N_P, PDK_PP_LIST_REST_N_O, (list, count)))
+# else
+#    define PDK_PP_LIST_REST_N_D(d, count, list) PDK_PP_LIST_REST_N_D_I(d, count, list)
+#    define PDK_PP_LIST_REST_N_D_I(d, count, list) PDK_PP_TUPLE_ELEM(2, 0, PDK_PP_WHILE_ ## d(PDK_PP_LIST_REST_N_P, PDK_PP_LIST_REST_N_O, (list, count)))
+# endif
+
+#endif // PDK_STDEXT_PREPROCESSOR_LIST_REST_N_H
