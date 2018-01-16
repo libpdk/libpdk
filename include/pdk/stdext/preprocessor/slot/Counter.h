@@ -28,6 +28,12 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_SLOT_COUNTER_H
 #define PDK_STDEXT_PREPROCESSOR_SLOT_COUNTER_H
 
+# include "pdk/stdext/preprocessor/slot/internal/Def.h"
 
+// PDK_PP_COUNTER
+# define PDK_PP_COUNTER 0
+
+// PDK_PP_UPDATE_COUNTER
+# define PDK_PP_UPDATE_COUNTER() "pdk/stdext/preprocessor/slot/internal/Counter.h"
 
 #endif // PDK_STDEXT_PREPROCESSOR_SLOT_COUNTER_H
