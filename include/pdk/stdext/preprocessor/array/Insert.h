@@ -35,16 +35,14 @@
 #include "pdk/stdext/preprocessor/comparison/NotEqual.h"
 #include "pdk/stdext/preprocessor/control/Iif.h"
 #include "pdk/stdext/preprocessor/control/While.h"
-#include "pdk/stdext/preprocessor/control/.h"
+#include "pdk/stdext/preprocessor/control/DeduceD.h"
 #include "pdk/stdext/preprocessor/tuple/Element.h"
 
 // PDK_PP_ARRAY_INSERT
-
 # define PDK_PP_ARRAY_INSERT(array, i, elem) PDK_PP_ARRAY_INSERT_I(PDK_PP_DEDUCE_D(), array, i, elem)
 # define PDK_PP_ARRAY_INSERT_I(d, array, i, elem) PDK_PP_ARRAY_INSERT_D(d, array, i, elem)
 
 // PDK_PP_ARRAY_INSERT_D
-
 # if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
 #    define PDK_PP_ARRAY_INSERT_D(d, array, i, elem) PDK_PP_TUPLE_ELEM(5, 3, PDK_PP_WHILE_ ## d(PDK_PP_ARRAY_INSERT_P, PDK_PP_ARRAY_INSERT_O, (0, i, elem, (0, ()), array)))
 # else
