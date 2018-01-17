@@ -33,7 +33,6 @@
 #include "pdk/stdext/preprocessor/facilities/Overload.h"
 #include "pdk/stdext/preprocessor/variadic/Size.h"
 #include "pdk/stdext/preprocessor/tuple/Size.h"
-#include "pdk/stdext/preprocessor/variadic/Size.h"
 
 // PDK_PP_TUPLE_TO_ARRAY
 # if PDK_PP_VARIADICS
