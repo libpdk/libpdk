@@ -28,6 +28,25 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_ARRAY_POP_FRONT_H
 #define PDK_STDEXT_PREPROCESSOR_ARRAY_POP_FRONT_H
 
+#include "pdk/stdext/preprocessor/arithmetic/Dec.h"
+#include "pdk/stdext/preprocessor/arithmetic/Inc.h"
+#include "pdk/stdext/preprocessor/array/Element.h"
+#include "pdk/stdext/preprocessor/array/Size.h"
+#include "pdk/stdext/preprocessor/repetition/Enum.h"
+#include "pdk/stdext/preprocessor/repetition/DeduceZ.h"
 
+// PDK_PP_ARRAY_POP_FRONT
+# define PDK_PP_ARRAY_POP_FRONT(array) PDK_PP_ARRAY_POP_FRONT_Z(PDK_PP_DEDUCE_Z(), array)
+
+// PDK_PP_ARRAY_POP_FRONT_Z
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_ARRAY_POP_FRONT_Z(z, array) PDK_PP_ARRAY_POP_FRONT_I(z, PDK_PP_ARRAY_SIZE(array), array)
+# else
+#    define PDK_PP_ARRAY_POP_FRONT_Z(z, array) PDK_PP_ARRAY_POP_FRONT_Z_D(z, array)
+#    define PDK_PP_ARRAY_POP_FRONT_Z_D(z, array) PDK_PP_ARRAY_POP_FRONT_I(z, PDK_PP_ARRAY_SIZE(array), array)
+# endif
+
+# define PDK_PP_ARRAY_POP_FRONT_I(z, size, array) (PDK_PP_DEC(size), (PDK_PP_ENUM_ ## z(PDK_PP_DEC(size), PDK_PP_ARRAY_POP_FRONT_M, array)))
+# define PDK_PP_ARRAY_POP_FRONT_M(z, n, data) PDK_PP_ARRAY_ELEM(PDK_PP_INC(n), data)
 
 #endif // PDK_STDEXT_PREPROCESSOR_ARRAY_POP_FRONT_H
