@@ -24,8 +24,8 @@
 // 
 // See http://www.boost.org for most recent version.
 
-#ifndef PDK_STDEXT_PREPROCESSOR_SEQ_TO_LIST_MSVC_H
-#define PDK_STDEXT_PREPROCESSOR_SEQ_TO_LIST_MSVC_H
+#ifndef PDK_STDEXT_PREPROCESSOR_SEQ_INTERNAL_TO_LIST_MSVC_H
+#define PDK_STDEXT_PREPROCESSOR_SEQ_INTERNAL_TO_LIST_MSVC_H
 
 #include "pdk/stdext/preprocessor/config/Config.h"
 
@@ -67,4 +67,4 @@
 /**/
 # endif // PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_MSVC()
 
-#endif // PDK_STDEXT_PREPROCESSOR_SEQ_TO_LIST_MSVC_H
+#endif // PDK_STDEXT_PREPROCESSOR_SEQ_INTERNAL_TO_LIST_MSVC_H
