@@ -28,6 +28,22 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_ARRAY_PUSH_FRONT_H
 #define PDK_STDEXT_PREPROCESSOR_ARRAY_PUSH_FRONT_H
 
+#include "pdk/stdext/preprocessor/arithmetic/Inc.h"
+#include "pdk/stdext/preprocessor/array/Data.h"
+#include "pdk/stdext/preprocessor/array/Size.h"
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/punctuation/CommaIf.h"
+#include "pdk/stdext/preprocessor/tuple/Rem.h"
+#include "pdk/stdext/preprocessor/array/internal/GetData.h"
 
+// PDK_PP_ARRAY_PUSH_FRONT
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_ARRAY_PUSH_FRONT(array, elem) PDK_PP_ARRAY_PUSH_FRONT_I(PDK_PP_ARRAY_SIZE(array), PDK_PP_ARRAY_DATA(array), elem)
+# else
+#    define PDK_PP_ARRAY_PUSH_FRONT(array, elem) PDK_PP_ARRAY_PUSH_FRONT_D(array, elem)
+#    define PDK_PP_ARRAY_PUSH_FRONT_D(array, elem) PDK_PP_ARRAY_PUSH_FRONT_I(PDK_PP_ARRAY_SIZE(array), PDK_PP_ARRAY_DATA(array), elem)
+# endif
+
+# define PDK_PP_ARRAY_PUSH_FRONT_I(size, data, elem) (PDK_PP_INC(size), (elem PDK_PP_COMMA_IF(size) PDK_PP_ARRAY_DETAIL_GET_DATA(size,data)))
 
 #endif // PDK_STDEXT_PREPROCESSOR_ARRAY_PUSH_FRONT_H
