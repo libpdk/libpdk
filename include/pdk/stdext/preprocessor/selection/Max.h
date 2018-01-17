@@ -28,6 +28,24 @@
 #ifndef PDK_STDEXT_PREPROCESSOR_SELECTION_MAX_H
 #define PDK_STDEXT_PREPROCESSOR_SELECTION_MAX_H
 
+#include "pdk/stdext/preprocessor/comparison/LessEqual.h"
+#include "pdk/stdext/preprocessor/config/Config.h"
+#include "pdk/stdext/preprocessor/control/Iif.h"
 
+// PDK_PP_MAX
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_MAX(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(x, y), y, x)
+# else
+#    define PDK_PP_MAX(x, y) PDK_PP_MAX_I(x, y)
+#    define PDK_PP_MAX_I(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(x, y), y, x)
+# endif
+
+// PDK_PP_MAX_D
+# if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
+#    define PDK_PP_MAX_D(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, x, y), y, x)
+# else
+#    define PDK_PP_MAX_D(d, x, y) PDK_PP_MAX_D_I(d, x, y)
+#    define PDK_PP_MAX_D_I(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, x, y), y, x)
+# endif
 
 #endif // PDK_STDEXT_PREPROCESSOR_SELECTION_MAX_H

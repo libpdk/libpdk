@@ -32,20 +32,20 @@
 #include "pdk/stdext/preprocessor/config/Config.h"
 #include "pdk/stdext/preprocessor/control/Iif.h"
 
-// PDK_PP_MAX
+// PDK_PP_MIN
 # if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
-#    define PDK_PP_MAX(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(x, y), y, x)
+#    define PDK_PP_MIN(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(y, x), y, x)
 # else
-#    define PDK_PP_MAX(x, y) PDK_PP_MAX_I(x, y)
-#    define PDK_PP_MAX_I(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(x, y), y, x)
+#    define PDK_PP_MIN(x, y) PDK_PP_MIN_I(x, y)
+#    define PDK_PP_MIN_I(x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL(y, x), y, x)
 # endif
 
-// PDK_PP_MAX_D
+// PDK_PP_MIN_D
 # if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
-#    define PDK_PP_MAX_D(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, x, y), y, x)
+#    define PDK_PP_MIN_D(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, y, x), y, x)
 # else
-#    define PDK_PP_MAX_D(d, x, y) PDK_PP_MAX_D_I(d, x, y)
-#    define PDK_PP_MAX_D_I(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, x, y), y, x)
+#    define PDK_PP_MIN_D(d, x, y) PDK_PP_MIN_D_I(d, x, y)
+#    define PDK_PP_MIN_D_I(d, x, y) PDK_PP_IIF(PDK_PP_LESS_EQUAL_D(d, y, x), y, x)
 # endif
 
 #endif // PDK_STDEXT_PREPROCESSOR_SELECTION_MIN_H
