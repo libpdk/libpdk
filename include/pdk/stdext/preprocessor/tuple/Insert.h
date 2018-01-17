@@ -37,13 +37,10 @@
 #include "pdk/stdext/preprocessor/tuple/ToArray.h"
 
 // PDK_PP_TUPLE_INSERT
-
 # define PDK_PP_TUPLE_INSERT(tuple, i, elem) \
 	PDK_PP_ARRAY_TO_TUPLE(PDK_PP_ARRAY_INSERT(PDK_PP_TUPLE_TO_ARRAY(tuple), i, elem)) \
 /**/
-#
-# /* PDK_PP_TUPLE_INSERT_D */
-#
+// PDK_PP_TUPLE_INSERT_D
 # define PDK_PP_TUPLE_INSERT_D(d, tuple, i, elem) \
 	PDK_PP_ARRAY_TO_TUPLE(PDK_PP_ARRAY_INSERT_D(d, PDK_PP_TUPLE_TO_ARRAY(tuple), i, elem)) \
 /**/
