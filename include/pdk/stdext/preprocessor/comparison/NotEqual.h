@@ -44,9 +44,8 @@
 # endif
 #
 # define PDK_PP_NOT_EQUAL_I(x, y) PDK_PP_CAT(PDK_PP_NOT_EQUAL_CHECK_, PDK_PP_NOT_EQUAL_ ## x(0, PDK_PP_NOT_EQUAL_ ## y))
-#
-# /* PDK_PP_NOT_EQUAL_D */
-#
+
+// PDK_PP_NOT_EQUAL_D
 # define PDK_PP_NOT_EQUAL_D(d, x, y) PDK_PP_NOT_EQUAL(x, y)
 #
 # define PDK_PP_NOT_EQUAL_CHECK_PDK_PP_NIL 1
