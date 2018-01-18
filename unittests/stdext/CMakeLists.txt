@@ -17,6 +17,7 @@ pdk_add_files(PDK_STDEXT_TEST_SRCS
     AnyTest.cpp
     preprocessor/ArithmeticTest.cpp
     preprocessor/ArrayTest.cpp
-    preprocessor/ComparisonTest.cpp)
+    preprocessor/ComparisonTest.cpp
+    preprocessor/ControlTest.cpp)
 
 pdk_add_unittest(StdextUnittests StdExtTest ${PDK_STDEXT_TEST_SRCS})
