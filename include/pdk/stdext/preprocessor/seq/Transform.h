@@ -50,9 +50,8 @@
 # endif
 #
 # define PDK_PP_SEQ_TRANSFORM_O_I(s, op, data, res, elem) (op, data, res (op(s, data, elem)))
-#
-# /* PDK_PP_SEQ_TRANSFORM_S */
-#
+
+// PDK_PP_SEQ_TRANSFORM_S
 # if ~PDK_PP_CONFIG_FLAGS() & PDK_PP_CONFIG_EDG()
 #    define PDK_PP_SEQ_TRANSFORM_S(s, op, data, seq) PDK_PP_SEQ_TAIL(PDK_PP_TUPLE_ELEM(3, 2, PDK_PP_SEQ_FOLD_LEFT_ ## s(PDK_PP_SEQ_TRANSFORM_O, (op, data, (nil)), seq)))
 # else
