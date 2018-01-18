@@ -49,7 +49,7 @@
 # else
 #    define PDK_PP_LIST_FIRST_D(list) PDK_PP_LIST_FIRST_I ## list
 # endif
-#
+
 # define PDK_PP_LIST_FIRST_I(head, tail) head
 
 // PDK_PP_LIST_REST

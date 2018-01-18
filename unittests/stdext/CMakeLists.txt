@@ -15,6 +15,7 @@ pdk_add_files(PDK_STDEXT_TEST_SRCS
     optional/OptionalStaticPropertiesTest.cpp
     optional/OptionalSwapTest.cpp
     AnyTest.cpp
-    preprocessor/Arithmetic.cpp)
+    preprocessor/ArithmeticTest.cpp
+    preprocessor/ArrayTest.cpp)
 
 pdk_add_unittest(StdextUnittests StdExtTest ${PDK_STDEXT_TEST_SRCS})
