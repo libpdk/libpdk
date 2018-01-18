@@ -13,20 +13,9 @@
 //
 // Created by softboy on 2018/01/19.
 
-// last_value function object (documented as part of Boost.Signals)
+#ifndef PDK_KERNEL_SIGNAL_OPTIONAL_LAST_VALUE_H
+#define PDK_KERNEL_SIGNAL_OPTIONAL_LAST_VALUE_H
 
-// Copyright Frank Mori Hess 2007.
-// Copyright Douglas Gregor 2001-2003. Use, modification and
-// distribution is subject to the Boost Software License, Version
-// 1.0. (See accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
-
-// For more information, see http://www.boost.org
-
-#ifndef PDK_KERNEL_SIGNAL_LAST_VALUE_H
-#define PDK_KERNEL_SIGNAL_LAST_VALUE_H
-
-#include <stdexcept>
 #include <optional>
 #include "pdk/kernel/signal/ExpiredSlot.h"
 
@@ -34,45 +23,31 @@ namespace pdk {
 namespace kernel {
 namespace signal {
 
-class NoSlotException : public std::exception
-{
-public:
-   virtual const char* what() const noexcept
-   {
-      return "pdk::kernel::signal::NoSlotError";
-   }
-};
-
 template <typename T>
-class LastValue
+class OptionalLastValue
 {
 public:
-   using ResultType = T;
+   using ResultType = std::optional<T>;
    using result_type = ResultType;
    
 public:
    template <typename InputIterator>
-   T operator()(InputIterator first, InputIterator last) const
+   std::optional<T> operator ()(InputIterator first, InputIterator last) const
    {
-      if (first == last) {
-         throw NoSlotException();
-      }
       std::optional<T> value;
       while (first != last) {
-         try{
+         try {
             value = *first;
-         } catch(const ExpiredSlot &) {}
+         } catch (const ExpiredSlot &)
+         {}
          ++first;
       }
-      if (value) {
-         return value.value();
-      }
-      throw NoSlotException();
+      return value;
    }
 };
 
 template <>
-class LastValue<void>
+class OptionalLastValue<void>
 {
 public:
    using ResultType = void;
@@ -80,12 +55,12 @@ public:
    
 public:
    template <typename InputIterator>
-   ResultType operator()(InputIterator first, InputIterator last) const
+   ResultType operator ()(InputIterator first, InputIterator last) const
    {
       while (first != last) {
          try {
             *first;
-         } catch(const ExpiredSlot &) {}
+         } catch (const ExpiredSlot &) {}
          ++first;
       }
       return;
@@ -96,4 +71,5 @@ public:
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_SIGNAL_LAST_VALUE_H
+#endif // PDK_KERNEL_SIGNAL_OPTIONAL_LAST_VALUE_H
+
