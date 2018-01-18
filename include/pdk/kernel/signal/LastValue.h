@@ -13,6 +13,16 @@
 //
 // Created by softboy on 2018/01/18.
 
+// last_value function object (documented as part of Boost.Signals)
+
+// Copyright Frank Mori Hess 2007.
+// Copyright Douglas Gregor 2001-2003. Use, modification and
+// distribution is subject to the Boost Software License, Version
+// 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
+// For more information, see http://www.boost.org
+
 #ifndef PDK_KERNEL_SIGNAL_LAST_VALUE_H
 #define PDK_KERNEL_SIGNAL_LAST_VALUE_H
 
