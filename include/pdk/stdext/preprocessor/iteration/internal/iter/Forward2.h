@@ -30,16 +30,16 @@
 #        error PDK_PP_ERROR:  depth #2 filename is not defined
 #    endif
 #    define PDK_PP_VALUE PDK_PP_TUPLE_ELEM(2, 0, PDK_PP_ITERATION_LIMITS)
-#    include <boost/preprocessor/iteration/detail/bounds/lower2.hpp>
+#    include "pdk/stdext/preprocessor/iteration/internal/bounds/Lower2.h"
 #    define PDK_PP_VALUE PDK_PP_TUPLE_ELEM(2, 1, PDK_PP_ITERATION_LIMITS)
-#    include <boost/preprocessor/iteration/detail/bounds/upper2.hpp>
+#    include "pdk/stdext/preprocessor/iteration/internal/bounds/Upper2.h"
 #    define PDK_PP_ITERATION_FLAGS_2() 0
 #    undef PDK_PP_ITERATION_LIMITS
 # elif defined(PDK_PP_ITERATION_PARAMS_2)
 #    define PDK_PP_VALUE PDK_PP_ARRAY_ELEM(0, PDK_PP_ITERATION_PARAMS_2)
-#    include <boost/preprocessor/iteration/detail/bounds/lower2.hpp>
+#    include "pdk/stdext/preprocessor/iteration/internal/bounds/Lower2.h"
 #    define PDK_PP_VALUE PDK_PP_ARRAY_ELEM(1, PDK_PP_ITERATION_PARAMS_2)
-#    include <boost/preprocessor/iteration/detail/bounds/upper2.hpp>
+#    include "pdk/stdext/preprocessor/iteration/internal/bounds/Upper2.h"
 #    define PDK_PP_FILENAME_2 PDK_PP_ARRAY_ELEM(2, PDK_PP_ITERATION_PARAMS_2)
 #    if PDK_PP_ARRAY_SIZE(PDK_PP_ITERATION_PARAMS_2) >= 4
 #        define PDK_PP_ITERATION_FLAGS_2() PDK_PP_ARRAY_ELEM(3, PDK_PP_ITERATION_PARAMS_2)
@@ -54,7 +54,7 @@
 # define PDK_PP_ITERATION_DEPTH() 2
 
 # if (PDK_PP_ITERATION_START_2) > (PDK_PP_ITERATION_FINISH_2)
-#    include <boost/preprocessor/iteration/detail/iter/reverse2.hpp>
+#    include "pdk/stdext/preprocessor/iteration/internal/iter/Reverse2.h"
 # else
 #    if PDK_PP_ITERATION_START_2 <= 0 && PDK_PP_ITERATION_FINISH_2 >= 0
 #        define PDK_PP_ITERATION_2 0

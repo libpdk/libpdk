@@ -13,6 +13,16 @@
 //
 // Created by softboy on 2018/01/19.
 
+// optional_last_value function object (documented as part of Boost.Signals2)
+
+// Copyright Frank Mori Hess 2007-2008.
+// Copyright Douglas Gregor 2001-2003.
+// Distributed under the Boost Software License, Version
+// 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
+// See http://www.boost.org/libs/signals2 for library home page.
+
 #ifndef PDK_KERNEL_SIGNAL_OPTIONAL_LAST_VALUE_H
 #define PDK_KERNEL_SIGNAL_OPTIONAL_LAST_VALUE_H
 
