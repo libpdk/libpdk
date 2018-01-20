@@ -13,3 +13,29 @@
 //
 // Created by softboy on 2018/01/20.
 
+#ifndef PDK_KERNEL_SIGNAL_INTERNAL_NULL_OUTPUT_ITERATOR_H
+#define PDK_KERNEL_SIGNAL_INTERNAL_NULL_OUTPUT_ITERATOR_H
+
+#include "pdk/stdext/iterators/FunctionOutputIterator.h"
+
+namespace pdk {
+namespace kernel {
+namespace signal {
+namespace internal {
+
+class DoesNothing
+{
+public:
+   template <typename T>
+   void operator()(const T &) const
+   {}
+};
+
+using NullOutputIterator = pdk::stdext::iterators::FunctionOutputIterator<DoesNothing>;
+
+} // internal
+} // signal
+} // kernel
+} // pdk
+
+#endif // PDK_KERNEL_SIGNAL_INTERNAL_NULL_OUTPUT_ITERATOR_H
