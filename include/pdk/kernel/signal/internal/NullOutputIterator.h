@@ -13,6 +13,16 @@
 //
 // Created by softboy on 2018/01/20.
 
+/*
+  An output iterator which simply discards output.
+*/
+// Copyright Frank Mori Hess 2008.
+// Distributed under the Boost Software License, Version
+// 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
+// See http://www.boost.org/libs/signals2 for library home page.
+
 #ifndef PDK_KERNEL_SIGNAL_INTERNAL_NULL_OUTPUT_ITERATOR_H
 #define PDK_KERNEL_SIGNAL_INTERNAL_NULL_OUTPUT_ITERATOR_H
 
