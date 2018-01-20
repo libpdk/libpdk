@@ -23,13 +23,24 @@
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#define PDK_SIGNAL_SIGNAL_TEMPLATE_INSTANTIATION \
-   R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex
+#ifndef PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_PRIVATE_H
+#define PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_PRIVATE_H
 
 namespace pdk {
 namespace kernel {
 namespace signal {
 namespace internal {
+
+template<typename Signature> 
+class VariadicExtendedSignature;
+
+// partial template specialization
+template<typename R, typename ... Args>
+class VariadicExtendedSignature<R (Args...)>
+{
+   public:
+   using function_type = std::function<R (const connection &, Args...)>;
+};
 
 template <typename R>
 class BoundExtendedSlotFunctionInvoker
@@ -543,178 +554,6 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    const boost::shared_ptr<mutex_type> m_mutex;
 };
 
-template<typename Signature,
-         typename Combiner,
-         typename Group,
-         typename GroupCompare,
-         typename SlotFunction,
-         typename ExtendedSlotFunction,
-         typename Mutex>
-class WeakSignal;
-
-} // internal
-
-template <typename Signature,
-          typename Combiner = optional_last_value<typename boost::function_traits<Signature>::result_type>,
-          typename Group = int,
-          typename GroupCompare = std::less<Group>,
-          typename SlotFunction = boost::function<Signature>,
-          typename ExtendedSlotFunction = typename internal::variadic_extended_signature<Signature>::function_type,
-          typename Mutex = signals2::mutex>
-class Signal;
-
-template <typename Combiner,
-          typename Group,
-          typename GroupCompare,
-          typename SlotFunction,
-          typename ExtendedSlotFunction,
-          typename Mutex,
-          typename R,
-          typename ... Args>
-class Signal <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> 
-   : public SignalBase, public internal::std_functional_base<Args...>
-{
-   using impl_class = internal::SignalImpl<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-   ExtendedSlotFunction, Mutex>;
-public:
-   using weak_signal_type = internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-   ExtendedSlotFunction, Mutex>;
-   friend class internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-   ExtendedSlotFunction, Mutex>;
-   using slot_function_type = SlotFunction;
-   using slot_type = typename impl_class::slot_type;
-   using extended_slot_function_type = typename impl_class::extended_slot_function_type;
-   using extended_slot_type = typename impl_class::extended_slot_type;
-   using slot_result_type = typename slot_function_type::result_type;
-   using combiner_type = Combiner;
-   using result_type = typename impl_class::result_type;
-   using group_type = Group;
-   using group_compare_type = GroupCompare;
-   using slot_call_iterator = typename impl_class::slot_call_iterator;
-   using signature_type = typename mpl::identity<R (Args...)>::type;
-   
-   template<unsigned n> class arg
-   {
-    public:
-      typedef typename detail::variadic_arg_type<n, Args...>::type type;
-   };
-   static const int arity = sizeof...(Args);
-   
-   Signal(const combiner_type &combiner_arg = combiner_type(),
-          const group_compare_type &group_compare = group_compare_type())
-      : m_impl(new impl_class(combiner_arg, group_compare))
-   {
-      
-   }
-   
-   virtual ~Signal()
-   {
-   }
-   
-   Signal(Signal &&other)
-   {
-      using std::swap;
-      swap(m_pimpl, other.m_pimpl);
-   }
-   
-   Signal &operator=(Signal &&other)
-   {
-      if(this == &rhs)
-      {
-         return *this;
-      }
-      m_pimpl.reset();
-      using std::swap;
-      swap(m_pimpl, rhs.m_pimpl);
-      return *this;
-   }
-   
-   Connection connect(const slot_type &slot, connect_position position = at_back)
-   {
-      return (*m_pimpl).connect(slot, position);
-   }
-   
-   connection connect(const group_type &group,
-                      const slot_type &slot, connect_position position = at_back)
-   {
-      return (*m_pimpl).connect(group, slot, position);
-   }
-   
-   connection connect_extended(const extended_slot_type &slot, connect_position position = at_back)
-   {
-      return (*m_pimpl).connect_extended(slot, position);
-   }
-   
-   connection connect_extended(const group_type &group,
-                               const extended_slot_type &slot, connect_position position = at_back)
-   {
-      return (*m_pimpl).connect_extended(group, slot, position);
-   }
-   
-   void disconnect_all_slots()
-   {
-      (*m_pimpl).disconnect_all_slots();
-   }
-   
-   void disconnect(const group_type &group)
-   {
-      (*m_pimpl).disconnect(group);
-   }
-   
-   template <typename T>
-   void disconnect(const T &slot)
-   {
-      (*m_pimpl).disconnect(slot);
-   }
-         
-   result_type operator ()(Args ... args)
-   {
-      return (*m_pimpl)(args...);
-   }
-   
-   result_type operator ()(Args ... args) const
-   {
-      return (*m_pimpl)(args...);
-   }
-   
-   std::size_t num_slots() const
-   {
-      return (*m_pimpl).num_slots();
-   }
-   
-   bool empty() const
-   {
-      return (*m_pimpl).empty();
-   }
-   
-   combiner_type combiner() const
-   {
-      return (*m_pimpl).combiner();
-   }
-   
-   void set_combiner(const combiner_type &combiner_arg)
-   {
-      return (*_pimpl).set_combiner(combiner_arg);
-   }
-   
-   void swap(Signal &other)
-   {
-      using std::swap;
-      swap(m_pimpl, other.m_pimpl);
-   }
-   
-protected:
-   virtual std::shared_ptr<void> lock_pimpl() const
-   {
-      return m_pimpl;
-   }
-   
-private:
-   std::shared_ptr<impl_class> m_pimpl;
-};
-
-namespace internal {
-
 // wrapper class for storing other signals as slots with automatic lifetime tracking
 template <typename Signature,
           typename Combiner,
@@ -764,7 +603,8 @@ class extended_signature: public variadic_extended_signature<Signature>
 {};
  
 } // internal
-
 } // signal
 } // kernel
 } // pdk
+
+#endif // PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_PRIVATE_H

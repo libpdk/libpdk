@@ -15,16 +15,18 @@
 
 // Boost.Signals2 library
 
-// Copyright Frank Mori Hess 2007-2008.
-// Copyright Timmo Stange 2007.
-// Copyright Douglas Gregor 2001-2004. Use, modification and
+// Copyright Frank Mori Hess 2009.
+//
 // distribution is subject to the Boost Software License, Version
 // 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
 // For more information, see http://www.boost.org
 
-// This file is included iteratively, and should not be protected from multiple inclusion
+#ifndef PDK_KERNEL_SIGNAL_VARIADIC_SLOT_H
+#define PDK_KERNEL_SIGNAL_VARIADIC_SLOT_H
+
+#include "pdk/kernel/signal/internal/VariadicArgType.h"
 
 namespace pdk {
 namespace kernel {
@@ -150,3 +152,5 @@ private:
 } // signal
 } // kernel
 } // pdk
+
+#endif // PDK_KERNEL_SIGNAL_VARIADIC_SLOT_H
