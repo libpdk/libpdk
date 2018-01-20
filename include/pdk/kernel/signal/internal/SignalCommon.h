@@ -27,6 +27,7 @@
 #define PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_COMMON_H
 
 #include "pdk/kernel/signal/SignalBase.h"
+#include "pdk/stdext/core/Ref.h"
 
 namespace pdk {
 namespace kernel {
@@ -54,8 +55,38 @@ public:
    typedef typename mpl::if_<is_reference_wrapper<S>,
    reference_tag,
    signal_or_value>::type type;
-   using type = typename std::conditional<>
+   using type = typename std::conditional<pdk::stdext::IsReferenceWrapper<S>::value,
+   ReferenceTag, SignalOrValue>::type;
 };
+
+// Get the slot so that it can be copied
+template<typename F>
+typename F::WeakSignalType get_invocable_slot(const F &signal, SignalTag)
+{
+   return typename F::WeakSignalType(signal); 
+}
+
+template<typename F>
+const F& get_invocable_slot(const F &f, ReferenceTag)
+{
+   return f;
+}
+
+template<typename F>
+const F& get_invocable_slot(const F &f, ValueTag)
+{
+   return f;
+}
+
+// Determines the type of the slot - is it a signal, a reference to a
+// slot or just a normal slot.
+template<typename F>
+typename GetSlotTag<F>::type tag_type(const F &)
+{
+   using theTagType = typename GetSlotTag<F>::type;
+   GetSlotTag tag = GetSlotTag();
+   return tag;
+}
 
 } // internal
 } // signal
