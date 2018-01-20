@@ -271,27 +271,27 @@ private:
 
 class SharedConnectionBlock;
 
-class connection
+class Connection
 {
 public:
    friend class shared_connection_block;
    
-   connection() {}
-   connection(const connection &other): _weak_connection_body(other._weak_connection_body)
+   Connection() {}
+   Connection(const Connection &other): _weak_connection_body(other._weak_connection_body)
    {}
-   connection(const boost::weak_ptr<detail::connection_body_base> &connectionBody):
+   Connection(const boost::weak_ptr<detail::connection_body_base> &connectionBody):
       _weak_connection_body(connectionBody)
    {}
    
    // move support
 #if !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
-   connection(connection && other): _weak_connection_body(std::move(other._weak_connection_body))
+   Connection(Connection && other): _weak_connection_body(std::move(other._weak_connection_body))
    {
       // make sure other is reset, in case it is a scoped_connection (so it
       // won't disconnect on destruction after being moved away from).
       other._weak_connection_body.reset();
    }
-   connection & operator=(connection && other)
+   Connection & operator=(connection && other)
    {
       if(&other == this) return *this;
       _weak_connection_body = std::move(other._weak_connection_body);
@@ -301,14 +301,14 @@ public:
       return *this;
    }
 #endif // !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
-   connection & operator=(const connection & other)
+   Connection & operator=(const connection & other)
    {
       if(&other == this) return *this;
       _weak_connection_body = other._weak_connection_body;
       return *this;
    }
    
-   ~connection() {}
+   ~Connection() {}
    void disconnect() const
    {
       boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
@@ -358,7 +358,7 @@ inline void swap(connection &conn1, connection &conn2)
    conn1.swap(conn2);
 }
 
-class scoped_connection: public connection
+class scoped_connection: public Connection
 {
 public:
    scoped_connection() 
@@ -373,19 +373,19 @@ public:
       disconnect();
    }
    
-   scoped_connection& operator=(const connection &rhs)
+   scoped_connection& operator=(const Connection &rhs)
    {
       disconnect();
-      connection::operator=(rhs);
+      Connection::operator=(rhs);
       return *this;
    }
    
    // move support
-   scoped_connection(scoped_connection && other): connection(std::move(other))
+   scoped_connection(scoped_connection && other): Connection(std::move(other))
    {
    }
    
-   scoped_connection(connection && other): connection(std::move(other))
+   scoped_connection(connection && other): Connection(std::move(other))
    {
    }
    
@@ -404,7 +404,7 @@ public:
       return *this;
    }
    
-   connection release()
+   Connection release()
    {
       connection conn(_weak_connection_body);
       _weak_connection_body.reset();
