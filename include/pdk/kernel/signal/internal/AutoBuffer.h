@@ -70,7 +70,7 @@ struct ComputeBufferObjects
    static const unsigned VALUE = Policy::VALUE;
 };
 
-template <typename Policy, typename T>
+template <unsigned N, typename T>
 struct ComputeBufferObjects<StoreNBytes<N>, T>
 {
    static const unsigned VALUE = N / sizeof(T);
@@ -133,7 +133,6 @@ public:
    using Pointer = T *;
    using ConstPointer = const T *;
    using AllocatorPointer = typename Allocator::pointer;
-   using ConstPointer = const T *;
    using Reference = T &;
    using ConstReference = const T &;
    using Iterator = Pointer;
