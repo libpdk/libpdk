@@ -23,6 +23,7 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/utils/ScopedObjectGuard.h"
+#include "pdk/stdext/typetraits/HasTrivialAssign.h"
 
 #include <algorithm>
 #include <cstring>
@@ -119,7 +120,7 @@ class AutoBuffer : Allocator
 {
 private:
    enum {
-      N = autobufferdetail::ComputeBufferObjects<StackBufferPolicy, T>::sm_value
+      N = autobufferdetail::ComputeBufferObjects<StackBufferPolicy, T>::VALUE
    };
    
    static const bool IS_STACK_BUFFER_EMPTY = N == 0u;
@@ -153,7 +154,7 @@ public:
    using const_reverse_iterator = ConstReverseIterator;
    
    using OptimizedConstReference = typename std::conditional<
-   std::is_trivially_assignable<T>::value && sizeof(T) <= sizeof(long double),
+   pdk::stdext::HasTrivialAssign<T>::value && sizeof(T) <= sizeof(long double),
    const ValueType,
    ConstReference>::type;
    
@@ -163,7 +164,7 @@ private:
       if (capacityArg > N) {
          return &*getAllocator().allocate(capacityArg);
       } else {
-         return static_cast<T *>(members.getAddress());
+         return static_cast<T *>(m_members.getAddress());
       }
    }
    
@@ -178,7 +179,7 @@ private:
    template <typename IterType>
    static void copyImpl(IterType begin, IterType end, Pointer where, std::random_access_iterator_tag)
    {
-      copyRai(begin, end, where, std::is_trivially_assignable<T>::value);
+      copyRai(begin, end, where, pdk::stdext::HasTrivialAssign<T>::value);
    }
    
    static void copyRai(const T* begin, const T* end, Pointer where, const std::true_type&)
@@ -208,7 +209,7 @@ private:
    template <typename IterType, typename IterType2>
    static void assignImpl(IterType begin, IterType end, IterType2 where)
    {
-      assignImpl(begin, end, where, std::is_trivially_assignable<T>());
+      assignImpl(begin, end, where, pdk::stdext::HasTrivialAssign<T>());
    }
    
    template <typename IterType, typename IterType2>
@@ -377,7 +378,7 @@ private:
    void insertImpl(ConstIterator before, Iter beginArg, Iter endArg, std::input_iterator_tag)
    {
       for (; beginArg != endArg; ++beginArg) {
-         before = insert(before, *beforeArg);
+         before = insert(before, *beginArg);
          ++before;
       }
    }
@@ -433,7 +434,7 @@ private:
       }
       AutoBuffer temp(newCapacityImpl(m_size + n));
       temp.uncheckedPushBack(cbegin(), before);
-      temp.uncheckedPushBack(beforeArg, endArg);
+      temp.uncheckedPushBack(beginArg, endArg);
       temp.uncheckedPushBack(before, cend());
       oneSidedSwap(temp);
       PDK_ASSERT(isValid());
@@ -599,7 +600,7 @@ public:
       return m_size == 0;
    }
    
-   bool fill() const
+   bool full() const
    {
       m_size == m_members.m_capacity;
    }
@@ -675,7 +676,7 @@ public:
       return ReverseIterator(begin());
    }
    
-   ConstReverseIterator rend()
+   ConstReverseIterator rend() const
    {
       return ConstReverseIterator(begin());
    }
@@ -758,7 +759,7 @@ public:
    void uncheckedPushBackN(SizeType n)
    {
       PDK_ASSERT(m_size + n <= m_members.m_capacity);
-      uncheckedPushBackN(n, std::is_trivially_assignable<T>());
+      uncheckedPushBackN(n, pdk::stdext::HasTrivialAssign<T>());
    }
    
    void reservePrecisely(SizeType n)
@@ -819,7 +820,7 @@ public:
          Iterator where = const_cast<T *>(before);
          if (!isBackInsertion) {
             growBackOne();
-            std::copy(begin, cend() - 1u, where + 1u);
+            std::copy(before, cend() - 1u, where + 1u);
             *where = value;
             PDK_ASSERT(isValid());
          } else {
@@ -1003,7 +1004,7 @@ public:
          return;
       }
       PDK_ASSERT(onStack && otherOnStack);
-      swapHelper(*this, other, std::is_trivially_assignable<T>());
+      swapHelper(*this, other, pdk::stdext::HasTrivialAssign<T>());
       PDK_ASSERT(isValid());
       PDK_ASSERT(other.isValid());
    }
@@ -1053,7 +1054,7 @@ inline bool operator!=(const AutoBuffer<T, SBP, GP, A> &lhs,
 
 template <typename T, typename SBP, typename GP, typename A>
 inline bool operator<(const AutoBuffer<T, SBP, GP, A> &lhs,
-                       const AutoBuffer<T, SBP, GP, A> &rhs)
+                      const AutoBuffer<T, SBP, GP, A> &rhs)
 {
    return std::lexicographical_compare(lhs.begin(), lhs.end(),
                                        rhs.begin(), rhs.end());
@@ -1061,7 +1062,7 @@ inline bool operator<(const AutoBuffer<T, SBP, GP, A> &lhs,
 
 template <typename T, typename SBP, typename GP, typename A>
 inline bool operator>(const AutoBuffer<T, SBP, GP, A> &lhs,
-                       const AutoBuffer<T, SBP, GP, A> &rhs)
+                      const AutoBuffer<T, SBP, GP, A> &rhs)
 {
    return rhs < lhs;
 }

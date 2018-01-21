@@ -14,7 +14,7 @@
 // Created by softboy on 2018/01/21.
 
 #include "gtest/gtest.h"
-//#include "pdk/kernel/signal/Signal.h"
+#include "pdk/kernel/signal/Signal.h"
 
 TEST(SignalTest, testSignal)
 {
