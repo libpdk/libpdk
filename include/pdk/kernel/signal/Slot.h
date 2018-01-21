@@ -26,7 +26,11 @@
 #ifndef PDK_KERNEL_SIGNAL_SLOT_H
 #define PDK_KERNEL_SIGNAL_SLOT_H
 
+#include "pdk/kernel/signal/internal/SignalCommon.h"
+#include "pdk/kernel/signal/internal/SignalCommonMacros.h"
+#include "pdk/kernel/signal/internal/TrackedObjectsVisitor.h"
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
+#include "pdk/kernel/signal/SlotBase.h"
 
 namespace pdk {
 namespace kernel {
