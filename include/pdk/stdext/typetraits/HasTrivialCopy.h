@@ -20,41 +20,62 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
-#define PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
+#ifndef PDK_STDEXT_HAS_TRIVIAL_COPY_H
+#define PDK_STDEXT_HAS_TRIVIAL_COPY_H
 
-#include <type_traits>
 #include <cstddef> // size_t
 
 namespace pdk {
 namespace stdext {
 
-template <typename T>
-struct HasTrivialConstructor : std::integral_constant<bool,
+template <typename T> struct HasTrivialCopy : std::integral_constant<bool,
       std::is_pod<T>::value>
 {};
 
-template <>
-struct HasTrivialConstructor<void> : public std::false_type
-{};
-
-template <>
-struct HasTrivialConstructor<void const> : public std::false_type
-{};
-
-template <>
-struct HasTrivialConstructor<void const volatile> : public std::false_type
-{};
-
-template <>
-struct HasTrivialConstructor<void volatile> : public std::false_type
+// Arrays are not explicitly copyable:
+template <typename T, std::size_t N>
+struct HasTrivialCopy<T[N]> : public std::false_type
 {};
 
 template <typename T>
-struct HasTrivialDefaultConstructor : HasTrivialConstructor<T>
+struct HasTrivialCopy<T[]> : public std::false_type
+{};
+
+// Are volatile types ever trivial?  We don't really know, so assume not:
+template <typename T>
+struct HasTrivialCopy<T volatile> : public std::false_type
+{};
+
+template <>
+struct HasTrivialCopy<void> : public std::false_type
+{};
+
+template <>
+struct HasTrivialCopy<void const> : public std::false_type
+{};
+
+template <>
+struct HasTrivialCopy<void volatile> : public std::false_type
+{};
+
+template <>
+struct HasTrivialCopy<void const volatile> : public std::false_type
+{};
+
+template <typename T>
+struct HasTrivialCopy<T &> : public std::false_type
+{};
+
+template <typename T>
+struct HasTrivialCopy<T &&> : public std::false_type
+{};
+
+template <typename T> 
+struct HasTrivialCopyConstructor : public HasTrivialCopy<T>
 {};
 
 } // stdext
 } // pdk
 
-#endif // PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
+
+#endif // PDK_STDEXT_HAS_TRIVIAL_COPY_H
