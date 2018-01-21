@@ -23,5 +23,28 @@
 #ifndef PDK_STDEXT_HAS_NOTHROW_COPY_H
 #define PDK_STDEXT_HAS_NOTHROW_COPY_H
 
+#include <cstddef> // size_t
+#include <type_traits>
+
+namespace pdk {
+namespace stdext {
+namespace internal {
+
+template <typename T, bool b>
+struct HasNothrowCopyConstructorImp : public std::integral_constant<bool, false>
+{};
+
+template <typename T>
+struct HasNothrowCopyConstructorImp<T, true> : public std::integral_constant<bool, noexcept(T(std::declval<const T &>()))>
+{};
+
+} // internal
+
+template <class T> struct HasNothrowCopyConstructor : public internal::HasNothrowCopyConstructorImp<T, std::is_copy_constructible<T>::value>
+{};
+
+} // stdext
+} // pdk
+
 
 #endif // PDK_STDEXT_HAS_NOTHROW_COPY_H

@@ -49,7 +49,7 @@ struct HasNothrowConstructorImp<T[N], true> : public HasNothrowConstructorImp<T,
 
 } // internal
 
-template <class T>
+template <typename T>
 struct HasNothrowConstructor : public internal::HasNothrowConstructorImp<T, std::is_default_constructible<T>::value>
 {};
 

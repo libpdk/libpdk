@@ -23,5 +23,15 @@
 #ifndef PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
 #define PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
 
+namespace pdk {
+namespace stdext {
+namespace internal {
+
+
+
+} // internal
+} // stdext
+} // pdk
+
 
 #endif // PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
