@@ -23,6 +23,41 @@
 #ifndef PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
 #define PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
 
+#include <cstddef> // size_t
+#include <type_traits>
 
+#ifdef PDK_CC_MSVC
+#pragma warning(push)
+#pragma warning(disable:4197) // top-level volatile in cast is ignored
+#endif
+
+namespace pdk {
+namespace stdext {
+namespace internal {
+
+template <typename T, bool b>
+struct HasNothrowConstructorImp : public std::integral_constant<bool, false>
+{};
+
+template <typename T>
+struct HasNothrowConstructorImp<T, true> : public std::integral_constant<bool, noexcept(T())>
+{};
+
+template <typename T, std::size_t N>
+struct HasNothrowConstructorImp<T[N], true> : public HasNothrowConstructorImp<T, true>
+{};
+
+} // internal
+
+template <class T>
+struct HasNothrowConstructor : public internal::HasNothrowConstructorImp<T, std::is_default_constructible<T>::value>
+{};
+
+} // stdext
+} // pdk
+
+#ifdef PDK_CC_MSVC
+#pragma warning(pop)
+#endif
 
 #endif // PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
