@@ -20,59 +20,40 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_TRIVIAL_ASSIGN_H
-#define PDK_STDEXT_HAS_TRIVIAL_ASSIGN_H
+#ifndef PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
+#define PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
 
-#include <cstddef> // size_t
 #include <type_traits>
 
 namespace pdk {
 namespace stdext {
 
 template <typename T>
-struct HasTrivialAssign : std::integral_constant<bool,
-      std::is_pod<T>::value && !std::is_const<T>::value && !std::is_volatile<T>::value
-      >
+struct HasTrivialConstructor : std::integral_constant<bool,
+      std::is_pod<T>::value>
 {};
 
 template <>
-struct HasTrivialAssign<void> : std::false_type
+struct HasTrivialConstructor<void> : public std::false_type
 {};
 
 template <>
-struct HasTrivialAssign<void const> : public std::false_type
+struct HasTrivialConstructor<void const> : public std::false_type
 {};
 
 template <>
-struct HasTrivialAssign<void const volatile> : public std::false_type
+struct HasTrivialConstructor<void const volatile> : public std::false_type
 {};
 
 template <>
-struct HasTrivialAssign<void volatile> : public std::false_type
+struct HasTrivialConstructor<void volatile> : public std::false_type
 {};
 
-template<typename T>
-struct HasTrivialAssign<T volatile> : public std::false_type
-{};
-
-template<typename T>
-struct HasTrivialAssign<T &> : public std::false_type
-{};
-
-template<typename T>
-struct HasTrivialAssign<T &&> : public std::false_type
-{};
-
-// Arrays are not explictly assignable:
-template<typename T, std::size_t N>
-struct HasTrivialAssign<T[N]> : public std::false_type
-{};
-
-template<typename T>
-struct HasTrivialAssign<T[]> : public std::false_type
+template <typename T>
+struct HasTrivialDefaultConstructor : HasTrivialConstructor<T>
 {};
 
 } // stdext
 } // pdk
 
-#endif // PDK_STDEXT_HAS_TRIVIAL_ASSIGN_H
+#endif // PDK_STDEXT_HAS_TRIVIAL_CONSTRUCTOR_H
