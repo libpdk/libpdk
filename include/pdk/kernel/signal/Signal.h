@@ -30,7 +30,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "pdk/kernel/signal/internal/SignalCommonMacros.h"
 #include "pdk/kernel/signal/internal/SignalCommon.h"
 #include "pdk/kernel/signal/internal/SlotGroup.h"
 #include "pdk/kernel/signal/internal/SlotCallIterator.h"
