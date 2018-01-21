@@ -25,6 +25,56 @@
 #ifndef PDK_STDEXT_HAS_TRIVIAL_MOVE_CONSTRUCTOR_H
 #define PDK_STDEXT_HAS_TRIVIAL_MOVE_CONSTRUCTOR_H
 
+#include <cstddef> // size_t
+#include <type_traits>
+
+namespace pdk {
+namespace stdext {
+
+template <typename T>
+struct HasTrivialMoveConstructor 
+   : public std::integral_constant<bool, 
+      std::is_pod<T>::value && !std::is_volatile<T>::value &&
+      std::is_constructible<typename std::remove_const<T>::type, typename std::remove_const<T>::type &&>::value>
+{};
+
+template <>
+struct HasTrivialMoveConstructor<void> : public std::false_type
+{};
+
+template <>
+struct HasTrivialMoveConstructor<void const> : public std::false_type
+{};
+
+template <>
+struct HasTrivialMoveConstructor<void volatile> : public std::false_type
+{};
+
+template <>
+struct HasTrivialMoveConstructor<void const volatile> : public std::false_type
+{};
+
+// What should we do with reference types??? The standard seems to suggest these are trivial,
+// even if the thing they reference is not:
+template <class T>
+struct HasTrivialMoveConstructor<T &> : public std::true_type
+{};
+
+template <class T>
+struct HasTrivialMoveConstructor<T &&> : public std::true_type
+{};
+
+// Arrays can not be explicitly copied:
+template <class T, std::size_t N>
+struct HasTrivialMoveConstructor<T[N]> : public std::false_type
+{};
+
+template <class T>
+struct HasTrivialMoveConstructor<T[]> : public std::false_type
+{};
+
+} // stdext
+} // pdk
 
 
 #endif // PDK_STDEXT_HAS_TRIVIAL_MOVE_CONSTRUCTOR_H
