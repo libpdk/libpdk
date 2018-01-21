@@ -56,20 +56,20 @@ struct HasTrivialMoveConstructor<void const volatile> : public std::false_type
 
 // What should we do with reference types??? The standard seems to suggest these are trivial,
 // even if the thing they reference is not:
-template <class T>
+template <typename T>
 struct HasTrivialMoveConstructor<T &> : public std::true_type
 {};
 
-template <class T>
+template <typename T>
 struct HasTrivialMoveConstructor<T &&> : public std::true_type
 {};
 
 // Arrays can not be explicitly copied:
-template <class T, std::size_t N>
+template <typename T, std::size_t N>
 struct HasTrivialMoveConstructor<T[N]> : public std::false_type
 {};
 
-template <class T>
+template <typename T>
 struct HasTrivialMoveConstructor<T[]> : public std::false_type
 {};
 
