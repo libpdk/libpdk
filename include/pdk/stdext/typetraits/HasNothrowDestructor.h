@@ -23,13 +23,38 @@
 #ifndef PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
 #define PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
 
+#include <cstddef> // size_t
+#include <type_traits>
+
 namespace pdk {
 namespace stdext {
 namespace internal {
 
+template <typename T, bool b>
+struct HasNothrowDestructorImp : public std::integral_constant<bool, false>
+{};
 
+template <typename T>
+struct HasNothrowDestructorImp<T, true> : public std::integral_constant<bool, noexcept(std::declval<T*&>()->~T())>{};
 
 } // internal
+
+template <typename T>
+struct HasNothrowDestructor : public internal::HasNothrowDestructorImp<T, std::is_destructible<T>::value>
+{};
+
+template <typename T, std::size_t N>
+struct has_nothrow_destructor<T[N]> : public has_nothrow_destructor<T>
+{};
+
+template <typename T>
+struct has_nothrow_destructor<T&> : public std::integral_constant<bool, false>
+{};
+
+template <typename T>
+struct has_nothrow_destructor<T&&> : public std::integral_constant<bool, false>
+{};
+
 } // stdext
 } // pdk
 
