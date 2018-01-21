@@ -36,7 +36,7 @@ namespace internal {
 
 // Determine if the given type T is a signal
 template<typename T>
-struct IsSignal: public std::integral_constant<bool, std::is_base_of<SignalBase, T>>
+struct IsSignal: public std::integral_constant<bool, std::is_base_of<SignalBase, T>::value>
 {};
 
 // A slot can be a signal, a reference to a function object, or a
@@ -52,9 +52,6 @@ class GetSlotTag {
    using SignalOrValue = typename std::conditional<IsSignal<S>::value,
    SignalTag, ValueTag>::type;
 public:
-   typedef typename mpl::if_<is_reference_wrapper<S>,
-   reference_tag,
-   signal_or_value>::type type;
    using type = typename std::conditional<pdk::stdext::IsReferenceWrapper<S>::value,
    ReferenceTag, SignalOrValue>::type;
 };
@@ -83,8 +80,8 @@ const F& get_invocable_slot(const F &f, ValueTag)
 template<typename F>
 typename GetSlotTag<F>::type tag_type(const F &)
 {
-   using theTagType = typename GetSlotTag<F>::type;
-   GetSlotTag tag = GetSlotTag();
+   using TheTagType = typename GetSlotTag<F>::type;
+   TheTagType tag = TheTagType();
    return tag;
 }
 
