@@ -221,7 +221,7 @@ make_guard_if_cond(FuncType func, P1 p1)
 }
 
 template <typename C, typename FuncType, typename P1>
-inline typename NullGuardReturn<C::value, ScopedGuardImpl1<F, P1>>::type
+inline typename NullGuardReturn<C::value, ScopedGuardImpl1<FuncType, P1>>::type
 make_guard_if(FuncType func, P1 p1)
 {
    return make_guard_if_cond<C::value>(func, p1);
@@ -262,7 +262,7 @@ template<bool cond, typename FuncType, typename P1, typename P2>
 inline typename NullGuardReturn<cond, ScopedGuardImpl2<FuncType, P1, P2>>::type
 make_guard_if_cond(FuncType func, P1 p1, P2 p2)
 {
-   return typename NullGuardReturn<cond, ScopedGuardImpl2<FuncType, P1, p2>>::type(func, p1, p2);
+   return typename NullGuardReturn<cond, ScopedGuardImpl2<FuncType, P1, P2>>::type(func, p1, p2);
 }
 
 template<typename C, typename FuncType, typename P1, typename P2>
@@ -300,7 +300,7 @@ protected:
 };
 
 template <typename FuncType, typename P1, typename P2, typename P3>
-inline ScopedGuardImpl3<FuncType, p1, p2, p3> make_guard(FuncType func, P1 p1, P2 p2, P3 p3)
+inline ScopedGuardImpl3<FuncType, P1, P2, P3> make_guard(FuncType func, P1 p1, P2 p2, P3 p3)
 {
    return ScopedGuardImpl3<FuncType, P1, P2, P3>(func, p1, p2, p3);
 }
@@ -386,7 +386,7 @@ public:
    
    void execute()
    {
-      (m_obj.*memFunc)();         
+      (m_obj.*m_memFunc)();         
    }
 protected:
   ObjectType &m_obj;
@@ -430,7 +430,7 @@ public:
    
    void execute()
    {
-      (m_obj.*memFunc)(m_p1);         
+      (m_obj.*m_memFunc)(m_p1);         
    }
 protected:
   ObjectType &m_obj;
@@ -477,7 +477,7 @@ public:
    
    void execute()
    {
-      (m_obj.*memFunc)(m_p1, m_p2);         
+      (m_obj.*m_memFunc)(m_p1, m_p2);         
    }
 protected:
   ObjectType &m_obj;
@@ -490,7 +490,7 @@ template <typename ObjectType, typename MemFunc, typename P1, typename P2>
 inline ObjectScopedGuardImpl2<ObjectType, MemFunc, P1, P2>
 make_object_guard(ObjectType &obj, MemFunc memFunc, P1 p1, P2 p2)
 {
-   return ObjectScopedGuardImpl2<ObjectType, MemFunc, P1>(obj, memFunc, p1, p2);
+   return ObjectScopedGuardImpl2<ObjectType, MemFunc, P1, P2>(obj, memFunc, p1, p2);
 }
 
 template<bool cond, typename ObjectType, typename MemFunc, typename P1, typename P2>
@@ -526,7 +526,7 @@ public:
    
    void execute()
    {
-      (m_obj.*memFunc)(m_p1, m_p2, m_p3);         
+      (m_obj.*m_memFunc)(m_p1, m_p2, m_p3);         
    }
 protected:
   ObjectType &m_obj;
@@ -540,7 +540,7 @@ template <typename ObjectType, typename MemFunc, typename P1, typename P2, typen
 inline ObjectScopedGuardImpl3<ObjectType, MemFunc, P1, P2, P3>
 make_object_guard(ObjectType &obj, MemFunc memFunc, P1 p1, P2 p2, P3 p3)
 {
-   return ObjectScopedGuardImpl3<ObjectType, MemFunc, P1>(obj, memFunc, p1, p2, p3);
+   return ObjectScopedGuardImpl3<ObjectType, MemFunc, P1, P2, P3>(obj, memFunc, p1, p2, p3);
 }
 
 template<bool cond, typename ObjectType, typename MemFunc, typename P1, typename P2, typename P3>
