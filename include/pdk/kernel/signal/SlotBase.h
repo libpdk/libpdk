@@ -28,6 +28,7 @@
 
 #include "pdk/kernel/signal/ExpiredSlot.h"
 #include "pdk/kernel/signal/SignalBase.h"
+#include "pdk/kernel/signal/Trackable.h"
 #include <vector>
 #include <memory>
 #include <variant>
@@ -40,30 +41,34 @@ namespace internal {
 class TrackedObjectsVisitor;
 class TrackablePointee;
 
-typedef std::variant<std::weak_ptr<trackable_pointee>, std::weak_ptr<void>, detail::foreign_void_weak_ptr > void_weak_ptr_variant;
-typedef std::variant<std::shared_ptr<void>, detail::foreign_void_shared_ptr > void_shared_ptr_variant;
+using VoidWeakPtrVariant = std::variant<std::weak_ptr<TrackablePointee>, std::weak_ptr<void>>;
+using VoidSharedPtrVariant = std::variant<std::shared_ptr<void>>;
 
-class lock_weak_ptr_visitor
+class LockWeakPtrVisitor
 {
 public:
-   typedef void_shared_ptr_variant result_type;
+   using ResultType = VoidSharedPtrVariant;
+   using result_type = ResultType;
+   
    template<typename WeakPtr>
-   result_type operator()(const WeakPtr &wp) const
+   ResultType operator()(const WeakPtr &wp) const
    {
       return wp.lock();
    }
    // overload to prevent incrementing use count of shared_ptr associated
-   // with signals2::trackable objects
-   result_type operator()(const weak_ptr<trackable_pointee> &) const
+   // with signal::Trackable objects
+   result_type operator()(const std::weak_ptr<TrackablePointee> &) const
    {
-      return boost::shared_ptr<void>();
+      return std::shared_ptr<void>();
    }
 };
 
-class expired_weak_ptr_visitor
+class ExpiredWeakPtrVisitor
 {
 public:
-   typedef bool result_type;
+   using result_type = bool;
+   using ResultType = result_type;
+   
    template<typename WeakPtr>
    bool operator()(const WeakPtr &wp) const
    {
@@ -73,45 +78,52 @@ public:
 
 } // internal
 
-class slot_base
+class SlotBase
 {
 public:
-   typedef std::vector<detail::void_weak_ptr_variant> tracked_container_type;
-   typedef std::vector<detail::void_shared_ptr_variant> locked_container_type;
+   using TrackedContainerType = std::vector<internal::VoidWeakPtrVariant>;
+   using LockedContainerType = std::vector<internal::VoidSharedPtrVariant>;
    
-   const tracked_container_type& tracked_objects() const {return _tracked_objects;}
-   locked_container_type lock() const
+   const TrackedContainerType &trackedObjects() const
    {
-      locked_container_type locked_objects;
-      tracked_container_type::const_iterator it;
-      for(it = tracked_objects().begin(); it != tracked_objects().end(); ++it)
-      {
-         locked_objects.push_back(apply_visitor(detail::lock_weak_ptr_visitor(), *it));
-         if(apply_visitor(detail::expired_weak_ptr_visitor(), *it))
+      return m_trackedObjects;
+   }
+   
+   LockedContainerType lock() const
+   {
+      LockedContainerType lockedObjects;
+      TrackedContainerType::const_iterator it;
+      for(it = trackedObjects().begin(); it != trackedObjects().end(); ++it) {
+         lockedObjects.push_back(std::visit(internal::LockWeakPtrVisitor(), *it));
+         if(std::visit(internal::ExpiredWeakPtrVisitor(), *it))
          {
-            boost::throw_exception(expired_slot());
+            throw ExpiredSlot();
          }
       }
-      return locked_objects;
+      return lockedObjects;
    }
+   
    bool expired() const
    {
-      tracked_container_type::const_iterator it;
-      for(it = tracked_objects().begin(); it != tracked_objects().end(); ++it)
+      TrackedContainerType::const_iterator it;
+      for(it = trackedObjects().begin(); it != trackedObjects().end(); ++it)
       {
-         if(apply_visitor(detail::expired_weak_ptr_visitor(), *it)) return true;
+         if(std::visit(internal::ExpiredWeakPtrVisitor(), *it)) {
+            return true;
+         }
       }
       return false;
    }
-protected:
-   friend class detail::tracked_objects_visitor;
    
-   void track_signal(const signal_base &signal)
+protected:
+   friend class internal::TrackedObjectsVisitor;
+   
+   void trackSignal(const SignalBase &signal)
    {
-      _tracked_objects.push_back(signal.lock_pimpl());
+      m_trackedObjects.push_back(signal.getLockPimpl());
    }
    
-   tracked_container_type _tracked_objects;
+   TrackedContainerType m_trackedObjects;
 };
 
 } // signal

@@ -32,6 +32,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/signal/internal/AutoBuffer.h"
 #include "pdk/kernel/signal/internal/NullOutputIterator.h"
+#include "pdk/kernel/signal/Slot.h"
 #include <mutex>
 
 namespace pdk {
@@ -57,7 +58,7 @@ public:
    
    void addTrash(const std::shared_ptr<void> &pieceOfTrash)
    {
-      garbage.pushBack(pieceOfTrash);
+      m_garbage.pushBack(pieceOfTrash);
    }
    
 private:
@@ -65,8 +66,8 @@ private:
    // garbage must be declared before lock
    // to insure it is destroyed after lock is
    // destroyed.
-   AutoBuffer<shared_ptr<void>, store_n_objects<10>> m_garbage;
-   std::unique<Mutex> lock;
+   AutoBuffer<std::shared_ptr<void>, StoreNObjects<10>> m_garbage;
+   std::unique_lock<Mutex> m_lock;
 };
 
 class ConnectionBodyBase
@@ -112,7 +113,7 @@ public:
    
    bool blocked() const
    {
-      return !_weak_blocker.expired();
+      return !m_weakBlocker.expired();
    }
    
    bool nolockNograbBlocked() const
@@ -149,7 +150,7 @@ public:
    template<typename Mutex>
    void decSlotRefcount(GarbageCollectingLock<Mutex> &lockArg) const
    {
-      BOOST_ASSERT(m_slotRefcount != 0);
+      PDK_ASSERT(m_slotRefcount != 0);
       if(--m_slotRefcount == 0)
       {
          lockArg.addTrash(releaseSlot());
@@ -181,7 +182,7 @@ public:
    virtual bool connected() const
    {
       GarbageCollectingLock<MutexType> lock(*m_mutex);
-      nolockGrabTrackedObjects(lock, NullOutputIterator);
+      nolockGrabTrackedObjects(lock, NullOutputIterator());
       return nolockNograbConnected();
    }
    
@@ -211,7 +212,7 @@ public:
                                  OutputIterator inserter) const
    {
       if(!m_slot) return;
-      slot_base::tracked_container_type::const_iterator it;
+      SlotBase::tracked_container_type::const_iterator it;
       for(it = slot().tracked_objects().begin();
           it != slot().tracked_objects().end();
           ++it)
@@ -236,12 +237,12 @@ public:
    // expose Lockable concept of mutex
    virtual void lock()
    {
-      _mutex->lock();
+      m_mutex->lock();
    }
    
    virtual void unlock()
    {
-      _mutex->unlock();
+      m_mutex->unlock();
    }
    
    SlotType &slot()
@@ -255,12 +256,13 @@ public:
    }
    
 protected:
-   virtual shared_ptr<void> releaseSlot() const
+   virtual std::shared_ptr<void> releaseSlot() const
    {
-      shared_ptr<void> released_slot = m_slot;
+      std::shared_ptr<void> releasedSlot = m_slot;
       m_slot.reset();
-      return released_slot;
+      return releasedSlot;
    }
+   
 private:
    mutable std::shared_ptr<SlotType> m_slot;
    const std::shared_ptr<MutexType> m_mutex;
@@ -274,86 +276,104 @@ class SharedConnectionBlock;
 class Connection
 {
 public:
-   friend class shared_connection_block;
-   
    Connection() {}
-   Connection(const Connection &other): _weak_connection_body(other._weak_connection_body)
+   Connection(const Connection &other)
+      : m_weakConnectionBody(other.m_weakConnectionBody)
    {}
-   Connection(const boost::weak_ptr<detail::connection_body_base> &connectionBody):
-      _weak_connection_body(connectionBody)
+   
+   Connection(const std::weak_ptr<internal::ConnectionBodyBase> &connectionBody):
+      m_weakConnectionBody(connectionBody)
    {}
    
    // move support
-#if !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
-   Connection(Connection && other): _weak_connection_body(std::move(other._weak_connection_body))
+   Connection(Connection &&other): m_weakConnectionBody(std::move(other.m_weakConnectionBody))
    {
       // make sure other is reset, in case it is a scoped_connection (so it
       // won't disconnect on destruction after being moved away from).
-      other._weak_connection_body.reset();
+      other.m_weakConnectionBody.reset();
    }
-   Connection & operator=(connection && other)
+   
+   Connection & operator=(Connection && other)
    {
-      if(&other == this) return *this;
-      _weak_connection_body = std::move(other._weak_connection_body);
+      if(&other == this) {
+         return *this;
+      }
+      m_weakConnectionBody = std::move(other.m_weakConnectionBody);
       // make sure other is reset, in case it is a scoped_connection (so it
       // won't disconnect on destruction after being moved away from).
-      other._weak_connection_body.reset();
+      other.m_weakConnectionBody.reset();
       return *this;
    }
-#endif // !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)
-   Connection & operator=(const connection & other)
+
+   Connection & operator=(const Connection &other)
    {
-      if(&other == this) return *this;
-      _weak_connection_body = other._weak_connection_body;
+      if(&other == this) {
+         return *this;
+      }
+      m_weakConnectionBody = other.m_weakConnectionBody;
       return *this;
    }
    
    ~Connection() {}
+   
    void disconnect() const
    {
-      boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
-      if(connectionBody == 0) return;
+      std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
+      if(connectionBody == 0) {
+         return;
+      }
       connectionBody->disconnect();
    }
+   
    bool connected() const
    {
-      boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
-      if(connectionBody == 0) return false;
+      std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
+      if(connectionBody == 0) {
+         return false;
+      }
       return connectionBody->connected();
    }
+   
    bool blocked() const
    {
-      boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
-      if(connectionBody == 0) return true;
+      std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
+      if(connectionBody == 0) {
+         return true;
+      }
       return connectionBody->blocked();
    }
-   bool operator==(const connection& other) const
+   
+   bool operator==(const Connection &other) const
    {
-      boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
-      boost::shared_ptr<detail::connection_body_base> otherConnectionBody(other._weak_connection_body.lock());
+      std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
+      std::shared_ptr<internal::ConnectionBodyBase> otherConnectionBody(other.m_weakConnectionBody.lock());
       return connectionBody == otherConnectionBody;
    }
-   bool operator!=(const connection& other) const
+   
+   bool operator!=(const Connection &other) const
    {
       return !(*this == other);
    }
-   bool operator<(const connection& other) const
+   
+   bool operator<(const Connection &other) const
    {
-      boost::shared_ptr<detail::connection_body_base> connectionBody(_weak_connection_body.lock());
-      boost::shared_ptr<detail::connection_body_base> otherConnectionBody(other._weak_connection_body.lock());
+      std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
+      std::shared_ptr<internal::ConnectionBodyBase> otherConnectionBody(other.m_weakConnectionBody.lock());
       return connectionBody < otherConnectionBody;
    }
-   void swap(connection &other)
+   
+   void swap(Connection &other)
    {
       using std::swap;
-      swap(_weak_connection_body, other._weak_connection_body);
+      swap(m_weakConnectionBody, other.m_weakConnectionBody);
    }
-protected:
    
-   boost::weak_ptr<detail::connection_body_base> _weak_connection_body;
+   friend class shared_connection_block;
+protected:
+   std::weak_ptr<internal::ConnectionBodyBase> m_weakConnectionBody;
 };
 
-inline void swap(connection &conn1, connection &conn2)
+inline void swap(Connection &conn1, Connection &conn2)
 {
    conn1.swap(conn2);
 }
@@ -364,8 +384,8 @@ public:
    scoped_connection() 
    {}
    
-   scoped_connection(const connection &other)
-      : connection(other)
+   scoped_connection(const Connection &other)
+      : Connection(other)
    {}
    
    ~scoped_connection()
@@ -381,33 +401,38 @@ public:
    }
    
    // move support
-   scoped_connection(scoped_connection && other): Connection(std::move(other))
-   {
-   }
+   scoped_connection(scoped_connection && other)
+      : Connection(std::move(other))
+   {}
    
-   scoped_connection(connection && other): Connection(std::move(other))
-   {
-   }
+   scoped_connection(Connection &&other)
+      : Connection(std::move(other))
+   {}
    
    scoped_connection & operator=(scoped_connection && other)
    {
-      if(&other == this) return *this;
+      if(&other == this) {
+         return *this;
+      }
       disconnect();
-      connection::operator=(std::move(other));
+      Connection::operator=(std::move(other));
       return *this;
    }
-   scoped_connection & operator=(connection && other)
+   
+   scoped_connection & operator=(Connection && other)
    {
-      if(&other == this) return *this;
+      if(&other == this) {
+         return *this;
+      }
       disconnect();
-      connection::operator=(std::move(other));
+      Connection::operator=(std::move(other));
       return *this;
    }
    
    Connection release()
    {
-      connection conn(_weak_connection_body);
-      _weak_connection_body.reset();
+      Connection conn(m_weakConnectionBody);
+      m_weakConnectionBody.reset();
       return conn;
    }
 private:

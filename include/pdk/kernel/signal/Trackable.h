@@ -31,6 +31,8 @@
 #ifndef PDK_KERNEL_SIGNAL_TRACKABLE_H
 #define PDK_KERNEL_SIGNAL_TRACKABLE_H
 
+#include <memory>
+
 namespace pdk {
 namespace kernel {
 namespace signal {

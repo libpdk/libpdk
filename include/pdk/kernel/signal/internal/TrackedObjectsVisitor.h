@@ -27,6 +27,12 @@
 #ifndef PDK_KERNEL_SIGNAL_INTERNAL_TRACKED_OBJECTS_VISITOR_H
 #define PDK_KERNEL_SIGNAL_INTERNAL_TRACKED_OBJECTS_VISITOR_H
 
+#include "pdk/kernel/signal/SlotBase.h"
+#include "pdk/kernel/signal/internal/SignalCommon.h"
+#include "pdk/stdext/core/Ref.h"
+#include <type_traits>
+#include <functional>
+
 namespace pdk {
 namespace kernel {
 namespace signal {
@@ -36,74 +42,77 @@ namespace internal {
 class TrackedObjectsVisitor
 {
 public:
-   TrackedObjectsVisitor(slot_base *slot) : slot_(slot)
+   TrackedObjectsVisitor(SlotBase *slot) 
+      : m_slot(slot)
    {}
+   
    template<typename T>
    void operator()(const T& t) const
    {
-      visitReferenceWrapper(t, mpl::bool_<is_reference_wrapper<T>::value>());
+      visitReferenceWrapper(t, std::integral_constant<bool, pdk::stdext::IsReferenceWrapper<T>::value>());
    }
    
 private:
    template<typename T>
-   void visitReferenceWrapper(const reference_wrapper<T> &t, const mpl::bool_<true> &) const
+   void visitReferenceWrapper(const std::reference_wrapper<T> &t, const std::integral_constant<bool, true> &) const
    {
-      visitPointer(t.get_pointer(), mpl::bool_<true>());
+      visitPointer(t.get_pointer(), std::integral_constant<bool, true>());
    }
    
    template<typename T>
-   void visitReferenceWrapper(const T &t, const mpl::bool_<false> &) const
+   void visitReferenceWrapper(const T &t, const std::integral_constant<bool, false> &) const
    {
-      visitPointer(t, mpl::bool_<is_pointer<T>::value>());
+      visitPointer(t, std::integral_constant<bool, std::is_pointer<T>::value>());
    }
    
    template<typename T>
-   void visitPointer(const T &t, const mpl::bool_<true> &) const
+   void visitPointer(const T &t, const std::integral_constant<bool, true> &) const
    {
-      m_visit_not_function_pointer(t, mpl::bool_<!is_function<typename remove_pointer<T>::type>::value>());
+      visitNotFunctionPointer(t, std::integral_constant<bool, !std::is_function<typename std::remove_pointer<T>::type>::value>());
    }
    
    template<typename T>
-   void visitPointer(const T &t, const mpl::bool_<false> &) const
+   void visitPointer(const T &t, const std::integral_constant<bool, false> &) const
    {
-      visitPointer(boost::addressof(t), mpl::bool_<true>());
+      visitPointer(std::addressof(t), std::integral_constant<bool, true>());
    }
    
    template<typename T>
-   void visitNotFunctionPointer(const T *t, const mpl::bool_<true> &) const
+   void visitNotFunctionPointer(const T *t, const std::integral_constant<bool, true> &) const
    {
-      visitSignal(t, mpl::bool_<is_signal<T>::value>());
+      visitSignal(t, std::integral_constant<bool, IsSignal<T>::value>());
    }
    
    template<typename T>
-   void visitNotFunctionPointer(const T &, const mpl::bool_<false> &) const
+   void visitNotFunctionPointer(const T &, const std::integral_constant<bool, false> &) const
    {}
    
    template<typename T>
-   void visitSignal(const T *signal, const mpl::bool_<true> &) const
+   void visitSignal(const T *signal, const std::integral_constant<bool, true> &) const
    {
-      if(signal)
-         slot_->track_signal(*signal);
+      if(signal) {
+         m_slot->trackSignal(*signal);
+      }
    }
    
    template<typename T>
-   void visitSignal(const T &t, const mpl::bool_<false> &) const
+   void visitSignal(const T &t, const std::integral_constant<bool, false> &) const
    {
       addIfTrackable(t);
    }
    
-   void addIfTrackable(const trackable *trackable) const
+   void addIfTrackable(const Trackable *trackable) const
    {
-      if(trackable)
-         slot_->_tracked_objects.push_back(trackable->get_weak_ptr());
+      if(trackable) {
+         m_slot->m_trackedObjects.push_back(trackable->getWeakPtr());
+      }
    }
    
    void addIfTrackable(const void *) const 
    {}
    
-   mutable slot_base * slot_;
+   mutable SlotBase * m_slot;
 };
-
 
 } // internal
 } // signal
