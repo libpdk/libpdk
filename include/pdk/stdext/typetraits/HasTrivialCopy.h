@@ -20,8 +20,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_TRIVIAL_COPY_H
-#define PDK_STDEXT_HAS_TRIVIAL_COPY_H
+#ifndef PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_COPY_H
+#define PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_COPY_H
 
 #include <cstddef> // size_t
 
@@ -78,4 +78,4 @@ struct HasTrivialCopyConstructor : public HasTrivialCopy<T>
 } // pdk
 
 
-#endif // PDK_STDEXT_HAS_TRIVIAL_COPY_H
+#endif // PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_COPY_H

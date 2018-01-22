@@ -20,8 +20,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_NOTHROW_COPY_H
-#define PDK_STDEXT_HAS_NOTHROW_COPY_H
+#ifndef PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_COPY_H
+#define PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_COPY_H
 
 #include <cstddef> // size_t
 #include <type_traits>
@@ -47,4 +47,4 @@ template <class T> struct HasNothrowCopyConstructor : public internal::HasNothro
 } // pdk
 
 
-#endif // PDK_STDEXT_HAS_NOTHROW_COPY_H
+#endif // PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_COPY_H

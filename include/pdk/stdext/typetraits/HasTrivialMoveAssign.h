@@ -22,8 +22,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_TRIVIAL_MOVE_ASSIGN_H
-#define PDK_STDEXT_HAS_TRIVIAL_MOVE_ASSIGN_H
+#ifndef PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_MOVE_ASSIGN_H
+#define PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_MOVE_ASSIGN_H
 
 #include <cstddef> // size_t
 #include <type_traits>
@@ -73,4 +73,4 @@ struct has_trivial_move_assign<T[]> : public std::false_type
 } // stdext
 } // pdk
 
-#endif // PDK_STDEXT_HAS_TRIVIAL_MOVE_ASSIGN_H
+#endif // PDK_STDEXT_TYPE_TRAITS_HAS_TRIVIAL_MOVE_ASSIGN_H

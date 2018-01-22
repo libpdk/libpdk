@@ -20,8 +20,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
-#define PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
+#ifndef PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_CONSTRUCTOR_H
+#define PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_CONSTRUCTOR_H
 
 #include <cstddef> // size_t
 #include <type_traits>
@@ -60,4 +60,4 @@ struct HasNothrowConstructor : public internal::HasNothrowConstructorImp<T, std:
 #pragma warning(pop)
 #endif
 
-#endif // PDK_STDEXT_HAS_NOTHROW_CONSTRUCTOR_H
+#endif // PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_CONSTRUCTOR_H

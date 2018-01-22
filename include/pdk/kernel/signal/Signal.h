@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <mutex>
 
 #include "pdk/kernel/signal/internal/SignalCommon.h"
 #include "pdk/kernel/signal/internal/SlotGroup.h"
@@ -47,28 +48,13 @@ namespace pdk {
 namespace kernel {
 namespace signal {
 
-// free swap function, findable by ADL
-template<typename Signature,
-         typename Combiner,
-         typename Group,
-         typename GroupCompare,
-         typename SlotFunction,
-         typename ExtendedSlotFunction,
-         typename Mutex>
-void swap(
-      signal<Signature, Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &sig1,
-      signal<Signature, Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &sig2)
-{
-   sig1.swap(sig2);
-}
-
 template <typename Signature,
-          typename Combiner = optional_last_value<typename boost::function_traits<Signature>::result_type>,
+          typename Combiner = OptionalLastValue<typename std::function_traits<Signature>::result_type>,
           typename Group = int,
           typename GroupCompare = std::less<Group>,
-          typename SlotFunction = boost::function<Signature>,
-          typename ExtendedSlotFunction = typename internal::variadic_extended_signature<Signature>::function_type,
-          typename Mutex = signals2::mutex>
+          typename SlotFunction = std::function<Signature>,
+          typename ExtendedSlotFunction = typename internal::VariadicExtendedSignature<Signature>::function_type,
+          typename Mutex = std::mutex>
 class Signal;
 
 template <typename Combiner,
@@ -80,7 +66,7 @@ template <typename Combiner,
           typename R,
           typename ... Args>
 class Signal <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> 
-   : public SignalBase, public internal::std_functional_base<Args...>
+   : public SignalBase, public internal::StdFuncBase<Args...>
 {
                using impl_class = internal::SignalImpl<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
                ExtendedSlotFunction, Mutex>;
@@ -220,6 +206,21 @@ virtual std::shared_ptr<void> lock_pimpl() const
 private:
 std::shared_ptr<impl_class> m_pimpl;
 };
+
+// free swap function, findable by ADL
+template<typename Signature,
+         typename Combiner,
+         typename Group,
+         typename GroupCompare,
+         typename SlotFunction,
+         typename ExtendedSlotFunction,
+         typename Mutex>
+void swap(
+      Signal<Signature, Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &sig1,
+      Signal<Signature, Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &sig2)
+{
+   sig1.swap(sig2);
+}
 
 } // signal
 } // kernel

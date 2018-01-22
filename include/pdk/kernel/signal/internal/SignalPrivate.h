@@ -28,6 +28,10 @@
 
 #include "pdk/kernel/signal/internal/ResultTypeWrapper.h"
 #include "pdk/kernel/signal/internal/VariadicSlotInvoker.h"
+#include "pdk/kernel/signal/internal/SlotCallIterator.h"
+#include "pdk/kernel/signal/internal/SlotGroup.h"
+#include "pdk/kernel/signal/internal/ReplaceSlotFunction.h"
+#include "pdk/kernel/signal/Signal.h"
 
 namespace pdk {
 namespace kernel {
@@ -36,6 +40,8 @@ namespace signal {
 class Connection;
 
 namespace internal {
+
+using pdk::kernel::signal::ConnectPosition;
 
 template<typename Signature> 
 class VariadicExtendedSignature;
@@ -158,406 +164,416 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    using BoundExtendedSlotFunctionType = BoundExtendedSlotFunction<ExtendedSlotFunctionType>;
    
    public:
-   using combiner_type = Combiner;
-   using result_type = typename ResultTypeWrapper<typename combiner_type::result_type>::type;
-   using group_type = Group;
-   using group_compare_type = GroupCompare;
-   using slot_call_iterator = typename internal::slot_call_iterator_t<slot_invoker,
-   typename connection_list_type::iterator, ConnectionBody<group_key_type, slot_type, Mutex>>;
+   using CombinerType = Combiner;
+   using ResultType = typename ResultTypeWrapper<typename CombinerType::ResultType>::type;
+   using GroupType = Group;
+   using GroupCompareType = GroupCompare;
+   using SlotCallIterator = typename internal::SlotCallIterator<SlotInvoker,
+   typename ConnectionListType::iterator, ConnectionBody<GroupKeyType, SlotType, Mutex>>;
    
-   SignalImpl(const combiner_type &combinerArg,
-              const group_compare_type &groupCompare)
-      : m_sharedState(new InvocationState(connection_list_type(groupCompare), combinerArg)),
-        m_garbageCollectorIt(m_sharedState->connectionBodies().end()),
+   SignalImpl(const CombinerType &combinerArg,
+              const GroupCompareType &groupCompare)
+      : m_sharedState(new InvocationState(ConnectionListType(groupCompare), combinerArg)),
+        m_garbageCollectorIter(m_sharedState->connectionBodies().end()),
         m_mutex(new MutexType())
    {}
    
    // connect slot
-   Connection connect(const slot_type &slot, connect_position position = at_back)
+   Connection connect(const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<MutexType> lock(m_mutex);
       return nolockConnect(lock, slot, position);
    }
    
-   Connection connect(const group_type &group,
-                      const slot_type &slot, connect_position position = at_back)
+   Connection connect(const GroupType &group,
+                      const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<MutexType> lock(m_mutex);
       return nolockConnect(lock, group, slot, position);
    }
    
-   connection connectExtended(const extended_slot_type &ext_slot, connect_position position = at_back)
+   Connection connectExtended(const ExtendedSlotType &extSlot, ConnectPosition position = ConnectPosition::AtBack)
    {
-      garbage_collecting_lock<mutex_type> lock(*_mutex);
-      bound_extended_slot_function_type bound_slot(ext_slot.slot_function());
-      slot_type slot = replace_slot_function<slot_type>(ext_slot, bound_slot);
-      connection conn = nolock_connect(lock, slot, position);
-      bound_slot.set_connection(conn);
+      GarbageCollectingLock<MutexType> lock(*m_mutex);
+      BoundExtendedSlotFunctionType boundSlot(extSlot.slotFunc());
+      SlotType slot = replace_slot_function<SlotType>(extSlot, boundSlot);
+      Connection conn = nolockConnect(lock, slot, position);
+      boundSlot.setConnection(conn);
       return conn;
    }
    
-   connection connect_extended(const group_type &group,
-                               const extended_slot_type &ext_slot, connect_position position = at_back)
+   Connection connectExtended(const GroupType &group,
+                              const ExtendedSlotType &extSlot, ConnectPosition position = ConnectPosition::AtBack)
    {
-      garbage_collecting_lock<Mutex> lock(*_mutex);
-      bound_extended_slot_function_type bound_slot(ext_slot.slot_function());
-      slot_type slot = replace_slot_function<slot_type>(ext_slot, bound_slot);
-      connection conn = nolock_connect(lock, group, slot, position);
-      bound_slot.set_connection(conn);
+      GarbageCollectingLock<Mutex> lock(*m_mutex);
+      BoundExtendedSlotFunctionType boundSlot(extSlot.slotFunc());
+      SlotType slot = replace_slot_function<SlotType>(extSlot, boundSlot);
+      Connection conn = nolockConnect(lock, group, slot, position);
+      boundSlot.setConnection(conn);
       return conn;
    }
    
    // disconnect slot(s)
-   void disconnect_all_slots()
+   void disconnectAllSlots()
    {
-      shared_ptr<invocation_state> local_state =
-            get_readable_state();
-      typename connection_list_type::iterator it;
-      for(it = local_state->connection_bodies().begin();
-          it != local_state->connection_bodies().end(); ++it)
+      std::shared_ptr<InvocationState> localState =
+            getReadableState();
+      typename ConnectionListType::iterator it;
+      for(it = localState->connectionBodies().begin();
+          it != localState->connectionBodies().end(); ++it)
       {
          (*it)->disconnect();
       }
    }
    
-   void disconnect(const group_type &group)
+   void disconnect(const GroupType &group)
    {
-      shared_ptr<invocation_state> local_state =
-            get_readable_state();
-      group_key_type group_key(grouped_slots, group);
-      typename connection_list_type::iterator it;
-      typename connection_list_type::iterator end_it =
-            local_state->connection_bodies().upper_bound(group_key);
-      for(it = local_state->connection_bodies().lower_bound(group_key);
-          it != end_it; ++it)
+      std::shared_ptr<InvocationState> localState =
+            getReadableState();
+      GroupKeyType groupKey(SlotMetaGroup::GroupedSlots, group);
+      typename ConnectionListType::iterator iter;
+      typename ConnectionListType::iterator endIter =
+            localState->connectionBodies().upper_bound(groupKey);
+      for(iter = localState->connectionBodies().lower_bound(groupKey);
+          iter != endIter; ++iter)
       {
-         (*it)->disconnect();
+         (*iter)->disconnect();
       }
    }
    
    template <typename T>
    void disconnect(const T &slot)
    {
-      typedef mpl::bool_<(is_convertible<T, group_type>::value)> is_group;
-      do_disconnect(slot, is_group());
+      using IsGroupType = std::integral_constant<bool, std::is_convertible<T, GroupType>::value>;
+      doDisconnect(slot, IsGroupType());
    }
    
    // emit signal
-   result_type operator ()(BOOST_SIGNALS2_SIGNATURE_FULL_ARGS(BOOST_SIGNALS2_NUM_ARGS))
+   ResultType operator ()(Args ... args)
    {
-      shared_ptr<invocation_state> local_state;
-      typename connection_list_type::iterator it;
+      std::shared_ptr<InvocationState> localState;
       {
-         garbage_collecting_lock<mutex_type> list_lock(*_mutex);
+         GarbageCollectingLock<MutexType> lock(*m_mutex);
          // only clean up if it is safe to do so
-         if(_shared_state.unique())
-            nolock_cleanup_connections(list_lock, false, 1);
-         /* Make a local copy of _shared_state while holding mutex, so we are
+         if(m_sharedState.unique()) {
+            nolockCleanupConnections(lock, false, 1);
+         }
+         /* Make a local copy of m_sharedState while holding mutex, so we are
                thread safe against the combiner or connection list getting modified
                during invocation. */
-         local_state = _shared_state;
+         localState = m_sharedState;
       }
-      slot_invoker invoker = slot_invoker(BOOST_SIGNALS2_SIGNATURE_ARG_NAMES(BOOST_SIGNALS2_NUM_ARGS));
-      slot_call_iterator_cache_type cache(invoker);
-      invocation_janitor janitor(cache, *this, &local_state->connection_bodies());
-      return detail::combiner_invoker<typename combiner_type::result_type>()
+      SlotInvoker invoker = SlotInvoker(args...);
+      SlotCallIteratorCacheType cache(invoker);
+      InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
+      return CombinerInvoker<typename CombinerType::ResultType>()
             (
-               local_state->combiner(),
-               slot_call_iterator(local_state->connection_bodies().begin(), local_state->connection_bodies().end(), cache),
-               slot_call_iterator(local_state->connection_bodies().end(), local_state->connection_bodies().end(), cache)
+               localState->combiner(),
+               SlotCallIterator(localState->connectionBodies().begin(), localState->connectionBodies().end(), cache),
+               SlotCallIterator(localState->connectionBodies().end(), localState->connectionBodies().end(), cache)
                );
    }
    
-   result_type operator ()(BOOST_SIGNALS2_SIGNATURE_FULL_ARGS(BOOST_SIGNALS2_NUM_ARGS)) const
+   ResultType operator ()(Args ... args) const
    {
-      shared_ptr<invocation_state> local_state;
-      typename connection_list_type::iterator it;
+      std::shared_ptr<InvocationState> localState;
       {
-         garbage_collecting_lock<mutex_type> list_lock(*_mutex);
+         GarbageCollectingLock<MutexType> lock(*m_mutex);
          // only clean up if it is safe to do so
-         if(_shared_state.unique())
-            nolock_cleanup_connections(list_lock, false, 1);
-         /* Make a local copy of _shared_state while holding mutex, so we are
+         if(m_sharedState.unique()) {
+            nolockCleanupConnections(lock, false, 1);
+         }
+         /* Make a local copy of m_sharedState while holding mutex, so we are
                thread safe against the combiner or connection list getting modified
                during invocation. */
-         local_state = _shared_state;
+         localState = m_sharedState;
       }
-      slot_invoker invoker = slot_invoker(BOOST_SIGNALS2_SIGNATURE_ARG_NAMES(BOOST_SIGNALS2_NUM_ARGS));
-      slot_call_iterator_cache_type cache(invoker);
-      invocation_janitor janitor(cache, *this, &local_state->connection_bodies());
-      return detail::combiner_invoker<typename combiner_type::result_type>()
+      SlotInvoker invoker = SlotInvoker(args...);
+      SlotCallIteratorCacheType cache(invoker);
+      InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
+      return internal::CombinerInvoker<typename CombinerType::ResultType>()
             (
-               local_state->combiner(),
-               slot_call_iterator(local_state->connection_bodies().begin(), local_state->connection_bodies().end(), cache),
-               slot_call_iterator(local_state->connection_bodies().end(), local_state->connection_bodies().end(), cache)
+               localState->combiner(),
+               SlotCallIterator(localState->connectionBodies().begin(), localState->connectionBodies().end(), cache),
+               SlotCallIterator(localState->connectionBodies().end(), localState->connectionBodies().end(), cache)
                );
    }
    
-   std::size_t num_slots() const
+   std::size_t numSlots() const
    {
-      shared_ptr<invocation_state> local_state =
-            get_readable_state();
-      typename connection_list_type::iterator it;
+      std::shared_ptr<InvocationState> localState = getReadableState();
+      typename ConnectionListType::iterator iter;
       std::size_t count = 0;
-      for(it = local_state->connection_bodies().begin();
-          it != local_state->connection_bodies().end(); ++it)
-      {
-         if((*it)->connected()) ++count;
+      for(iter = localState->connectionBodies().begin();
+          iter != localState->connectionBodies().end(); ++iter) {
+         if((*iter)->connected()) {
+            ++count;
+         }
       }
       return count;
    }
    
    bool empty() const
    {
-      shared_ptr<invocation_state> local_state =
-            get_readable_state();
-      typename connection_list_type::iterator it;
-      for(it = local_state->connection_bodies().begin();
-          it != local_state->connection_bodies().end(); ++it)
+      std::shared_ptr<InvocationState> localState = getReadableState();
+      typename ConnectionListType::iterator iter;
+      for(iter = localState->connectionBodies().begin();
+          iter != localState->connectionBodies().end(); ++iter)
       {
-         if((*it)->connected()) return false;
+         if((*iter)->connected()) {
+            return false;
+         }
       }
       return true;
    }
    
-   combiner_type combiner() const
+   CombinerType combiner() const
    {
-      unique_lock<mutex_type> lock(*_mutex);
-      return _shared_state->combiner();
+      std::unique_lock<MutexType> lock(*m_mutex);
+      return m_sharedState->combiner();
    }
    
-   void set_combiner(const combiner_type &combiner_arg)
+   void setCombiner(const CombinerType &combinerArg)
    {
-      unique_lock<mutex_type> lock(*_mutex);
-      if(_shared_state.unique())
-         _shared_state->combiner() = combiner_arg;
-      else
-         _shared_state.reset(new invocation_state(*_shared_state, combiner_arg));
+      std::unique_lock<MutexType> lock(*m_mutex);
+      if(m_sharedState.unique()) {
+         m_sharedState->combiner() = combinerArg;
+      } else {
+         m_sharedState.reset(new InvocationState(*m_sharedState, combinerArg));
+      }
    }
+   
    private:
-   typedef Mutex mutex_type;
+   typedef Mutex MutexType;
    // a struct used to optimize (minimize) the number of shared_ptrs that need to be created
    // inside operator()
-   class invocation_state
+   class InvocationState
    {
    public:
-      invocation_state(const connection_list_type &connections_in,
-                       const combiner_type &combiner_in): _connection_bodies(new connection_list_type(connections_in)),
-         _combiner(new combiner_type(combiner_in))
+      InvocationState(const ConnectionListType &connectionsIn, const CombinerType &combinerIn)
+         : m_connectionBodies(new ConnectionListType(connectionsIn)),
+           m_combiner(new CombinerType(combinerIn))
       {}
-      invocation_state(const invocation_state &other, const connection_list_type &connections_in):
-         _connection_bodies(new connection_list_type(connections_in)),
-         _combiner(other._combiner)
-      {}
-      invocation_state(const invocation_state &other, const combiner_type &combiner_in):
-         _connection_bodies(other._connection_bodies),
-         _combiner(new combiner_type(combiner_in))
-      {}
-      connection_list_type & connection_bodies() { return *_connection_bodies; }
-      const connection_list_type & connection_bodies() const { return *_connection_bodies; }
-      combiner_type & combiner() { return *_combiner; }
-      const combiner_type & combiner() const { return *_combiner; }
-   private:
-      invocation_state(const invocation_state &);
       
-      shared_ptr<connection_list_type> _connection_bodies;
-      shared_ptr<combiner_type> _combiner;
+      InvocationState(const InvocationState &other, const ConnectionListType &connectionsIn):
+         m_connectionBodies(new ConnectionListType(connectionsIn)),
+         m_combiner(other.m_combiner)
+      {}
+      
+      InvocationState(const InvocationState &other, const CombinerType &combinerIn):
+         m_connectionBodies(other.m_connectionBodies),
+         m_combiner(new CombinerType(combinerIn))
+      {}
+      
+      ConnectionListType &connectionBodies()
+      {
+         return *m_connectionBodies;
+      }
+      
+      const ConnectionListType & connectionBodies() const
+      {
+         return *m_connectionBodies;
+      }
+      
+      CombinerType & combiner()
+      {
+         return *m_combiner;
+      }
+      
+      const CombinerType &combiner() const
+      {
+         return *m_combiner;
+      }
+      
+   private:
+      InvocationState(const InvocationState &);
+      std::shared_ptr<ConnectionListType> m_connectionBodies;
+      std::shared_ptr<CombinerType> m_combiner;
    };
    
    // Destructor of invocation_janitor does some cleanup when a signal invocation completes.
    // Code can't be put directly in signal's operator() due to complications from void return types.
-   class invocation_janitor: noncopyable
+   class InvocationJanitor
    {
    public:
-      typedef BOOST_SIGNALS2_SIGNAL_IMPL_CLASS_NAME(BOOST_SIGNALS2_NUM_ARGS) signal_type;
-      invocation_janitor
-            (
-               const slot_call_iterator_cache_type &cache,
-               const signal_type &sig,
-               const connection_list_type *connection_bodies
-               ):_cache(cache), _sig(sig), _connection_bodies(connection_bodies)
+      using SignalType = SignalImpl;
+      InvocationJanitor (
+               const SlotCallIteratorCacheType &cache,
+               const SignalType &sig,
+               const ConnectionListType *connectionBodies)
+         : m_cache(cache), 
+           m_sig(sig), 
+           m_connectionBodies(connectionBodies)
       {}
-      ~invocation_janitor()
+      
+      ~InvocationJanitor()
       {
          // force a full cleanup of disconnected slots if there are too many
-         if(_cache.disconnected_slot_count > _cache.connected_slot_count)
+         if(m_cache.disconnectedSlotCount > m_cache.connectedSlotCount)
          {
-            _sig.force_cleanup_connections(_connection_bodies);
+            m_sig.forceCleanupConnections(m_connectionBodies);
          }
       }
+      
    private:
-      const slot_call_iterator_cache_type &_cache;
-      const signal_type &_sig;
-      const connection_list_type *_connection_bodies;
+      PDK_DISABLE_COPY(InvocationJanitor);
+      const SlotCallIteratorCacheType &m_cache;
+      const SignalType &m_sig;
+      const ConnectionListType *m_connectionBodies;
    };
    
    // clean up disconnected connections
-   void nolock_cleanup_connections_from(garbage_collecting_lock<mutex_type> &lock,
-                                        bool grab_tracked,
-                                        const typename connection_list_type::iterator &begin, unsigned count = 0) const
+   void nolockCleanupConnectionsFrom(GarbageCollectingLock<MutexType> &lock,
+                                     bool grabTracked,
+                                     const typename ConnectionListType::iterator &begin, unsigned count = 0) const
    {
-      BOOST_ASSERT(_shared_state.unique());
-      typename connection_list_type::iterator it;
+      PDK_ASSERT(m_sharedState.unique());
+      typename ConnectionListType::iterator iter;
       unsigned i;
-      for(it = begin, i = 0;
-          it != _shared_state->connection_bodies().end() && (count == 0 || i < count);
+      for(iter = begin, i = 0;
+          iter != m_sharedState->connectionBodies().end() && (count == 0 || i < count);
           ++i)
       {
          bool connected;
-         if(grab_tracked)
-            (*it)->disconnect_expired_slot(lock);
-         connected = (*it)->nolock_nograb_connected();
-         if(connected == false)
-         {
-            it = _shared_state->connection_bodies().erase((*it)->group_key(), it);
-         }else
-         {
-            ++it;
+         if(grabTracked) {
+            (*iter)->disconnectExpiredSlot(lock);
+         }
+         connected = (*iter)->nolockNograbConnected();
+         if(connected == false) {
+            iter = m_sharedState->connectionBodies().erase((*iter)->getGroupKey(), iter);
+         }else {
+            ++iter;
          }
       }
-      _garbage_collector_it = it;
+      m_garbageCollectorIter = iter;
    }
    
    // clean up a few connections in constant time
-   void nolock_cleanup_connections(garbage_collecting_lock<mutex_type> &lock,
-                                   bool grab_tracked, unsigned count) const
+   void nolockCleanupConnections(GarbageCollectingLock<MutexType> &lock,
+                                 bool grabTracked, unsigned count) const
    {
-      BOOST_ASSERT(_shared_state.unique());
-      typename connection_list_type::iterator begin;
-      if(_garbage_collector_it == _shared_state->connection_bodies().end())
+      PDK_ASSERT(m_sharedState.unique());
+      typename ConnectionListType::iterator begin;
+      if(m_garbageCollectorIter == m_sharedState->connectionBodies().end())
       {
-         begin = _shared_state->connection_bodies().begin();
+         begin = m_sharedState->connectionBodies().begin();
       }else
       {
-         begin = _garbage_collector_it;
+         begin = m_garbageCollectorIter;
       }
-      nolock_cleanup_connections_from(lock, grab_tracked, begin, count);
+      nolockCleanupConnectionsFrom(lock, grabTracked, begin, count);
    }
    
-   /* Make a new copy of the slot list if it is currently being read somewhere else
-           */
-   void nolock_force_unique_connection_list(garbage_collecting_lock<mutex_type> &lock)
+   // Make a new copy of the slot list if it is currently being read somewhere else
+   void nolockForceUniqueConnectionList(GarbageCollectingLock<MutexType> &lock)
    {
-      if(_shared_state.unique() == false)
-      {
-         _shared_state.reset(new invocation_state(*_shared_state, _shared_state->connection_bodies()));
-         nolock_cleanup_connections_from(lock, true, _shared_state->connection_bodies().begin());
-      }else
-      {
+      if(m_sharedState.unique() == false) {
+         m_sharedState.reset(new InvocationState(*m_sharedState, m_sharedState->connectionBodies()));
+         nolockCleanupConnectionsFrom(lock, true, m_sharedState->connectionBodies().begin());
+      } else {
          /* We need to try and check more than just 1 connection here to avoid corner
                cases where certain repeated connect/disconnect patterns cause the slot
                list to grow without limit. */
-         nolock_cleanup_connections(lock, true, 2);
+         nolockCleanupConnections(lock, true, 2);
       }
    }
    
    // force a full cleanup of the connection list
-   void force_cleanup_connections(const connection_list_type *connection_bodies) const
+   void forceCleanupConnections(const ConnectionListType *connectionBodies) const
    {
-      garbage_collecting_lock<mutex_type> list_lock(*_mutex);
+      GarbageCollectingLock<MutexType> lock(*m_mutex);
       // if the connection list passed in as a parameter is no longer in use,
       // we don't need to do any cleanup.
-      if(&_shared_state->connection_bodies() != connection_bodies)
-      {
+      if(&m_sharedState->connectionBodies() != connectionBodies) {
          return;
       }
-      if(_shared_state.unique() == false)
-      {
-         _shared_state.reset(new invocation_state(*_shared_state, _shared_state->connection_bodies()));
+      if(m_sharedState.unique() == false) {
+         m_sharedState.reset(new InvocationState(*m_sharedState, m_sharedState->connectionBodies()));
       }
-      nolock_cleanup_connections_from(list_lock, false, _shared_state->connection_bodies().begin());
+      nolockCleanupConnectionsFrom(lock, false, m_sharedState->connectionBodies().begin());
    }
    
-   shared_ptr<invocation_state> get_readable_state() const
+   std::shared_ptr<InvocationState> getReadableState() const
    {
-      unique_lock<mutex_type> list_lock(*_mutex);
-      return _shared_state;
+      std::unique_lock<MutexType> lock(*m_mutex);
+      return m_sharedState;
    }
    
-   connection_body_type create_new_connection(garbage_collecting_lock<mutex_type> &lock,
-                                              const slot_type &slot)
+   ConnectionBodyType createNewConnection(GarbageCollectingLock<MutexType> &lock,
+                                          const SlotType &slot)
    {
-      nolock_force_unique_connection_list(lock);
-      return connection_body_type(new connection_body<group_key_type, slot_type, Mutex>(slot, _mutex));
+      nolockForceUniqueConnectionList(lock);
+      return ConnectionBodyType(new ConnectionBody<GroupKeyType, SlotType, Mutex>(slot, m_mutex));
    }
    
-   void do_disconnect(const group_type &group, mpl::bool_<true> /* is_group */)
+   void doDisconnect(const GroupType &group, std::integral_constant<bool, true> /* is_group */)
    {
       disconnect(group);
    }
    
    template<typename T>
-   void do_disconnect(const T &slot, mpl::bool_<false> /* is_group */)
+   void doDisconnect(const T &slot, std::integral_constant<bool, false> /* is_group */)
    {
-      shared_ptr<invocation_state> local_state =
-            get_readable_state();
-      typename connection_list_type::iterator it;
-      for(it = local_state->connection_bodies().begin();
-          it != local_state->connection_bodies().end(); ++it)
-      {
-         garbage_collecting_lock<connection_body_base> lock(**it);
-         if((*it)->nolock_nograb_connected() == false) continue;
-         if((*it)->slot().slot_function() == slot)
-         {
-            (*it)->nolock_disconnect(lock);
-         }else
-         {
+      std::shared_ptr<InvocationState> localState = getReadableState();
+      typename ConnectionListType::iterator iter;
+      for(iter = localState->connectionBodies().begin();
+          iter != localState->connectionBodies().end(); ++iter) {
+         GarbageCollectingLock<ConnectionBodyBase> lock(**iter);
+         if((*iter)->nolockNograbConnected() == false) {
+            continue;
+         }
+         if((*iter)->slot().slotFunc() == slot) {
+            (*iter)->nolockDisconnect(lock);
+         }else {
             // check for wrapped extended slot
-            bound_extended_slot_function_type *fp;
-            fp = (*it)->slot().slot_function().template target<bound_extended_slot_function_type>();
-            if(fp && *fp == slot)
-            {
-               (*it)->nolock_disconnect(lock);
+            BoundExtendedSlotFunctionType *fp;
+            fp = (*iter)->slot().slotFunc().template target<BoundExtendedSlotFunctionType>();
+            if(fp && *fp == slot) {
+               (*iter)->nolockDisconnect(lock);
             }
          }
       }
    }
    
-   
    // connect slot
-   connection nolock_connect(garbage_collecting_lock<mutex_type> &lock,
-                             const slot_type &slot, connect_position position)
+   Connection nolockConnect(GarbageCollectingLock<MutexType> &lock,
+                            const SlotType &slot, ConnectPosition position)
    {
-      connection_body_type newConnectionBody =
-            create_new_connection(lock, slot);
-      group_key_type group_key;
-      if(position == at_back)
-      {
-         group_key.first = back_ungrouped_slots;
-         _shared_state->connection_bodies().push_back(group_key, newConnectionBody);
-      }else
-      {
-         group_key.first = front_ungrouped_slots;
-         _shared_state->connection_bodies().push_front(group_key, newConnectionBody);
+      ConnectionBodyType newConnectionBody = createNewConnection(lock, slot);
+      GroupKeyType groupKey;
+      if(position == ConnectPosition::AtBack) {
+         groupKey.first = SlotMetaGroup::BackUngroupedSlots;
+         m_sharedState->connectionBodies().push_back(groupKey, newConnectionBody);
+      } else {
+         groupKey.first = SlotMetaGroup::FrontUngroupedSlots;
+         m_sharedState->connectionBodies().push_front(groupKey, newConnectionBody);
       }
-      newConnectionBody->set_group_key(group_key);
-      return connection(newConnectionBody);
+      newConnectionBody->setGroupKey(groupKey);
+      return Connection(newConnectionBody);
    }
-   connection nolock_connect(garbage_collecting_lock<mutex_type> &lock,
-                             const group_type &group,
-                             const slot_type &slot, connect_position position)
+   
+   Connection nolockConnect(GarbageCollectingLock<MutexType> &lock,
+                            const SlotType &group, const SlotType &slot, ConnectPosition position)
    {
-      connection_body_type newConnectionBody =
-            create_new_connection(lock, slot);
+      ConnectionBodyType newConnectionBody = createNewConnection(lock, slot);
       // update map to first connection body in group if needed
-      group_key_type group_key(grouped_slots, group);
-      newConnectionBody->set_group_key(group_key);
-      if(position == at_back)
-      {
-         _shared_state->connection_bodies().push_back(group_key, newConnectionBody);
-      }else  // at_front
-      {
-         _shared_state->connection_bodies().push_front(group_key, newConnectionBody);
+      GroupKeyType groupKey(SlotMetaGroup::GroupedSlots, group);
+      newConnectionBody->setGroupKey(groupKey);
+      if(position == ConnectPosition::AtBack) {
+         m_sharedState->connectionBodies().push_back(groupKey, newConnectionBody);
+      } else {
+         // at_front
+         m_sharedState->connectionBodies().push_front(groupKey, newConnectionBody);
       }
-      return connection(newConnectionBody);
+      return Connection(newConnectionBody);
    }
    
    // _shared_state is mutable so we can do force_cleanup_connections during a const invocation
-   mutable shared_ptr<invocation_state> m_shared_state;
-   mutable typename connection_list_type::iterator m_garbage_collector_it;
+   mutable std::shared_ptr<InvocationState> m_sharedState;
+   mutable typename ConnectionListType::iterator m_garbageCollectorIter;
    // connection list mutex must never be locked when attempting a blocking lock on a slot,
    // or you could deadlock.
-   const boost::shared_ptr<mutex_type> m_mutex;
+   const std::shared_ptr<MutexType> m_mutex;
 };
 
 // wrapper class for storing other signals as slots with automatic lifetime tracking
@@ -582,6 +598,7 @@ class WeakSignal <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
 {
 public:
    using result_type = typename Signal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>::result_type;
+   
    WeakSignal(const Signal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &signal)
       : m_weakPimpl(signal.m_pImpl)
    {}
@@ -589,25 +606,25 @@ public:
    result_type operator ()(Args ... args)
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
-      shared_pimpl(_weak_pimpl.lock());
+                                                                                                                                    shared_pimpl(_weak_pimpl.lock());
       return (*shared_pimpl)(args...);
    }
    
    result_type operator ()(Args ... args) const
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
-      shared_pimpl(_weak_pimpl.lock());
+                                                                                                                                    shared_pimpl(_weak_pimpl.lock());
       return (*shared_pimpl)(args...);
    }
    
-private:
+   private:
    std::weak_ptr<internal::SignalImpl<R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>> m_weak_pimpl;
 };
 
 template<int arity, typename Signature>
 class extended_signature: public variadic_extended_signature<Signature>
 {};
- 
+
 } // internal
 } // signal
 } // kernel

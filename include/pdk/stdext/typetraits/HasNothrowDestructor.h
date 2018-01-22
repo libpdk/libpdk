@@ -20,8 +20,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
-#define PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
+#ifndef PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_DESTRUCTOR_H
+#define PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_DESTRUCTOR_H
 
 #include <cstddef> // size_t
 #include <type_traits>
@@ -59,4 +59,4 @@ struct has_nothrow_destructor<T&&> : public std::integral_constant<bool, false>
 } // pdk
 
 
-#endif // PDK_STDEXT_HAS_NOTHROW_DESTRUCTOR_H
+#endif // PDK_STDEXT_TYPE_TRAITS_HAS_NOTHROW_DESTRUCTOR_H
