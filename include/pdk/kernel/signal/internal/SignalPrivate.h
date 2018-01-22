@@ -384,7 +384,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
          return *m_connectionBodies;
       }
       
-      CombinerType & combiner()
+      CombinerType &combiner()
       {
          return *m_combiner;
       }
@@ -418,7 +418,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       ~InvocationJanitor()
       {
          // force a full cleanup of disconnected slots if there are too many
-         if(m_cache.disconnectedSlotCount > m_cache.connectedSlotCount)
+         if(m_cache.m_disconnectedSlotCount > m_cache.m_connectedSlotCount)
          {
             m_sig.forceCleanupConnections(m_connectionBodies);
          }
@@ -560,7 +560,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    }
    
    Connection nolockConnect(GarbageCollectingLock<MutexType> &lock,
-                            const SlotType &group, const SlotType &slot, ConnectPosition position)
+                            const GroupType &group, const SlotType &slot, ConnectPosition position)
    {
       ConnectionBodyType newConnectionBody = createNewConnection(lock, slot);
       // update map to first connection body in group if needed

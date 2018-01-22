@@ -84,7 +84,8 @@ template<typename R>
 class CallWithTupleArgs
 {
 public:
-   typedef R result_type;
+   using ResultType = R;
+   using result_type = ResultType;
    
    template<typename Func, typename ... Args, std::size_t N>
    R operator()(Func &func, const std::tuple<Args...> & args, std::integral_constant<std::size_t, N>) const
@@ -95,7 +96,7 @@ public:
 private:
    template<typename Func, unsigned ... indices, typename ... Args>
    R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
-            typename pdk::stdext::DisableIf<std::is_void<typename Func::ResultType>::value>::type * = nullptr
+            typename pdk::stdext::DisableIf<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
       return func(std::get<indices>(args)...);
@@ -128,16 +129,17 @@ template<typename R, typename ... Args>
 class VariadicSlotInvoker
 {
 public:
-   typedef R result_type;
+   using ResultType = R;
+   using result_type = ResultType;
    
    VariadicSlotInvoker(Args & ... args)
       : m_args(args...)
    {}
    
    template<typename ConnectionBodyType>
-   result_type operator ()(const ConnectionBodyType &connectionBody) const
+   ResultType operator ()(const ConnectionBodyType &connectionBody) const
    {
-      return CallWithTupleArgs<result_type>()(connectionBody->slot().slotFunction(), 
+      return CallWithTupleArgs<ResultType>()(connectionBody->slot().slotFunc(), 
                                               m_args, std::integral_constant<size_t, sizeof...(Args)>());
    }
 private:

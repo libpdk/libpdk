@@ -792,6 +792,11 @@ public:
       }
    }
    
+   void push_back()
+   {
+      pushBack();
+   }
+   
    void pushBack(OptimizedConstReference value)
    {
       if (m_size != m_members.m_capacity) {
@@ -802,6 +807,11 @@ public:
       }
    }
    
+   void push_back(OptimizedConstReference value)
+   {
+      pushBack(value);
+   }
+   
    template<typename ForwardIterator>
    void pushBack(ForwardIterator beginArg, ForwardIterator endArg)
    {
@@ -810,6 +820,12 @@ public:
          reserve(m_size + diff);
       }
       uncheckedPushBack(beginArg, endArg);
+   }
+   
+   template<typename ForwardIterator>
+   void push_back(ForwardIterator beginArg, ForwardIterator endArg)
+   {
+      pushBack(beginArg, endArg);
    }
    
    Iterator insert(ConstIterator before, OptimizedConstReference value) // basic
@@ -870,6 +886,11 @@ public:
       PDK_ASSERT(!empty());
       autoBufferDestroy(m_buffer + m_size - 1, std::is_trivially_destructible<T>());
       --m_size;
+   }
+   
+   void pop_back()
+   {
+      popBack();
    }
    
    void popBackN(SizeType n)

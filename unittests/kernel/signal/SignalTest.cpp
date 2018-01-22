@@ -25,22 +25,22 @@ namespace {
 template<typename T>
 struct MaxOrDefault {
    typedef T ResultType;
+   using result_type = ResultType;
    template<typename InputIterator>
    typename InputIterator::ValueType
    operator()(InputIterator first, InputIterator last) const
    {
       std::optional<T> max;
-      for (; first != last; ++first)
-      {
+      for (; first != last; ++first) {
          try
          {
             if(!max) max = *first;
-            else max = (*first > max.get())? *first : max;
+            else max = (*first > max.value())? *first : max;
          }
          catch(const std::bad_weak_ptr &)
          {}
       }
-      if(max) return max.get();
+      if(max) return max.value();
       return T();
    }
 };
@@ -89,7 +89,9 @@ TEST(SignalTest, testSignal)
    {
       Signals::Signal<int (), MaxOrDefault<int>> signal0;
       std::cout << "sizeof(signal) = " << sizeof(signal0) << std::endl;
-      //Signals::Connection conn2 = signal0.connect(i2);
-      signal0.connect(i2);
+      Signals::Connection conn2 = signal0.connect(i2);
+      Signals::Connection conn72 = signal0.connect(72, i72);
+      Signals::Connection conn62 = signal0.connect(60, i62);
+      Signals::Connection conn42 = signal0.connect(60, i42);
    }
 }

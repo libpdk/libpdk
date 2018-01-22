@@ -86,114 +86,112 @@ public:
 template<typename Function, typename Iterator, typename ConnectionBody>
 class SlotCallIterator
 {
-//  typedef boost::iterator_facade<slot_call_iterator_t<Function, Iterator, ConnectionBody>,
-//    typename Function::result_type,
-//    boost::single_pass_traversal_tag,
-//    typename boost::add_reference<typename boost::add_const<typename Function::result_type>::type>::type >
-//  inherited;
-
-//  typedef typename Function::result_type result_type;
-
-//  typedef slot_call_iterator_cache<result_type, Function> cache_type;
-
-//  friend class boost::iterator_core_access;
-
-//public:
-//  slot_call_iterator_t(Iterator iter_in, Iterator end_in,
-//    cache_type &c):
-//    iter(iter_in), end(end_in),
-//    cache(&c), callable_iter(end_in)
-//  {
-//    lock_next_callable();
-//  }
-
-//  typename inherited::reference
-//  dereference() const
-//  {
-//    if (!cache->result) {
-//      BOOST_TRY
-//      {
-//        cache->result.reset(cache->f(*iter));
-//      }
-//      BOOST_CATCH(expired_slot &)
-//      {
-//        (*iter)->disconnect();
-//        BOOST_RETHROW
-//      }
-//      BOOST_CATCH_END
-//    }
-//    return cache->result.get();
-//  }
-
-//  void increment()
-//  {
-//    ++iter;
-//    lock_next_callable();
-//    cache->result.reset();
-//  }
-
-//  bool equal(const slot_call_iterator_t& other) const
-//  {
-//    return iter == other.iter;
-//  }
-
-//private:
-//  typedef garbage_collecting_lock<connection_body_base> lock_type;
-
-//  void set_callable_iter(lock_type &lock, Iterator newValue) const
-//  {
-//    callable_iter = newValue;
-//    if(callable_iter == end)
-//      cache->set_active_slot(lock, 0);
-//    else
-//      cache->set_active_slot(lock, (*callable_iter).get());
-//  }
-
-//  void lock_next_callable() const
-//  {
-//    if(iter == callable_iter)
-//    {
-//      return;
-//    }
-//    if(iter == end)
-//    {
-//      if(callable_iter != end)
-//      {
-//        lock_type lock(**callable_iter);
-//        set_callable_iter(lock, end);
-//        return;
-//      }
-//    }
-//    // we're only locking the first connection body,
-//    // but it doesn't matter they all use the same mutex
-//    lock_type lock(**iter);
-//    for(;iter != end; ++iter)
-//    {
-//      cache->tracked_ptrs.clear();
-//      (*iter)->nolock_grab_tracked_objects(lock, std::back_inserter(cache->tracked_ptrs));
-//      if((*iter)->nolock_nograb_connected())
-//      {
-//        ++cache->connected_slot_count;
-//      }else
-//      {
-//        ++cache->disconnected_slot_count;
-//      }
-//      if((*iter)->nolock_nograb_blocked() == false)
-//      {
-//        set_callable_iter(lock, iter);
-//        break;
-//      }
-//    }
-//    if(iter == end)
-//    {
-//      set_callable_iter(lock, end);
-//    }
-//  }
-
-//  mutable Iterator iter;
-//  Iterator end;
-//  cache_type *cache;
-//  mutable Iterator callable_iter;
+public:
+   using ResultType = typename Function::ResultType;
+   
+   using CacheType = SlotCallIteratorCache<ResultType, Function>;
+   using ValueType = ResultType;
+   using Reference = typename std::add_lvalue_reference<typename std::add_const<ResultType>::type>::type;
+   using Difference = std::ptrdiff_t;
+   using IteratorCategory = std::forward_iterator_tag;
+   
+   using result_type = ResultType;
+   using value_type = ValueType;
+   using reference = Reference;
+   using difference = Difference;
+   using iterator_category = IteratorCategory;
+   
+public:
+   SlotCallIterator(Iterator begin, Iterator end, CacheType &cacheType)
+      : m_iter(begin),
+        m_end(end),
+        m_cache(&cacheType),
+        m_callableIter(end)
+   {
+      lockNextCallable();
+   }
+   
+   reference operator *() const
+   {
+      if (!m_cache->m_result) {
+         try {
+            m_cache->m_result.reset();
+            m_cache->m_result = m_cache->m_func(*m_iter);
+         } catch(ExpiredSlot &) {
+            (*m_iter)->disconnect();
+            throw;
+         }
+      }
+      return m_cache->m_result.value();
+   }
+   
+   const SlotCallIterator &operator ++() const
+   {
+      ++m_iter;
+      lockNextCallable();
+      m_cache->m_result.reset();
+      return *this;
+   }
+   
+   bool operator ==(const SlotCallIterator &other) const
+   {
+      return m_iter == other.m_iter;
+   }
+   
+   bool operator !=(const SlotCallIterator &other) const
+   {
+      return m_iter != other.m_iter;
+   }
+   
+private:
+   using LockType = GarbageCollectingLock<ConnectionBodyBase>;
+   
+   void setCallableIter(LockType &lock, Iterator newValue) const
+   {
+      m_callableIter = newValue;
+      if(m_callableIter == m_end)
+         m_cache->setActiveSlot(lock, 0);
+      else
+         m_cache->setActiveSlot(lock, (*m_callableIter).get());
+   }
+   
+   void lockNextCallable() const
+   {
+      if(m_iter == m_callableIter) {
+         return;
+      }
+      if(m_iter == m_end) {
+         if(m_callableIter != m_end) {
+            LockType lock(**m_callableIter);
+            setCallableIter(lock, m_end);
+            return;
+         }
+      }
+      // we're only locking the first connection body,
+      // but it doesn't matter they all use the same mutex
+      LockType lock(**m_iter);
+      for(;m_iter != m_end; ++m_iter) {
+         m_cache->m_trackedPtrs.clear();
+         (*m_iter)->nolockGrabTrackedObjects(lock, std::back_inserter(m_cache->m_trackedPtrs));
+         if((*m_iter)->nolockNograbConnected()) {
+            ++m_cache->m_connectedSlotCount;
+         } else {
+            ++m_cache->m_disconnectedSlotCount;
+         }
+         if((*m_iter)->nolockNograbBlocked() == false) {
+            setCallableIter(lock, m_iter);
+            break;
+         }
+      }
+      if(m_iter == m_end) {
+         setCallableIter(lock, m_end);
+      }
+   }
+   
+   mutable Iterator m_iter;
+   Iterator m_end;
+   CacheType *m_cache;
+   mutable Iterator m_callableIter;
 };
 
 } // internal

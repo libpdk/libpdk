@@ -47,7 +47,7 @@ enum class SlotMetaGroup
 template<typename Group>
 struct GroupKey
 {
-   using type = std::pair<enum SlotMetaGroup, std::optional<Group>>;
+   using type = std::pair<SlotMetaGroup, std::optional<Group>>;
 };
 
 template<typename Group, typename GroupCompare>
