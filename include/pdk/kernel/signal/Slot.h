@@ -31,6 +31,7 @@
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
 #include "pdk/kernel/signal/internal/ForeignPtr.h"
 #include "pdk/kernel/signal/SlotBase.h"
+#include "pdk/stdext/VisitEach.h"
 
 namespace pdk {
 namespace kernel {
@@ -148,7 +149,7 @@ private:
    {
       m_slotFunc = internal::get_invocable_slot(f, internal::tag_type(f));
       internal::TrackedObjectsVisitor visitor(this);
-      boost::visit_each(visitor, f);
+      pdk::stdext::visit_each(visitor, f);
    }
   
    SlotFunction m_slotFunc;
