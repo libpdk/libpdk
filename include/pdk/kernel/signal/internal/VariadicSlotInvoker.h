@@ -27,6 +27,7 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
+#include "pdk/stdext/utility/DisableIf.h"
 #include <tuple>
 
 #ifdef PDK_CC_MSVC
@@ -35,6 +36,11 @@
 #pragma warning(disable:4100)
 #endif
 #endif
+
+namespace pdk {
+namespace kernel {
+namespace signal {
+namespace internal {
 
 template<unsigned ... values> 
 class UnsignedMetaArray
@@ -84,31 +90,33 @@ public:
    R operator()(Func &func, const std::tuple<Args...> & args, std::integral_constant<std::size_t, N>) const
    {
       typedef typename MakeUnsignedMetaArray<N>::type indices_type;
-      return m_invoke<Func>(func, indices_type(), args);
+      return invoke<Func>(func, indices_type(), args);
    }
 private:
    template<typename Func, unsigned ... indices, typename ... Args>
-   R m_invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
-              typename boost::disable_if<boost::is_void<typename Func::result_type> >::type * = 0
+   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
+            typename pdk::stdext::DisableIf<std::is_void<typename Func::ResultType>::value>::type * = nullptr
          ) const
    {
-      return func(BOOST_SIGNALS2_GET<indices>(args)...);
+      return func(std::get<indices>(args)...);
    }
+   
    template<typename Func, unsigned ... indices, typename ... Args>
-   R m_invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
-              typename boost::enable_if<boost::is_void<typename Func::result_type> >::type * = 0
+   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
+            typename std::enable_if<std::is_void<typename Func::ResultType>::value>::type * = nullptr
          ) const
    {
       func(std::get<indices>(args)...);
       return R();
    }
+   
    // This overload is redundant, as it is the same as the previous variadic method when
    // it has zero "indices" or "Args" variadic template parameters.  This overload
    // only exists to quiet some unused parameter warnings
    // on certain compilers (some versions of gcc and msvc)
    template<typename Func>
-   R m_invoke(Func &func, unsigned_meta_array<>, const std::tuple<> &, 
-              typename boost::enable_if<boost::is_void<typename Func::result_type> >::type * = 0
+   R invoke(Func &func, UnsignedMetaArray<>, const std::tuple<> &, 
+            typename std::enable_if<std::is_void<typename Func::ResultType>::value>::type * = 0
          ) const
    {
       func();
@@ -122,18 +130,24 @@ class VariadicSlotInvoker
 public:
    typedef R result_type;
    
-   VariadicSlotInvoker(Args & ... args): _args(args...)
+   VariadicSlotInvoker(Args & ... args)
+      : m_args(args...)
    {}
    
    template<typename ConnectionBodyType>
    result_type operator ()(const ConnectionBodyType &connectionBody) const
    {
-      return CallWithTupleArgs<result_type>()(connectionBody->slot().slot_function(), 
-                                              _args, mpl::size_t<sizeof...(Args)>());
+      return CallWithTupleArgs<result_type>()(connectionBody->slot().slotFunction(), 
+                                              m_args, std::integral_constant<size_t, sizeof...(Args)>());
    }
 private:
-   std::tuple<Args& ...> _args;
+   std::tuple<Args& ...> m_args;
 };
+
+} // internal
+} // signal
+} // kernel
+} // pdk
 
 #ifdef PDK_CC_MSVC
 #pragma warning(pop)
