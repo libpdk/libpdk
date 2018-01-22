@@ -35,12 +35,16 @@ namespace signal {
 class DummyMutex
 {
 public:
-   void lock() = default;
+   void lock()
+   {}
+   
    bool try_lock()
    {
       return true;
    }
-   void unlock() = default;
+   
+   void unlock()
+   {}
 };
 
 } // pdk

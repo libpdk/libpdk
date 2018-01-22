@@ -27,11 +27,10 @@
 #ifndef PDK_KERNEL_SIGNAL_SIGNAL_H
 #define PDK_KERNEL_SIGNAL_SIGNAL_H
 
-#include <algorithm>
-#include <functional>
-#include <mutex>
-
 #include "pdk/kernel/signal/internal/SignalPrivate.h"
+#include "pdk/kernel/signal/LastValue.h"
+#include "pdk/kernel/signal/DummyMutex.h"
+#include "pdk/kernel/signal/SharedConnectionBlock.h"
 
 namespace pdk {
 namespace kernel {

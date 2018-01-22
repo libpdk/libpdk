@@ -368,7 +368,7 @@ public:
       swap(m_weakConnectionBody, other.m_weakConnectionBody);
    }
    
-   friend class shared_connection_block;
+   friend class SharedConnectionBlock;
 protected:
    std::weak_ptr<internal::ConnectionBodyBase> m_weakConnectionBody;
 };
