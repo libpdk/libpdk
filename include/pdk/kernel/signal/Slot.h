@@ -29,6 +29,7 @@
 #include "pdk/kernel/signal/internal/SignalCommon.h"
 #include "pdk/kernel/signal/internal/TrackedObjectsVisitor.h"
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
+#include "pdk/kernel/signal/internal/ForeignPtr.h"
 #include "pdk/kernel/signal/SlotBase.h"
 
 namespace pdk {
@@ -59,19 +60,19 @@ public:
    template<typename F>
    Slot(const F &f)
    {
-      initSlotFunction(f);
+      initSlotFunc(f);
    }
    
    template<typename Signature, typename OtherSlotFunction>
    Slot(const Slot<Signature, OtherSlotFunction> &otherSlot)
       : SlotBase(otherSlot), 
-        m_slotFunction(otherSlot.m_slotFunction)
+        m_slotFunc(otherSlot.m_slotFunc)
    {}
    
    template<typename A1, typename A2, typename ... BindArgs>
    Slot(const A1 &arg1, const A2 &arg2, const BindArgs & ... args)
    {
-      initSlotFunction(std::bind(arg1, arg2, args...));
+      initSlotFunc(std::bind(arg1, arg2, args...));
    }
    
    // invocation
@@ -111,45 +112,46 @@ public:
    }
    
    template<typename ForeignWeakPtr>
-   Slot &trackForeign(const ForeignWeakPtr &tracked, std::shared_ptr * /*SFINAE*/ = nullptr)
+   Slot &trackForeign(const ForeignWeakPtr &tracked,
+                      typename WeakPtrTraits<ForeignWeakPtr>::SharedType * /*SFINAE*/ = 0)
    {
-      _tracked_objects.push_back(internel::foreign_void_weak_ptr(tracked));
+      m_trackedObjects.push_back(internal::ForeignVoidWeakPtr(tracked));
       return *this;
    }
    
    template<typename ForeignSharedPtr>
    Slot &trackForeign(const ForeignSharedPtr &tracked,
-                      typename shared_ptr_traits<ForeignSharedPtr>::weak_type * /*SFINAE*/ = 0)
+                      typename SharedPtrTraits<ForeignSharedPtr>::WeakType * /*SFINAE*/ = 0)
    {
-      m_tracked_objects.push_back(
-             detail::foreign_void_weak_ptr
+      m_trackedObjects.push_back(
+             internal::ForeignVoidWeakPtr
              (
-               typename shared_ptr_traits<ForeignSharedPtr>::weak_type(tracked)
+               typename SharedPtrTraits<ForeignSharedPtr>::WeakType(tracked)
              )
       );
       return *this;
    }
    
-   const slot_function_type &slotFunction() const
+   const slot_function_type &slotFunc() const
    {
-      return _slot_function;
+      return m_slotFunc;
    }
 
-   slot_function_type& slot_function()
+   slot_function_type& slotFunc()
    {
-      return _slot_function;
+      return m_slotFunc;
    }
    
 private:
    template<typename F>
-   void init_slot_function(const F& f)
+   void initSlotFunc(const F& f)
    {
-      _slot_function = detail::get_invocable_slot(f, detail::tag_type(f));
-      signals2::detail::tracked_objects_visitor visitor(this);
+      m_slotFunc = internal::get_invocable_slot(f, internal::tag_type(f));
+      internal::TrackedObjectsVisitor visitor(this);
       boost::visit_each(visitor, f);
    }
   
-   SlotFunction m_slotFunction;
+   SlotFunction m_slotFunc;
 };
 
 } // signal

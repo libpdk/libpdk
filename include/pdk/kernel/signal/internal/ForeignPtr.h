@@ -194,8 +194,6 @@ private:
 };
 
 } // internal
-
-
 } // signal
 } // kernel
 } // pdk
