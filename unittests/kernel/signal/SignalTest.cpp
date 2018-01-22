@@ -93,5 +93,8 @@ TEST(SignalTest, testSignal)
       Signals::Connection conn72 = signal0.connect(72, i72);
       Signals::Connection conn62 = signal0.connect(60, i62);
       Signals::Connection conn42 = signal0.connect(60, i42);
+      ASSERT_EQ(signal0(), 72);
+      signal0.disconnect(72);
+      ASSERT_EQ(signal0(), 62);
    }
 }

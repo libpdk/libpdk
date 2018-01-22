@@ -47,6 +47,7 @@ public:
       std::optional<T> value;
       while (first != last) {
          try {
+            // really necessary
             value = *first;
          } catch (const ExpiredSlot &)
          {}

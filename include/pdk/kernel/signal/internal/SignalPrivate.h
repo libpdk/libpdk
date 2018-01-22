@@ -59,17 +59,19 @@ class VariadicExtendedSignature;
 template<typename R, typename ... Args>
 class VariadicExtendedSignature<R (Args...)>
 {
-   public:
-   using function_type = std::function<R (const Connection &, Args...)>;
+public:
+   using FunctionType = std::function<R (const Connection &, Args...)>;
+   using function_type = FunctionType;
 };
 
 template <typename R>
 class BoundExtendedSlotFunctionInvoker
 {
-   using result_type = R;
+   using ResultType = R;
+   using result_type = ResultType;
    template <typename ExtendedSlotFunction, typename ... Args>
-   result_type operator()(ExtendedSlotFunction &func, const Connection &conn,
-                          Args&& ... args) const
+   ResultType operator()(ExtendedSlotFunction &func, const Connection &conn,
+                         Args&& ... args) const
    {
       return func(conn, std::forward<Args>(args)...);
    }
@@ -79,14 +81,14 @@ template <>
 class BoundExtendedSlotFunctionInvoker<void>
 {
 public:
-   typedef ResultTypeWrapper<void>::type result_type;
-   
+   using result_type = ResultTypeWrapper<void>::type;
+   using ResultType = result_type;
    template <typename ExtendedSlotFunction, typename ... Args>
-   result_type operator()(ExtendedSlotFunction &func, const Connection &conn,
+   ResultType operator()(ExtendedSlotFunction &func, const Connection &conn,
                           Args&& ... args) const
    {
       func(conn, std::forward<Args>(args)...);
-      return result_type();
+      return ResultType();
    }
 };
 
@@ -98,8 +100,8 @@ template <typename ExtendedSlotFunction>
 class BoundExtendedSlotFunction
 {
 public:
-   using result_type = typename ResultTypeWrapper<typename ExtendedSlotFunction::result_type>::type;
-   
+   using ResultType = typename ResultTypeWrapper<typename ExtendedSlotFunction::result_type>::type;
+   using result_type = ResultType;
    BoundExtendedSlotFunction(const ExtendedSlotFunction &func)
       : m_func(func),
         m_connection(new Connection)
@@ -111,14 +113,14 @@ public:
    }
    
    template <typename ... Args>
-   result_type operator()(Args && ... args)
+   ResultType operator()(Args && ... args)
    {
       return BoundExtendedSlotFunctionInvoker<typename ExtendedSlotFunction::result_type>()
             (m_func, *m_connection, std::forward<Args>(args)...);
    }
    
    template <typename ... Args>
-   result_type operator()(Args && ... args) const
+   ResultType operator()(Args && ... args) const
    {
       return BoundExtendedSlotFunctionInvoker<typename ExtendedSlotFunction::result_type>()
             (m_func, *m_connection, std::forward<Args>(args)...);
@@ -264,12 +266,12 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       {
          GarbageCollectingLock<MutexType> lock(*m_mutex);
          // only clean up if it is safe to do so
-         if(m_sharedState.unique()) {
+         if(m_sharedState.use_count() == 1) {
             nolockCleanupConnections(lock, false, 1);
          }
-         /* Make a local copy of m_sharedState while holding mutex, so we are
-               thread safe against the combiner or connection list getting modified
-               during invocation. */
+         // Make a local copy of m_sharedState while holding mutex, so we are
+         //  thread safe against the combiner or connection list getting modified
+         // during invocation. 
          localState = m_sharedState;
       }
       SlotInvoker invoker = SlotInvoker(args...);
@@ -352,7 +354,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       }
    }
    
-   private:
+private:
    typedef Mutex MutexType;
    // a struct used to optimize (minimize) the number of shared_ptrs that need to be created
    // inside operator()
@@ -436,7 +438,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
                                      bool grabTracked,
                                      const typename ConnectionListType::iterator &begin, unsigned count = 0) const
    {
-      PDK_ASSERT(m_sharedState.unique());
+      PDK_ASSERT(m_sharedState.use_count() == 1);
       typename ConnectionListType::iterator iter;
       unsigned i;
       for(iter = begin, i = 0;
@@ -600,7 +602,7 @@ template <typename Signature,
           typename Group = int,
           typename GroupCompare = std::less<Group>,
           typename SlotFunction = std::function<Signature>,
-          typename ExtendedSlotFunction = typename internal::VariadicExtendedSignature<Signature>::function_type,
+          typename ExtendedSlotFunction = typename internal::VariadicExtendedSignature<Signature>::FunctionType,
           typename Mutex = std::mutex>
 class Signal;
 

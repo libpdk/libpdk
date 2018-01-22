@@ -83,17 +83,16 @@ public:
    
    void disconnect()
    {
-      GarbageCollectingLock<ConnectionBodyBase> local_lock(*this);
-      nolockDisconnect(local_lock);
+      GarbageCollectingLock<ConnectionBodyBase> lock(*this);
+      nolockDisconnect(lock);
    }
    
    template<typename Mutex>
-   void nolockDisconnect(GarbageCollectingLock<Mutex> &lockArg) const
+   void nolockDisconnect(GarbageCollectingLock<Mutex> &lock) const
    {
-      if(m_connected)
-      {
+      if(m_connected) {
          m_connected = false;
-         decSlotRefcount(lockArg);
+         decSlotRefcount(lock);
       }
    }
    
@@ -101,7 +100,7 @@ public:
    
    std::shared_ptr<void> getBlocker()
    {
-      std::unique_lock<ConnectionBodyBase> localLock(*this);
+      std::unique_lock<ConnectionBodyBase> lock(*this);
       std::shared_ptr<void> blocker = m_weakBlocker.lock();
       if(blocker == std::shared_ptr<void>())
       {
@@ -148,12 +147,11 @@ public:
    // shared_ptr to the slot in the garbage collecting lock,
    // which will destroy the slot only after it unlocks.
    template<typename Mutex>
-   void decSlotRefcount(GarbageCollectingLock<Mutex> &lockArg) const
+   void decSlotRefcount(GarbageCollectingLock<Mutex> &lock) const
    {
       PDK_ASSERT(m_slotRefcount != 0);
-      if(--m_slotRefcount == 0)
-      {
-         lockArg.addTrash(releaseSlot());
+      if(--m_slotRefcount == 0) {
+         lock.addTrash(releaseSlot());
       }
    }
    
@@ -199,7 +197,9 @@ public:
    template<typename M>
    void disconnectExpiredSlot(GarbageCollectingLock<M> &lock)
    {
-      if(!m_slot) return;
+      if(!m_slot) {
+         return;
+      }
       bool expired = slot().expired();
       if(expired == true)
       {
@@ -212,20 +212,20 @@ public:
                                  OutputIterator inserter) const
    {
       if(!m_slot) return;
-      SlotBase::TrackedContainerType::const_iterator it;
-      for(it = slot().getTrackedObjects().begin();
-          it != slot().getTrackedObjects().end();
-          ++it)
+      SlotBase::TrackedContainerType::const_iterator iter;
+      for(iter = slot().getTrackedObjects().begin();
+          iter != slot().getTrackedObjects().end();
+          ++iter)
       {
          VoidSharedPtrVariant lockedObject
                (
                   std::visit
                   (
                      internal::LockWeakPtrVisitor(),
-                     *it
+                     *iter
                      )
                   );
-         if(std::visit(internal::ExpiredWeakPtrVisitor(), *it))
+         if(std::visit(internal::ExpiredWeakPtrVisitor(), *iter))
          {
             nolockDisconnect(lock);
             return;
@@ -286,20 +286,21 @@ public:
    {}
    
    // move support
-   Connection(Connection &&other): m_weakConnectionBody(std::move(other.m_weakConnectionBody))
+   Connection(Connection &&other)
+      : m_weakConnectionBody(std::move(other.m_weakConnectionBody))
    {
-      // make sure other is reset, in case it is a scoped_connection (so it
+      // make sure other is reset, in case it is a ScopedConnection (so it
       // won't disconnect on destruction after being moved away from).
       other.m_weakConnectionBody.reset();
    }
    
-   Connection & operator=(Connection && other)
+   Connection & operator=(Connection &&other)
    {
       if(&other == this) {
          return *this;
       }
       m_weakConnectionBody = std::move(other.m_weakConnectionBody);
-      // make sure other is reset, in case it is a scoped_connection (so it
+      // make sure other is reset, in case it is a ScopedConnection (so it
       // won't disconnect on destruction after being moved away from).
       other.m_weakConnectionBody.reset();
       return *this;
@@ -378,22 +379,22 @@ inline void swap(Connection &conn1, Connection &conn2)
    conn1.swap(conn2);
 }
 
-class scoped_connection: public Connection
+class ScopedConnection: public Connection
 {
 public:
-   scoped_connection() 
+   ScopedConnection() 
    {}
    
-   scoped_connection(const Connection &other)
+   ScopedConnection(const Connection &other)
       : Connection(other)
    {}
    
-   ~scoped_connection()
+   ~ScopedConnection()
    {
       disconnect();
    }
    
-   scoped_connection& operator=(const Connection &rhs)
+   ScopedConnection& operator=(const Connection &rhs)
    {
       disconnect();
       Connection::operator=(rhs);
@@ -401,15 +402,15 @@ public:
    }
    
    // move support
-   scoped_connection(scoped_connection && other)
+   ScopedConnection(ScopedConnection && other)
       : Connection(std::move(other))
    {}
    
-   scoped_connection(Connection &&other)
+   ScopedConnection(Connection &&other)
       : Connection(std::move(other))
    {}
    
-   scoped_connection & operator=(scoped_connection && other)
+   ScopedConnection & operator=(ScopedConnection && other)
    {
       if(&other == this) {
          return *this;
@@ -419,7 +420,7 @@ public:
       return *this;
    }
    
-   scoped_connection & operator=(Connection && other)
+   ScopedConnection & operator=(Connection && other)
    {
       if(&other == this) {
          return *this;
@@ -436,13 +437,13 @@ public:
       return conn;
    }
 private:
-   scoped_connection(const scoped_connection &other);
-   scoped_connection& operator=(const scoped_connection &rhs);
+   ScopedConnection(const ScopedConnection &other);
+   ScopedConnection& operator=(const ScopedConnection &rhs);
 };
 
 // Sun 5.9 compiler doesn't find the swap for base connection class when
-// arguments are scoped_connection, so we provide this explicitly.
-inline void swap(scoped_connection &conn1, scoped_connection &conn2)
+// arguments are ScopedConnection, so we provide this explicitly.
+inline void swap(ScopedConnection &conn1, ScopedConnection &conn2)
 {
    conn1.swap(conn2);
 }
