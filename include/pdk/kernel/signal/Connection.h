@@ -186,7 +186,7 @@ public:
       return nolockNograbConnected();
    }
    
-   const GroupKey& groupKey() const
+   const GroupKey& getGroupKey() const
    {
       return m_groupKey;
    }
@@ -213,8 +213,8 @@ public:
    {
       if(!m_slot) return;
       SlotBase::TrackedContainerType::const_iterator it;
-      for(it = slot().tracked_objects().begin();
-          it != slot().tracked_objects().end();
+      for(it = slot().getTrackedObjects().begin();
+          it != slot().getTrackedObjects().end();
           ++it)
       {
          VoidSharedPtrVariant lockedObject

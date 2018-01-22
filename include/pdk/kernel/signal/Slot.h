@@ -105,7 +105,7 @@ public:
    Slot &track(const SlotBase &slot)
    {
       TrackedContainerType::const_iterator it;
-      for(it = slot.trackedObjects().begin(); it != slot.trackedObjects().end(); ++it)
+      for(it = slot.getTrackedObjects().begin(); it != slot.getTrackedObjects().end(); ++it)
       {
          m_trackedObjects.push_back(*it);
       }

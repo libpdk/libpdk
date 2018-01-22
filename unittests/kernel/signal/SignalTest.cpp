@@ -77,7 +77,7 @@ struct MakeIncreasingInt {
 
 }
 
-namespace Sigals = pdk::kernel::signal;
+namespace Signals = pdk::kernel::signal;
 
 TEST(SignalTest, testSignal)
 {
@@ -87,6 +87,9 @@ TEST(SignalTest, testSignal)
    MakeInt i63(63, 63);
    MakeInt i62(62, 61);
    {
-      Sigals::Signal<int (), MaxOrDefault<int>> signal0;
+      Signals::Signal<int (), MaxOrDefault<int>> signal0;
+      std::cout << "sizeof(signal) = " << sizeof(signal0) << std::endl;
+      //Signals::Connection conn2 = signal0.connect(i2);
+      signal0.connect(i2);
    }
 }

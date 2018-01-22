@@ -84,7 +84,7 @@ public:
    using TrackedContainerType = std::vector<internal::VoidWeakPtrVariant>;
    using LockedContainerType = std::vector<internal::VoidSharedPtrVariant>;
    
-   const TrackedContainerType &trackedObjects() const
+   const TrackedContainerType &getTrackedObjects() const
    {
       return m_trackedObjects;
    }
@@ -93,7 +93,7 @@ public:
    {
       LockedContainerType lockedObjects;
       TrackedContainerType::const_iterator it;
-      for(it = trackedObjects().begin(); it != trackedObjects().end(); ++it) {
+      for(it = getTrackedObjects().begin(); it != getTrackedObjects().end(); ++it) {
          lockedObjects.push_back(std::visit(internal::LockWeakPtrVisitor(), *it));
          if(std::visit(internal::ExpiredWeakPtrVisitor(), *it))
          {
@@ -106,7 +106,7 @@ public:
    bool expired() const
    {
       TrackedContainerType::const_iterator it;
-      for(it = trackedObjects().begin(); it != trackedObjects().end(); ++it)
+      for(it = getTrackedObjects().begin(); it != getTrackedObjects().end(); ++it)
       {
          if(std::visit(internal::ExpiredWeakPtrVisitor(), *it)) {
             return true;

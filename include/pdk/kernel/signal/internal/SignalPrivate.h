@@ -190,14 +190,14 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    // connect slot
    Connection connect(const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
    {
-      GarbageCollectingLock<MutexType> lock(m_mutex);
+      GarbageCollectingLock<MutexType> lock(*m_mutex);
       return nolockConnect(lock, slot, position);
    }
    
    Connection connect(const GroupType &group,
                       const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
    {
-      GarbageCollectingLock<MutexType> lock(m_mutex);
+      GarbageCollectingLock<MutexType> lock(*m_mutex);
       return nolockConnect(lock, group, slot, position);
    }
    
@@ -242,8 +242,8 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       GroupKeyType groupKey(SlotMetaGroup::GroupedSlots, group);
       typename ConnectionListType::iterator iter;
       typename ConnectionListType::iterator endIter =
-            localState->connectionBodies().upper_bound(groupKey);
-      for(iter = localState->connectionBodies().lower_bound(groupKey);
+            localState->connectionBodies().upperBound(groupKey);
+      for(iter = localState->connectionBodies().lowerBound(groupKey);
           iter != endIter; ++iter)
       {
          (*iter)->disconnect();
@@ -550,10 +550,10 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       GroupKeyType groupKey;
       if(position == ConnectPosition::AtBack) {
          groupKey.first = SlotMetaGroup::BackUngroupedSlots;
-         m_sharedState->connectionBodies().push_back(groupKey, newConnectionBody);
+         m_sharedState->connectionBodies().pushBack(groupKey, newConnectionBody);
       } else {
          groupKey.first = SlotMetaGroup::FrontUngroupedSlots;
-         m_sharedState->connectionBodies().push_front(groupKey, newConnectionBody);
+         m_sharedState->connectionBodies().pushFront(groupKey, newConnectionBody);
       }
       newConnectionBody->setGroupKey(groupKey);
       return Connection(newConnectionBody);
@@ -567,10 +567,10 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       GroupKeyType groupKey(SlotMetaGroup::GroupedSlots, group);
       newConnectionBody->setGroupKey(groupKey);
       if(position == ConnectPosition::AtBack) {
-         m_sharedState->connectionBodies().push_back(groupKey, newConnectionBody);
+         m_sharedState->connectionBodies().pushBack(groupKey, newConnectionBody);
       } else {
          // at_front
-         m_sharedState->connectionBodies().push_front(groupKey, newConnectionBody);
+         m_sharedState->connectionBodies().pushFront(groupKey, newConnectionBody);
       }
       return Connection(newConnectionBody);
    }
