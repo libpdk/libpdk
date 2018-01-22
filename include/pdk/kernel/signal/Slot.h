@@ -35,7 +35,7 @@ namespace pdk {
 namespace kernel {
 namespace signal {
 
-template <typename Signature, typename SlotFunction std::function<Signature>>
+template <typename Signature, typename SlotFunction = std::function<Signature>>
 class Slot;
 
 template <typename SlotFunction, typename R, typename ... Args>
@@ -64,7 +64,8 @@ public:
    
    template<typename Signature, typename OtherSlotFunction>
    Slot(const Slot<Signature, OtherSlotFunction> &otherSlot)
-      : m_slotBase(otherSlot), m_slotFunction(otherSlot.m_slotFunction)
+      : SlotBase(otherSlot), 
+        m_slotFunction(otherSlot.m_slotFunction)
    {}
    
    template<typename A1, typename A2, typename ... BindArgs>
@@ -101,7 +102,7 @@ public:
    
    Slot &track(const SlotBase &slot)
    {
-      tracked_container_type::const_iterator it;
+      TrackedContainerType::const_iterator it;
       for(it = slot.trackedObjects().begin(); it != slot.trackedObjects().end(); ++it)
       {
          m_trackedObjects.push_back(*it);
@@ -110,8 +111,7 @@ public:
    }
    
    template<typename ForeignWeakPtr>
-   Slot &trackForeign(const ForeignWeakPtr &tracked,
-                      typename weak_ptr_traits<ForeignWeakPtr>::shared_type * /*SFINAE*/ = 0)
+   Slot &trackForeign(const ForeignWeakPtr &tracked, std::shared_ptr * /*SFINAE*/ = nullptr)
    {
       _tracked_objects.push_back(internel::foreign_void_weak_ptr(tracked));
       return *this;
@@ -149,7 +149,7 @@ private:
       boost::visit_each(visitor, f);
    }
   
-   SlotFunction _slot_function;
+   SlotFunction m_slotFunction;
 };
 
 } // signal
