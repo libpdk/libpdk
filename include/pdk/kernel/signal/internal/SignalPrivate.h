@@ -463,7 +463,7 @@ private:
    void nolockCleanupConnections(GarbageCollectingLock<MutexType> &lock,
                                  bool grabTracked, unsigned count) const
    {
-      PDK_ASSERT(m_sharedState.unique());
+      PDK_ASSERT(m_sharedState.use_count() == 1);
       typename ConnectionListType::iterator begin;
       if(m_garbageCollectorIter == m_sharedState->connectionBodies().end()) {
          begin = m_sharedState->connectionBodies().begin();
@@ -476,7 +476,7 @@ private:
    // Make a new copy of the slot list if it is currently being read somewhere else
    void nolockForceUniqueConnectionList(GarbageCollectingLock<MutexType> &lock)
    {
-      if(m_sharedState.unique() == false) {
+      if(m_sharedState.use_count() > 1) {
          m_sharedState.reset(new InvocationState(*m_sharedState, m_sharedState->connectionBodies()));
          nolockCleanupConnectionsFrom(lock, true, m_sharedState->connectionBodies().begin());
       } else {

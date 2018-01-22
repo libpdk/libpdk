@@ -70,7 +70,7 @@ public:
       : m_ptr(ptr)
    {}
    
-   virtual ForeignSharedPtrImpl * clone() const
+   virtual ForeignSharedPtrImpl *clone() const
    {
       return new ForeignSharedPtrImpl(*this);
    }
@@ -115,7 +115,7 @@ public:
    }
    
 private:
-   ForeignSharedPtrImplBase * m_ptr;
+   ForeignSharedPtrImplBase *m_ptr;
 };
 
 struct ForeignWeakPtrImplBase
@@ -123,7 +123,7 @@ struct ForeignWeakPtrImplBase
    virtual ~ForeignWeakPtrImplBase() {}
    virtual ForeignVoidSharedPtr lock() const = 0;
    virtual bool expired() const = 0;
-   virtual ForeignWeakPtrImplBase * clone() const = 0;
+   virtual ForeignWeakPtrImplBase *clone() const = 0;
 };
 
 template<typename FWP>
@@ -161,12 +161,13 @@ public:
    ForeignVoidWeakPtr(const ForeignVoidWeakPtr &other):
       m_ptr(other.m_ptr->clone())
    {}
+   
    template<typename FWP>
    explicit ForeignVoidWeakPtr(const FWP &fwp):
       m_ptr(new ForeignWeakPtrImpl<FWP>(fwp))
    {}
    
-   ForeignVoidWeakPtr & operator=(const ForeignVoidWeakPtr &other)
+   ForeignVoidWeakPtr &operator=(const ForeignVoidWeakPtr &other)
    {
       if(&other == this) {
          return *this;

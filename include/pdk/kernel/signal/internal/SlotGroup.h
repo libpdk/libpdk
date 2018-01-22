@@ -81,7 +81,7 @@ template<typename Group, typename GroupCompare, typename ValueType>
 class GroupedList
 {
 public:
-   using GroupKeyCompareType = GroupKeyLess<Group, GroupCompare> ;
+   using GroupKeyCompareType = GroupKeyLess<Group, GroupCompare>;
 private:
    using ListType = std::list<ValueType>;
    using MapType = std::map
@@ -114,8 +114,7 @@ public:
       typename MapType::iterator thisMapIter = m_groupMap.begin();
       for(otherMapIter = other.m_groupMap.begin();
           otherMapIter != other.m_groupMap.end();
-          ++otherMapIter, ++thisMapIter)
-      {
+          ++otherMapIter, ++thisMapIter) {
          PDK_ASSERT(thisMapIter != m_groupMap.end());
          thisMapIter->second = thisListIter;
          typename ListType::const_iterator otherListIter = other.getListIterator(otherMapIter);
@@ -188,14 +187,14 @@ public:
       }
    }
    
-   iterator erase(const GroupKeyType &key, const Iterator &it)
+   iterator erase(const GroupKeyType &key, const Iterator &iter)
    {
-      PDK_ASSERT(it != m_list.end());
+      PDK_ASSERT(iter != m_list.end());
       MapIterator mapIter = m_groupMap.lower_bound(key);
       PDK_ASSERT(mapIter != m_groupMap.end());
       PDK_ASSERT(weaklyEquivalent(mapIter->first, key));
-      if(mapIter->second == it) {
-         iterator next = it;
+      if(mapIter->second == iter) {
+         iterator next = iter;
          ++next;
          // if next is in same group
          if(next != upperBound(key)) {
@@ -204,7 +203,7 @@ public:
             m_groupMap.erase(mapIter);
          }
       }
-      return m_list.erase(it);
+      return m_list.erase(iter);
    }
    
    void clear()
@@ -232,17 +231,15 @@ private:
    {
       iterator listIter = getListIterator(mapIter);
       iterator newIter = m_list.insert(listIter, value);
-      if(mapIter != m_groupMap.end() && weaklyEquivalent(key, mapIter->first))
-      {
+      if(mapIter != m_groupMap.end() && weaklyEquivalent(key, mapIter->first)) {
          m_groupMap.erase(mapIter);
       }
       MapIterator lowerBoundIter = m_groupMap.lower_bound(key);
       if(lowerBoundIter == m_groupMap.end() ||
-            weaklyEquivalent(lowerBoundIter->first, key) == false)
-      {
-         /* doing the following instead of just
-              m_groupMap[key] = newIter;
-              to avoid bogus error when enabling checked iterators with g++ */
+         weaklyEquivalent(lowerBoundIter->first, key) == false) {
+         // doing the following instead of just
+         // m_groupMap[key] = newIter;
+         // to avoid bogus error when enabling checked iterators with g++
          m_groupMap.insert(typename MapType::value_type(key, newIter));
       }
    }
@@ -263,8 +260,7 @@ private:
       const_iterator listIter;
       if(mapIter == m_groupMap.end()) {
          listIter = m_list.end();
-      }else
-      {
+      } else {
          listIter = mapIter->second;
       }
       return listIter;

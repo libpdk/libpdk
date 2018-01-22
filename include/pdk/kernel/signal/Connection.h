@@ -276,7 +276,9 @@ class SharedConnectionBlock;
 class Connection
 {
 public:
-   Connection() {}
+   Connection()
+   {}
+   
    Connection(const Connection &other)
       : m_weakConnectionBody(other.m_weakConnectionBody)
    {}
@@ -315,7 +317,8 @@ public:
       return *this;
    }
    
-   ~Connection() {}
+   ~Connection()
+   {}
    
    void disconnect() const
    {
@@ -402,7 +405,7 @@ public:
    }
    
    // move support
-   ScopedConnection(ScopedConnection && other)
+   ScopedConnection(ScopedConnection &&other)
       : Connection(std::move(other))
    {}
    
@@ -410,7 +413,7 @@ public:
       : Connection(std::move(other))
    {}
    
-   ScopedConnection & operator=(ScopedConnection && other)
+   ScopedConnection & operator=(ScopedConnection &&other)
    {
       if(&other == this) {
          return *this;
@@ -420,7 +423,7 @@ public:
       return *this;
    }
    
-   ScopedConnection & operator=(Connection && other)
+   ScopedConnection & operator=(Connection &&other)
    {
       if(&other == this) {
          return *this;
@@ -443,9 +446,9 @@ private:
 
 // Sun 5.9 compiler doesn't find the swap for base connection class when
 // arguments are ScopedConnection, so we provide this explicitly.
-inline void swap(ScopedConnection &conn1, ScopedConnection &conn2)
+inline void swap(ScopedConnection &lhs, ScopedConnection &rhs)
 {
-   conn1.swap(conn2);
+   lhs.swap(rhs);
 }
 
 } // signal
