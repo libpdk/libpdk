@@ -70,7 +70,7 @@ public:
    }
    
    std::optional<ResultType> m_result;
-   typedef AutoBuffer<void_shared_ptr_variant, StoreNObjects<10>> m_trackedPtrsType;
+   using TrackedPtrsType = AutoBuffer<VoidSharedPtrVariant, StoreNObjects<10>>;
    TrackedPtrsType m_trackedPtrs;
    Function m_func;
    unsigned m_connectedSlotCount;

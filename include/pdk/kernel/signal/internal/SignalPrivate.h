@@ -26,9 +26,15 @@
 #ifndef PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_PRIVATE_H
 #define PDK_KERNEL_SIGNAL_INTERNAL_SIGNAL_PRIVATE_H
 
+#include "pdk/kernel/signal/internal/ResultTypeWrapper.h"
+#include "pdk/kernel/signal/internal/VariadicSlotInvoker.h"
+
 namespace pdk {
 namespace kernel {
 namespace signal {
+
+class Connection;
+
 namespace internal {
 
 template<typename Signature> 
@@ -39,7 +45,7 @@ template<typename R, typename ... Args>
 class VariadicExtendedSignature<R (Args...)>
 {
    public:
-   using function_type = std::function<R (const connection &, Args...)>;
+   using function_type = std::function<R (const Connection &, Args...)>;
 };
 
 template <typename R>
@@ -92,14 +98,14 @@ public:
    template <typename ... Args>
    result_type operator()(Args && ... args)
    {
-      return bound_extended_slot_function_invoker<typename ExtendedSlotFunction::result_type>()
+      return BoundExtendedSlotFunctionInvoker<typename ExtendedSlotFunction::result_type>()
             (m_func, *m_connection, std::forward<Args>(args)...);
    }
    
    template <typename ... Args>
    result_type operator()(Args && ... args) const
    {
-      return bound_extended_slot_function_invoker<typename ExtendedSlotFunction::result_type>()
+      return BoundExtendedSlotFunctionInvoker<typename ExtendedSlotFunction::result_type>()
             (m_func, *m_connection, std::forward<Args>(args)...);
    }
    
@@ -114,7 +120,7 @@ private:
    {}
    
    ExtendedSlotFunction m_func;
-   std::shared_ptr<connection> m_connection;
+   std::shared_ptr<Connection> m_connection;
 };
 
 template <typename Signature,
@@ -137,19 +143,19 @@ template <typename Combiner,
 class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>
 {
    public:
-   using slot_function_type = SlotFunction;
-   using slot_type = Slot<R (Args...), slot_function_type>;
-   using extended_slot_function_type = ExtendedSlotFunction;
-   using extended_slot_type = Slot<R (const Connection &, Args...), extended_slot_function_type>;
-   using nonvoid_slot_result_type = typename Nonvoid<typename slot_function_type::result_type>::type;
+   using SlotFunctionType = SlotFunction;
+   using SlotType = Slot<R (Args...), SlotFunctionType>;
+   using ExtendedSlotFunctionType = ExtendedSlotFunction;
+   using ExtendedSlotType = Slot<R (const Connection &, Args...), ExtendedSlotFunctionType>;
+   using NonVoidSlotResultType = typename NonVoid<typename SlotFunctionType::ResultType>::type;
    
    private:
-   using slot_invoker = VariadicSlotInvoker<nonvoid_slot_result_type, Args...>;
-   using slot_call_iterator_cache_type = SlotCallIteratorCache<nonvoid_slot_result_type, slot_invoker>;
-   using group_key_type = typename GroupKey<Group>::type;
-   using connection_body_type = std::shared_ptr<connection_body<group_key_type, slot_type, Mutex>>;
-   using connection_list_type = GroupedList<Group, GroupCompare, connection_body_type>;
-   using bound_extended_slot_function_type = BoundExtendedSlotFunction<extended_slot_function_type>;
+   using SlotInvoker = VariadicSlotInvoker<NonVoidSlotResultType, Args...>;
+   using SlotCallIteratorCacheType = SlotCallIteratorCache<NonVoidSlotResultType, SlotInvoker>;
+   using GroupKeyType = typename GroupKey<Group>::type;
+   using ConnectionBodyType = std::shared_ptr<ConnectionBody<GroupKeyType, SlotType, Mutex>>;
+   using ConnectionListType = GroupedList<Group, GroupCompare, ConnectionBodyType>;
+   using BoundExtendedSlotFunctionType = BoundExtendedSlotFunction<ExtendedSlotFunctionType>;
    
    public:
    using combiner_type = Combiner;

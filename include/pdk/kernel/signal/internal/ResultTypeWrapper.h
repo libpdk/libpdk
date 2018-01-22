@@ -56,7 +56,7 @@ struct ResultTypeWrapper
 };
 
 template<>
-struct result_type_wrapper<void>
+struct ResultTypeWrapper<void>
 {
    using type = VoidType;
 };
@@ -67,9 +67,10 @@ class CombinerInvoker
 {
 public:
    using result_type = R;
+   using ResultType = result_type;
    template<typename Combiner, typename InputIterator>
-   result_type operator()(Combiner &combiner,
-                          InputIterator first, InputIterator last) const
+   ResultType operator()(Combiner &combiner,
+                         InputIterator first, InputIterator last) const
    {
       return combiner(first, last);
    }
@@ -79,13 +80,15 @@ template<>
 class CombinerInvoker<void>
 {
 public:
-   using result_type = ResultTypeWrapper<void>::type ;
+   using result_type = ResultTypeWrapper<void>::type;
+   using ResultType = result_type;
+   
    template<typename Combiner, typename InputIterator>
-   result_type operator()(Combiner &combiner,
-                          InputIterator first, InputIterator last) const
+   ResultType operator()(Combiner &combiner,
+                         InputIterator first, InputIterator last) const
    {
       combiner(first, last);
-      return result_type();
+      return ResultType();
    }
 };
 

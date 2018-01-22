@@ -212,25 +212,25 @@ public:
                                  OutputIterator inserter) const
    {
       if(!m_slot) return;
-      SlotBase::tracked_container_type::const_iterator it;
+      SlotBase::TrackedContainerType::const_iterator it;
       for(it = slot().tracked_objects().begin();
           it != slot().tracked_objects().end();
           ++it)
       {
-         void_shared_ptr_variant locked_object
+         VoidSharedPtrVariant lockedObject
                (
-                  apply_visitor
+                  std::visit
                   (
-                     detail::lock_weak_ptr_visitor(),
+                     internal::LockWeakPtrVisitor(),
                      *it
                      )
                   );
-         if(apply_visitor(detail::expired_weak_ptr_visitor(), *it))
+         if(std::visit(internal::ExpiredWeakPtrVisitor(), *it))
          {
-            nolock_disconnect(lock_arg);
+            nolockDisconnect(lock);
             return;
          }
-         *inserter++ = locked_object;
+         *inserter++ = lockedObject;
       }
    }
    
