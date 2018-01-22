@@ -173,13 +173,13 @@ private:
       if (capacityArg <= N) {
          return;
       }
-      getAllocator().deallocate(allocatorPointer(where), capacityArg);
+      getAllocator().deallocate(AllocatorPointer(where), capacityArg);
    }
    
    template <typename IterType>
    static void copyImpl(IterType begin, IterType end, Pointer where, std::random_access_iterator_tag)
    {
-      copyRai(begin, end, where, pdk::stdext::HasTrivialAssign<T>::value);
+      copyRai(begin, end, where, std::integral_constant<bool, pdk::stdext::HasTrivialAssign<T>::value>());
    }
    
    static void copyRai(const T* begin, const T* end, Pointer where, const std::true_type&)
@@ -203,7 +203,7 @@ private:
    template <typename IterType>
    static void copyImpl(IterType begin, IterType end, Pointer where)
    {
-      copyImpl(begin, end, typename std::iterator_traits<IterType>::iterator_category());
+      copyImpl(begin, end, where, typename std::iterator_traits<IterType>::iterator_category());
    }
    
    template <typename IterType, typename IterType2>
@@ -602,10 +602,10 @@ public:
    
    bool full() const
    {
-      m_size == m_members.m_capacity;
+      return m_size == m_members.m_capacity;
    }
    
-   bool isOnStack()
+   bool isOnStack() const
    {
       return m_members.m_capacity <= N;
    }
