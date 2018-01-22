@@ -111,7 +111,7 @@ public:
    
    void swap(ForeignVoidSharedPtr &other)
    {
-      boost::swap(m_ptr, other.m_ptr);
+      std::swap(m_ptr, other.m_ptr);
    }
    
 private:
@@ -163,7 +163,7 @@ public:
    {}
    template<typename FWP>
    explicit ForeignVoidWeakPtr(const FWP &fwp):
-      m_ptr(new foreign_weak_ptr_impl<FWP>(fwp))
+      m_ptr(new ForeignWeakPtrImpl<FWP>(fwp))
    {}
    
    ForeignVoidWeakPtr & operator=(const ForeignVoidWeakPtr &other)
