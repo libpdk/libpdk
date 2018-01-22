@@ -162,7 +162,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    using SlotType = Slot<R (Args...), SlotFunctionType>;
    using ExtendedSlotFunctionType = ExtendedSlotFunction;
    using ExtendedSlotType = Slot<R (const Connection &, Args...), ExtendedSlotFunctionType>;
-   using NonVoidSlotResultType = typename NonVoid<typename SlotFunctionType::ResultType>::type;
+   using NonVoidSlotResultType = typename NonVoid<typename SlotFunctionType::result_type>::type;
    
    private:
    using SlotInvoker = VariadicSlotInvoker<NonVoidSlotResultType, Args...>;
@@ -596,7 +596,7 @@ class WeakSignal;
 } // internal
 
 template <typename Signature,
-          typename Combiner = OptionalLastValue<typename pdk::stdext::FunctionTraits<Signature>::result_type>,
+          typename Combiner = OptionalLastValue<typename pdk::stdext::FunctionTraits<Signature>::ResultType>,
           typename Group = int,
           typename GroupCompare = std::less<Group>,
           typename SlotFunction = std::function<Signature>,
@@ -624,7 +624,7 @@ public:
    using SlotType = typename ImplClass::SlotType;
    using ExtendedSlotFunctionType = typename ImplClass::ExtendedSlotFunctionType;
    using ExtendedSlotType = typename ImplClass::ExtendedSlotType;
-   using SlotResultType = typename SlotFunctionType::ResultType;
+   using SlotResultType = typename SlotFunctionType::result_type;
    using CombinerType = Combiner;
    using ResultType = typename ImplClass::ResultType;
    using GroupType = Group;

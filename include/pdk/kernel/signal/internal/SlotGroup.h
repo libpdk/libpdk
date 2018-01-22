@@ -70,7 +70,7 @@ public:
       if(key1.first != SlotMetaGroup::GroupedSlots) {
          return false;
       }
-      return m_groupCompare(key1.second.get(), key2.second.get());
+      return m_groupCompare(key1.second.value(), key2.second.value());
    }
    
 private:

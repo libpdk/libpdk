@@ -38,6 +38,7 @@ class SlotBase;
 class SignalBase
 {
 public:
+   SignalBase() = default;
    friend class SlotBase;
    virtual ~SignalBase() = default;
 protected:

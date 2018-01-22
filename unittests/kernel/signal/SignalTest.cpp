@@ -15,8 +15,78 @@
 
 #include "gtest/gtest.h"
 #include "pdk/kernel/signal/Signal.h"
+#include <optional>
+#include <functional>
+#include <iostream>
+#include <typeinfo>
+
+namespace {
+
+template<typename T>
+struct MaxOrDefault {
+   typedef T ResultType;
+   template<typename InputIterator>
+   typename InputIterator::ValueType
+   operator()(InputIterator first, InputIterator last) const
+   {
+      std::optional<T> max;
+      for (; first != last; ++first)
+      {
+         try
+         {
+            if(!max) max = *first;
+            else max = (*first > max.get())? *first : max;
+         }
+         catch(const std::bad_weak_ptr &)
+         {}
+      }
+      if(max) return max.get();
+      return T();
+   }
+};
+
+struct MakeInt {
+   MakeInt(int n, int cn) : N(n), CN(cn) {}
+   
+   int operator()()
+   { 
+      return N;
+   }
+   
+   int operator()() const
+   {
+      return CN;
+   }
+   
+   int N;
+   int CN;
+};
+
+template<int N>
+struct MakeIncreasingInt {
+  MakeIncreasingInt() : n(N)
+  {}
+
+  int operator()() const
+  {
+     return n++;
+  }
+
+  mutable int n;
+};
+
+}
+
+namespace Sigals = pdk::kernel::signal;
 
 TEST(SignalTest, testSignal)
 {
-   
+   MakeInt i42(42, 41);
+   MakeInt i2(2, 1);
+   MakeInt i72(72, 71);
+   MakeInt i63(63, 63);
+   MakeInt i62(62, 61);
+   {
+      Sigals::Signal<int (), MaxOrDefault<int>> signal0;
+   }
 }
