@@ -40,6 +40,9 @@ namespace internal {
 template<typename ResultType, typename Function>
 class SlotCallIteratorCache
 {
+private:
+   using OptionalType = typename std::conditional<std::is_lvalue_reference<ResultType>::value, 
+   std::reference_wrapper<typename std::remove_reference<ResultType>::type>, ResultType>::type;
 public:
    SlotCallIteratorCache(const Function &func):
       m_func(func),
@@ -69,7 +72,7 @@ public:
       }
    }
    
-   std::optional<ResultType> m_result;
+   std::optional<OptionalType> m_result;
    using TrackedPtrsType = AutoBuffer<VoidSharedPtrVariant, StoreNObjects<10>>;
    TrackedPtrsType m_trackedPtrs;
    Function m_func;

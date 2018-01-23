@@ -49,7 +49,9 @@ class LastValue
 public:
    using ResultType = T;
    using result_type = ResultType;
-   
+private:
+   using OptionalType = typename std::conditional<std::is_lvalue_reference<ResultType>::value, 
+   std::reference_wrapper<typename std::remove_reference<ResultType>::type>, ResultType>::type;
 public:
    template <typename InputIterator>
    T operator()(InputIterator first, InputIterator last) const
@@ -57,7 +59,7 @@ public:
       if (first == last) {
          throw NoSlotException();
       }
-      std::optional<T> value;
+      std::optional<OptionalType> value;
       while (first != last) {
          try{
             value = *first;

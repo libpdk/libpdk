@@ -36,15 +36,19 @@ namespace signal {
 template <typename T>
 class OptionalLastValue
 {
-public:
-   using ResultType = std::optional<T>;
-   using result_type = ResultType;
+private:
+   using OptionalType = typename std::conditional<std::is_lvalue_reference<T>::value, 
+   std::reference_wrapper<typename std::remove_reference<T>::type>, T>::type;
    
 public:
+   using ResultType = std::optional<OptionalType>;
+   using result_type = ResultType;
+  
+public:
    template <typename InputIterator>
-   std::optional<T> operator ()(InputIterator first, InputIterator last) const
+   ResultType operator ()(InputIterator first, InputIterator last) const
    {
-      std::optional<T> value;
+      ResultType value;
       while (first != last) {
          try {
             // really necessary

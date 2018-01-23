@@ -26,6 +26,8 @@
 #ifndef PDK_KERNEL_SIGNAL_INTERNAL_RESULT_TYPE_WRAPPER_H
 #define PDK_KERNEL_SIGNAL_INTERNAL_RESULT_TYPE_WRAPPER_H
 
+#include <type_traits>
+
 namespace pdk {
 namespace kernel {
 namespace signal {

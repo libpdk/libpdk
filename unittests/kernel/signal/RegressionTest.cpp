@@ -24,23 +24,23 @@ namespace {
 
 // combiner that returns the number of slots invoked
 struct SlotCounter {
-  typedef unsigned ResultType;
-  template<typename InputIterator>
-  unsigned operator()(InputIterator first, InputIterator last) const
-  {
-    unsigned count = 0;
-    for (; first != last; ++first)
-    {
-      try
+   typedef unsigned ResultType;
+   template<typename InputIterator>
+   unsigned operator()(InputIterator first, InputIterator last) const
+   {
+      unsigned count = 0;
+      for (; first != last; ++first)
       {
-        *first;
-        ++count;
+         try
+         {
+            *first;
+            ++count;
+         }
+         catch(const std::bad_weak_ptr &)
+         {}
       }
-      catch(const std::bad_weak_ptr &)
-      {}
-    }
-    return count;
-  }
+      return count;
+   }
 };
 
 void my_slot()
@@ -49,7 +49,9 @@ void my_slot()
 
 void my_connecting_slot(SignalType &signal)
 {
-  signal.connect(&my_slot);
+   auto conn = signal.connect(&my_slot);
+   ASSERT_EQ(signal.getNumSlots(), 2ul);
+   signal.disconnect(conn);
 }
 
 }
@@ -57,7 +59,56 @@ void my_connecting_slot(SignalType &signal)
 TEST(RegressionTest, testSlotConnect)
 {
    SignalType signal;
-   //signal.connect(SignalType::SlotType(&my_connecting_slot, std::ref(sig)).track(sig));
+   signal.connect(SignalType::SlotType(&my_connecting_slot, std::ref(signal)).track(signal));
+   signal();
+   ASSERT_EQ(signal.getNumSlots(), 1ul);
+   signal();
+   ASSERT_EQ(signal.getNumSlots(), 1ul);
 }
+
+TEST(RegressionTest, testScopedConnection)
+{
+   using SignalType = Signals::Signal<void (), SlotCounter>;
+   SignalType signal;
+   {
+      Signals::ScopedConnection conn(signal.connect(&my_slot));
+      ASSERT_EQ(signal(), 1ul);
+      conn = signal.connect(&my_slot);
+      ASSERT_EQ(signal(), 1ul);
+   }
+   ASSERT_EQ(signal(), 0ul);
+}
+
+namespace {
+
+// testsignal that returns a reference type
+
+struct RefReturner
+{
+  static int m_i;
+  
+  int& refReturnSlot()
+  {
+    return m_i;
+  }
+};
+
+int RefReturner::m_i = 0;
+
+}
+
+TEST(RegressionTest, testReferenceReturn)
+{
+   using SignalType = Signals::Signal<int &()>;
+   SignalType signal;
+   RefReturner refCounter;
+   signal.connect(std::bind(&RefReturner::refReturnSlot, &refCounter));
+   int& r = *signal();
+   ASSERT_EQ(RefReturner::m_i, 0);
+   r = 1;
+   ASSERT_EQ(RefReturner::m_i, 1);
+}
+
+
 
 
