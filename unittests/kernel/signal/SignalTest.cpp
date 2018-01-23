@@ -158,8 +158,8 @@ TEST(SignalTest, testSignalSignalConnect)
       signal1.connect(signal2);
       signal2.connect(std::bind(std::multiplies<int>(), 2, std::placeholders::_1));
       signal2.connect(std::bind(std::multiplies<int>(), -3, std::placeholders::_1));
-//      ASSERT_EQ(signal2(-3), 9);
-//      ASSERT_EQ(signal1(3), 6);
+      ASSERT_EQ(signal2(-3), 9);
+      ASSERT_EQ(signal1(3), 6);
    }
    ASSERT_EQ(signal1(3), -3);
 }
