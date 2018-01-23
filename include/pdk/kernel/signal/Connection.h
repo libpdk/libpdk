@@ -291,7 +291,7 @@ public:
       other.m_weakConnectionBody.reset();
    }
    
-   Connection & operator=(Connection &&other)
+   Connection &operator=(Connection &&other)
    {
       if(&other == this) {
          return *this;
@@ -303,7 +303,7 @@ public:
       return *this;
    }
 
-   Connection & operator=(const Connection &other)
+   Connection &operator=(const Connection &other)
    {
       if(&other == this) {
          return *this;
@@ -392,7 +392,7 @@ public:
       disconnect();
    }
    
-   ScopedConnection& operator=(const Connection &rhs)
+   ScopedConnection &operator=(const Connection &rhs)
    {
       disconnect();
       Connection::operator=(rhs);
@@ -408,7 +408,7 @@ public:
       : Connection(std::move(other))
    {}
    
-   ScopedConnection & operator=(ScopedConnection &&other)
+   ScopedConnection &operator=(ScopedConnection &&other)
    {
       if(&other == this) {
          return *this;
@@ -418,7 +418,7 @@ public:
       return *this;
    }
    
-   ScopedConnection & operator=(Connection &&other)
+   ScopedConnection &operator=(Connection &&other)
    {
       if(&other == this) {
          return *this;
@@ -436,7 +436,7 @@ public:
    }
 private:
    ScopedConnection(const ScopedConnection &other);
-   ScopedConnection& operator=(const ScopedConnection &rhs);
+   ScopedConnection &operator=(const ScopedConnection &rhs);
 };
 
 // Sun 5.9 compiler doesn't find the swap for base connection class when

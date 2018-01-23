@@ -7,6 +7,7 @@ pdk_add_files(PDK_KERNEL_TEST_SRCS
     MathTest.cpp
     StringUtilsTest.cpp
     HashFuncsTest.cpp
-    signal/SignalTest.cpp)
+    signal/SignalTest.cpp
+    signal/ConnectionTest.cpp)
 
 pdk_add_unittest(KerneUnittests KernelTest ${PDK_KERNEL_TEST_SRCS})
