@@ -229,6 +229,23 @@ void increment_arg(int &value)
    ++value;
 }
 
+class DummyCombiner
+{
+public:
+   typedef int ResultType;
+   
+   DummyCombiner(ResultType retValue)
+      : m_retValue(retValue)
+   {}
+   template<typename SlotIterator>
+   ResultType operator()(SlotIterator, SlotIterator)
+   {
+      return m_retValue;
+   }
+private:
+   ResultType m_retValue;
+};
+
 }
 
 TEST(SignalTest, testExtendedSlot)
@@ -268,4 +285,43 @@ TEST(SignalTest, testTypedefsEtc)
    ASSERT_EQ(typeid(UnarySignalType::SlotResultType), typeid(void));
    ASSERT_EQ(typeid(UnarySignalType::ArgType), typeid(short));
    ASSERT_EQ(typeid(UnarySignalType::SlotType::ArgType), typeid(short));
+}
+
+TEST(SignalTest, testSetCombiner)
+{
+   using SignalType = Signals::Signal<int (), DummyCombiner>;
+   SignalType signal(DummyCombiner(0));
+   ASSERT_EQ(signal(), 0);
+   ASSERT_EQ(signal.getCombiner()(0,0), 0);
+   signal.setCombiner(DummyCombiner(1));
+   ASSERT_EQ(signal(), 1);
+   ASSERT_EQ(signal.getCombiner()(0,0), 1);
+}
+
+TEST(SignalTest, testSwap)
+{
+   using SignalType = Signals::Signal<int (), DummyCombiner>;
+   SignalType signal1(DummyCombiner(1));
+   ASSERT_EQ(signal1(), 1);
+   SignalType signal2(DummyCombiner(2));
+   ASSERT_EQ(signal2(), 2);
+   
+   signal1.swap(signal2);
+   ASSERT_EQ(signal1(), 2);
+   ASSERT_EQ(signal2(), 1);
+}
+
+TEST(SignalTest, testMove)
+{
+   using SignalType = Signals::Signal<int (), DummyCombiner>;
+   SignalType signal1(DummyCombiner(1));
+   ASSERT_EQ(signal1(), 1);
+   SignalType signal2(DummyCombiner(2));
+   ASSERT_EQ(signal2(), 2);
+   
+   signal1 = std::move(signal2);
+   ASSERT_EQ(signal1(), 2);
+   
+   SignalType signal3(std::move(signal1));
+   ASSERT_EQ(signal3(), 2);
 }

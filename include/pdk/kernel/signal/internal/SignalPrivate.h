@@ -279,7 +279,7 @@ public:
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return CombinerInvoker<typename CombinerType::ResultType>()
             (
-               localState->combiner(),
+               localState->getCombiner(),
                SlotCallIterator(localState->connectionBodies().begin(), localState->connectionBodies().end(), cache),
                SlotCallIterator(localState->connectionBodies().end(), localState->connectionBodies().end(), cache)
                );
@@ -303,7 +303,7 @@ public:
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return internal::CombinerInvoker<typename CombinerType::ResultType>()(
-               localState->combiner(),
+               localState->getCombiner(),
                SlotCallIterator(localState->connectionBodies().begin(), localState->connectionBodies().end(), cache),
                SlotCallIterator(localState->connectionBodies().end(), localState->connectionBodies().end(), cache)
                );
@@ -337,17 +337,17 @@ public:
       return true;
    }
    
-   CombinerType combiner() const
+   CombinerType getCombiner() const
    {
       std::unique_lock<MutexType> lock(*m_mutex);
-      return m_sharedState->combiner();
+      return m_sharedState->getCombiner();
    }
    
    void setCombiner(const CombinerType &combinerArg)
    {
       std::unique_lock<MutexType> lock(*m_mutex);
       if(m_sharedState.unique()) {
-         m_sharedState->combiner() = combinerArg;
+         m_sharedState->getCombiner() = combinerArg;
       } else {
          m_sharedState.reset(new InvocationState(*m_sharedState, combinerArg));
       }
@@ -385,12 +385,12 @@ private:
          return *m_connectionBodies;
       }
       
-      CombinerType &combiner()
+      CombinerType &getCombiner()
       {
          return *m_combiner;
       }
       
-      const CombinerType &combiner() const
+      const CombinerType &getCombiner() const
       {
          return *m_combiner;
       }
@@ -645,9 +645,9 @@ public:
 
    static constexpr int arity = sizeof...(Args);
    
-   Signal(const CombinerType &combinerArg = CombinerType(),
+   Signal(const CombinerType &combiner = CombinerType(),
           const GroupCompareType &groupCompare = GroupCompareType())
-      : m_pimpl(new ImplClass(combinerArg, groupCompare))
+      : m_pimpl(new ImplClass(combiner, groupCompare))
    {}
 
    virtual ~Signal()
@@ -661,8 +661,7 @@ public:
    
    Signal &operator=(Signal &&other)
    {
-      if(this == &other)
-      {
+      if(this == &other) {
          return *this;
       }
       m_pimpl.reset();
@@ -732,9 +731,9 @@ public:
       return (*m_pimpl).empty();
    }
    
-   CombinerType combiner() const
+   CombinerType getCombiner() const
    {
-      return (*m_pimpl).combiner();
+      return (*m_pimpl).getCombiner();
    }
    
    void setCombiner(const CombinerType &combinerArg)
