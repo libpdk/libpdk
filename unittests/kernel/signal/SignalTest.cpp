@@ -163,3 +163,72 @@ TEST(SignalTest, testSignalSignalConnect)
    }
    ASSERT_EQ(signal1(3), -3);
 }
+
+namespace {
+
+template<typename ResultType>
+ResultType disconnecting_slot(const Signals::Connection &conn, int)
+{
+   conn.disconnect();
+   return ResultType();
+}
+
+template<>
+void disconnecting_slot<void>(const Signals::Connection &conn, int)
+{
+   conn.disconnect();
+   return;
+}
+
+template<typename ResultType>
+void test_extended_slot()
+{
+   {
+      using SignalType = Signals::Signal<ResultType (int)>;
+      using SlotType = typename SignalType::ExtendedSlotType;
+      SignalType signal0;
+      // attempting to work around msvc 7.1 bug by explicitly assigning to a function pointer
+      ResultType (*fp)(const Signals::Connection &conn, int) = &disconnecting_slot<ResultType>;
+      SlotType myslot(fp);
+      signal0.connectExtended(myslot);
+      ASSERT_EQ(signal0.getNumSlots(), 1ul);
+      signal0(0);
+      ASSERT_EQ(signal0.getNumSlots(), 0ul);
+   }
+   {
+      // test 0 arg signal
+      using SignalType = Signals::Signal<ResultType ()>;
+      using SlotType = typename SignalType::ExtendedSlotType;
+      SignalType signal0;
+      
+      // attempting to work around msvc 7.1 bug by explicitly assigning to a function pointer
+      ResultType (*fp)(const Signals::Connection &conn, int) = &disconnecting_slot<ResultType>;
+      SlotType myslot(fp, std::placeholders::_1, 0);
+      signal0.connectExtended(myslot);
+      ASSERT_EQ(signal0.getNumSlots(), 1ul);
+      signal0();
+      ASSERT_EQ(signal0.getNumSlots(), 0ul);
+   }
+   // test disconnection by slot
+   {
+      using SignalType = Signals::Signal<ResultType (int)>;
+      using SlotType = typename SignalType::ExtendedSlotType;
+      SignalType signal0;
+      // attempting to work around msvc 7.1 bug by explicitly assigning to a function pointer
+      ResultType (*fp)(const Signals::Connection &conn, int) = &disconnecting_slot<ResultType>;
+      SlotType myslot(fp);
+      signal0.connectExtended(myslot);
+      ASSERT_EQ(signal0.getNumSlots(), 1ul);
+      signal0.disconnect(fp);
+      ASSERT_EQ(signal0.getNumSlots(), 0ul);
+   }
+}
+
+}
+
+
+
+TEST(SignalTest, testExtendedSlot)
+{
+   test_extended_slot<int>();
+}

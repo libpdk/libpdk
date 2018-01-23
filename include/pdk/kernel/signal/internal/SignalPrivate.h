@@ -59,7 +59,7 @@ class VariadicExtendedSignature;
 template<typename R, typename ... Args>
 class VariadicExtendedSignature<R (Args...)>
 {
-   public:
+public:
    using FunctionType = std::function<R (const Connection &, Args...)>;
    using function_type = FunctionType;
 };
@@ -67,6 +67,7 @@ class VariadicExtendedSignature<R (Args...)>
 template <typename R>
 class BoundExtendedSlotFunctionInvoker
 {
+public:
    using ResultType = R;
    using result_type = ResultType;
    template <typename ExtendedSlotFunction, typename ... Args>
@@ -129,7 +130,9 @@ public:
    template <typename T>
    bool operator ==(const T &other) const
    {
-      return m_func = other;
+      std::function<std::remove_pointer_t<T>> wrapper;
+      wrapper = other;
+      return m_func.target_type() == wrapper.target_type();
    }
    
 private:
@@ -306,7 +309,7 @@ public:
                );
    }
    
-   std::size_t numSlots() const
+   std::size_t getNumSlots() const
    {
       std::shared_ptr<InvocationState> localState = getReadableState();
       typename ConnectionListType::iterator iter;
@@ -527,7 +530,8 @@ private:
          if((*iter)->nolockNograbConnected() == false) {
             continue;
          }
-         if((*iter)->slot().slotFunc() == slot) {
+         std::function<typename std::remove_pointer<T>::type> slotWrapper = slot;
+         if((*iter)->slot().slotFunc().target_type() == slotWrapper.target_type()) {
             (*iter)->nolockDisconnect(lock);
          } else {
             // check for wrapped extended slot
@@ -718,9 +722,9 @@ public:
       return (*m_pimpl)(args...);
    }
    
-   std::size_t numSlots() const
+   std::size_t getNumSlots() const
    {
-      return (*m_pimpl).numSlots();
+      return (*m_pimpl).getNumSlots();
    }
    
    bool empty() const
