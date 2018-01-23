@@ -64,22 +64,22 @@ struct MakeInt {
 
 template<int N>
 struct MakeIncreasingInt {
-  MakeIncreasingInt() : n(N)
-  {}
-
-  int operator()() const
-  {
-     return n++;
-  }
-
-  mutable int n;
+   MakeIncreasingInt() : n(N)
+   {}
+   
+   int operator()() const
+   {
+      return n++;
+   }
+   
+   mutable int n;
 };
 
 }
 
 namespace Signals = pdk::kernel::signal;
 
-TEST(SignalTest, testSignal)
+TEST(SignalTest, testZeroArgs)
 {
    MakeInt i42(42, 41);
    MakeInt i2(2, 1);
@@ -92,10 +92,44 @@ TEST(SignalTest, testSignal)
       Signals::Connection conn2 = signal0.connect(i2);
       Signals::Connection conn72 = signal0.connect(72, i72);
       Signals::Connection conn62 = signal0.connect(60, i62);
-      Signals::Connection conn42 = signal0.connect(60, i42);
+      Signals::Connection conn42 = signal0.connect(42, i42);
       ASSERT_EQ(signal0(), 72);
       signal0.disconnect(72);
       ASSERT_EQ(signal0(), 62);
+      // Double-disconnect should be safe
       signal0.disconnect(72);
+      ASSERT_EQ(signal0(), 62);
+      // Triple-disconect should be safe
+      ASSERT_EQ(signal0(), 62);
+      // Also connect 63 in the same group as 62
+      signal0.connect(60, i63);
+      ASSERT_EQ(signal0(), 63);
+      // Disconnect all of the 60's
+      signal0.disconnect(60);
+      ASSERT_EQ(signal0(), 42);
+      conn42.disconnect();
+      ASSERT_EQ(signal0(), 2);
+      conn2.disconnect();
+      ASSERT_EQ(signal0(), 0);
+   }
+   {
+      Signals::Signal<int (), MaxOrDefault<int>> signal0;
+      Signals::Connection conn2 = signal0.connect(i2);
+      Signals::Connection conn72 = signal0.connect(i72);
+      Signals::Connection conn62 = signal0.connect(i62);
+      Signals::Connection conn42 = signal0.connect(i42);
+      const Signals::Signal<int (), MaxOrDefault<int>> &csiganl0 = signal0;
+      ASSERT_EQ(csiganl0(), 72);
+   }
+   {
+      MakeIncreasingInt<7> i7;
+      MakeIncreasingInt<10> i10;
+      Signals::Signal<int (), MaxOrDefault<int>> signal0;
+      Signals::Connection conn7 = signal0.connect(i7);
+      Signals::Connection conn10 = signal0.connect(i10);
+      ASSERT_EQ(signal0(), 10);
+      ASSERT_EQ(signal0(), 11);
+      PDK_UNUSED(conn7);
+      PDK_UNUSED(conn10);
    }
 }
