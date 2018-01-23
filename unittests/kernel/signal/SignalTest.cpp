@@ -133,3 +133,33 @@ TEST(SignalTest, testZeroArgs)
       PDK_UNUSED(conn10);
    }
 }
+
+TEST(SignalTest, testOneArgs)
+{
+   Signals::Signal<int (int value), MaxOrDefault<int>> signal0;
+   signal0.connect(std::negate<int>());
+   signal0.connect(std::bind(std::multiplies<int>(), 2, std::placeholders::_1));
+   ASSERT_EQ(signal0(1), 2);
+   ASSERT_EQ(signal0(-1), 1);
+   signal0.connect([](int value){
+      return 100 + value;
+   });
+   ASSERT_EQ(signal0(2), 102);
+}
+
+TEST(SignalTest, testSignalSignalConnect)
+{
+   using SignalType = Signals::Signal<int (int value), MaxOrDefault<int>>;
+   SignalType signal1;
+   signal1.connect(std::negate<int>());
+   ASSERT_EQ(signal1(3), -3);
+   {
+      SignalType signal2;
+      signal1.connect(signal2);
+      signal2.connect(std::bind(std::multiplies<int>(), 2, std::placeholders::_1));
+      signal2.connect(std::bind(std::multiplies<int>(), -3, std::placeholders::_1));
+//      ASSERT_EQ(signal2(-3), 9);
+//      ASSERT_EQ(signal1(3), 6);
+   }
+   ASSERT_EQ(signal1(3), -3);
+}
