@@ -27,7 +27,6 @@
 #define PDK_KERNEL_SIGNAL_SLOT_H
 
 #include "pdk/kernel/signal/internal/SignalCommon.h"
-#include "pdk/kernel/signal/internal/TrackedObjectsVisitor.h"
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
 #include "pdk/kernel/signal/internal/ForeignPtr.h"
 #include "pdk/kernel/signal/SlotBase.h"
@@ -148,8 +147,6 @@ private:
    void initSlotFunc(const F& f)
    {
       m_slotFunc = internal::get_invocable_slot(f, internal::tag_type(f));
-      internal::TrackedObjectsVisitor visitor(this);
-      pdk::stdext::visit_each(visitor, f);
    }
   
    SlotFunction m_slotFunc;

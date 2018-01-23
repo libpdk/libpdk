@@ -96,5 +96,6 @@ TEST(SignalTest, testSignal)
       ASSERT_EQ(signal0(), 72);
       signal0.disconnect(72);
       ASSERT_EQ(signal0(), 62);
+      signal0.disconnect(72);
    }
 }

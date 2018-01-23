@@ -158,22 +158,614 @@ public:
    const ValueType,
    ConstReference>::type;
    
-private:
-   Pointer allocate(SizeType capacityArg)
+
+   
+public:
+   AutoBuffer()
+      : m_members(N),
+        m_buffer(static_cast<T *>(m_members.getAddress())),
+        m_size(0u)
    {
-      if (capacityArg > N) {
-         return &*getAllocator().allocate(capacityArg);
+      PDK_ASSERT(isValid());
+   }
+   
+   AutoBuffer(const AutoBuffer &other)
+      : m_members(std::max(other.m_size, static_cast<SizeType>(N))),
+        m_buffer(allocate(m_members.m_capacity)),
+        m_size(0)
+   {
+      copyImpl(other.begin(), other.end(), m_buffer);
+      m_size = other.m_size;
+      PDK_ASSERT(isValid());
+   }
+   
+   explicit AutoBuffer(SizeType capacity)
+      : m_members(std::max(capacity, SizeType(N))),
+        m_buffer(allocate(m_members.m_capacity)),
+        m_size(0)
+   {
+      PDK_ASSERT(isValid());
+   }
+   
+   AutoBuffer(SizeType size, OptimizedConstReference initValue)
+      : m_members(std::max(size, static_cast<SizeType>(N))),
+        m_buffer(allocate((m_members.m_capacity))),
+        m_size(0)
+   {
+      std::uninitialized_fill(m_buffer, m_buffer + size, initValue);
+      m_size = size;
+      PDK_ASSERT(isValid());
+   }
+   
+   AutoBuffer(SizeType capacity, const AllocatorType *alloc)
+      : AllocatorType(alloc),
+        m_members(std::max(capacity, SizeType(N))),
+        m_buffer(allocate(m_members.m_capacity)),
+        m_size(0)
+   {
+      PDK_ASSERT(isValid());
+   }
+   
+   AutoBuffer(SizeType size, OptimizedConstReference initValue,
+              const AllocatorType &alloc)
+      : AllocatorType(alloc),
+        m_members(std::max(size, SizeType(N))),
+        m_buffer(allocate(m_members.m_capacity)),
+        m_size(0)
+   {
+      std::uninitialized_fill(m_buffer, m_buffer + size, initValue);
+      m_size = size;
+      PDK_ASSERT(isValid());
+   }
+   
+   template <typename ForwardIterator>
+   AutoBuffer(ForwardIterator begin, ForwardIterator end)
+      : m_members(std::distance(begin, end)),
+        m_buffer(allocate((m_members.m_capacity))),
+        m_size(0)
+   {
+      copyImpl(begin, end, m_buffer);
+      m_size = m_members.m_capacity;
+      if (m_members.m_capacity < N) {
+         m_members.m_capacity = N;
+      }
+      PDK_ASSERT(isValid());
+   }
+   
+   template <typename ForwardIterator>
+   AutoBuffer(ForwardIterator begin, ForwardIterator end,
+              const AllocatorType &alloc)
+      : AllocatorType(alloc),
+        m_members(std::distance(begin, end)),
+        m_buffer(allocate((m_members.m_capacity))),
+        m_size(0)
+   {
+      copyImpl(begin, end, m_buffer);
+      m_size = m_members.m_capacity;
+      if (m_members.m_capacity < N) {
+         m_members.m_capacity = N;
+      }
+      PDK_ASSERT(isValid());
+   }
+   
+   AutoBuffer &operator =(const AutoBuffer &other) // basic
+   {
+      if (this == &other) {
+         return *this;
+      }
+      DifferenceType diff = m_size - other.m_size;
+      if (diff >= 0) {
+         popBackN(static_cast<SizeType>(diff));
+         assignImpl(other.begin(), other.end(), begin());
+      } else {
+         if (m_members.m_capacity >= other.size()) {
+            
+         } else {
+            // @remark: we release memory as early as possible
+            // since we only give the basic guarantee
+            autoBufferDestroy();
+            m_buffer = nullptr;
+            Pointer newBuffer = allocate(other.size());
+            pdk::utils::ScopedGuard guard =
+                  pdk::utils::make_object_guard(*this,
+                                                &AutoBuffer::deallocate,
+                                                newBuffer,
+                                                other.size());
+            copyImpl(other.begin(), other.end(), newBuffer);
+            guard.dismiss();
+            m_buffer = newBuffer;
+            m_members.m_capacity = other.size();
+            m_size = m_members.m_capacity;
+         }
+      }
+      PDK_ASSERT(size() == other.size());
+      PDK_ASSERT(isValid());
+      return *this;
+   }
+   
+   ~AutoBuffer()
+   {
+      autoBufferDestroy();
+   }
+   
+public:
+   bool isValid() const // invariant
+   {
+      // @remark: allowed for N==0 and when
+      // using a locally instance
+      // in insert()/oneSidedSwap()
+      if (m_buffer == nullptr) {
+         return true;
+      }
+      if (m_members.m_capacity < N) {
+         return false;
+      }
+      
+      if (!isOnStack() && m_members.m_capacity <= N) {
+         return false;
+      }
+      if (m_buffer == m_members.getAddress()) {
+         if (m_members.m_capacity > N) {
+            return false;
+         }
+      }
+      if (m_size > m_members.m_capacity) {
+         return false;
+      }
+      return true;
+   }
+   
+   bool empty() const
+   {
+      return m_size == 0;
+   }
+   
+   bool full() const
+   {
+      return m_size == m_members.m_capacity;
+   }
+   
+   bool isOnStack() const
+   {
+      return m_members.m_capacity <= N;
+   }
+   
+   SizeType size() const
+   {
+      return m_size;
+   }
+   
+   SizeType capacity() const
+   {
+      return m_members.m_capacity;
+   }
+   
+   Pointer getData()
+   {
+      return m_buffer;
+   }
+   
+   ConstPointer getData() const
+   {
+      return m_buffer;
+   }
+   
+   AllocatorType &getAllocator()
+   {
+      return static_cast<AllocatorType &>(*this);
+   }
+   
+   const AllocatorType &getAllocator() const
+   {
+      return static_cast<const AllocatorType &>(*this);   
+   }
+   
+public:
+   Iterator begin()
+   {
+      return m_buffer;
+   }
+   
+   ConstIterator begin() const
+   {
+      return m_buffer;
+   }
+   
+   Iterator end()
+   {
+      return m_buffer + m_size;
+   }
+   
+   ConstIterator end() const
+   {
+      return m_buffer + m_size;
+   }
+   
+   ReverseIterator rbegin()
+   {
+      return ReverseIterator(end());
+   }
+   
+   ConstReverseIterator rbegin() const
+   {
+      return ConstReverseIterator(end());
+   }
+   
+   ReverseIterator rend()
+   {
+      return ReverseIterator(begin());
+   }
+   
+   ConstReverseIterator rend() const
+   {
+      return ConstReverseIterator(begin());
+   }
+   
+   ConstIterator cbegin() const
+   {
+      return const_cast<const AutoBuffer *>(this)->begin();
+   }
+   
+   ConstIterator cend() const
+   {
+      return const_cast<const AutoBuffer *>(this)->end();
+   }
+   
+   ConstReverseIterator crbegin() const
+   {
+      return const_cast<const AutoBuffer *>(this)->rbegin();
+   }
+   
+   ConstReverseIterator crend() const
+   {
+      return const_cast<const AutoBuffer *>(this)->rend();
+   }
+   
+public:
+   Reference front()
+   {
+      return m_buffer[0];
+   }
+   
+   OptimizedConstReference front() const
+   {
+      return m_buffer[0];
+   }
+   
+   Reference back()
+   {
+      return m_buffer[m_size - 1];
+   }
+   
+   OptimizedConstReference back() const
+   {
+      return m_buffer[m_size - 1];   
+   }
+   
+   Reference operator [](SizeType n)
+   {
+      PDK_ASSERT(n < m_size);
+      return m_buffer[n];
+   }
+   
+   OptimizedConstReference operator [](SizeType n) const
+   {
+      PDK_ASSERT(n < m_size);
+      return m_buffer[n];
+   }
+   
+   void uncheckedPushBack()
+   {
+      PDK_ASSERT(!full());
+      new (m_buffer + m_size) T;
+      ++m_size;
+   }
+   
+   void uncheckedPushBack(OptimizedConstReference value)
+   {
+      PDK_ASSERT(!full());
+      new (m_buffer + m_size) T(value);
+      ++m_size;
+   }
+   
+   template <typename ForwardIterator>
+   void uncheckedPushBack(ForwardIterator begin, ForwardIterator end) // non-growing
+   {
+      PDK_ASSERT(m_size + std::distance(begin, end) <= m_members.m_capacity);
+      copyImpl(begin, end, m_buffer + m_size);
+      m_size += std::distance(begin, end);
+   }
+   
+   void uncheckedPushBackN(SizeType n)
+   {
+      PDK_ASSERT(m_size + n <= m_members.m_capacity);
+      uncheckedPushBackN(n, pdk::stdext::HasTrivialAssign<T>());
+   }
+   
+   void reservePrecisely(SizeType n)
+   {
+      PDK_ASSERT(m_members.m_capacity >= N);
+      if (n <= m_members.m_capacity) {
+         return;
+      }
+      reserveImpl(n);
+      PDK_ASSERT(m_members.m_capacity == n);
+   }
+   
+   void reserve(SizeType n) // strong
+   {
+      PDK_ASSERT(m_members.m_capacity >= N);
+      if (n <= m_members.m_capacity) {
+         return;
+      }
+      reserveImpl(newCapacityImpl(n));
+      PDK_ASSERT(m_members.m_capacity >= n);
+   }
+   
+   void pushBack()
+   {
+      if (m_size != m_members.m_capacity) {
+         uncheckedPushBack();
+      } else {
+         reserve(m_size + 1u);
+         uncheckedPushBack();
+      }
+   }
+   
+   void push_back()
+   {
+      pushBack();
+   }
+   
+   void pushBack(OptimizedConstReference value)
+   {
+      if (m_size != m_members.m_capacity) {
+         uncheckedPushBack(value);
+      } else {
+         reserve(m_size + 1u);
+         uncheckedPushBack(value);
+      }
+   }
+   
+   void push_back(OptimizedConstReference value)
+   {
+      pushBack(value);
+   }
+   
+   template<typename ForwardIterator>
+   void pushBack(ForwardIterator begin, ForwardIterator end)
+   {
+      DifferenceType diff = std::distance(begin, end);
+      if (m_size + diff > m_members.m_capacity) {
+         reserve(m_size + diff);
+      }
+      uncheckedPushBack(begin, end);
+   }
+   
+   template<typename ForwardIterator>
+   void push_back(ForwardIterator begin, ForwardIterator end)
+   {
+      pushBack(begin, end);
+   }
+   
+   Iterator insert(ConstIterator before, OptimizedConstReference value) // basic
+   {
+      // @todo: consider if we want to support value in 'this'
+      if (m_size < m_members.m_capacity) {
+         bool isBackInsertion = before == cend();
+         Iterator where = const_cast<T *>(before);
+         if (!isBackInsertion) {
+            growBackOne();
+            std::copy(before, cend() - 1u, where + 1u);
+            *where = value;
+            PDK_ASSERT(isValid());
+         } else {
+            uncheckedPushBack(value);
+         }
+         return where;
+      }
+      AutoBuffer temp(newCapacityImpl(m_size + 1u));
+      temp.uncheckedPushBack(cbegin(), before);
+      Iterator result = temp.end();
+      temp.uncheckedPushBack(value);
+      temp.uncheckedPushBack(before, cend());
+      oneSidedSwap(temp);
+      PDK_ASSERT(isValid());
+      return result;
+   }
+   
+   void insert(ConstIterator before, SizeType n, OptimizedConstReference value)
+   {
+      // @todo: see problems above
+      if (m_size + n <= m_members.m_capacity) {
+         growBack(n);
+         Iterator where = const_cast<T *>(before);
+         std::copy(before, cend() - n, where + n);
+         std::fill(where, where + n, value);
+         PDK_ASSERT(isValid());
+         return;
+      }
+      AutoBuffer temp(newCapacityImpl(m_size + n));
+      temp.uncheckedPushBack(cbegin(), before);
+      std::uninitialized_fill_n(temp.end(), n, value);
+      temp.m_size += n;
+      temp.uncheckedPushBack(before, cend());
+      oneSidedSwap(temp);
+      PDK_ASSERT(isValid());
+   }
+   
+   template<typename ForwardIterator>
+   void insert(ConstIterator before, ForwardIterator begin, ForwardIterator end) // basic
+   {
+      using category = typename std::iterator_traits<ForwardIterator>::iterator_category;
+      insertImpl(before, begin, end, category());
+   }
+   
+   void popBack()
+   {
+      PDK_ASSERT(!empty());
+      autoBufferDestroy(m_buffer + m_size - 1, std::is_trivially_destructible<T>());
+      --m_size;
+   }
+   
+   void pop_back()
+   {
+      popBack();
+   }
+   
+   void popBackN(SizeType n)
+   {
+      PDK_ASSERT(n <= m_size);
+      if (n) {
+         destroyBackN(n);
+         m_size -= n;
+      }
+   }
+   
+   void clear()
+   {
+      popBackN(m_size);
+   }
+   
+   Iterator erase(ConstIterator where)
+   {
+      PDK_ASSERT(!empty());
+      PDK_ASSERT(cbegin() <= where);
+      PDK_ASSERT(cend() > where);
+      unsigned elements = cend() - where - 1u;
+      if (elements > 0u) {
+         ConstIterator start = where + 1u;
+         std::copy(start, start + elements, const_cast<T *>(where));
+      }
+      popBack();
+      PDK_ASSERT(!full());
+      Iterator result = const_cast<T *>(where);
+      PDK_ASSERT(result <= end());
+      return result;
+   }
+   
+   Iterator erase(ConstIterator from, ConstIterator to)
+   {
+      PDK_ASSERT(!(std::distance(from, to) > 0) ||
+                 !empty());
+      PDK_ASSERT(cbegin() <= from);
+      PDK_ASSERT(cend() >= to);
+      unsigned elements = std::distance(to, cend());
+      if (elements > 0u) {
+         PDK_ASSERT(elements > 0u);
+         std::copy(to, to + elements, const_cast<T *>(from));
+      }
+      popBackN(std::distance(from, to));
+      PDK_ASSERT(!full());
+      Iterator result = const_cast<T *>(from);
+      PDK_ASSERT(result <= end());
+      return result;
+   }
+   
+   void shrinkToFit()
+   {
+      if (isOnStack() || !GrowPolicy::shouldShrink(m_size, m_members.m_capacity)) {
+         return;
+      }
+      reserveImpl(m_size);
+      m_members.m_capacity = std::max(static_cast<SizeType>(N), m_members.m_capacity);
+      PDK_ASSERT(isOnStack() || m_size == m_members.m_capacity);
+      PDK_ASSERT(!isOnStack() || m_size <= m_members.m_capacity);
+   }
+   
+   Pointer uninitializeGrow(SizeType n) // strong
+   {
+      if (m_size + n > m_members.m_capacity) {
+         reserve(m_size + n);
+      }
+      Pointer result = end();
+      m_size += n;
+      return result;
+   }
+   
+   void uninitializeShrink(SizeType n) // nothrow
+   {
+      // @remark: test for wrap-around
+      PDK_ASSERT(m_size - n <= m_members.m_capacity);
+      m_size -= n;
+   }
+   
+   void uninitializeResize(SizeType n)
+   {
+      if (n > size()) {
+         uninitializeGrow(n - size());
+      } else if (n < size()){
+         uninitializeShrink(size() - n);
+      }
+      PDK_ASSERT(size() == n);
+   }
+   
+   // nothrow  - if both buffer are on the heap, or
+   //          - if one buffer is on the heap and one has
+   //            'hasAllocatedBuffer() == false', or
+   //          - if copy-construction cannot throw
+   // basic    - otherwise (better guarantee impossible)
+   // requirement: the allocator must be no-throw-swappable
+   void swap(AutoBuffer &other)
+   {
+      bool onStack = isOnStack();
+      bool otherOnStack = other.isOnStack();
+      bool bothOnHeap = !onStack && !other.otherOnStack;
+      if (bothOnHeap) {
+         std::swap(getAllocator(), other.getAllocator());
+         std::swap(m_members.m_capacity, other.m_members.m_capacity);
+         std::swap(m_buffer, other.m_buffer);
+         std::swap(m_size, other.m_size);
+         PDK_ASSERT(isValid());
+         PDK_ASSERT(other.isValid());
+         return;
+      }
+      PDK_ASSERT(onStack || otherOnStack);
+      bool exactlyOneOnStack = (onStack && !otherOnStack) ||
+            (!onStack && otherOnStack);
+      //
+      // Remark: we now know that we can copy into
+      //         the unused stack buffer.
+      //
+      if (exactlyOneOnStack) {
+         AutoBuffer *oneOnStack = onStack ? this : &other;
+         AutoBuffer *other = onStack ? &other : this;
+         Pointer newBuffer = static_cast<T *>(other->m_members.getAddress());
+         copyImpl(oneOnStack->begin(), oneOnStack->end(), newBuffer); // strong
+         oneOnStack->autoBufferDestroy();
+         std::swap(getAllocator(), other->getAllocator());
+         std::swap(m_members.m_capacity, other->m_members.m_capacity);
+         std::swap(m_size, other->m_size);
+         oneOnStack->m_buffer = other->m_buffer;
+         other->m_buffer = newBuffer;
+         PDK_ASSERT(other->isOnStack());
+         PDK_ASSERT(!oneOnStack->isOnStack());
+         PDK_ASSERT(isValid());
+         PDK_ASSERT(other->isValid());
+         return;
+      }
+      PDK_ASSERT(onStack && otherOnStack);
+      swapHelper(*this, other, pdk::stdext::HasTrivialAssign<T>());
+      PDK_ASSERT(isValid());
+      PDK_ASSERT(other.isValid());
+   }
+   
+private:
+   Pointer allocate(SizeType capacity)
+   {
+      if (capacity > N) {
+         return &*getAllocator().allocate(capacity);
       } else {
          return static_cast<T *>(m_members.getAddress());
       }
    }
    
-   void deallocate(Pointer where, SizeType capacityArg)
+   void deallocate(Pointer where, SizeType capacity)
    {
-      if (capacityArg <= N) {
+      if (capacity <= N) {
          return;
       }
-      getAllocator().deallocate(AllocatorPointer(where), capacityArg);
+      getAllocator().deallocate(AllocatorPointer(where), capacity);
    }
    
    template <typename IterType>
@@ -375,10 +967,10 @@ private:
    }
    
    template <typename Iter>
-   void insertImpl(ConstIterator before, Iter beginArg, Iter endArg, std::input_iterator_tag)
+   void insertImpl(ConstIterator before, Iter begin, Iter end, std::input_iterator_tag)
    {
-      for (; beginArg != endArg; ++beginArg) {
-         before = insert(before, *beginArg);
+      for (; begin != end; ++begin) {
+         before = insert(before, *begin);
          ++before;
       }
    }
@@ -416,622 +1008,32 @@ private:
    }
    
    template <typename Iter>
-   void insertImpl(ConstIterator before, Iter beginArg, Iter endArg, std::forward_iterator_tag)
+   void insertImpl(ConstIterator before, Iter begin, Iter end, std::forward_iterator_tag)
    {
-      DifferenceType n = std::distance(beginArg, endArg);
+      DifferenceType n = std::distance(begin, end);
       if (m_size + n <= m_members.m_capacity) {
          bool isBackInsertion = before == cend();
          if (!isBackInsertion) {
             growBack(n);
             Iterator where = const_cast<T *>(before);
             std::copy(before, cend() - n, where + n);
-            assignImpl(beginArg, endArg, where);
+            assignImpl(begin, end, where);
          } else {
-            uncheckedPushBack(beginArg, endArg);
+            uncheckedPushBack(begin, end);
          }
          PDK_ASSERT(isValid());
          return;
       }
       AutoBuffer temp(newCapacityImpl(m_size + n));
       temp.uncheckedPushBack(cbegin(), before);
-      temp.uncheckedPushBack(beginArg, endArg);
+      temp.uncheckedPushBack(begin, end);
       temp.uncheckedPushBack(before, cend());
       oneSidedSwap(temp);
       PDK_ASSERT(isValid());
-   }
-   
-public:
-   bool isValid() const // invariant
-   {
-      // @remark: allowed for N==0 and when
-      // using a locally instance
-      // in insert()/oneSidedSwap()
-      if (m_buffer == 0) {
-         return true;
-      }
-      if (m_members.m_capacity < N) {
-         return false;
-      }
-      
-      if (!isOnStack() && m_members.m_capacity <= N) {
-         return false;
-      }
-      if (m_buffer == m_members.getAddress()) {
-         if (m_members.m_capacity > N) {
-            return false;
-         }
-      }
-      if (m_size > m_members.m_capacity) {
-         return false;
-      }
-      return true;
-   }
-   
-   AutoBuffer()
-      : m_members(N),
-        m_buffer(static_cast<T *>(m_members.getAddress())),
-        m_size(0u)
-   {
-      PDK_ASSERT(isValid());
-   }
-   
-   AutoBuffer(const AutoBuffer &other)
-      : m_members(std::max(other.m_size, static_cast<SizeType>(N))),
-        m_buffer(allocate(m_members.m_capacity)),
-        m_size(0)
-   {
-      copyImpl(other.begin(), other.end(), m_buffer);
-      m_size = other.m_size;
-      PDK_ASSERT(isValid());
-   }
-   
-   AutoBuffer &operator =(const AutoBuffer &other) // basic
-   {
-      if (this == &other) {
-         return *this;
-      }
-      DifferenceType diff = m_size - other.m_size;
-      if (diff >= 0) {
-         popBackN(static_cast<SizeType>(diff));
-         assignImpl(other.begin(), other.end(), begin());
-      } else {
-         if (m_members.m_capacity >= other.size()) {
-            
-         } else {
-            // @remark: we release memory as early as possible
-            // since we only give the basic guarantee
-            autoBufferDestroy();
-            m_buffer = nullptr;
-            Pointer newBuffer = allocate(other.size());
-            pdk::utils::ScopedGuard guard =
-                  pdk::utils::make_object_guard(*this,
-                                                &AutoBuffer::deallocate,
-                                                newBuffer,
-                                                other.size());
-            copyImpl(other.begin(), other.end(), newBuffer);
-            guard.dismiss();
-            m_buffer = newBuffer;
-            m_members.m_capacity = other.size();
-            m_size = m_members.m_capacity;
-         }
-      }
-      PDK_ASSERT(size() == other.size());
-      PDK_ASSERT(isValid());
-      return *this;
-   }
-   
-   explicit AutoBuffer(SizeType capacityArg)
-      : m_members(std::max(capacityArg, SizeType(N))),
-        m_buffer(allocate(m_members.m_capacity)),
-        m_size(0)
-   {
-      PDK_ASSERT(isValid());
-   }
-   
-   AutoBuffer(SizeType sizeArg, OptimizedConstReference initValue)
-      : m_members(std::max(sizeArg, static_cast<SizeType>(N))),
-        m_buffer(allocate((m_members.m_capacity))),
-        m_size(0)
-   {
-      std::uninitialized_fill(m_buffer, m_buffer + sizeArg, initValue);
-      m_size = sizeArg;
-      PDK_ASSERT(isValid());
-   }
-   
-   AutoBuffer(SizeType capacityArg, const AllocatorType *alloc)
-      : AllocatorType(alloc),
-        m_members(std::max(capacityArg, SizeType(N))),
-        m_buffer(allocate(m_members.m_capacity)),
-        m_size(0)
-   {
-      PDK_ASSERT(isValid());
-   }
-   
-   AutoBuffer(SizeType sizeArg, OptimizedConstReference initValue,
-              const AllocatorType &alloc)
-      : AllocatorType(alloc),
-        m_members(std::max(sizeArg, SizeType(N))),
-        m_buffer(allocate(m_members.m_capacity)),
-        m_size(0)
-   {
-      std::uninitialized_fill(m_buffer, m_buffer + sizeArg, initValue);
-      m_size = sizeArg;
-      PDK_ASSERT(isValid());
-   }
-   
-   template <typename ForwardIterator>
-   AutoBuffer(ForwardIterator beginArg, ForwardIterator endArg)
-      : m_members(std::distance(beginArg, endArg)),
-        m_buffer(allocate((m_members.m_capacity))),
-        m_size(0)
-   {
-      copyImpl(beginArg, endArg, m_buffer);
-      m_size = m_members.m_capacity;
-      if (m_members.m_capacity < N) {
-         m_members.m_capacity = N;
-      }
-      PDK_ASSERT(isValid());
-   }
-   
-   template <typename ForwardIterator>
-   AutoBuffer(ForwardIterator beginArg, ForwardIterator endArg,
-              const AllocatorType &alloc)
-      : AllocatorType(alloc),
-        m_members(std::distance(beginArg, endArg)),
-        m_buffer(allocate((m_members.m_capacity))),
-        m_size(0)
-   {
-      copyImpl(beginArg, endArg, m_buffer);
-      m_size = m_members.m_capacity;
-      if (m_members.m_capacity < N) {
-         m_members.m_capacity = N;
-      }
-      PDK_ASSERT(isValid());
-   }
-   
-   ~AutoBuffer()
-   {
-      autoBufferDestroy();
-   }
-   
-public:
-   bool empty() const
-   {
-      return m_size == 0;
-   }
-   
-   bool full() const
-   {
-      return m_size == m_members.m_capacity;
-   }
-   
-   bool isOnStack() const
-   {
-      return m_members.m_capacity <= N;
-   }
-   
-   SizeType size() const
-   {
-      return m_size;
-   }
-   
-   SizeType capacity() const
-   {
-      return m_members.m_capacity;
-   }
-   
-   Pointer getData()
-   {
-      return m_buffer;
-   }
-   
-   ConstPointer getData() const
-   {
-      return m_buffer;
-   }
-   
-   AllocatorType &getAllocator()
-   {
-      return static_cast<AllocatorType &>(*this);
-   }
-   
-   const AllocatorType &getAllocator() const
-   {
-      return static_cast<const AllocatorType &>(*this);   
-   }
-   
-public:
-   Iterator begin()
-   {
-      return m_buffer;
-   }
-   
-   ConstIterator begin() const
-   {
-      return m_buffer;
-   }
-   
-   Iterator end()
-   {
-      return m_buffer + m_size;
-   }
-   
-   ConstIterator end() const
-   {
-      return m_buffer + m_size;
-   }
-   
-   ReverseIterator rbegin()
-   {
-      return ReverseIterator(end());
-   }
-   
-   ConstReverseIterator rbegin() const
-   {
-      return ConstReverseIterator(end());
-   }
-   
-   ReverseIterator rend()
-   {
-      return ReverseIterator(begin());
-   }
-   
-   ConstReverseIterator rend() const
-   {
-      return ConstReverseIterator(begin());
-   }
-   
-   ConstIterator cbegin() const
-   {
-      return const_cast<const AutoBuffer *>(this)->begin();
-   }
-   
-   ConstIterator cend() const
-   {
-      return const_cast<const AutoBuffer *>(this)->end();
-   }
-   
-   ConstReverseIterator crbegin() const
-   {
-      return const_cast<const AutoBuffer *>(this)->rbegin();
-   }
-   
-   ConstReverseIterator crend() const
-   {
-      return const_cast<const AutoBuffer *>(this)->rend();
-   }
-   
-public:
-   Reference front()
-   {
-      return m_buffer[0];
-   }
-   
-   OptimizedConstReference front() const
-   {
-      return m_buffer[0];
-   }
-   
-   Reference back()
-   {
-      return m_buffer[m_size - 1];
-   }
-   
-   OptimizedConstReference back() const
-   {
-      return m_buffer[m_size - 1];   
-   }
-   
-   Reference operator [](SizeType n)
-   {
-      PDK_ASSERT(n < m_size);
-      return m_buffer[n];
-   }
-   
-   OptimizedConstReference operator [](SizeType n) const
-   {
-      PDK_ASSERT(n < m_size);
-      return m_buffer[n];
-   }
-   
-   void uncheckedPushBack()
-   {
-      PDK_ASSERT(!full());
-      new (m_buffer + m_size) T;
-      ++m_size;
-   }
-   
-   void uncheckedPushBack(OptimizedConstReference value)
-   {
-      PDK_ASSERT(!full());
-      new (m_buffer + m_size) T(value);
-      ++m_size;
-   }
-   
-   template <typename ForwardIterator>
-   void uncheckedPushBack(ForwardIterator beginArg, ForwardIterator endArg) // non-growing
-   {
-      PDK_ASSERT(m_size + std::distance(beginArg, endArg) <= m_members.m_capacity);
-      copyImpl(beginArg, endArg, m_buffer + m_size);
-      m_size += std::distance(beginArg, endArg);
-   }
-   
-   void uncheckedPushBackN(SizeType n)
-   {
-      PDK_ASSERT(m_size + n <= m_members.m_capacity);
-      uncheckedPushBackN(n, pdk::stdext::HasTrivialAssign<T>());
-   }
-   
-   void reservePrecisely(SizeType n)
-   {
-      PDK_ASSERT(m_members.m_capacity >= N);
-      if (n <= m_members.m_capacity) {
-         return;
-      }
-      reserveImpl(n);
-      PDK_ASSERT(m_members.m_capacity == n);
-   }
-   
-   void reserve(SizeType n) // strong
-   {
-      PDK_ASSERT(m_members.m_capacity >= N);
-      if (n <= m_members.m_capacity) {
-         return;
-      }
-      reserveImpl(newCapacityImpl(n));
-      PDK_ASSERT(m_members.m_capacity >= n);
-   }
-   
-   void pushBack()
-   {
-      if (m_size != m_members.m_capacity) {
-         uncheckedPushBack();
-      } else {
-         reserve(m_size + 1u);
-         uncheckedPushBack();
-      }
-   }
-   
-   void push_back()
-   {
-      pushBack();
-   }
-   
-   void pushBack(OptimizedConstReference value)
-   {
-      if (m_size != m_members.m_capacity) {
-         uncheckedPushBack(value);
-      } else {
-         reserve(m_size + 1u);
-         uncheckedPushBack(value);
-      }
-   }
-   
-   void push_back(OptimizedConstReference value)
-   {
-      pushBack(value);
-   }
-   
-   template<typename ForwardIterator>
-   void pushBack(ForwardIterator beginArg, ForwardIterator endArg)
-   {
-      DifferenceType diff = std::distance(beginArg, endArg);
-      if (m_size + diff > m_members.m_capacity) {
-         reserve(m_size + diff);
-      }
-      uncheckedPushBack(beginArg, endArg);
-   }
-   
-   template<typename ForwardIterator>
-   void push_back(ForwardIterator beginArg, ForwardIterator endArg)
-   {
-      pushBack(beginArg, endArg);
-   }
-   
-   Iterator insert(ConstIterator before, OptimizedConstReference value) // basic
-   {
-      // @todo: consider if we want to support value in 'this'
-      if (m_size < m_members.m_capacity) {
-         bool isBackInsertion = before == cend();
-         Iterator where = const_cast<T *>(before);
-         if (!isBackInsertion) {
-            growBackOne();
-            std::copy(before, cend() - 1u, where + 1u);
-            *where = value;
-            PDK_ASSERT(isValid());
-         } else {
-            uncheckedPushBack(value);
-         }
-         return where;
-      }
-      AutoBuffer temp(newCapacityImpl(m_size + 1u));
-      temp.uncheckedPushBack(cbegin(), before);
-      Iterator result = temp.end();
-      temp.uncheckedPushBack(value);
-      temp.uncheckedPushBack(before, cend());
-      oneSidedSwap(temp);
-      PDK_ASSERT(isValid());
-      return result;
-   }
-   
-   void insert(ConstIterator before, SizeType n, OptimizedConstReference value)
-   {
-      // @todo: see problems above
-      if (m_size + n <= m_members.m_capacity) {
-         growBack(n);
-         Iterator where = const_cast<T *>(before);
-         std::copy(before, cend() - n, where + n);
-         std::fill(where, where + n, value);
-         PDK_ASSERT(isValid());
-         return;
-      }
-      AutoBuffer temp(newCapacityImpl(m_size + n));
-      temp.uncheckedPushBack(cbegin(), before);
-      std::uninitialized_fill_n(temp.end(), n, value);
-      temp.m_size += n;
-      temp.uncheckedPushBack(before, cend());
-      oneSidedSwap(temp);
-      PDK_ASSERT(isValid());
-   }
-   
-   template<typename ForwardIterator>
-   void insert(ConstIterator before, ForwardIterator beginArg, ForwardIterator endArg) // basic
-   {
-      using category = typename std::iterator_traits<ForwardIterator>::iterator_category;
-      insertImpl(before, beginArg, endArg, category());
-   }
-   
-   void popBack()
-   {
-      PDK_ASSERT(!empty());
-      autoBufferDestroy(m_buffer + m_size - 1, std::is_trivially_destructible<T>());
-      --m_size;
-   }
-   
-   void pop_back()
-   {
-      popBack();
-   }
-   
-   void popBackN(SizeType n)
-   {
-      PDK_ASSERT(n <= m_size);
-      if (n) {
-         destroyBackN(n);
-         m_size -= n;
-      }
-   }
-   
-   void clear()
-   {
-      popBackN(m_size);
-   }
-   
-   Iterator erase(ConstIterator where)
-   {
-      PDK_ASSERT(!empty());
-      PDK_ASSERT(cbegin() <= where);
-      PDK_ASSERT(cend() > where);
-      unsigned elements = cend() - where - 1u;
-      if (elements > 0u) {
-         ConstIterator start = where + 1u;
-         std::copy(start, start + elements, const_cast<T *>(where));
-      }
-      popBack();
-      PDK_ASSERT(!full());
-      Iterator result = const_cast<T *>(where);
-      PDK_ASSERT(result <= end());
-      return result;
-   }
-   
-   Iterator erase(ConstIterator from, ConstIterator to)
-   {
-      PDK_ASSERT(!(std::distance(from, to) > 0) ||
-                 !empty());
-      PDK_ASSERT(cbegin() <= from);
-      PDK_ASSERT(cend() >= to);
-      unsigned elements = std::distance(to, cend());
-      if (elements > 0u) {
-         PDK_ASSERT(elements > 0u);
-         std::copy(to, to + elements, const_cast<T *>(from));
-      }
-      popBackN(std::distance(from, to));
-      PDK_ASSERT(!full());
-      Iterator result = const_cast<T *>(from);
-      PDK_ASSERT(result <= end());
-      return result;
-   }
-   
-   void shrinkToFit()
-   {
-      if (isOnStack() || !GrowPolicy::shouldShrink(m_size, m_members.m_capacity)) {
-         return;
-      }
-      reserveImpl(m_size);
-      m_members.m_capacity = std::max(static_cast<SizeType>(N), m_members.m_capacity);
-      PDK_ASSERT(isOnStack() || m_size == m_members.m_capacity);
-      PDK_ASSERT(!isOnStack() || m_size <= m_members.m_capacity);
-   }
-   
-   Pointer uninitializeGrow(SizeType n) // strong
-   {
-      if (m_size + n > m_members.m_capacity) {
-         reserve(m_size + n);
-      }
-      Pointer result = end();
-      m_size += n;
-      return result;
-   }
-   
-   void uninitializeShrink(SizeType n) // nothrow
-   {
-      // @remark: test for wrap-around
-      PDK_ASSERT(m_size - n <= m_members.m_capacity);
-      m_size -= n;
-   }
-   
-   void uninitializeResize(SizeType n)
-   {
-      if (n > size()) {
-         uninitializeGrow(n - size());
-      } else if (n < size()){
-         uninitializeShrink(size() - n);
-      }
-      PDK_ASSERT(size() == n);
-   }
-   
-   // nothrow  - if both buffer are on the heap, or
-   //          - if one buffer is on the heap and one has
-   //            'hasAllocatedBuffer() == false', or
-   //          - if copy-construction cannot throw
-   // basic    - otherwise (better guarantee impossible)
-   // requirement: the allocator must be no-throw-swappable
-   void swap(AutoBuffer &other)
-   {
-      bool onStack = isOnStack();
-      bool otherOnStack = other.isOnStack();
-      bool bothOnHeap = !onStack && !other.otherOnStack;
-      if (bothOnHeap) {
-         std::swap(getAllocator(), other.getAllocator());
-         std::swap(m_members.m_capacity, other.m_members.m_capacity);
-         std::swap(m_buffer, other.m_buffer);
-         std::swap(m_size, other.m_size);
-         PDK_ASSERT(isValid());
-         PDK_ASSERT(other.isValid());
-         return;
-      }
-      PDK_ASSERT(onStack || otherOnStack);
-      bool exactlyOneOnStack = (onStack && !otherOnStack) ||
-            (!onStack && otherOnStack);
-      //
-      // Remark: we now know that we can copy into
-      //         the unused stack buffer.
-      //
-      if (exactlyOneOnStack) {
-         AutoBuffer *oneOnStack = onStack ? this : &other;
-         AutoBuffer *other = onStack ? &other : this;
-         Pointer newBuffer = static_cast<T *>(other->m_members.getAddress());
-         copyImpl(oneOnStack->begin(), oneOnStack->end(), newBuffer); // strong
-         oneOnStack->autoBufferDestroy();
-         std::swap(getAllocator(), other->getAllocator());
-         std::swap(m_members.m_capacity, other->m_members.m_capacity);
-         std::swap(m_size, other->m_size);
-         oneOnStack->m_buffer = other->m_buffer;
-         other->m_buffer = newBuffer;
-         PDK_ASSERT(other->isOnStack());
-         PDK_ASSERT(!oneOnStack->isOnStack());
-         PDK_ASSERT(isValid());
-         PDK_ASSERT(other->isValid());
-         return;
-      }
-      PDK_ASSERT(onStack && otherOnStack);
-      swapHelper(*this, other, pdk::stdext::HasTrivialAssign<T>());
-      PDK_ASSERT(isValid());
-      PDK_ASSERT(other.isValid());
    }
    
 private:
-   using StorageType = std::aligned_storage<N * sizeof(T), alignof(T)>;
+   using StorageType = typename std::aligned_storage<N * sizeof(T), alignof(T)>::type;
    struct MembersType : StorageType
    {
       SizeType m_capacity;

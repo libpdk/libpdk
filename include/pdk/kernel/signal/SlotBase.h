@@ -28,7 +28,6 @@
 
 #include "pdk/kernel/signal/ExpiredSlot.h"
 #include "pdk/kernel/signal/SignalBase.h"
-#include "pdk/kernel/signal/Trackable.h"
 #include <vector>
 #include <memory>
 #include <variant>
