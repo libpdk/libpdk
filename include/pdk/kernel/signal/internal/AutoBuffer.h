@@ -41,13 +41,13 @@ namespace internal {
 template <unsigned N>
 struct StoreNObjects
 {
-   static const unsigned VALUE = N; 
+   static constexpr unsigned VALUE = N; 
 };
 
 template <unsigned N>
 struct StoreNBytes
 {
-   static const unsigned VALUE = N;
+   static constexpr unsigned VALUE = N;
 };
 
 namespace autobufferdetail
@@ -56,25 +56,25 @@ namespace autobufferdetail
 template <typename Policy, typename T>
 struct ComputeBufferSize
 {
-   static const unsigned VALUE = Policy::VALUE * sizeof(T);
+   static constexpr unsigned VALUE = Policy::VALUE * sizeof(T);
 };
 
 template <unsigned N, typename T>
 struct ComputeBufferSize<StoreNBytes<N>, T>
 {
-   static const unsigned VALUE = N;
+   static constexpr unsigned VALUE = N;
 };
 
 template <typename Policy, typename T>
 struct ComputeBufferObjects
 {
-   static const unsigned VALUE = Policy::VALUE;
+   static constexpr unsigned VALUE = Policy::VALUE;
 };
 
 template <unsigned N, typename T>
 struct ComputeBufferObjects<StoreNBytes<N>, T>
 {
-   static const unsigned VALUE = N / sizeof(T);
+   static constexpr unsigned VALUE = N / sizeof(T);
 };
 
 } // autobufferdetail
@@ -123,7 +123,7 @@ private:
       N = autobufferdetail::ComputeBufferObjects<StackBufferPolicy, T>::VALUE
    };
    
-   static const bool IS_STACK_BUFFER_EMPTY = N == 0u;
+   static constexpr bool IS_STACK_BUFFER_EMPTY = N == 0u;
    using LocalBuffer = AutoBuffer<T, StoreNObjects<0>, GrowPolicy, Allocator>;
    
 public:

@@ -643,7 +643,7 @@ public:
       typedef typename internal::VariadicArgType<N, Args...>::type type;
    };
 
-   static const int arity = sizeof...(Args);
+   static constexpr int arity = sizeof...(Args);
    
    Signal(const CombinerType &combinerArg = CombinerType(),
           const GroupCompareType &groupCompare = GroupCompareType())

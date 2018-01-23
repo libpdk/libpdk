@@ -45,17 +45,19 @@ class Slot<R (Args...), SlotFunction> : public SlotBase, public internal::StdFun
 public:
    template <typename prefixSignature, typename OtherSlotFunction>
    friend class Slot;
-   using slot_function_type = SlotFunction;
-   using result_type = R;
-   using signature_type = R(Args...);
-
+   using SlotFunctionType = SlotFunction;
+   using ResultType = R;
+   using SignatureType = R(Args...);
+   using slot_function_type = SlotFunctionType;
+   using result_type = ResultType;
+   using signature_type = SignatureType;
    template<unsigned n> 
-   class arg
+   class Arg
    {
    public:
       using type = typename internal::VariadicArgType<n, Args...>::type;
    };
-   static const int arity = sizeof...(Args);
+   static constexpr int arity = sizeof...(Args);
    
    template<typename F>
    Slot(const F &f)

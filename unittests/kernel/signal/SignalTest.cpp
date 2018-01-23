@@ -224,10 +224,48 @@ void test_extended_slot()
    }
 }
 
+void increment_arg(int &value)
+{
+   ++value;
+}
+
 }
 
 TEST(SignalTest, testExtendedSlot)
 {
    test_extended_slot<int>();
    test_extended_slot<void>();
+}
+
+TEST(SignalTest, testReferenceArgs)
+{
+   using SignalType = Signals::Signal<void (int &)>;
+   SignalType signal1;
+   signal1.connect(&increment_arg);
+   int value = 0;
+   signal1(value);
+   ASSERT_EQ(value, 1);
+}
+
+TEST(SignalTest, testTypedefsEtc)
+{
+   using SignalType = Signals::Signal<int (double, long)>;
+   using SlotType = typename SignalType::SlotType;
+   ASSERT_EQ(typeid(SignalType::SlotResultType), typeid(int));
+   ASSERT_EQ(typeid(SignalType::ResultType), typeid(std::optional<int>));
+   ASSERT_EQ(typeid(SignalType::Arg<0>::type), typeid(double));
+   ASSERT_EQ(typeid(SignalType::Arg<1>::type), typeid(long));
+   ASSERT_EQ(typeid(SignalType::SignatureType), typeid(int (double, long)));
+   ASSERT_EQ(SignalType::arity, 2);
+   
+   ASSERT_EQ(typeid(SignalType::SlotResultType), typeid(SlotType::ResultType));
+   ASSERT_EQ(typeid(SignalType::Arg<0>::type), typeid(SlotType::Arg<0>::type));
+   ASSERT_EQ(typeid(SignalType::Arg<1>::type), typeid(SlotType::Arg<1>::type));
+   ASSERT_EQ(typeid(SignalType::SignatureType), typeid(SlotType::SignatureType));
+   ASSERT_EQ(SlotType::arity, 2);
+   
+   using UnarySignalType = Signals::Signal<void (short)>;
+   ASSERT_EQ(typeid(UnarySignalType::SlotResultType), typeid(void));
+   ASSERT_EQ(typeid(UnarySignalType::ArgType), typeid(short));
+   ASSERT_EQ(typeid(UnarySignalType::SlotType::ArgType), typeid(short));
 }
