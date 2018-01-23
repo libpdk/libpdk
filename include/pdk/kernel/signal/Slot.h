@@ -28,7 +28,7 @@
 
 #include "pdk/kernel/signal/internal/SignalCommon.h"
 #include "pdk/kernel/signal/internal/VariadicArgType.h"
-#include "pdk/kernel/signal/internal/ForeignPtr.h"
+#include "pdk/kernel/signal/internal/TrackedObjectsVisitor.h"
 #include "pdk/kernel/signal/SlotBase.h"
 #include "pdk/stdext/VisitEach.h"
 
@@ -113,27 +113,6 @@ public:
       return *this;
    }
    
-   template<typename ForeignWeakPtr>
-   Slot &trackForeign(const ForeignWeakPtr &tracked,
-                      typename WeakPtrTraits<ForeignWeakPtr>::SharedType * /*SFINAE*/ = 0)
-   {
-      m_trackedObjects.push_back(internal::ForeignVoidWeakPtr(tracked));
-      return *this;
-   }
-   
-   template<typename ForeignSharedPtr>
-   Slot &trackForeign(const ForeignSharedPtr &tracked,
-                      typename SharedPtrTraits<ForeignSharedPtr>::WeakType * /*SFINAE*/ = 0)
-   {
-      m_trackedObjects.push_back(
-             internal::ForeignVoidWeakPtr
-             (
-               typename SharedPtrTraits<ForeignSharedPtr>::WeakType(tracked)
-             )
-      );
-      return *this;
-   }
-   
    const SlotFunctionType &slotFunc() const
    {
       return m_slotFunc;
@@ -149,6 +128,8 @@ private:
    void initSlotFunc(const F& f)
    {
       m_slotFunc = internal::get_invocable_slot(f, internal::tag_type(f));
+      internal::TrackedObjectsVisitor visitor(this);
+      pdk::stdext::visit_each(visitor, f);
    }
   
    SlotFunction m_slotFunc;
