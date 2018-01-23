@@ -51,11 +51,11 @@ public:
          return;
       }
       std::shared_ptr<internal::ConnectionBodyBase> connectionBody(m_weakConnectionBody.lock());
-      if(connectionBody == 0)
+      if(!connectionBody)
       {
          // Make _blocker non-empty so the blocking() method still returns the correct value
          // after the connection has expired.
-         m_blocker.reset(static_cast<int*>(0));
+         m_blocker.reset(static_cast<int *>(nullptr));
          return;
       }
       m_blocker = connectionBody->getBlocker();

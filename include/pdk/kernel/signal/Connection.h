@@ -211,7 +211,9 @@ public:
    void nolockGrabTrackedObjects(GarbageCollectingLock<M> &lock,
                                  OutputIterator inserter) const
    {
-      if(!m_slot) return;
+      if(!m_slot) {
+         return;
+      }
       SlotBase::TrackedContainerType::const_iterator iter;
       for(iter = slot().getTrackedObjects().begin();
           iter != slot().getTrackedObjects().end();
