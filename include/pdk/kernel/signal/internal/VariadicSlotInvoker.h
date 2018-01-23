@@ -104,7 +104,7 @@ private:
    
    template<typename Func, unsigned ... indices, typename ... Args>
    R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
-            typename std::enable_if<std::is_void<typename Func::ResultType>::value>::type * = nullptr
+            typename std::enable_if<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
       func(std::get<indices>(args)...);

@@ -226,9 +226,8 @@ void test_extended_slot()
 
 }
 
-
-
 TEST(SignalTest, testExtendedSlot)
 {
    test_extended_slot<int>();
+   test_extended_slot<void>();
 }
