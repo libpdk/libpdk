@@ -38,6 +38,7 @@
 #include "pdk/kernel/signal/OptionalLastValue.h"
 #include "pdk/kernel/signal/Connection.h"
 #include "pdk/stdext/typetraits/FunctionTraits.h"
+#include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include <algorithm>
 #include <functional>
 #include <mutex>
@@ -125,14 +126,6 @@ public:
    {
       return BoundExtendedSlotFunctionInvoker<typename ExtendedSlotFunction::result_type>()
             (m_func, *m_connection, std::forward<Args>(args)...);
-   }
-   
-   template <typename T>
-   bool operator ==(const T &other) const
-   {
-      std::function<std::remove_pointer_t<T>> wrapper;
-      wrapper = other;
-      return m_func.target_type() == wrapper.target_type();
    }
    
 private:
@@ -252,11 +245,9 @@ public:
       }
    }
    
-   template <typename T>
-   void disconnect(const T &slot)
+   void disconnect(const Connection &connection)
    {
-      using IsGroupType = std::integral_constant<bool, std::is_convertible<T, GroupType>::value>;
-      doDisconnect(slot, IsGroupType());
+      connection.disconnect();
    }
    
    // emit signal
@@ -514,36 +505,6 @@ private:
       return ConnectionBodyType(new ConnectionBody<GroupKeyType, SlotType, Mutex>(slot, m_mutex));
    }
    
-   void doDisconnect(const GroupType &group, std::integral_constant<bool, true> /* is_group */)
-   {
-      disconnect(group);
-   }
-   
-   template<typename T>
-   void doDisconnect(const T &slot, std::integral_constant<bool, false> /* is_group */)
-   {
-      std::shared_ptr<InvocationState> localState = getReadableState();
-      typename ConnectionListType::iterator iter;
-      for(iter = localState->connectionBodies().begin();
-          iter != localState->connectionBodies().end(); ++iter) {
-         GarbageCollectingLock<ConnectionBodyBase> lock(**iter);
-         if((*iter)->nolockNograbConnected() == false) {
-            continue;
-         }
-         std::function<typename std::remove_pointer<T>::type> slotWrapper = slot;
-         if((*iter)->slot().slotFunc().target_type() == slotWrapper.target_type()) {
-            (*iter)->nolockDisconnect(lock);
-         } else {
-            // check for wrapped extended slot
-            BoundExtendedSlotFunctionType *fp;
-            fp = (*iter)->slot().slotFunc().template target<BoundExtendedSlotFunctionType>();
-            if(fp && *fp == slot) {
-               (*iter)->nolockDisconnect(lock);
-            }
-         }
-      }
-   }
-   
    // connect slot
    Connection nolockConnect(GarbageCollectingLock<MutexType> &lock,
                             const SlotType &slot, ConnectPosition position)
@@ -705,10 +666,9 @@ public:
       (*m_pimpl).disconnect(group);
    }
    
-   template <typename T>
-   void disconnect(const T &slot)
+   void disconnect(const Connection &connection)
    {
-      (*m_pimpl).disconnect(slot);
+      (*m_pimpl).disconnect(connection);
    }
    
    ResultType operator ()(Args ... args)

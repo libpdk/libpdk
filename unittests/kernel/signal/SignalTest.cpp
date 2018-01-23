@@ -217,9 +217,9 @@ void test_extended_slot()
       // attempting to work around msvc 7.1 bug by explicitly assigning to a function pointer
       ResultType (*fp)(const Signals::Connection &conn, int) = &disconnecting_slot<ResultType>;
       SlotType myslot(fp);
-      signal0.connectExtended(myslot);
+      auto conn1 = signal0.connectExtended(myslot);
       ASSERT_EQ(signal0.getNumSlots(), 1ul);
-      signal0.disconnect(fp);
+      signal0.disconnect(conn1);
       ASSERT_EQ(signal0.getNumSlots(), 0ul);
    }
 }

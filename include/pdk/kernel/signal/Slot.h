@@ -81,13 +81,13 @@ public:
    R operator()(Args ... args)
    {
       LockedContainerType lockedObjects = lock();
-      return slotFunction(args...);
+      return m_slotFunc(args...);
    }
    
    R operator()(Args ... args) const
    {
       LockedContainerType lockedObjects = lock();
-      return slotFunction(args...);
+      return m_slotFunc(args...);
    }
    
    // tracking
@@ -134,12 +134,12 @@ public:
       return *this;
    }
    
-   const slot_function_type &slotFunc() const
+   const SlotFunctionType &slotFunc() const
    {
       return m_slotFunc;
    }
 
-   slot_function_type& slotFunc()
+   SlotFunctionType &slotFunc()
    {
       return m_slotFunc;
    }

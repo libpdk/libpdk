@@ -37,7 +37,7 @@ void my_slot()
 
 }
 
-TEST(ConnectionTest, testConnectSwap)
+TEST(SignalConnectionTest, testConnectSwap)
 {
    SignalType signal1;
    {
@@ -67,7 +67,7 @@ TEST(ConnectionTest, testConnectSwap)
    }
 }
 
-TEST(ConnectionTest, testRelease)
+TEST(SignalConnectionTest, testRelease)
 {
    SignalType signal;
    Signals::Connection conn;
@@ -93,7 +93,7 @@ TEST(ConnectionTest, testRelease)
    ASSERT_FALSE(conn2.connected());
 }
 
-TEST(ConnectionTest, testMove)
+TEST(SignalConnectionTest, testMove)
 {
    SignalType signal;
    Signals::Connection conn;
