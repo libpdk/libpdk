@@ -149,10 +149,11 @@ private:
    void setCallableIter(LockType &lock, Iterator newValue) const
    {
       m_callableIter = newValue;
-      if(m_callableIter == m_end)
-         m_cache->setActiveSlot(lock, 0);
-      else
+      if(m_callableIter == m_end) {
+         m_cache->setActiveSlot(lock, nullptr);
+      } else {
          m_cache->setActiveSlot(lock, (*m_callableIter).get());
+      }
    }
    
    void lockNextCallable() const

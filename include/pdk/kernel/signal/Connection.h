@@ -169,8 +169,8 @@ class ConnectionBody : public ConnectionBodyBase
 {
 public:
    using MutexType = Mutex;
-   ConnectionBody(const SlotType &slotIn, const std::shared_ptr<MutexType> &signalMutex)
-      : m_slot(new SlotType(slotIn)), 
+   ConnectionBody(const SlotType &slot, const std::shared_ptr<MutexType> &signalMutex)
+      : m_slot(new SlotType(slot)), 
         m_mutex(signalMutex)
    {}
    
@@ -217,14 +217,7 @@ public:
           iter != slot().getTrackedObjects().end();
           ++iter)
       {
-         VoidSharedPtrVariant lockedObject
-               (
-                  std::visit
-                  (
-                     internal::LockWeakPtrVisitor(),
-                     *iter
-                     )
-                  );
+         VoidSharedPtrVariant lockedObject(std::visit(internal::LockWeakPtrVisitor(), *iter));
          if(std::visit(internal::ExpiredWeakPtrVisitor(), *iter))
          {
             nolockDisconnect(lock);

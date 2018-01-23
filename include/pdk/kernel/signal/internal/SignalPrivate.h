@@ -59,7 +59,7 @@ class VariadicExtendedSignature;
 template<typename R, typename ... Args>
 class VariadicExtendedSignature<R (Args...)>
 {
-public:
+   public:
    using FunctionType = std::function<R (const Connection &, Args...)>;
    using function_type = FunctionType;
 };
@@ -85,7 +85,7 @@ public:
    using ResultType = result_type;
    template <typename ExtendedSlotFunction, typename ... Args>
    ResultType operator()(ExtendedSlotFunction &func, const Connection &conn,
-                          Args&& ... args) const
+                         Args&& ... args) const
    {
       func(conn, std::forward<Args>(args)...);
       return ResultType();
@@ -159,14 +159,14 @@ template <typename Combiner,
           typename ... Args>
 class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>
 {
-   public:
+public:
    using SlotFunctionType = SlotFunction;
    using SlotType = Slot<R (Args...), SlotFunctionType>;
    using ExtendedSlotFunctionType = ExtendedSlotFunction;
    using ExtendedSlotType = Slot<R (const Connection &, Args...), ExtendedSlotFunctionType>;
    using NonVoidSlotResultType = typename NonVoid<typename SlotFunctionType::result_type>::type;
    
-   private:
+private:
    using SlotInvoker = VariadicSlotInvoker<NonVoidSlotResultType, Args...>;
    using SlotCallIteratorCacheType = SlotCallIteratorCache<NonVoidSlotResultType, SlotInvoker>;
    using GroupKeyType = typename GroupKey<Group>::type;
@@ -174,7 +174,7 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    using ConnectionListType = GroupedList<Group, GroupCompare, ConnectionBodyType>;
    using BoundExtendedSlotFunctionType = BoundExtendedSlotFunction<ExtendedSlotFunctionType>;
    
-   public:
+public:
    using CombinerType = Combiner;
    using ResultType = typename ResultTypeWrapper<typename CombinerType::ResultType>::type;
    using GroupType = Group;
@@ -227,20 +227,17 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
    // disconnect slot(s)
    void disconnectAllSlots()
    {
-      std::shared_ptr<InvocationState> localState =
-            getReadableState();
-      typename ConnectionListType::iterator it;
-      for(it = localState->connectionBodies().begin();
-          it != localState->connectionBodies().end(); ++it)
-      {
-         (*it)->disconnect();
+      std::shared_ptr<InvocationState> localState = getReadableState();
+      typename ConnectionListType::iterator iter;
+      for(iter = localState->connectionBodies().begin();
+          iter != localState->connectionBodies().end(); ++iter) {
+         (*iter)->disconnect();
       }
    }
    
    void disconnect(const GroupType &group)
    {
-      std::shared_ptr<InvocationState> localState =
-            getReadableState();
+      std::shared_ptr<InvocationState> localState = getReadableState();
       GroupKeyType groupKey(SlotMetaGroup::GroupedSlots, group);
       typename ConnectionListType::iterator iter;
       typename ConnectionListType::iterator endIter =
@@ -291,19 +288,18 @@ class SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, Exte
       {
          GarbageCollectingLock<MutexType> lock(*m_mutex);
          // only clean up if it is safe to do so
-         if(m_sharedState.unique()) {
+         if(m_sharedState.use_count() == 1) {
             nolockCleanupConnections(lock, false, 1);
          }
-         /* Make a local copy of m_sharedState while holding mutex, so we are
-               thread safe against the combiner or connection list getting modified
-               during invocation. */
+         // Make a local copy of m_sharedState while holding mutex, so we are
+         // thread safe against the combiner or connection list getting modified
+         // during invocation.
          localState = m_sharedState;
       }
       SlotInvoker invoker = SlotInvoker(args...);
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
-      return internal::CombinerInvoker<typename CombinerType::ResultType>()
-            (
+      return internal::CombinerInvoker<typename CombinerType::ResultType>()(
                localState->combiner(),
                SlotCallIterator(localState->connectionBodies().begin(), localState->connectionBodies().end(), cache),
                SlotCallIterator(localState->connectionBodies().end(), localState->connectionBodies().end(), cache)
@@ -361,19 +357,19 @@ private:
    class InvocationState
    {
    public:
-      InvocationState(const ConnectionListType &connectionsIn, const CombinerType &combinerIn)
-         : m_connectionBodies(new ConnectionListType(connectionsIn)),
-           m_combiner(new CombinerType(combinerIn))
+      InvocationState(const ConnectionListType &connections, const CombinerType &combiner)
+         : m_connectionBodies(new ConnectionListType(connections)),
+           m_combiner(new CombinerType(combiner))
       {}
       
-      InvocationState(const InvocationState &other, const ConnectionListType &connectionsIn):
-         m_connectionBodies(new ConnectionListType(connectionsIn)),
+      InvocationState(const InvocationState &other, const ConnectionListType &connections):
+         m_connectionBodies(new ConnectionListType(connections)),
          m_combiner(other.m_combiner)
       {}
       
-      InvocationState(const InvocationState &other, const CombinerType &combinerIn):
+      InvocationState(const InvocationState &other, const CombinerType &combiner):
          m_connectionBodies(other.m_connectionBodies),
-         m_combiner(new CombinerType(combinerIn))
+         m_combiner(new CombinerType(combiner))
       {}
       
       ConnectionListType &connectionBodies()
@@ -396,7 +392,7 @@ private:
          return *m_combiner;
       }
       
-   private:
+private:
       InvocationState(const InvocationState &);
       std::shared_ptr<ConnectionListType> m_connectionBodies;
       std::shared_ptr<CombinerType> m_combiner;
@@ -480,9 +476,9 @@ private:
          m_sharedState.reset(new InvocationState(*m_sharedState, m_sharedState->connectionBodies()));
          nolockCleanupConnectionsFrom(lock, true, m_sharedState->connectionBodies().begin());
       } else {
-         /* We need to try and check more than just 1 connection here to avoid corner
-               cases where certain repeated connect/disconnect patterns cause the slot
-               list to grow without limit. */
+         // We need to try and check more than just 1 connection here to avoid corner
+         // cases where certain repeated connect/disconnect patterns cause the slot
+         // list to grow without limit.
          nolockCleanupConnections(lock, true, 2);
       }
    }
@@ -496,7 +492,7 @@ private:
       if(&m_sharedState->connectionBodies() != connectionBodies) {
          return;
       }
-      if(m_sharedState.unique() == false) {
+      if(m_sharedState.use_count() > 1) {
          m_sharedState.reset(new InvocationState(*m_sharedState, m_sharedState->connectionBodies()));
       }
       nolockCleanupConnectionsFrom(lock, false, m_sharedState->connectionBodies().begin());
@@ -617,142 +613,142 @@ template <typename Combiner,
 class Signal <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> 
    : public SignalBase, public internal::StdFuncBase<Args...>
 {
-   using ImplClass = internal::SignalImpl<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-                                          ExtendedSlotFunction, Mutex>;
+               using ImplClass = internal::SignalImpl<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
+               ExtendedSlotFunction, Mutex>;
 public:
-   using WeakSignalType = internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-                                               ExtendedSlotFunction, Mutex>;
-   using SlotFunctionType = SlotFunction;
-   using SlotType = typename ImplClass::SlotType;
-   using ExtendedSlotFunctionType = typename ImplClass::ExtendedSlotFunctionType;
-   using ExtendedSlotType = typename ImplClass::ExtendedSlotType;
-   using SlotResultType = typename SlotFunctionType::result_type;
-   using CombinerType = Combiner;
-   using ResultType = typename ImplClass::ResultType;
-   using GroupType = Group;
-   using GroupCompareType = GroupCompare;
-   using SlotCallIterator = typename ImplClass::SlotCallIterator;
-   using SignatureType = R (Args...);
+using WeakSignalType = internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
+ExtendedSlotFunction, Mutex>;
+using SlotFunctionType = SlotFunction;
+using SlotType = typename ImplClass::SlotType;
+using ExtendedSlotFunctionType = typename ImplClass::ExtendedSlotFunctionType;
+using ExtendedSlotType = typename ImplClass::ExtendedSlotType;
+using SlotResultType = typename SlotFunctionType::result_type;
+using CombinerType = Combiner;
+using ResultType = typename ImplClass::ResultType;
+using GroupType = Group;
+using GroupCompareType = GroupCompare;
+using SlotCallIterator = typename ImplClass::SlotCallIterator;
+using SignatureType = R (Args...);
 
-   friend class internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
-                                     ExtendedSlotFunction, Mutex>;
+friend class internal::WeakSignal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, 
+ExtendedSlotFunction, Mutex>;
 
-   template<unsigned N> class Arg
-   {
-   public:
-      typedef typename internal::VariadicArgType<N, Args...>::type type;
-   };
+template<unsigned N> class Arg
+{
+public:
+   typedef typename internal::VariadicArgType<N, Args...>::type type;
+};
 
-   static const int arity = sizeof...(Args);
-   
-   Signal(const CombinerType &combinerArg = CombinerType(),
-          const GroupCompareType &groupCompare = GroupCompareType())
-      : m_pimpl(new ImplClass(combinerArg, groupCompare))
-   {}
-   
-   virtual ~Signal()
-   {}
-   
-   Signal(Signal &&other)
+static const int arity = sizeof...(Args);
+
+Signal(const CombinerType &combinerArg = CombinerType(),
+       const GroupCompareType &groupCompare = GroupCompareType())
+   : m_pimpl(new ImplClass(combinerArg, groupCompare))
+{}
+
+virtual ~Signal()
+{}
+
+Signal(Signal &&other)
+{
+   using std::swap;
+   swap(m_pimpl, other.m_pimpl);
+}
+
+Signal &operator=(Signal &&other)
+{
+   if(this == &other)
    {
-      using std::swap;
-      swap(m_pimpl, other.m_pimpl);
-   }
-   
-   Signal &operator=(Signal &&other)
-   {
-      if(this == &other)
-      {
-         return *this;
-      }
-      m_pimpl.reset();
-      using std::swap;
-      swap(m_pimpl, other.m_pimpl);
       return *this;
    }
-   
-   Connection connect(const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
-   {
-      return (*m_pimpl).connect(slot, position);
-   }
-   
-   Connection connect(const GroupType &group,
-                      const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
-   {
-      return (*m_pimpl).connect(group, slot, position);
-   }
-   
-   Connection connectExtended(const ExtendedSlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
-   {
-      return (*m_pimpl).connectExtended(slot, position);
-   }
-   
-   Connection connectExtended(const GroupType &group,
-                              const ExtendedSlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
-   {
-      return (*m_pimpl).connectExtended(group, slot, position);
-   }
-   
-   void disconnectAllSlots()
-   {
-      (*m_pimpl).disconnectAllSlots();
-   }
-   
-   void disconnect(const GroupType &group)
-   {
-      (*m_pimpl).disconnect(group);
-   }
-   
-   template <typename T>
-   void disconnect(const T &slot)
-   {
-      (*m_pimpl).disconnect(slot);
-   }
-   
-   ResultType operator ()(Args ... args)
-   {
-      return (*m_pimpl)(args...);
-   }
-   
-   ResultType operator ()(Args ... args) const
-   {
-      return (*m_pimpl)(args...);
-   }
-   
-   std::size_t numSlots() const
-   {
-      return (*m_pimpl).numSlots();
-   }
-   
-   bool empty() const
-   {
-      return (*m_pimpl).empty();
-   }
-   
-   CombinerType combiner() const
-   {
-      return (*m_pimpl).combiner();
-   }
-   
-   void setCombiner(const CombinerType &combinerArg)
-   {
-      return (*m_pimpl).setCombiner(combinerArg);
-   }
-   
-   void swap(Signal &other)
-   {
-      using std::swap;
-      swap(m_pimpl, other.m_pimpl);
-   }
+   m_pimpl.reset();
+   using std::swap;
+   swap(m_pimpl, other.m_pimpl);
+   return *this;
+}
+
+Connection connect(const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+{
+   return (*m_pimpl).connect(slot, position);
+}
+
+Connection connect(const GroupType &group,
+                   const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+{
+   return (*m_pimpl).connect(group, slot, position);
+}
+
+Connection connectExtended(const ExtendedSlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+{
+   return (*m_pimpl).connectExtended(slot, position);
+}
+
+Connection connectExtended(const GroupType &group,
+                           const ExtendedSlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+{
+   return (*m_pimpl).connectExtended(group, slot, position);
+}
+
+void disconnectAllSlots()
+{
+   (*m_pimpl).disconnectAllSlots();
+}
+
+void disconnect(const GroupType &group)
+{
+   (*m_pimpl).disconnect(group);
+}
+
+template <typename T>
+void disconnect(const T &slot)
+{
+   (*m_pimpl).disconnect(slot);
+}
+
+ResultType operator ()(Args ... args)
+{
+   return (*m_pimpl)(args...);
+}
+
+ResultType operator ()(Args ... args) const
+{
+   return (*m_pimpl)(args...);
+}
+
+std::size_t numSlots() const
+{
+   return (*m_pimpl).numSlots();
+}
+
+bool empty() const
+{
+   return (*m_pimpl).empty();
+}
+
+CombinerType combiner() const
+{
+   return (*m_pimpl).combiner();
+}
+
+void setCombiner(const CombinerType &combinerArg)
+{
+   return (*m_pimpl).setCombiner(combinerArg);
+}
+
+void swap(Signal &other)
+{
+   using std::swap;
+   swap(m_pimpl, other.m_pimpl);
+}
 
 protected:
-   virtual std::shared_ptr<void> getLockPimpl() const
-   {
-      return m_pimpl;
-   }
+virtual std::shared_ptr<void> getLockPimpl() const
+{
+   return m_pimpl;
+}
 
 private:
-   std::shared_ptr<ImplClass> m_pimpl;
+std::shared_ptr<ImplClass> m_pimpl;
 };
 
 namespace internal {
@@ -777,7 +773,7 @@ template <typename Combiner,
           typename ... Args>
 class WeakSignal <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>
 {
-public:
+   public:
    using ResultType = typename Signal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>::ResultType;
    
    WeakSignal(const Signal<R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex> &signal)
@@ -787,14 +783,14 @@ public:
    ResultType operator ()(Args ... args)
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
-      shared_pimpl(m_weakPimpl.lock());
+                                                                                                                                    shared_pimpl(m_weakPimpl.lock());
       return (*shared_pimpl)(args...);
    }
    
    ResultType operator ()(Args ... args) const
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
-      shared_pimpl(m_weakPimpl.lock());
+                                                                                                                                    shared_pimpl(m_weakPimpl.lock());
       return (*shared_pimpl)(args...);
    }
    
