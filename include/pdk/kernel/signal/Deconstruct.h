@@ -76,7 +76,7 @@ public:
    }
    
    template<typename... Args>
-   const shared_ptr<T>& postConstruct(Args && ... args) const
+   const std::shared_ptr<T>& postConstruct(Args && ... args) const
    {
       if(!m_postConstructed)
       {
@@ -162,12 +162,10 @@ public:
    {
       std::shared_ptr<T> pt(static_cast<T *>(nullptr), internal::DeconstructDeleter<T>());
       internal::DeconstructDeleter<T> *pd = std::get_deleter<internal::DeconstructDeleter<T>>(pt);
-      void * pv = pd->getAddress();
-      new( pv ) T();
+      void *pv = pd->getAddress();
+      new(pv) T();
       pd->setInitialized();
-      std::shared_ptr<T> retval(pt, static_cast< T* >(pv));
-      boost::detail::sp_enable_shared_from_this(&retval, retval.get(), retval.get());
-      return retval;
+      return std::shared_ptr<T>(std::weak_ptr<T>(std::shared_ptr<T>(pt, static_cast<T *>(pv))));
    }
    
    // Variadic templates, rvalue reference
@@ -175,14 +173,12 @@ public:
    template<typename T, typename ... Args>
    static PostConstructorInvoker<T> deconstruct(Args && ... args)
    {
-      std::shared_ptr<T> pt(static_cast<T*>(nullptr), detail::deconstruct_deleter<T>());
-      detail::deconstruct_deleter<T> *pd = std::get_deleter<detail::deconstruct_deleter<T>>(pt);
-      void *pv = pd->address();
+      std::shared_ptr<T> pt(static_cast<T*>(nullptr), internal::DeconstructDeleter<T>());
+      internal::DeconstructDeleter<T> *pd = std::get_deleter<internal::DeconstructDeleter<T>>(pt);
+      void *pv = pd->getAddress();
       new(pv) T(std::forward<Args>(args)...);
-      pd->set_initialized();
-      std::shared_ptr<T> retval( pt, static_cast<T *>(pv));
-      boost::detail::sp_enable_shared_from_this(&retval, retval.get(), retval.get());
-      return retval;
+      pd->setInitialized();
+      return std::shared_ptr<T>(std::weak_ptr<T>(std::shared_ptr<T>(pt, static_cast<T *>(pv))));
    }
 };
 
