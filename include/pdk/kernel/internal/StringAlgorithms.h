@@ -13,7 +13,6 @@
 //
 // Created by softboy on 2017/12/19.
 
-
 #ifndef PDK_KERNEL_STRING_ALGORITHMS_H
 #define PDK_KERNEL_STRING_ALGORITHMS_H
 

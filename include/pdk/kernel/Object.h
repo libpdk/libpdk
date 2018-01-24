@@ -21,9 +21,18 @@
 #include <list>
 
 namespace pdk {
+
+// forward declare with namespace
+namespace os {
+namespace thread {
+class Thread;
+} // thread
+} // os
+
 namespace kernel {
 
 using ObjectList = std::list<Object *>;
+using Thread = ::pdk::os::thread::Thread;
 class Object;
 class ObjectPrivate;
 class Event;
@@ -54,10 +63,10 @@ public:
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
    
-   QThread *thread() const;
-   void moveToThread(QThread *thread);
+   Thread *thread() const;
+   void moveToThread(Thread *thread);
    
-   int startTimer(int interval, Qt::TimerType timerType = Qt::CoarseTimer);
+   int startTimer(int interval/*, Qt::TimerType timerType = Qt::CoarseTimer*/);
    void killTimer(int id);
    inline Object *parent() const
    { 
