@@ -109,11 +109,12 @@ protected:
    
 private:
    static bool sendSpontaneousEvent(Object *receiver, Event *event);
+   static bool notifyInternal(Object *receiver, Event *);
    friend class Application;
    friend class internal::ApplicationPrivate;
    friend class internal::EventDispatcherUNIXPrivate;
    friend PDK_CORE_EXPORT std::string pdk_retrieve_app_name();
-   friend class QClassFactory;
+   friend class ClassFactory;
 private:
    PDK_DISABLE_COPY(CoreApplication);
    PDK_DECLARE_PRIVATE(CoreApplication);
@@ -124,6 +125,22 @@ protected:
 private:
    static CoreApplication *sm_self;
 };
+
+inline bool CoreApplication::sendEvent(Object *receiver, Event *event)
+{
+   if (event) {
+      event->m_spont = false; 
+   }
+   return notifyInternal(receiver, event);
+}
+
+inline bool CoreApplication::sendSpontaneousEvent(Object *receiver, Event *event)
+{
+   if (event) {
+      event->m_spont = true; 
+   }
+   return notifyInternal(receiver, event); 
+}
 
 } // kernel
 } // pdk
