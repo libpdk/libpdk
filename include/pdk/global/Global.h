@@ -244,6 +244,12 @@ static inline T *get_ptr_helper(const std::shared_ptr<T> &p)
    return p.get();
 }
 
+template <typename T>
+static inline T *get_ptr_helper(const std::unique_ptr<T> &p)
+{
+   return p.get();
+}
+
 #define PDK_DECLARE_PRIVATE(Class)\
    inline Class##Private* getImplPtr()\
    {\
@@ -253,7 +259,7 @@ static inline T *get_ptr_helper(const std::shared_ptr<T> &p)
    {\
       return reinterpret_cast<const Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
    }\
-   friend class Class##Private;
+   friend class Class##Private
 
 #define PDK_DECLARE_PUBLIC(Class)\
    inline Class* getApiPtr()\
@@ -264,7 +270,7 @@ static inline T *get_ptr_helper(const std::shared_ptr<T> &p)
    {\
       return static_cast<const Class *>(m_apiPtr);\
    }\
-   friend class Class;
+   friend class Class
 
 #define PDK_D(Class) Class##Private * const implPtr = getImplPtr()
 #define PDK_Q(Class) Class * const apiPtr = getApiPtr()

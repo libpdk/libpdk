@@ -88,6 +88,10 @@ class ScopedPointer
 {
    using RestrictedBool = T *ScopedPointer:: *;
 public:
+   using Pointer = T *;
+   using pointer = Pointer;
+   
+public:
    explicit ScopedPointer(T *pointer = nullptr)
       : m_data(pointer)
    {}
@@ -120,6 +124,11 @@ public:
    }
    
    T *getData() const noexcept
+   {
+      return m_data;
+   }
+   
+   T *get() const noexcept
    {
       return m_data;
    }

@@ -17,13 +17,18 @@
 #define PDK_KERNEL_OBJECT_H
 
 #include "pdk/global/Global.h"
+#include "pdk/utils/ScopedPointer.h"
 #include <list>
 
 namespace pdk {
 namespace kernel {
 
-class Object;
 using ObjectList = std::list<Object *>;
+class Object;
+class ObjectPrivate;
+class Event;
+class TimerEvent;
+class ChildEvent;
 
 class PDK_CORE_EXPORT ObjectData
 {
@@ -42,8 +47,42 @@ public:
 
 class Object
 {
+public:
+   explicit Object(Object *parent = nullptr);
+   virtual ~Object();
    
+   virtual bool event(Event *event);
+   virtual bool eventFilter(Object *watched, Event *event);
    
+   QThread *thread() const;
+   void moveToThread(QThread *thread);
+   
+   int startTimer(int interval, Qt::TimerType timerType = Qt::CoarseTimer);
+   void killTimer(int id);
+   inline Object *parent() const
+   { 
+      return m_implPtr->m_parent;
+   }
+   void deleteLater();
+protected:
+   virtual void timerEvent(TimerEvent *event);
+   virtual void childEvent(ChildEvent *event);
+   virtual void customEvent(Event *event);
+   
+protected:
+   Object(ObjectPrivate &dd, Object *parent = nullptr);
+   
+   friend class Application;
+   friend class ApplicationPrivate;
+   friend class CoreApplication;
+   friend class CoreApplicationPrivate;
+   friend class ThreadData;
+   
+protected:
+   pdk::utils::ScopedPointer<ObjectData> m_implPtr;
+private:
+   PDK_DECLARE_PRIVATE(Object);
+   PDK_DISABLE_COPY(Object);
 };
 
 } // kernel
