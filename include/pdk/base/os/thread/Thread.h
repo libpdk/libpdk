@@ -94,17 +94,17 @@ public:
    // void finished(PrivateSignal);
    
 protected:
-    virtual void run();
-    int exec();
-    static void setTerminationEnabled(bool enabled = true);
-
+   virtual void run();
+   int exec();
+   static void setTerminationEnabled(bool enabled = true);
+   
 protected:
-    Thread(ThreadPrivate &dd, Object *parent = nullptr);
-
+   Thread(ThreadPrivate &dd, Object *parent = nullptr);
+   
 private:
-    PDK_DECLARE_PRIVATE(Thread);
-    friend class CoreApplication;
-    friend class ThreadData;
+   PDK_DECLARE_PRIVATE(Thread);
+   friend class CoreApplication;
+   friend class ThreadData;
 };
 
 } // thread
