@@ -29,10 +29,11 @@ class EventPrivate;
 class PDK_CORE_EXPORT Event
 {
 public:
-   enum class Type {
+   enum class Type : int {
       None,
       Timer,
       Quit,
+      DeferredDelete,
       ParentChange,
       ParentAboutToChange,
       ThreadChange,
@@ -81,7 +82,7 @@ public:
    
 protected:
    internal::EventPrivate *m_implPtr;
-   ushort m_type;
+   int m_type;
    
 private:
    ushort m_posted : 1;
@@ -96,7 +97,7 @@ private:
    // needs this:
    PDK_ALWAYS_INLINE void setSpontaneous()
    {
-      spont = true;
+      m_spont = true;
    }
 };
 
