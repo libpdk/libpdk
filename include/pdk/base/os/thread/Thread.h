@@ -1,0 +1,114 @@
+// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Created by softboy on 2017/01/24.
+
+#ifndef PDK_M_BASE_OS_THREAD_THREAD_H
+#define PDK_M_BASE_OS_THREAD_THREAD_H
+
+#include <limits.h>
+#include "pdk/kernel/Object.h"
+
+namespace pdk {
+
+// forward declare with namespace
+namespace kernel {
+class AbstractEventDisptacher;
+} // kernel
+
+namespace os {
+namespace thread {
+
+class ThreadData;
+
+// forward declare with namespace
+namespace internal {
+class ThreadPrivate;
+} // internal
+
+using internal::ThreadPrivate;
+
+class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
+{
+public:
+   static pdk::HANDLE getCurrentThreadId() noexcept PDK_DECL_PURE_FUNCTION;
+   static Thread *getCurrentThread();
+   static int getIdealThreadCount() noexcept;
+   static void yieldCurrentThread();
+   
+   explicit Thread(Object *parent = nullptr);
+   ~Thread();
+   enum class Priority {
+      IdlePriority,
+      LowestPriority,
+      LowPriority,
+      NormalPriority,
+      HighPriority,
+      HighestPriority,
+      TimeCriticalPriority,
+      InheritPriority
+   };
+   void setPriority(Priority priority);
+   Priority getPriority() const;
+   
+   bool isFinished() const;
+   bool isRunning() const;
+   
+   void requestInterruption();
+   bool isInterruptionRequested() const;
+   
+   void setStackSize(uint stackSize);
+   uint getStackSize() const;
+   
+   void exit(int retcode = 0);
+   
+   AbstractEventDispatcher *getEventDispatcher() const;
+   void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);
+   
+   bool event(QEvent *event) override;
+   int getLoopLevel() const;
+   
+public:
+   void start(Priority = Priority::InheritPriority);
+   void terminate();
+   void quit();
+   
+public:
+   // default argument causes thread to block indefinetely
+   bool wait(unsigned long time = ULONG_MAX);
+   static void sleep(unsigned long);
+   static void msleep(unsigned long);
+   static void usleep(unsigned long);
+   // signals
+   // void started(PrivateSignal);
+   // void finished(PrivateSignal);
+   
+protected:
+    virtual void run();
+    int exec();
+    static void setTerminationEnabled(bool enabled = true);
+
+protected:
+    Thread(ThreadPrivate &dd, Object *parent = nullptr);
+
+private:
+    PDK_DECLARE_PRIVATE(Thread);
+    friend class CoreApplication;
+    friend class ThreadData;
+};
+
+} // thread
+} // os
+} // pdk
+
+#endif // PDK_M_BASE_OS_THREAD_THREAD_H

@@ -99,7 +99,7 @@ public:
    char **m_argv;
 #if defined(PDK_OS_WIN)
    int m_origArgc;
-   char **m_origArgv; // store unmodified arguments for QCoreApplication::arguments()
+   char **m_origArgv; // store unmodified arguments for CoreApplication::arguments()
 #endif
    CoreApplication *m_apiPtr;
 };

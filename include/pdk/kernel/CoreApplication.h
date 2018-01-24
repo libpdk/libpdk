@@ -69,7 +69,7 @@ public:
    static void exit(int retcode=0);
    
    static bool sendEvent(Object *receiver, Event *event);
-   static void postEvent(Object *receiver, Event *event, int priority = pdk::EventPriority::NormalEventPriority);
+   static void postEvent(Object *receiver, Event *event, pdk::EventPriority priority = pdk::EventPriority::NormalEventPriority);
    static void sendPostedEvents(Object *receiver = nullptr, int eventType = 0);
    static void removePostedEvents(Object *receiver, int eventType = 0);
    static AbstractEventDispatcher *eventDispatcher();
@@ -110,8 +110,6 @@ protected:
 private:
    static bool sendSpontaneousEvent(Object *receiver, Event *event);
    static bool notifyInternal(Object *receiver, Event *);
-   friend class Application;
-   friend class internal::ApplicationPrivate;
    friend class internal::EventDispatcherUNIXPrivate;
    friend PDK_CORE_EXPORT std::string pdk_retrieve_app_name();
    friend class ClassFactory;
