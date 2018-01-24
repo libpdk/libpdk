@@ -40,6 +40,8 @@ namespace internal {
 
 using pdk::kernel::Event;
 using pdk::kernel::Object;
+using pdk::kernel::EventLoop;
+using pdk::kernel::AbstractEventDispatcher;
 using pdk::kernel::internal::ObjectPrivate;
 using pdk::os::thread::AtomicInt;
 
@@ -172,6 +174,110 @@ public:
    int m_returnCode;
    uint m_stackSize;
    Thread::Priority m_priority;
+};
+
+class ThreadData
+{
+public:
+   ThreadData(int initialRefCount = 1);
+   ~ThreadData();
+   
+   static PDK_UNITTEST_EXPORT ThreadData *current(bool createIfNecessary = true);
+   static void clearCurrentThreadData();
+   static QThreadData *get(Thread *thread)
+   {
+      PDK_ASSERT_X(thread != 0, "Thread", "internal error");
+      return thread->getImplPtr()->m_data;
+   }
+   void ref();
+   void deref();
+   inline bool hasEventDispatcher() const
+   {
+      return m_eventDispatcher.load() != 0;
+   }
+   
+   bool canWaitLocked()
+   {
+      std::scoped_lock locker(&m_postEventList.m_mutex);
+      return m_canWait;
+   }
+   
+   // This class provides per-thread (by way of being a QThreadData
+   // member) storage for qFlagLocation()
+   class FlaggedDebugSignatures
+   {
+      static constexpr uint COUNT = 2;
+      uint m_idx;
+      const char* m_locations[Count];
+      
+   public:
+      FlaggedDebugSignatures()
+         : m_idx(0)
+      {
+         std::fill_n(m_locations, COUNT, static_cast<char *>(nullptr));
+      }
+      
+      void store(const char *method)
+      {
+         m_locations[m_idx++ % COUNT] = method;
+      }
+      
+      bool contains(const char *method) const
+      {
+         return std::find(m_locations, m_locations + COUNT, method) != m_locations + COUNT;
+      }
+   };
+   
+public:
+   int m_loopLevel;
+   int m_scopeLevel;
+   
+   std::stack<EventLoop *> m_eventLoops;
+   PostEventList m_postEventList;
+   AtomicPointer<Thread> m_thread;
+   pdk::HANDLE m_threadId;
+   AtomicPointer<AbstractEventDispatcher> m_eventDispatcher;
+   std::vector<void *> m_tls;
+   
+   FlaggedDebugSignatures m_flaggedSignatures;
+   
+   bool m_quitNow;
+   bool m_canWait;
+   bool m_isAdopted;
+   bool m_requiresCoreApplication;
+   
+private:
+   AtomicInt m_ref;
+};
+
+class ScopedScopeLevelCounter
+{
+   ThreadData *m_threadData;
+public:
+   inline ScopedScopeLevelCounter(ThreadData *threadData)
+      : m_threadData(threadData)
+   {
+      ++threadData->m_scopeLevel;
+   }
+   
+   inline ~ScopedScopeLevelCounter()
+   {
+      --threadData->m_scopeLevel;
+   }
+};
+
+// thread wrapper for the main() thread
+class AdoptedThread : public Thread
+{
+   PDK_DECLARE_PRIVATE(Thread);
+   
+public:
+   AdoptedThread(ThreadData *data = nullptr);
+   ~AdoptedThread();
+   void init();
+   
+private:
+   void run() override;
 };
 
 } // internal
