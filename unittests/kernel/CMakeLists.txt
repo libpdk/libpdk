@@ -12,6 +12,7 @@ pdk_add_files(PDK_KERNEL_TEST_SRCS
     signal/DeletionTest.cpp
     signal/OrderingTest.cpp
     signal/RegressionTest.cpp
-    signal/TrackTest.cpp)
+    signal/TrackTest.cpp
+    signal/SharedConnectionBlockTest.cpp)
 
 pdk_add_unittest(KerneUnittests KernelTest ${PDK_KERNEL_TEST_SRCS})
