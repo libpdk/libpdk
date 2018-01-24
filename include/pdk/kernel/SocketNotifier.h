@@ -29,7 +29,7 @@ class SocketNotifierPrivate;
 using internal::SocketNotifierPrivate;
 class PDK_CORE_EXPORT SocketNotifier : public Object
 {
-   Q_DECLARE_PRIVATE(SocketNotifier);
+   PDK_DECLARE_PRIVATE(SocketNotifier);
 public:
    enum class Type
    {

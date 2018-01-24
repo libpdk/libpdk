@@ -13,3 +13,57 @@
 //
 // Created by softboy on 2018/01/23.
 
+#include "pdk/kernel/SocketNotifier.h"
+#include "pdk/kernel/AbstractEventDispatcher.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/ObjectPrivate.h"
+
+namespace pdk {
+namespace kernel {
+
+namespace internal {
+
+class SocketNotifierPrivate : public ObjectPrivate
+{
+    PDK_DECLARE_PUBLIC(SocketNotifier);
+public:
+    pdk::intptr m_sockfd;
+    SocketNotifier::Type m_sntype;
+    bool m_snenabled;
+};
+
+} // internal
+
+
+SocketNotifier::SocketNotifier(pdk::intptr socket, Type type, Object *parent)
+    : Object(*new SocketNotifierPrivate, parent)
+{
+}
+
+SocketNotifier::~SocketNotifier()
+{
+}
+
+pdk::intptr SocketNotifier::getSocket() const
+{
+}
+
+SocketNotifier::Type SocketNotifier::getType() const
+{
+}
+
+bool SocketNotifier::isEnabled() const
+{
+}
+
+void SocketNotifier::setEnabled(bool enable)
+{
+
+}
+
+bool SocketNotifier::event(Event *e)
+{
+}
+
+} // kernel
+} // pdk

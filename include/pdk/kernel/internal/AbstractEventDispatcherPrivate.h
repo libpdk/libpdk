@@ -32,9 +32,9 @@ class PDK_CORE_EXPORT AbstractEventDispatcherPrivate : public ObjectPrivate
 public:
    inline AbstractEventDispatcherPrivate()
    {}
-   std::list<AbstractNativeEventFilter *> m_eventFilters;
    static int allocateTimerId();
    static void releaseTimerId(int id);
+   std::list<AbstractNativeEventFilter *> m_eventFilters;
 };
 
 } // internal
