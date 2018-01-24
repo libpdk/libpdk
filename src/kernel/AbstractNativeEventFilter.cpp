@@ -13,3 +13,20 @@
 //
 // Created by softboy on 2018/01/23.
 
+#include "pdk/kernel/AbstractEventDispatcher.h"
+#include "pdk/kernel/AbstractNativeEventFilter.h"
+
+namespace pdk {
+namespace kernel {
+
+AbstractNativeEventFilter::AbstractNativeEventFilter()
+{
+    PDK_UNUSED(m_implPtr);
+}
+
+AbstractNativeEventFilter::~AbstractNativeEventFilter()
+{
+}
+
+} // kernel
+} // pdk
