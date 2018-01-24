@@ -13,3 +13,18 @@
 //
 // Created by softboy on 2018/01/23.
 
+#ifndef PDK_KERNEL_ABSTRACT_EVENT_DISPATCHER_H
+#define PDK_KERNEL_ABSTRACT_EVENT_DISPATCHER_H
+
+#include "pdk/kernel/Object.h"
+#include "pdk/kernel/EventLoop.h"
+
+namespace pdk {
+namespace kernel {
+
+
+
+} // kernel
+} // pdk
+
+#endif // PDK_KERNEL_ABSTRACT_EVENT_DISPATCHER_H

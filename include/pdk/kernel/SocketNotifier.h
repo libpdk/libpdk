@@ -13,13 +13,48 @@
 //
 // Created by softboy on 2018/01/23.
 
-#ifndef PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
-#define PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
+#ifndef PDK_KERNEL_SOCKET_NOTIFIER_H
+#define PDK_KERNEL_SOCKET_NOTIFIER_H
+
+#include "pdk/kernel/Object.h"
 
 namespace pdk {
 namespace kernel {
 
+// forward declare with namespace
+namespace internal {
+class SocketNotifierPrivate;
+} // internal
+
+using internal::SocketNotifierPrivate;
+class PDK_CORE_EXPORT SocketNotifier : public Object
+{
+   Q_DECLARE_PRIVATE(SocketNotifier);
+public:
+   enum class Type
+   {
+      Read,
+      Write,
+      Exception
+   };
+   
+   SocketNotifier(pdk::intptr socket, Type, Object *parent = nullptr);
+   ~SocketNotifier();
+   
+   pdk::intptr getSocket() const;
+   Type getType() const;
+   
+   bool isEnabled() const;
+   void setEnabled(bool);
+   
+protected:
+   bool event(Event *) override;
+   
+private:
+   PDK_DISABLE_COPY(SocketNotifier);
+};
+
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
+#endif // PDK_KERNEL_SOCKET_NOTIFIER_H

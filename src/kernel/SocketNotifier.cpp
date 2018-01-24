@@ -13,13 +13,3 @@
 //
 // Created by softboy on 2018/01/23.
 
-#ifndef PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
-#define PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
-
-namespace pdk {
-namespace kernel {
-
-} // kernel
-} // pdk
-
-#endif // PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
