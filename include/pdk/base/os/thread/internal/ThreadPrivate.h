@@ -16,12 +16,49 @@
 #ifndef PDK_M_BASE_OS_THREAD_INTERNAL_THREAD_PRIVATE_H
 #define PDK_M_BASE_OS_THREAD_INTERNAL_THREAD_PRIVATE_H
 
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/ObjectPrivate.h"
+#include <stack>
+#include <map>
+#include <mutex>
+#include <condition_variable>
+
 namespace pdk {
+
+namespace kernel {
+class AbstractEventDispatcher;
+class EventLoop;
+class Event;
+} // kernel
+
 namespace os {
 namespace thread {
 namespace internal {
 
+using pdk::kernel::Event;
+using pdk::kernel::Object;
 
+class PostEvent
+{
+public:
+   inline PostEvent()
+      : m_receiver(nullptr),
+        m_event(nullptr),
+        m_priority(0)
+   {}
+   
+   inline PostEvent(Object *r, Event *event, int priority)
+      : m_receiver(r),
+        m_event(event),
+        m_priority(priority)
+   {}
+   
+public:
+   Object *m_receiver;
+   Event *m_event;
+   int m_priority;
+};
 
 } // internal
 } // thread
