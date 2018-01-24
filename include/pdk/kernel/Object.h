@@ -34,10 +34,15 @@ namespace kernel {
 using ObjectList = std::list<Object *>;
 using Thread = ::pdk::os::thread::Thread;
 class Object;
-class ObjectPrivate;
 class Event;
 class TimerEvent;
 class ChildEvent;
+
+namespace internal {
+class ObjectPrivate;
+}
+
+using internal::ObjectPrivate;
 
 class PDK_CORE_EXPORT ObjectData
 {
