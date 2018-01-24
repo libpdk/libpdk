@@ -45,10 +45,10 @@ class PDK_CORE_EXPORT AbstractEventDispatcher : public Object
 public:
    struct TimerInfo
    {
-      inline TimerInfo(int id, int i, pdk::TimerType t)
+      inline TimerInfo(int id, int interval, pdk::TimerType timerType)
          : m_timerId(id),
-           m_interval(i),
-           m_timerType(t)
+           m_interval(interval),
+           m_timerType(timerType)
       {}
       int m_timerId;
       int m_interval;
