@@ -19,6 +19,7 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
+#include "pdk/base/os/thread/Atomic.h"
 #include <stack>
 #include <map>
 #include <mutex>
@@ -39,6 +40,8 @@ namespace internal {
 
 using pdk::kernel::Event;
 using pdk::kernel::Object;
+using pdk::kernel::internal::ObjectPrivate;
+using pdk::os::thread::AtomicInt;
 
 class PostEvent
 {
@@ -107,6 +110,68 @@ private:
    //hides because they do not keep that list sorted. addEvent must be used
    using std::vector<PostEvent>::push_back;
    using std::vector<PostEvent>::insert;
+};
+
+class PDK_CORE_EXPORT DaemonThread : public Thread
+{
+public:
+   DaemonThread(Object *parent = nullptr);
+   ~DaemonThread();
+};
+
+class ThreadPrivate : public ObjectPrivate
+{
+   PDK_DECLARE_PUBLIC(Thread);
+public:
+   static Thread *threadForId(int id);
+   static void createEventDispatcher(ThreadData *data);
+#ifdef PDK_OS_WIN
+   static unsigned int __stdcall start(void *);
+   static void finish(void *, bool lockAnyway=true);
+#endif // PDK_OS_WIN
+#ifdef PDK_OS_UNIX
+   static void *start(void *arg);
+   static void finish(void *);
+#endif // PDK_OS_UNIX
+   
+public:
+   ThreadPrivate(ThreadData *d = 0);
+   ~ThreadPrivate();
+   void setPriority(Thread::Priority priority);
+   void ref()
+   {
+      m_quitLockRef.ref();
+   }
+   
+   void deref()
+   {
+      if (!m_quitLockRef.deref() && m_running) {
+         CoreApplication::getInstance()->postEvent(m_apiPtr, new Event(Event::Type::Quit));
+      }
+   }
+   
+public:
+#ifdef PDK_OS_UNIX
+   std::condition_variable m_threadDone;
+#endif // PDK_OS_UNIX
+#ifdef PDK_OS_WIN
+   pdk::HANDLE m_handle;
+   unsigned int m_id;
+   int m_waiters;
+   bool m_terminationEnabled;
+   bool m_terminatePending;
+#endif // PDK_OS_WIN
+   ThreadData *m_data;
+   mutable std::mutex m_mutex;
+   AtomicInt m_quitLockRef;   
+   bool m_running;
+   bool m_finished;
+   bool m_isInFinish; //when in ThreadPrivate::finish
+   bool m_interruptionRequested;
+   bool m_exited;
+   int m_returnCode;
+   uint m_stackSize;
+   Thread::Priority m_priority;
 };
 
 } // internal

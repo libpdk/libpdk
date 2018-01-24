@@ -29,14 +29,14 @@ class AbstractEventDisptacher;
 namespace os {
 namespace thread {
 
-class ThreadData;
-
 // forward declare with namespace
 namespace internal {
 class ThreadPrivate;
+class ThreadData;
 } // internal
 
 using internal::ThreadPrivate;
+using internal::ThreadData;
 
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
