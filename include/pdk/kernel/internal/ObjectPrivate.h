@@ -17,6 +17,7 @@
 #define PDK_KERNEL_OBJECT_PRIVATE_H
 
 #include "pdk/kernel/Object.h"
+#include "pdk/kernel/Pointer.h"
 #include <vector>
 #include <list>
 #include <variant>
@@ -41,6 +42,5 @@ public:
 } // internal
 } // kernel
 } // pdk
-
 
 #endif // PDK_KERNEL_OBJECT_PRIVATE_H
