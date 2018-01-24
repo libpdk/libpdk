@@ -11,35 +11,52 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/11/13.
+// Created by softboy on 2017/01/23.
 
-#ifndef PDK_GLOBAL_ENUM_DEFS_H
-#define PDK_GLOBAL_ENUM_DEFS_H
+#ifndef PDK_KERNEL_BASIC_TIMER_H
+#define PDK_KERNEL_BASIC_TIMER_H
 
 #include "pdk/global/Global.h"
 
 namespace pdk {
+namespace kernel {
 
-enum class Initialization
+class Object;
+
+class PDK_CORE_EXPORT BasicTimer
 {
-   Uninitialized
+public:
+   inline BasicTimer()
+      : m_id(0)
+   {}
+   
+   inline ~BasicTimer()
+   {
+      if (m_id) {
+         stop();
+      }
+   }
+   
+   inline bool isActive() const
+   {
+      return m_id != 0;
+   }
+   
+   inline int getTimerId()
+   {
+      return m_id;
+   }
+   
+   void start(int msec, Object *obj);
+   void start(int msec, pdk::TimerType timerType, Object *obj);
+   void stop();
+private:
+   int m_id;
 };
 
-static constexpr PDK_DECL_UNUSED Initialization Uninitialized = Initialization::Uninitialized;
-
-enum class CaseSensitivity
-{
-   Insensitive,
-   Sensitive
-};
-
-enum class TimerType
-{
-   PreciseTimer,
-   CoarseTimer,
-   VeryCoarseTimer
-};
-
+} // kernel
 } // pdk
 
-#endif // PDK_GLOBAL_ENUM_DEFS_H
+PDK_DECLARE_TYPEINFO(pdk::kernel::BasicTimer, PDK_MOVABLE_TYPE);
+
+#endif // PDK_KERNEL_BASIC_TIMER_H
