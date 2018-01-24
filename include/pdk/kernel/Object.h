@@ -16,11 +16,33 @@
 #ifndef PDK_KERNEL_OBJECT_H
 #define PDK_KERNEL_OBJECT_H
 
+#include "pdk/global/Global.h"
+#include <list>
+
 namespace pdk {
 namespace kernel {
 
+class Object;
+using ObjectList = std::list<Object *>;
+
+class PDK_CORE_EXPORT ObjectData
+{
+public:
+   virtual ~ObjectData();
+   Object *m_apiPtr;
+   Object *m_parent;
+   ObjectList m_children;
+   uint wasDeleted : 1;
+   uint isDeletingChildren : 1;
+   uint sendChildEvents : 1;
+   uint receiveChildEvents : 1;
+   uint unused : 28;
+   int postedEvents;
+};
+
 class Object
 {
+   
    
 };
 
