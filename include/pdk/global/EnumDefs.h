@@ -40,6 +40,12 @@ enum class TimerType
    VeryCoarseTimer
 };
 
+enum class EventPriority {
+   HighEventPriority = 1,
+   NormalEventPriority = 0,
+   LowEventPriority = -1
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H

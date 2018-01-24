@@ -16,8 +16,114 @@
 #ifndef PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
 #define PDK_KERNEL_ABSTRACT_CORE_APPLICATION_H
 
+#include "pdk/global/Global.h"
+#include "pdk/kernel/Object.h"
+#include "pdk/kernel/CoreEvent.h"
+#include "pdk/kernel/EventLoop.h"
+#include "pdk/utils/ScopedPointer.h"
+#include <string>
+
+#define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance();
+
 namespace pdk {
 namespace kernel {
+
+// forward declare with namespace
+namespace internal {
+class CoreApplicationPrivate;
+} // internal
+
+class PostEventList;
+class AbstractEventDispatcher;
+class AbstractNativeEventFilter;
+using StringList = std::list<std::string>;
+
+using internal::CoreApplicationPrivate;
+
+class PDK_CORE_EXPORT CoreApplication : Object
+{
+public:
+   enum { 
+      ApplicationFlags = 0x000001// PDK_VERSION
+   };
+   
+   CoreApplication(int &argc, char **argv, int = ApplicationFlags);
+   ~CoreApplication();
+   
+   static StringList getArguments();
+   static void setOrganizationDomain(const std::string &orgDomain);
+   static std::string getOrganizationDomain();
+   static void setOrganizationName(const std::string &orgName);
+   static std::string getOrganizationName();
+   static void setApplicationName(const std::string &application);
+   static std::string getApplicationName();
+   static void setApplicationVersion(const std::string &version);
+   static std::string getApplicationVersion();
+   static void setSetuidAllowed(bool allow);
+   static bool isSetuidAllowed();
+   static CoreApplication *getInstance()
+   {}
+   static int exec();
+   static void processEvents(EventLoop::ProcessEventsFlags flags = EventLoop::AllEvents);
+   static void processEvents(EventLoop::ProcessEventsFlags flags, int maxtime);
+   static void exit(int retcode=0);
+   
+   static bool sendEvent(Object *receiver, Event *event);
+   static void postEvent(Object *receiver, Event *event, int priority = pdk::EventPriority::NormalEventPriority);
+   static void sendPostedEvents(Object *receiver = nullptr, int eventType = 0);
+   static void removePostedEvents(Object *receiver, int eventType = 0);
+   static AbstractEventDispatcher *eventDispatcher();
+   static void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);
+   virtual bool notify(Object *, Event *);
+   static bool startingUp();
+   static bool closingDown();
+   
+   static std::string getApplicationDirPath();
+   static std::string getApplicationFilePath();
+   static pdk::pint64 getApplicationPid();
+   
+   static void setLibraryPaths(const StringList &);
+   static StringList getLibraryPaths();
+   static void addLibraryPath(const std::string &);
+   static void removeLibraryPath(const std::string &);
+   
+   static void flush();
+   
+   void installNativeEventFilter(AbstractNativeEventFilter *filterObj);
+   void removeNativeEventFilter(AbstractNativeEventFilter *filterObj);
+   static bool isQuitLockEnabled();
+   static void setQuitLockEnabled(bool enabled);
+   static void quit();
+   
+   // signals
+   // void aboutToQuit(PrivateSignal);
+   // void organizationNameChanged();
+   // void organizationDomainChanged();
+   // void applicationNameChanged();
+   // void applicationVersionChanged();
+   
+protected:
+   bool event(Event *) override;
+   virtual bool compressEvent(Event *, Object *receiver, PostEventList *);
+   CoreApplication(CoreApplicationPrivate &p);
+   
+private:
+   static bool sendSpontaneousEvent(Object *receiver, Event *event);
+   friend class Application;
+   friend class internal::ApplicationPrivate;
+   friend class internal::EventDispatcherUNIXPrivate;
+   friend PDK_CORE_EXPORT std::string pdk_retrieve_app_name();
+   friend class QClassFactory;
+private:
+   PDK_DISABLE_COPY(CoreApplication);
+   PDK_DECLARE_PRIVATE(CoreApplication);
+   
+protected:
+   pdk::utils::ScopedPointer<CoreApplicationPrivate> m_implPtr;
+   
+private:
+   static CoreApplication *sm_self;
+};
 
 } // kernel
 } // pdk
