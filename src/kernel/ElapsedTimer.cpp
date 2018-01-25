@@ -12,3 +12,30 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2018/01/25.
+
+#include "pdk/kernel/ElapsedTimer.h"
+
+namespace pdk {
+namespace kernel {
+
+static constexpr pdk::pint64 sg_invalidData = PDK_INT64_C(0x8000000000000000);
+
+void ElapsedTimer::invalidate() noexcept
+{
+     m_t1 = m_t2 = sg_invalidData;
+}
+
+bool ElapsedTimer::isValid() const noexcept
+{
+    return m_t1 != sg_invalidData && m_t2 != sg_invalidData;
+}
+
+bool ElapsedTimer::hasExpired(pdk::pint64 timeout) const noexcept
+{
+    // if timeout is -1, quint64(timeout) is LLINT_MAX, so this will be
+    // considered as never expired
+    return pdk::puint64(elapsed()) > pdk::puint64(timeout);
+}
+
+} // kernel
+} // pdk
