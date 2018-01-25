@@ -20,7 +20,7 @@
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
 
 #ifdef PDK_TIMERINFO_DEBUG
-//#  include <QDebug>
+//#  include <Debug>
 #  include "pdk/base/os/thread/Thread.h"
 #endif
 #include <sys/times.h>

@@ -33,9 +33,9 @@ public:
    int m_id;
    int m_inter;
    int m_del;
-   uint single : 1;
-   uint nulltimer : 1;
-   uint type : 2;
+   uint m_single : 1;
+   uint m_nulltimer : 1;
+   uint m_type : 2;
    // reserved : 28
 };
 

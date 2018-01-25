@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/BasicTimer.h"
 #include "pdk/kernel/Object.h"
+#include "pdk/kernel/internal/FunctionTrait.h"
 #include <chrono>
 
 namespace pdk {
@@ -46,6 +47,7 @@ public:
    int getRemainingTime() const;
    void setTimerType(pdk::TimerType atype)
    {}
+   
    pdk::TimerType getTimerType() const
    {}
    
@@ -58,43 +60,48 @@ public:
    
    // singleShot to a QObject slot
    template <typename Duration, typename Func1>
-   static inline void singleShot(Duration interval, const typename QtPrivate::FunctionPointer<Func1>::Object *receiver, Func1 slot)
+   static inline void singleShot(Duration interval, const typename internal::FunctionPointer<Func1>::ObjectType *receiver, Func1 slot)
    {
       
    }
    template <typename Duration, typename Func1>
-   static inline void singleShot(Duration interval, Qt::TimerType timerType, const typename QtPrivate::FunctionPointer<Func1>::Object *receiver,
+   static inline void singleShot(Duration interval, pdk::TimerType timerType, 
+                                 const typename internal::FunctionPointer<Func1>::ObjectType *receiver,
                                  Func1 slot)
    {
       
    }
+   
    // singleShot to a functor or function pointer (without context)
    template <typename Duration, typename Func1>
-   static inline typename QtPrivate::QEnableIf<!QtPrivate::FunctionPointer<Func1>::IsPointerToMemberFunction &&
-   !std::is_same<const char*, Func1>::value, void>::Type
+   static inline typename std::enable_if<!internal::FunctionPointer<Func1>::IsPointerToMemberFunction &&
+   !std::is_same<const char*, Func1>::value, void>::type
    singleShot(Duration interval, Func1 slot)
    {
       
    }
+   
    template <typename Duration, typename Func1>
-   static inline typename QtPrivate::QEnableIf<!QtPrivate::FunctionPointer<Func1>::IsPointerToMemberFunction &&
-   !std::is_same<const char*, Func1>::value, void>::Type
-   singleShot(Duration interval, Qt::TimerType timerType, Func1 slot)
+   static inline typename std::enable_if<!internal::FunctionPointer<Func1>::IsPointerToMemberFunction &&
+   !std::is_same<const char*, Func1>::value, void>::type
+   singleShot(Duration interval, pdk::TimerType timerType, Func1 slot)
    {
       
    }
+   
    // singleShot to a functor or function pointer (with context)
    template <typename Duration, typename Func1>
-   static inline typename QtPrivate::QEnableIf<!QtPrivate::FunctionPointer<Func1>::IsPointerToMemberFunction &&
+   static inline typename std::enable_if<!internal::FunctionPointer<Func1>::IsPointerToMemberFunction &&
    !std::is_same<const char*, Func1>::value, void>::Type
-   singleShot(Duration interval, QObject *context, Func1 slot)
+   singleShot(Duration interval, Object *context, Func1 slot)
    {
       
    }
+   
    template <typename Duration, typename Func1>
-   static inline typename QtPrivate::QEnableIf<!QtPrivate::FunctionPointer<Func1>::IsPointerToMemberFunction &&
+   static inline typename std::enable_if<!internal::FunctionPointer<Func1>::IsPointerToMemberFunction &&
    !std::is_same<const char*, Func1>::value, void>::Type
-   singleShot(Duration interval, Qt::TimerType timerType, QObject *context, Func1 slot)
+   singleShot(Duration interval, pdk::TimerType timerType, Object *context, Func1 slot)
    {
    }
    
@@ -122,12 +129,14 @@ public:
    }
    
    PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, const QObject *receiver, const char *member)
+   static void singleShot(std::chrono::milliseconds value, const Object *receiver, 
+                          const char *member)
    {
    }
    
    PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, Qt::TimerType timerType, const QObject *receiver, const char *member)
+   static void singleShot(std::chrono::milliseconds value, pdk::TimerType timerType, 
+                          const Object *receiver, const char *member)
    {
    }
    
@@ -137,7 +146,7 @@ public:
    }
    
 protected:
-   void timerEvent(QTimerEvent *) override;
+   void timerEvent(TimerEvent *) override;
    
 private:
    PDK_DISABLE_COPY(Timer);
@@ -145,16 +154,16 @@ private:
    inline int startTimer(int){}
    inline void killTimer(int){}
    
-   static constexpr Qt::TimerType defaultTypeFor(int msecs) noexcept
+   static constexpr pdk::TimerType defaultTypeFor(int msecs) noexcept
    {}
-   static void singleShotImpl(int msec, Qt::TimerType timerType,
-                              const QObject *receiver, QtPrivate::QSlotObjectBase *slotObj);
+   static void singleShotImpl(int msec, pdk::TimerType timerType,
+                              const Object *receiver/*, QtPrivate::QSlotObjectBase *slotObj*/);
    
-   static Qt::TimerType defaultTypeFor(std::chrono::milliseconds interval)
+   static pdk::TimerType defaultTypeFor(std::chrono::milliseconds interval)
    {}
    
-   static void singleShotImpl(std::chrono::milliseconds interval, Qt::TimerType timerType,
-                              const QObject *receiver, QtPrivate::QSlotObjectBase *slotObj)
+   static void singleShotImpl(std::chrono::milliseconds interval, pdk::TimerType timerType,
+                              const Object *receiver/*, QtPrivate::QSlotObjectBase *slotObj*/)
    {
    }
    

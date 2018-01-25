@@ -28,26 +28,26 @@ template<typename Func> struct FunctionPointer
    static constexpr bool IsPointerToMemberFunction = false;
 };
 
-template<class ObjectType, typename Ret, typename... Args>
-struct FunctionPointer<Ret (ObjectType::*) (Args...)>
+template<class ObjType, typename Ret, typename... Args>
+struct FunctionPointer<Ret (ObjType::*) (Args...)>
 {
-   using Object = ObjectType;
+   using ObjectType = ObjType;
    using Arguments = std::tuple<Args...>;
    using ReturnType = Ret;
-   using Function = Ret (ObjectType::*) (Args...);
+   using Function = Ret (ObjType::*) (Args...);
    template <std::size_t N>
    using ArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
    static constexpr int ArgumentCount = sizeof...(Args);
    static constexpr bool IsPointerToMemberFunction = true;
 };
 
-template<class ObjectType, typename Ret, typename... Args>
-struct FunctionPointer<Ret (ObjectType::*) (Args...) const>
+template<class ObjType, typename Ret, typename... Args>
+struct FunctionPointer<Ret (ObjType::*) (Args...) const>
 {
-   using Object = ObjectType;
+   using ObjectType = ObjType;
    using Arguments = std::tuple<Args...>;
    using ReturnType = Ret;
-   using Function = Ret (ObjectType::*) (Args...) const;
+   using Function = Ret (ObjType::*) (Args...) const;
    template <std::size_t N>
    using ArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
    static constexpr int ArgumentCount = sizeof...(Args);
@@ -66,13 +66,13 @@ struct FunctionPointer<Ret (*) (Args...)>
    static constexpr bool IsPointerToMemberFunction = false;
 };
 
-template<class ObjectType, typename Ret, typename... Args>
-struct FunctionPointer<Ret (ObjectType::*) (Args...) noexcept>
+template<class ObjType, typename Ret, typename... Args>
+struct FunctionPointer<Ret (ObjType::*) (Args...) noexcept>
 {
-   using Object = ObjectType;
+   using ObjectType = ObjType;
    using Arguments = std::tuple<Args...>;
    using ReturnType = Ret;
-   using Function = Ret (ObjectType::*) (Args...) noexcept;
+   using Function = Ret (ObjType::*) (Args...) noexcept;
    template <class Base>
    struct ChangeClass
    {
@@ -84,13 +84,13 @@ struct FunctionPointer<Ret (ObjectType::*) (Args...) noexcept>
    static constexpr bool IsPointerToMemberFunction = true;
 };
 
-template<class ObjectType, typename Ret, typename... Args>
-struct FunctionPointer<Ret (ObjectType::*) (Args...) const noexcept>
+template<class ObjType, typename Ret, typename... Args>
+struct FunctionPointer<Ret (ObjType::*) (Args...) const noexcept>
 {
-   using Object = ObjectType;
+   using ObjectType = ObjType;
    using Arguments = std::tuple<Args...>;
    using ReturnType = Ret;
-   using Function = Ret (ObjectType::*) (Args...) const noexcept;
+   using Function = Ret (ObjType::*) (Args...) const noexcept;
    template <class Base>
    struct ChangeClass
    {
