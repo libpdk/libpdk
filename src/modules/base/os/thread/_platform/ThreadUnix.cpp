@@ -16,6 +16,7 @@
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/kernel/EventdispatcherUnix.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
+#include "pdk/global/PlatformDefs.h"
 
 #include <sched.h>
 #include <errno.h>
@@ -51,6 +52,35 @@
 namespace pdk {
 namespace os {
 namespace thread {
+
+PDK_STATIC_ASSERT(sizeof(pthread_t) <= sizeof(PDK::HANDLE));
+const int THREAD_PRIORITY_RESET_FLAG = 0x80000000;
+#if defined(PDK_OS_LINUX) && defined(__GLIBC__) && (defined(PDK_CC_GNU) || defined(PDK_CC_INTEL)) && !defined(PDK_LINUXBASE)
+/* LSB doesn't have __thread, https://lsbbugs.linuxfoundation.org/show_bug.cgi?id=993 */
+#define HAVE_TLS
+#endif
+
+static thread_local internal::ThreadData *sg_currentThreadData = nullptr;
+static pthread_once_t sg_currentThreadDataOnce = PTHREAD_ONCE_INIT;
+static pthread_key_t sg_currentThreadDataKey;
+
+namespace {
+
+void destroy_current_thread_data(void *p)
+{
+}
+
+void create_current_thread_data_key()
+{
+}
+
+void destroy_current_thread_data_key()
+{
+}
+
+PDK_DESTRUCTOR_FUNCTION(destroy_current_thread_data_key);
+
+}
 
 
 

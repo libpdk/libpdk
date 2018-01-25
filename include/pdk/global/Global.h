@@ -120,6 +120,28 @@
 #  define PDK_FORWARD_DECLARE_MUTABLE_CG_TYPE(type) typedef struct type *type ## Ref;
 #endif
 
+#ifndef PDK_CONSTRUCTOR_FUNCTION
+# define PDK_CONSTRUCTOR_FUNCTION0(AFUNC) \
+    namespace { \
+    static const struct AFUNC ## InternalCtorClass { \
+        inline AFUNC ## InternalCtorClass() { AFUNC(); } \
+    } AFUNC ## InternalCtorInstance; \
+    }
+
+# define PDK_CONSTRUCTOR_FUNCTION(AFUNC) PDK_CONSTRUCTOR_FUNCTION0(AFUNC)
+#endif
+
+#ifndef PDK_DESTRUCTOR_FUNCTION
+# define PDK_DESTRUCTOR_FUNCTION0(AFUNC) \
+    namespace { \
+    static const struct AFUNC ## InternalCtorClass { \
+        inline AFUNC ## InternalDtorClass() { } \
+        inline ~ AFUNC ## InternalCtorClass() { AFUNC(); } \
+    } AFUNC ## InternalDtorInstance; \
+    }
+# define PDK_DESTRUCTOR_FUNCTION(AFUNC) PDK_DESTRUCTOR_FUNCTION0(AFUNC)
+#endif
+
 namespace pdk 
 {
 
