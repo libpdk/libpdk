@@ -12,3 +12,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2018/01/25.
+
+// ask for the latest POSIX, just in case
+
+#define _POSIX_C_SOURCE 200809L
+
