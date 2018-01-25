@@ -172,5 +172,4 @@ private:
 } // kernel
 } // pdk
 
-
 #endif // PDK_KERNEL_TIMER_H
