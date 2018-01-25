@@ -54,7 +54,7 @@ class PDK_CORE_EXPORT TimerInfoList : public std::list<TimerInfo *>
    
 public:
    TimerInfoList();
-   timespec m_updateCurrentTime();
+   timespec updateCurrentTime();
    // must call updateCurrentTime() first!
    void repairTimersIfNeeded();
    bool timerWait(timespec &);
