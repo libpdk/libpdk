@@ -126,7 +126,8 @@ if(NOT DEFINED PDK_CMAKE_MODULE_UTILS)
         file(GLOB_RECURSE TEMP_OUTPUTFILES
              LIST_DIRECTORIES false
              ${GLOB})
-         list(APPEND ${ARG_OUTPUT_VAR} ${TEMP_OUTPUTFILES})
+        list(FILTER TEMP_OUTPUTFILES EXCLUDE REGEX "_platform/")
+        list(APPEND ${ARG_OUTPUT_VAR} ${TEMP_OUTPUTFILES})
         set(${ARG_OUTPUT_VAR} ${${ARG_OUTPUT_VAR}} PARENT_SCOPE)
     endfunction()
 endif()

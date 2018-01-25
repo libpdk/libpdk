@@ -35,6 +35,12 @@ pdk_collect_files(
     DIR modules/base
     OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
 
+set(MODULE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/base)
+if(UNIX)
+    list(APPEND PDK_BASE_MODULE_SOURCES
+        ${MODULE_BASE_DIR}/os/thread/_platform/ThreadUnix.cpp)
+endif()
+
 list(REMOVE_ITEM PDK_BASE_MODULE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/modules/base/lang/UnicodeTables.cpp)
 
 pdk_add_library(libpdk 
