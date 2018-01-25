@@ -13,9 +13,16 @@
 //
 // Created by softboy on 2018/01/25.
 
-#ifndef PDK_GLOBAL_INTERNAL_COMMON_POSIX_PLATFORM_DEFS_H
-#define PDK_GLOBAL_INTERNAL_COMMON_POSIX_PLATFORM_DEFS_H
+#ifndef PDK_GLOBAL_INTERNAL_COMMON_C89_PLATFORM_DEFS_H
+#define PDK_GLOBAL_INTERNAL_COMMON_C89_PLATFORM_DEFS_H
 
+#define PDK_FPOS_T               fpos_t
+#define PDK_OFF_T                long
 
+#define PDK_FOPEN                ::fopen
+#define PDK_FSEEK                ::fseek
+#define PDK_FTELL                ::ftell
+#define PDK_FGETPOS              ::fgetpos
+#define PDK_FSETPOS              ::fsetpos
 
-#endif // PDK_GLOBAL_INTERNAL_COMMON_POSIX_PLATFORM_DEFS_H
+#endif // PDK_GLOBAL_INTERNAL_COMMON_C89_PLATFORM_DEFS_H
