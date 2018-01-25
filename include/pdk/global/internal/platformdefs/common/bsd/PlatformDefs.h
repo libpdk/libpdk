@@ -15,4 +15,38 @@
 
 #ifndef PDK_GLOBAL_INTERNAL_COMMON_BSD_PLATFORM_DEFS_H
 #define PDK_GLOBAL_INTERNAL_COMMON_BSD_PLATFORM_DEFS_H
+
+#include "pdk/global/Global.h"
+// Set any POSIX/XOPEN defines at the top of this file to turn on specific APIs
+#include <unistd.h>
+// We are hot - unistd.h should have turned on the specific APIs we requested
+#include <pthread.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
+#include <signal.h>
+#include <dlfcn.h>
+
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/ipc.h>
+#include <sys/time.h>
+#include <sys/shm.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <netinet/in.h>
+#ifndef PDK_NO_IPV6IFNAME
+#include <net/if.h>
+#endif
+
+#include "../posix/PlatformDefs.h"
+#undef PDK_OPEN_LARGEFILE
+#define PDK_OPEN_LARGEFILE 0
+
+#define PDK_SNPRINTF             ::snprintf
+#define PDK_VSNPRINTF            ::vsnprintf
+
 #endif // PDK_GLOBAL_INTERNAL_COMMON_BSD_PLATFORM_DEFS_H
