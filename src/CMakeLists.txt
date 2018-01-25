@@ -41,7 +41,8 @@ if(UNIX)
     list(APPEND PDK_BASE_MODULE_SOURCES
         ${MODULE_BASE_DIR}/os/thread/_platform/ThreadUnix.cpp)
     list(APPEND PDK_BASE_SOURCES
-        ${KERNEL_BASE_DIR}/_platform/CoreUnix.cpp)
+        ${KERNEL_BASE_DIR}/_platform/CoreUnix.cpp
+        ${KERNEL_BASE_DIR}/_platform/TimerInfoUnix.cpp)
 endif()
 
 list(REMOVE_ITEM PDK_BASE_MODULE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/modules/base/lang/UnicodeTables.cpp)

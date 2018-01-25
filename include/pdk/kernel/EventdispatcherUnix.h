@@ -19,6 +19,9 @@
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
 #include "pdk/kernel/CoreUnix.h"
+#include "pdk/base/ds/PodList.h"
+#include "pdk/base/ds/VarLengthArray.h"
+
 
 namespace pdk {
 namespace kernel {
