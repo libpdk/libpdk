@@ -12,3 +12,35 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2018/01/25.
+
+#ifndef PDK_KERNEL_INTERNAL_TIMER_PRIVATE_H
+#define PDK_KERNEL_INTERNAL_TIMER_PRIVATE_H
+
+#include "pdk/kernel/internal/ObjectPrivate.h"
+
+namespace pdk {
+namespace kernel {
+namespace internal {
+
+class TimerPrivate : public ObjectPrivate
+{
+public:
+   bool m_singleShot;
+   int m_interval;
+   int m_remainingTime;
+   pdk::TimerType m_timerType;
+   bool m_active;
+   int m_id;
+   int m_inter;
+   int m_del;
+   uint single : 1;
+   uint nulltimer : 1;
+   uint type : 2;
+   // reserved : 28
+};
+
+} // pdk
+} // kernel
+} // pdk
+
+#endif // PDK_KERNEL_INTERNAL_TIMER_PRIVATE_H
