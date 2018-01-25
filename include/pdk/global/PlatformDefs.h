@@ -16,6 +16,18 @@
 #ifndef PDK_GLOBAL_PLATFORM_DEFS_H
 #define PDK_GLOBAL_PLATFORM_DEFS_H
 
+#include "pdk/global/Global.h"
 
+#ifdef PDK_OS_MACX
+#  if defined(PDK_CC_CLANG)
+#     include "internal/platformdefs/macos-clang/PlatformDefs.h"
+#  elif defined(PDK_CC_GNU)
+#     include "internal/platformdefs/macos-g++/PlatformDefs.h"
+#  else
+#     include "internal/platformdefs/common/mac/PlatformDefs.h"
+#  endif
+#elif defined(PDK_OS_DARWIN)
+#include "internal/platformdefs/darwin-g++/PlatformDefs.h"
+#endif
 
 #endif // PDK_GLOBAL_PLATFORM_DEFS_H
