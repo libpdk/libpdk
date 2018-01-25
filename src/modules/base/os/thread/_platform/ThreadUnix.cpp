@@ -78,11 +78,149 @@ void destroy_current_thread_data_key()
 {
 }
 
-PDK_DESTRUCTOR_FUNCTION(destroy_current_thread_data_key);
+PDK_DESTRUCTOR_FUNCTION(destroy_current_thread_data_key)
+
+static internal::ThreadData *get_thread_data()
+{
+}
+
+static void set_thread_data(internal::ThreadData *data)
+{
+}
+
+static void clear_thread_data()
+{
+}
+
+template <typename T>
+static typename std::enable_if<std::is_integral<T>::value, pdk::HANDLE>::type
+toPdkHandleType(T id)
+{
+}
+
+template <typename T>
+static typename std::enable_if<std<T>::is_integral<T>::value, T>::Type
+fromPdkHandle(pdk::HANDLE id)
+{
+}
+
+template <typename T>
+static typename std::enable_if<std::is_pointer<T>::value>::type
+toPdkHandle(T id)
+{
+}
+
+template <typename T>
+static typename std::enable_if<std<T>::is_pointer<T>::value, T>::Type
+fromPdkHandle(pdk::HANDLE id)
+{
+}
+
+#if (defined(PDK_OS_LINUX) || defined(PDK_OS_MAC) || defined(PDK_OS_QNX))
+void set_current_thread_name(pthread_t threadId, const char *name)
+{
+}
+#endif
+
+timespec make_timespec(time_t secs, long nsecs)
+{
+}
+
+#ifdef PDK_HAS_THREAD_PRIORITY_SCHEDULING
+// Does some magic and calculate the Unix scheduler priorities
+// sched_policy is IN/OUT: it must be set to a valid policy before calling this function
+// sched_priority is OUT only
+static bool calculate_unix_priority(int priority, int *schedPolicy, int *schedPriority)
+{
+}
+#endif
 
 }
 
+namespace internal {
 
+void ThreadData::clearCurrentThreadData()
+{
+}
+
+ThreadData *ThreadData::current(bool createIfNecessary)
+{
+}
+
+void AdoptedThread::init()
+{
+}
+
+extern "C" {
+using PdkThreadCallback = void* (*)(void*);
+}
+
+void ThreadPrivate::createEventDispatcher(ThreadData *data)
+{
+}
+
+void *ThreadPrivate::start(void *arg)
+{
+}
+
+void ThreadPrivate::finish(void *arg)
+{
+}
+
+} // internal
+
+pdk::HANDLE Thread::getCurrentThreadId() noexcept
+{
+}
+
+#if defined(PDK_LINUXBASE) && !defined(_SC_NPROCESSORS_ONLN)
+// LSB doesn't define _SC_NPROCESSORS_ONLN.
+#  define _SC_NPROCESSORS_ONLN 84
+#endif
+
+int Thread::getIdealThreadCount() noexcept
+{
+}
+
+void Thread::yieldCurrentThread()
+{
+}
+
+void Thread::sleep(unsigned long secs)
+{
+}
+
+void Thread::msleep(unsigned long msecs)
+{
+
+}
+
+void Thread::usleep(unsigned long usecs)
+{
+
+}
+
+void Thread::start(Priority priority)
+{
+}
+
+void Thread::terminate()
+{
+}
+
+bool Thread::wait(unsigned long time)
+{
+}
+
+void Thread::setTerminationEnabled(bool enabled)
+{
+}
+
+
+// Caller must lock the mutex
+void ThreadPrivate::setPriority(Thread::Priority threadPriority)
+{
+}
 
 } // thread
 } // os
