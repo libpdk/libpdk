@@ -61,6 +61,25 @@ pdk::pint64 absolute_to_msecs(pdk::pint64 cpuTime)
 
 }
 
+timespec get_time() noexcept
+{
+   timespec tv;
+   uint64_t cpuTime = mach_absolute_time();
+   uint64_t nsecs = absolute_to_nsecs(cpuTime);
+   tv.tv_sec = nsecs / 1000000000ull;
+   tv.tv_nsec = nsecs - (tv.tv_sec * 1000000000ull);
+   return tv;
+}
+
+void nanosleep(timespec amount)
+{
+   // Mac doesn't have clock_nanosleep, but it does have nanosleep.
+   // nanosleep is POSIX.1-1993
+   
+   int r;
+   PDK_EINTR_LOOP(r, ::nanosleep(&amount, &amount));
+}
+
 ElapsedTimer::ClockType ElapsedTimer::getClockType() noexcept
 {
    return ClockType::MachAbsoluteTime;
@@ -70,6 +89,62 @@ bool ElapsedTimer::isMonotonic() noexcept
 {
    return true;
 }
+
+void ElapsedTimer::start() noexcept
+{
+   m_t1 = mach_absolute_time();
+   m_t2 = 0;
+}
+
+pdk::pint64 ElapsedTimer::restart() noexcept
+{
+   pdk::pint64 old = m_t1;
+   m_t1 = mach_absolute_time();
+   m_t2 = 0;
+   return absolute_to_msecs(m_t1 - old);
+}
+
+pdk::pint64 ElapsedTimer::nsecsElapsed() const noexcept
+{
+   uint64_t cpuTime = mach_absolute_time();
+   return absolute_to_nsecs(cpuTime - m_t1);
+}
+
+pdk::pint64 ElapsedTimer::elapsed() const noexcept
+{
+    uint64_t cpuTime = mach_absolute_time();
+    return absolute_to_msecs(cpuTime - m_t1);
+}
+
+pdk::pint64 ElapsedTimer::msecsSinceReference() const noexcept
+{
+    return absolute_to_msecs(m_t1);
+}
+
+pdk::pint64 ElapsedTimer::msecsTo(const ElapsedTimer &other) const noexcept
+{
+    return absolute_to_msecs(other.m_t1 - m_t1);
+}
+
+pdk::pint64 ElapsedTimer::secsTo(const ElapsedTimer &other) const noexcept
+{
+    return msecsTo(other) / 1000;
+}
+
+DeadlineTimer DeadlineTimer::current(pdk::TimerType timerType) noexcept
+{
+    Q_STATIC_ASSERT(!internal::DeadlineTimerNanosecondsInT2);
+    DeadlineTimer result;
+    result.type = timerType;
+    result.t1 = absolute_to_nsecs(mach_absolute_time());
+    return result;
+}
+
+bool operator<(const ElapsedTimer &lhs, const ElapsedTimer &rhs) noexcept
+{
+    return lhs.m_t1 < rhs.m_t1;
+}
+
 
 } // kernel
 } // pdk
