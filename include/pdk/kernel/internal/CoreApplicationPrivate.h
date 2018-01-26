@@ -87,7 +87,6 @@ public:
    static bool sm_isAppRunning;
    static bool sm_isAppClosing;
    static bool sm_setuidAllowed;
-   static int sm_appCompileVersion;
    static BasicAtomicPointer<Thread> sm_theMainThread;
    
    CoreApplicationPrivate::Type m_applicationType;

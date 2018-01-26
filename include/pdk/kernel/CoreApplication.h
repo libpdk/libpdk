@@ -140,6 +140,20 @@ inline bool CoreApplication::sendSpontaneousEvent(Object *receiver, Event *event
    return notifyInternal(receiver, event); 
 }
 
+using StartUpFunction = void (*)();
+using CleanUpFunction = void (*)();
+
+PDK_CORE_EXPORT void add_pre_routine(StartUpFunction);
+PDK_CORE_EXPORT void add_post_routine(CleanUpFunction);
+PDK_CORE_EXPORT void remove_post_routine(CleanUpFunction);
+PDK_CORE_EXPORT std::string retrieve_app_name();                // get application name
+
+#define PDK_COREAPP_STARTUP_FUNCTION(AFUNC) \
+    static void AFUNC ## _ctor_function() {  \
+        qAddPreRoutine(AFUNC);        \
+    }                                 \
+    PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
+
 } // kernel
 } // pdk
 

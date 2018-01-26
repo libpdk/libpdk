@@ -184,7 +184,7 @@ public:
    
    static PDK_UNITTEST_EXPORT ThreadData *current(bool createIfNecessary = true);
    static void clearCurrentThreadData();
-   static QThreadData *get(Thread *thread)
+   static ThreadData *get(Thread *thread)
    {
       PDK_ASSERT_X(thread != 0, "Thread", "internal error");
       return thread->getImplPtr()->m_data;
