@@ -39,7 +39,7 @@ public:
    {
    }
    
-   static ClockType clockType() noexcept;
+   static ClockType getClockType() noexcept;
    static bool isMonotonic() noexcept;
    
    void start() noexcept;

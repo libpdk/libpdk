@@ -13,10 +13,84 @@
 //
 // Created by softboy on 2018/01/25.
 
+#include "pdk/global/Global.h"
+#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/ElapsedTimer.h"
+
+#include <cstdlib>
+
+#ifdef PDK_OS_MAC
+#include <mach/mach_time.h>
+#endif
+
+#if PDK_CONFIG_POLL_POLLTS
+#define ppoll pollts
+#endif
+
 namespace pdk {
 namespace kernel {
 
+// defined in pdk/pal/io/Poll.cpp
+int poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts);
 
+namespace {
+
+inline bool time_update(struct timespec *tv, const struct timespec &start,
+                        const struct timespec &timeout)
+{
+   // clock source is (hopefully) monotonic, so we can recalculate how much timeout is left;
+   // if it isn't monotonic, we'll simply hope that it hasn't jumped, because we have no alternative
+   struct timespec now = get_time();
+   *tv = timeout + start - now;
+   return tv->tv_sec >= 0;
+}
+
+#if PDK_CONFIG_POLL_POLL
+inline int timespec_to_millisecs(const struct timespec *ts)
+{
+   return (ts == nullptr) ? -1 :
+                            (ts->tv_sec * 1000) + (ts->tv_nsec / 1000000);
+}
+#endif
+
+inline int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts)
+{
+#if PDK_CONFIG_POLL_POLL || PDK_CONFIG_POLL_POLLTS
+   return ::ppoll(fds, nfds, timeout_ts, nullptr);
+#elif PDK_CONFIG_POLL_POLL
+   return ::poll(fds, nfds, timespec_to_millisecs(timeout_ts));
+#else
+   return poll(fds, nfds, timeout_ts);
+#endif
+}
+
+}
+
+int safe_poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts)
+{
+   if (!timeout_ts) {
+      // no timeout -> block forever
+      int ret;
+      PDK_EINTR_LOOP(ret, ppoll(fds, nfds, nullptr));
+      return ret;
+   }
+   timespec start = get_time();
+   timespec timeout = *timeout_ts;
+   
+   // loop and recalculate the timeout as needed
+   while(true) {
+      const int ret = ppoll(fds, nfds, &timeout);
+      if (ret != -1 || errno != EINTR)
+         return ret;
+      
+      // recalculate the timeout
+      if (!time_update(&timeout, start, *timeout_ts)) {
+         // timeout during update
+         // or clock reset, fake timeout error
+         return 0;
+      }
+   }
+}
 
 } // kernel
 } // pdk
