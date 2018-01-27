@@ -39,7 +39,6 @@ namespace kernel {
 
 using pdk::utils::ScopedPointer;
 using pdk::os::thread::Thread;
-using pdk::os::thread::internal::ThreadData;
 
 namespace internal {
 
@@ -99,8 +98,12 @@ bool do_notify(Object *, Event *)
 }
 }
 
+namespace internal {
+
 void CoreApplicationPrivate::processCommandLineArguments()
 {}
+
+}
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
 {
@@ -330,7 +333,7 @@ void CoreApplication::exit(int returnCode)
 {
 }
 
-void CoreApplication::postEvent(Object *receiver, Event *event, int priority)
+void CoreApplication::postEvent(Object *receiver, Event *event, pdk::EventPriority priority)
 {
 }
 

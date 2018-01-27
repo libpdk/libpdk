@@ -42,7 +42,8 @@ if(UNIX)
       ${MODULE_BASE_DIR}/os/thread/_platform/ThreadUnix.cpp)
    list(APPEND PDK_BASE_SOURCES
       ${KERNEL_BASE_DIR}/_platform/CoreUnix.cpp
-      ${KERNEL_BASE_DIR}/_platform/TimerInfoUnix.cpp)
+      ${KERNEL_BASE_DIR}/_platform/TimerInfoUnix.cpp
+      ${KERNEL_BASE_DIR}/_platform/EventDispatcherUnix.cpp)
    if(APPLE)
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerMac.cpp)

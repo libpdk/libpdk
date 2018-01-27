@@ -21,12 +21,137 @@
 #include "pdk/kernel/CoreUnix.h"
 #include "pdk/base/ds/PodList.h"
 #include "pdk/base/ds/VarLengthArray.h"
+#include "pdk/kernel/TimerInfoUnix.h"
+#include "pdk/base/os/thread/Atomic.h"
 
+#include <list>
+#include <vector>
+#include <map>
 
 namespace pdk {
 namespace kernel {
 
+namespace internal {
+class EventDispatcherUNIXPrivate;
+} // internal
 
+using pdk::os::thread::AtomicInt;
+
+struct PDK_CORE_EXPORT SocketNotifierSetUNIX final
+{
+   inline SocketNotifierSetUNIX() noexcept;
+   inline bool isEmpty() const noexcept;
+   inline short events() const noexcept;
+   SocketNotifier *m_notifiers[3];
+};
+
+struct ThreadPipe
+{
+   ThreadPipe();
+   ~ThreadPipe();
+   
+   bool init();
+   pollfd prepare() const;
+   
+   void wakeUp();
+   int check(const pollfd &pfd);
+   
+   // note for eventfd(7) support:
+   // if fds[1] is -1, then eventfd(7) is in use and is stored in fds[0]
+   int m_fds[2];
+   AtomicInt m_wakeUps;
+   
+#if defined(PDK_OS_VXWORKS)
+   static const int m_lenName = 20;
+   char m_name[m_lenName];
+#endif
+};
+
+using internal::EventDispatcherUNIXPrivate;
+
+class PDK_CORE_EXPORT EventDispatcherUNIX : public AbstractEventDispatcher
+{
+   PDK_DECLARE_PRIVATE(EventDispatcherUNIX);
+   
+public:
+   explicit EventDispatcherUNIX(Object *parent = 0);
+   ~EventDispatcherUNIX();
+   
+   bool processEvents(EventLoop::ProcessEventsFlags flags) override;
+   bool hasPendingEvents() override;
+   
+   void registerSocketNotifier(SocketNotifier *notifier) final;
+   void unregisterSocketNotifier(SocketNotifier *notifier) final;
+   
+   void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object) final;
+   bool unregisterTimer(int timerId) final;
+   bool unregisterTimers(Object *object) final;
+   std::list<TimerInfo> registeredTimers(Object *object) const final;
+   
+   int remainingTime(int timerId) final;
+   
+   void wakeUp() final;
+   void interrupt() final;
+   void flush() override;
+   
+protected:
+   EventDispatcherUNIX(EventDispatcherUNIXPrivate &dd, Object *parent = nullptr);
+};
+
+namespace internal {
+
+class PDK_CORE_EXPORT EventDispatcherUNIXPrivate : public AbstractEventDispatcherPrivate
+{
+   PDK_DECLARE_PUBLIC(EventDispatcherUNIX);
+   
+public:
+   EventDispatcherUNIXPrivate();
+   ~EventDispatcherUNIXPrivate();
+   
+   int activateTimers();
+   
+   void markPendingSocketNotifiers();
+   int activateSocketNotifiers();
+   void setSocketNotifierPending(SocketNotifier *notifier);
+   
+   ThreadPipe m_threadPipe;
+   std::vector<pollfd> m_pollfds;
+   
+   std::map<int, SocketNotifierSetUNIX> m_socketNotifiers;
+   std::vector<SocketNotifier *> m_pendingNotifiers;
+   
+   TimerInfoList m_timerList;
+   AtomicInt m_interrupt; // bool
+};
+
+} // internal
+
+inline SocketNotifierSetUNIX::SocketNotifierSetUNIX() noexcept
+{
+   m_notifiers[0] = 0;
+   m_notifiers[1] = 0;
+   m_notifiers[2] = 0;
+}
+
+inline bool SocketNotifierSetUNIX::isEmpty() const noexcept
+{
+   return !m_notifiers[0] && !m_notifiers[1] && !m_notifiers[2];
+}
+
+inline short SocketNotifierSetUNIX::events() const noexcept
+{
+   short result = 0;
+   if (m_notifiers[0]) {
+      result |= POLLIN;
+   }
+   if (m_notifiers[1]) {
+      result |= POLLOUT;
+   }
+   if (m_notifiers[2]) {
+      result |= POLLPRI;
+   }
+   return result;
+}
 
 } // kernel
 } // pdk

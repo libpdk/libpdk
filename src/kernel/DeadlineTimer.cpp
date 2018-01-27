@@ -58,7 +58,7 @@ void DeadlineTimer::setPreciseRemainingTime(pdk::pint64 secs, pdk::pint64 nsecs,
       return;
    }
    
-   *this = current(timerType);
+   *this = getCurrent(timerType);
    if (internal::DeadlineTimerNanosecondsInT2) {
       m_t1 += secs + to_secs_and_nsecs(nsecs).first;
       m_t2 += to_secs_and_nsecs(nsecs).second;
@@ -108,7 +108,7 @@ pdk::pint64 DeadlineTimer::rawRemainingTimeNSecs() const noexcept
    return m_t1 - now.m_t1;
 }
 
-pdk::pint64 DeadlineTimer::deadline() const noexcept
+pdk::pint64 DeadlineTimer::getDeadline() const noexcept
 {
    if (isForever()) {
       return m_t1;

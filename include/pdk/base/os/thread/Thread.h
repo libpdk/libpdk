@@ -23,7 +23,8 @@ namespace pdk {
 
 // forward declare with namespace
 namespace kernel {
-class AbstractEventDisptacher;
+class AbstractEventDispatcher;
+class Event;
 } // kernel
 
 namespace os {
@@ -37,6 +38,8 @@ class ThreadData;
 
 using internal::ThreadPrivate;
 using internal::ThreadData;
+using pdk::kernel::AbstractEventDispatcher;
+using pdk::kernel::Event;        
 
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
@@ -75,7 +78,7 @@ public:
    AbstractEventDispatcher *getEventDispatcher() const;
    void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);
    
-   bool event(QEvent *event) override;
+   bool event(Event *event) override;
    int getLoopLevel() const;
    
 public:

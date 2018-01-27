@@ -53,7 +53,7 @@ namespace pdk {
 namespace os {
 namespace thread {
 
-PDK_STATIC_ASSERT(sizeof(pthread_t) <= sizeof(PDK::HANDLE));
+PDK_STATIC_ASSERT(sizeof(pthread_t) <= sizeof(pdk::HANDLE));
 const int THREAD_PRIORITY_RESET_FLAG = 0x80000000;
 #if defined(PDK_OS_LINUX) && defined(__GLIBC__) && (defined(PDK_CC_GNU) || defined(PDK_CC_INTEL)) && !defined(PDK_LINUXBASE)
 /* LSB doesn't have __thread, https://lsbbugs.linuxfoundation.org/show_bug.cgi?id=993 */
@@ -99,7 +99,7 @@ toPdkHandleType(T id)
 }
 
 template <typename T>
-static typename std::enable_if<std<T>::is_integral<T>::value, T>::Type
+static typename std::enable_if<std::is_integral<T>::value, T>::Type
 fromPdkHandle(pdk::HANDLE id)
 {
 }
@@ -111,7 +111,7 @@ toPdkHandle(T id)
 }
 
 template <typename T>
-static typename std::enable_if<std<T>::is_pointer<T>::value, T>::Type
+static typename std::enable_if<std::is_pointer<T>::value, T>::Type
 fromPdkHandle(pdk::HANDLE id)
 {
 }

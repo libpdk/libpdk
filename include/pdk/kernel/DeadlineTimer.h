@@ -62,7 +62,7 @@ public:
    
    pdk::TimerType getTimerType() const noexcept
    {
-      return pdk::TimerType(m_type & 0xff);
+      return m_type;
    }
    
    void setTimerType(pdk::TimerType type);
@@ -235,12 +235,14 @@ private:
 private:
    pdk::pint64 m_t1;
    unsigned m_t2;
-   unsigned m_type;
+   pdk::TimerType m_type;
 };
 
-PDK_DECLARE_SHARED(DeadlineTimer)
+
 
 } // kernel
 } // pdk
+
+PDK_DECLARE_SHARED(pdk::kernel::DeadlineTimer)
 
 #endif // PDK_KERNEL_DEADLINE_TIMER_H

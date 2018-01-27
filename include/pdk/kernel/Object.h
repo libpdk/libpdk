@@ -86,11 +86,11 @@ protected:
 protected:
    Object(ObjectPrivate &dd, Object *parent = nullptr);
    
-   friend class Application;
-   friend class ApplicationPrivate;
-   friend class CoreApplication;
-   friend class CoreApplicationPrivate;
-   friend class ThreadData;
+//   friend class Application;
+//   friend class ApplicationPrivate;
+//   friend class CoreApplication;
+//   friend class CoreApplicationPrivate;
+//   friend class ThreadData;
    
 protected:
    pdk::utils::ScopedPointer<ObjectData> m_implPtr;

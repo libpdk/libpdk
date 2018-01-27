@@ -24,7 +24,10 @@ namespace kernel {
 // forward declare with namespace
 namespace internal {
 class EventPrivate;
+class CoreApplicationPrivate;
 }
+
+class CoreApplication;
 
 class PDK_CORE_EXPORT Event
 {
@@ -91,7 +94,7 @@ private:
    ushort m_reserved : 13;
    
    friend class CoreApplication;
-   friend class CoreApplicationPrivate;
+   friend class internal::CoreApplicationPrivate;
    friend class ThreadData;
    friend class Application;
    // needs this:

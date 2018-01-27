@@ -43,14 +43,14 @@ static mach_timebase_info_data_t sg_info = {0,0};
 pdk::pint64 absolute_to_nsecs(pdk::pint64 cpuTime)
 {
    if (sg_info.denom == 0) {
-      mach_timebase_info(&info);
+      mach_timebase_info(&sg_info);
    }
    // don't do multiplication & division if those are equal
    // (mathematically it would be the same, but it's computationally expensive)
-   if (info.numer == info.denom) {
+   if (sg_info.numer == sg_info.denom) {
       return cpuTime;
    }
-   pdk::pint64 nsecs = LargeInt(cpuTime) * info.numer / info.denom;
+   pdk::pint64 nsecs = LargeInt(cpuTime) * sg_info.numer / sg_info.denom;
    return nsecs;
 }
 
@@ -112,37 +112,37 @@ pdk::pint64 ElapsedTimer::nsecsElapsed() const noexcept
 
 pdk::pint64 ElapsedTimer::elapsed() const noexcept
 {
-    uint64_t cpuTime = mach_absolute_time();
-    return absolute_to_msecs(cpuTime - m_t1);
+   uint64_t cpuTime = mach_absolute_time();
+   return absolute_to_msecs(cpuTime - m_t1);
 }
 
 pdk::pint64 ElapsedTimer::msecsSinceReference() const noexcept
 {
-    return absolute_to_msecs(m_t1);
+   return absolute_to_msecs(m_t1);
 }
 
 pdk::pint64 ElapsedTimer::msecsTo(const ElapsedTimer &other) const noexcept
 {
-    return absolute_to_msecs(other.m_t1 - m_t1);
+   return absolute_to_msecs(other.m_t1 - m_t1);
 }
 
 pdk::pint64 ElapsedTimer::secsTo(const ElapsedTimer &other) const noexcept
 {
-    return msecsTo(other) / 1000;
+   return msecsTo(other) / 1000;
 }
 
-DeadlineTimer DeadlineTimer::current(pdk::TimerType timerType) noexcept
+DeadlineTimer DeadlineTimer::getCurrent(pdk::TimerType timerType) noexcept
 {
-    Q_STATIC_ASSERT(!internal::DeadlineTimerNanosecondsInT2);
-    DeadlineTimer result;
-    result.type = timerType;
-    result.t1 = absolute_to_nsecs(mach_absolute_time());
-    return result;
+   PDK_STATIC_ASSERT(!internal::DeadlineTimerNanosecondsInT2);
+   DeadlineTimer result;
+   result.m_type = timerType;
+   result.m_t1 = absolute_to_nsecs(mach_absolute_time());
+   return result;
 }
 
 bool operator<(const ElapsedTimer &lhs, const ElapsedTimer &rhs) noexcept
 {
-    return lhs.m_t1 < rhs.m_t1;
+   return lhs.m_t1 < rhs.m_t1;
 }
 
 

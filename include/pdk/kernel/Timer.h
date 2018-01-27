@@ -155,7 +155,10 @@ private:
    inline void killTimer(int){}
    
    static constexpr pdk::TimerType defaultTypeFor(int msecs) noexcept
-   {}
+   {
+      return pdk::TimerType::CoarseTimer;
+   }
+   
    static void singleShotImpl(int msec, pdk::TimerType timerType,
                               const Object *receiver/*, QtPrivate::QSlotObjectBase *slotObj*/);
    

@@ -43,6 +43,7 @@ using pdk::kernel::Object;
 using pdk::kernel::EventLoop;
 using pdk::kernel::AbstractEventDispatcher;
 using pdk::kernel::internal::ObjectPrivate;
+using pdk::kernel::CoreApplication;
 using pdk::os::thread::AtomicInt;
 
 class PostEvent
@@ -85,12 +86,12 @@ public:
    
    void addEvent(const PostEvent &event) {
       int priority = event.m_priority;
-      if (isEmpty() ||
+      if (empty() ||
           (*--cend()).m_priority >= priority ||
-          m_insertionOffset >= size()) {
+          static_cast<size_type>(m_insertionOffset) >= size()) {
          // optimization: we can simply append if the last event in
          // the queue has higher or equal priority
-         append(event);
+         push_back(event);
       } else {
          // insert event in descending priority order, using upper
          // bound for a given priority (to ensure proper ordering
@@ -198,7 +199,7 @@ public:
    
    bool canWaitLocked()
    {
-      std::scoped_lock locker(&m_postEventList.m_mutex);
+      std::scoped_lock locker(m_postEventList.m_mutex);
       return m_canWait;
    }
    
@@ -208,7 +209,7 @@ public:
    {
       static constexpr uint COUNT = 2;
       uint m_idx;
-      const char* m_locations[Count];
+      const char* m_locations[COUNT];
       
    public:
       FlaggedDebugSignatures()
@@ -257,12 +258,12 @@ public:
    inline ScopedScopeLevelCounter(ThreadData *threadData)
       : m_threadData(threadData)
    {
-      ++threadData->m_scopeLevel;
+      ++m_threadData->m_scopeLevel;
    }
    
    inline ~ScopedScopeLevelCounter()
    {
-      --threadData->m_scopeLevel;
+      --m_threadData->m_scopeLevel;
    }
 };
 

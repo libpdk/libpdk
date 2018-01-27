@@ -52,8 +52,8 @@ public:
    {
       int i = 0;
       for (int j = 0; j < m_size; ++j) {
-         if (m_ptr[j] != t) {
-            m_ptr[i++] = ptr[j];
+         if (m_ptr[j] != value) {
+            m_ptr[i++] = m_ptr[j];
          }
       }
       m_size = i;

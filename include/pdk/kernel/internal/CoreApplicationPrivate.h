@@ -21,6 +21,15 @@
 #include "pdk/base/os/thread/Atomic.h"
 
 namespace pdk {
+
+namespace os {
+namespace thread {
+namespace internal {
+class ThreadData;
+} // internal
+} // thread
+} // os
+
 namespace kernel {
 
 class AbstractEventDispatcher;
@@ -29,6 +38,7 @@ namespace internal {
 
 using pdk::os::thread::AtomicInt;
 using pdk::os::thread::BasicAtomicPointer;
+using pdk::os::thread::internal::ThreadData;
 
 class PDK_CORE_EXPORT CoreApplicationPrivate : public ObjectPrivate
 {

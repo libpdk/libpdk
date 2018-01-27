@@ -101,7 +101,7 @@ inline timespec &operator+=(timespec &lhs, const timespec &rhs)
 {
    lhs.tv_sec += rhs.tv_sec;
    lhs.tv_nsec += rhs.tv_nsec;
-   return normalizedTimespec(lhs);
+   return normalized_timespec(lhs);
 }
 
 inline timespec operator+(const timespec &lhs, const timespec &rhs)
@@ -109,7 +109,7 @@ inline timespec operator+(const timespec &lhs, const timespec &rhs)
    timespec tmp;
    tmp.tv_sec = lhs.tv_sec + rhs.tv_sec;
    tmp.tv_nsec = lhs.tv_nsec + rhs.tv_nsec;
-   return normalizedTimespec(tmp);
+   return normalized_timespec(tmp);
 }
 
 inline timespec operator-(const timespec &lhs, const timespec &rhs)
@@ -117,7 +117,7 @@ inline timespec operator-(const timespec &lhs, const timespec &rhs)
    timespec tmp;
    tmp.tv_sec = lhs.tv_sec - (rhs.tv_sec - 1);
    tmp.tv_nsec = lhs.tv_nsec - (rhs.tv_nsec + 1000000000);
-   return normalizedTimespec(tmp);
+   return normalized_timespec(tmp);
 }
 
 inline timespec operator*(const timespec &lhs, int mul)
@@ -125,7 +125,7 @@ inline timespec operator*(const timespec &lhs, int mul)
    timespec tmp;
    tmp.tv_sec = lhs.tv_sec * mul;
    tmp.tv_nsec = lhs.tv_nsec * mul;
-   return normalizedTimespec(tmp);
+   return normalized_timespec(tmp);
 }
 
 inline timeval timespec_to_timeval(const timespec &ts)
@@ -163,7 +163,7 @@ inline int safe_open(const char *pathname, int flags, mode_t mode = 0777)
    flags |= O_CLOEXEC;
 #endif
    int fd;
-   PDK_EINTR_LOOP(fd, QT_OPEN(pathname, flags, mode));
+   PDK_EINTR_LOOP(fd, PDK_OPEN(pathname, flags, mode));
    // unknown flags are ignored, so we have no way of verifying if
    // O_CLOEXEC was accepted
    if (fd != -1) {
@@ -229,7 +229,7 @@ inline int safe_dup2(int oldfd, int newfd, int flags = FD_CLOEXEC)
 {
    PDK_ASSERT(flags == FD_CLOEXEC || flags == 0);
    int ret;
-#ifdef QT_THREADSAFE_CLOEXEC
+#ifdef PDK_THREADSAFE_CLOEXEC
    // use dup3
    EINTR_LOOP(ret, ::dup3(oldfd, newfd, flags ? O_CLOEXEC : 0));
    return ret;
@@ -309,6 +309,8 @@ inline pid_t safe_waitpid(pid_t pid, int *status, int options)
    PDK_EINTR_LOOP(ret, ::waitpid(pid, status, options));
    return ret;
 }
+
+#endif // PDK_OS_VXWORKS
 
 }
 
