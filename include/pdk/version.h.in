@@ -16,4 +16,6 @@
 #ifndef PDK_VERSION_H
 #define PDK_VERSION_H
 
+#define PDK_VERSION 0x000001
+
 #endif // PDK_VERSION_H
