@@ -11,7 +11,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2018/01/27.
+// Created by softboy on 2018/01/28.
 
 #include "pdk/kernel/Object.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
@@ -24,6 +24,7 @@
 #include "pdk/base/os/thread/Semaphore.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/base/os/thread/OrderedMutexLocker.h"
+#include "pdk/global/internal/HooksPrivate.h"
 
 #include <utility>
 #include <memory>
@@ -32,5 +33,94 @@
 #include <ctype.h>
 #include <limits.h>
 
+namespace pdk {
+namespace kernel {
 
+ObjectData::~ObjectData()
+{}
+
+namespace internal {
+
+ObjectPrivate::ObjectPrivate(int version)
+    : m_currentChildBeingDeleted(0),
+      m_threadData(0)
+{
+}
+
+ObjectPrivate::~ObjectPrivate()
+{
+}
+
+} // internal
+
+namespace {
+
+}
+
+Object::Object(Object *parent)
+    : m_implPtr(new ObjectPrivate)
+{
+}
+
+Object::Object(ObjectPrivate &dd, Object *parent)
+    : m_implPtr(&dd)
+{
+}
+
+Object::~Object()
+{
+}
+
+bool Object::event(Event *e)
+{
+}
+
+void Object::timerEvent(TimerEvent *)
+{
+}
+
+void Object::childEvent(ChildEvent * /* event */)
+{
+}
+
+void Object::customEvent(Event * /* event */)
+{
+}
+
+bool Object::eventFilter(Object * /* watched */, Event * /* event */)
+{
+    return false;
+}
+
+Thread *Object::thread() const
+{
+}
+
+void Object::moveToThread(Thread *targetThread)
+{
+}
+
+int Object::startTimer(int interval, pdk::TimerType timerType)
+{
+}
+
+void Object::setParent(Object *parent)
+{
+}
+
+void Object::installEventFilter(Object *obj)
+{
+}
+
+
+void Object::removeEventFilter(Object *obj)
+{
+}
+
+void Object::deleteLater()
+{
+}
+
+} // kernel
+} // pdk
 

@@ -24,12 +24,29 @@
 #include <string>
 
 namespace pdk {
+
+// forward declare with namespace
+namespace os {
+namespace thread {
+namespace internal {
+class ThreadData;
+} // internal
+} // thread
+} // os
+
 namespace kernel {
 namespace internal {
+
+using pdk::os::thread::internal::ThreadData;
 
 class PDK_CORE_EXPORT ObjectPrivate : public ObjectData
 {
    PDK_DECLARE_PUBLIC(Object);
+   
+public:
+   ObjectPrivate(int version = PDK_VERSION);
+   virtual ~ObjectPrivate();
+   
 public:
    struct ExtraData
    {
@@ -42,6 +59,14 @@ public:
    {
       return o->getImplPtr();
    }
+   
+public:
+   union {
+      Object *m_currentChildBeingDeleted;
+   };
+   
+   ExtraData *m_extraData;
+   ThreadData *m_threadData;
 };
 
 } // internal

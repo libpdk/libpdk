@@ -51,12 +51,12 @@ public:
    Object *m_apiPtr;
    Object *m_parent;
    ObjectList m_children;
-   uint wasDeleted : 1;
-   uint isDeletingChildren : 1;
-   uint sendChildEvents : 1;
-   uint receiveChildEvents : 1;
-   uint unused : 28;
-   int postedEvents;
+   uint m_wasDeleted : 1;
+   uint m_isDeletingChildren : 1;
+   uint m_sendChildEvents : 1;
+   uint m_receiveChildEvents : 1;
+   uint m_unused : 28;
+   int m_postedEvents;
 };
 
 class Object
@@ -71,13 +71,16 @@ public:
    Thread *thread() const;
    void moveToThread(Thread *thread);
    
-   int startTimer(int interval/*, Qt::TimerType timerType = Qt::CoarseTimer*/);
+   int startTimer(int interval, pdk::TimerType timerType = pdk::TimerType::CoarseTimer);
    void killTimer(int id);
    inline Object *parent() const
    { 
       return m_implPtr->m_parent;
    }
    void deleteLater();
+   void setParent(Object *parent);
+   void installEventFilter(Object *filterObj);
+   void removeEventFilter(Object *object);
 protected:
    virtual void timerEvent(TimerEvent *event);
    virtual void childEvent(ChildEvent *event);
@@ -86,11 +89,11 @@ protected:
 protected:
    Object(ObjectPrivate &dd, Object *parent = nullptr);
    
-//   friend class Application;
-//   friend class ApplicationPrivate;
-//   friend class CoreApplication;
-//   friend class CoreApplicationPrivate;
-//   friend class ThreadData;
+   //   friend class Application;
+   //   friend class ApplicationPrivate;
+   //   friend class CoreApplication;
+   //   friend class CoreApplicationPrivate;
+   //   friend class ThreadData;
    
 protected:
    pdk::utils::ScopedPointer<ObjectData> m_implPtr;

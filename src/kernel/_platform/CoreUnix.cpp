@@ -30,9 +30,6 @@
 namespace pdk {
 namespace kernel {
 
-// defined in pdk/pal/io/Poll.cpp
-int poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts);
-
 namespace {
 
 inline bool time_update(struct timespec *tv, const struct timespec &start,
@@ -59,8 +56,6 @@ inline int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout
    return ::ppoll(fds, nfds, timeout_ts, nullptr);
 #elif PDK_CONFIG_POLL_POLL
    return ::poll(fds, nfds, timespec_to_millisecs(timeout_ts));
-#else
-   return poll(fds, nfds, timeout_ts);
 #endif
 }
 

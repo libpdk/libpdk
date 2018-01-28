@@ -43,27 +43,27 @@ public:
    
    void relock()
    {
-      if (!locked) {
+      if (!m_locked) {
          if (m_mutex1) {
             m_mutex1->lock();
          }
          if (m_mutex2) {
             m_mutex2->lock();
          }
-         locked = true;
+         m_locked = true;
       }
    }
    
    void unlock()
    {
-      if (locked) {
+      if (m_locked) {
          if (m_mutex2) {
             m_mutex2->unlock();
          }
          if (m_mutex1) {
             m_mutex1->unlock();
          }
-         locked = false;
+         m_locked = false;
       }
    }
    
