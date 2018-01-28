@@ -20,7 +20,6 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/base/os/thread/Atomic.h"
-#include <stack>
 #include <map>
 #include <mutex>
 #include <vector>
@@ -233,7 +232,7 @@ public:
    int m_loopLevel;
    int m_scopeLevel;
    
-   std::stack<EventLoop *> m_eventLoops;
+   std::vector<EventLoop *> m_eventLoops;
    PostEventList m_postEventList;
    AtomicPointer<Thread> m_thread;
    pdk::HANDLE m_threadId;
