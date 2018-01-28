@@ -16,6 +16,21 @@
 #ifndef PDK_M_BASE_IO_INTERNAL_IODEVICE_H
 #define PDK_M_BASE_IO_INTERNAL_IODEVICE_H
 
+#include "pdk/base/io/IoDevice.h"
+#include "pdk/base/ds/ByteArray.h"
+#include "pdk/kernel/Object.h"
+#include <string>
+#include <vector>
+
+namespace pdk {
+namespace io {
+namespace internal {
+
+
+
+} // internal
+} // io
+} // pdk
 
 
 #endif // PDK_M_BASE_IO_INTERNAL_IODEVICE_H
