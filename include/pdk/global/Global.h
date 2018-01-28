@@ -134,9 +134,9 @@
 #ifndef PDK_DESTRUCTOR_FUNCTION
 # define PDK_DESTRUCTOR_FUNCTION0(AFUNC) \
     namespace { \
-    static const struct AFUNC ## InternalCtorClass { \
+    static const struct AFUNC ## InternalDtorClass { \
         inline AFUNC ## InternalDtorClass() { } \
-        inline ~ AFUNC ## InternalCtorClass() { AFUNC(); } \
+        inline ~ AFUNC ## InternalDtorClass() { AFUNC(); } \
     } AFUNC ## InternalDtorInstance; \
     }
 # define PDK_DESTRUCTOR_FUNCTION(AFUNC) PDK_DESTRUCTOR_FUNCTION0(AFUNC)

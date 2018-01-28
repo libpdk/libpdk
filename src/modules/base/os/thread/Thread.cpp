@@ -117,7 +117,7 @@ void Thread::setStackSize(uint stackSize)
 {
 }
 
-uint Thread::stackSize() const
+uint Thread::getStackSize() const
 {
 }
 

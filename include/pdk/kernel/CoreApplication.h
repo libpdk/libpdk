@@ -31,6 +31,7 @@ namespace kernel {
 // forward declare with namespace
 namespace internal {
 class CoreApplicationPrivate;
+class EventDispatcherUNIXPrivate;
 } // internal
 
 class PostEventList;
@@ -40,7 +41,7 @@ using StringList = std::list<std::string>;
 
 using internal::CoreApplicationPrivate;
 
-class PDK_CORE_EXPORT CoreApplication : Object
+class PDK_CORE_EXPORT CoreApplication : public Object
 {
 public:
    enum { 

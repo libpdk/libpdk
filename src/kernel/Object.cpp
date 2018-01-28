@@ -11,41 +11,22 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2018/01/23.
-
-#ifndef PDK_KERNEL_OBJECT_PRIVATE_H
-#define PDK_KERNEL_OBJECT_PRIVATE_H
+// Created by softboy on 2018/01/27.
 
 #include "pdk/kernel/Object.h"
-#include "pdk/kernel/Pointer.h"
-#include <vector>
-#include <list>
-#include <variant>
-#include <string>
+#include "pdk/kernel/internal/ObjectPrivate.h"
+#include "pdk/kernel/AbstractEventDispatcher.h"
+#include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/CoreApplicationPrivate.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/base/os/thread/internal/ThreadPrivate.h"
+#include "pdk/base/os/thread/Semaphore.h"
+#include "pdk/base/ds/VarLengthArray.h"
 
-namespace pdk {
-namespace kernel {
-namespace internal {
-
-class PDK_CORE_EXPORT ObjectPrivate : public ObjectData
-{
-   PDK_DECLARE_PUBLIC(Object);
-public:
-   struct ExtraData
-   {
-      std::vector<int> m_runningTimers;
-      std::list<Pointer<Object>> m_eventFilters;
-      std::string m_objectName;
-   };
-   
-   static ObjectPrivate *get(Object *o)
-   {
-      return o->getImplPtr();
-   }
-};
-
-} // internal
-} // kernel
-} // pdk
-
-#endif // PDK_KERNEL_OBJECT_PRIVATE_H
+#include <utility>
+#include <memory>
+#include <set>
+#include <new>
+#include <ctype.h>
+#include <limits.h>

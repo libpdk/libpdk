@@ -239,7 +239,7 @@ struct CoreApplicationData {
    {
       // cleanup the QAdoptedThread created for the main() thread
       if (CoreApplicationPrivate::sm_theMainThread) {
-         ThreadData *data = ThreadData::get(CoreApplicationPrivate::sm_theMainThread);
+         internal::ThreadData *data = internal::ThreadData::get(CoreApplicationPrivate::sm_theMainThread);
          data->deref(); // deletes the data and the adopted thread
       }
    }

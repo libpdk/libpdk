@@ -16,9 +16,14 @@
 #include "pdk/kernel/internal/EventLoopPrivate.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/EventLoop.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/kernel/internal/CoreApplicationPrivate.h"
+#include "pdk/base/os/thread/internal/ThreadPrivate.h"
 
 namespace pdk {
 namespace kernel {
+
+using pdk::os::thread::internal::ThreadPrivate;
 
 EventLoop::EventLoop(Object *parent)
    : Object(*new EventLoopPrivate, parent)
@@ -106,19 +111,19 @@ private:
 } // internal
 
 EventLoopLocker::EventLoopLocker()
-  : m_implPtr(new EventLoopLockerPrivate(static_cast<CoreApplicationPrivate *>(ObjectPrivate::get(CoreApplication::instance()))))
+  : m_implPtr(new EventLoopLockerPrivate(dynamic_cast<CoreApplicationPrivate *>(ObjectPrivate::get(CoreApplication::getInstance()))))
 {
 
 }
 
 EventLoopLocker::EventLoopLocker(EventLoop *loop)
-  : m_implPtr(new EventLoopLockerPrivate(static_cast<EventLoopPrivate *>(ObjectPrivate::get(loop))))
+  : m_implPtr(new EventLoopLockerPrivate(dynamic_cast<EventLoopPrivate *>(ObjectPrivate::get(loop))))
 {
 
 }
 
 EventLoopLocker::EventLoopLocker(Thread *thread)
-  : m_implPtr(new EventLoopLockerPrivate(static_cast<ThreadPrivate *>(ObjectPrivate::get(thread))))
+  : m_implPtr(new EventLoopLockerPrivate(dynamic_cast<ThreadPrivate *>(ObjectPrivate::get(thread))))
 {
 
 }
