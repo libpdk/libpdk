@@ -13,24 +13,41 @@
 //
 // Created by softboy on 2018/01/27.
 
-#include "pdk/kernel/Object.h"
-#include "pdk/kernel/internal/ObjectPrivate.h"
-#include "pdk/kernel/AbstractEventDispatcher.h"
-#include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
-#include "pdk/kernel/CoreApplication.h"
-#include "pdk/kernel/internal/CoreApplicationPrivate.h"
-#include "pdk/base/os/thread/Thread.h"
-#include "pdk/base/os/thread/internal/ThreadPrivate.h"
-#include "pdk/base/os/thread/Semaphore.h"
-#include "pdk/base/ds/VarLengthArray.h"
-#include "pdk/base/os/thread/OrderedMutexLocker.h"
+#include "pdk/global/Global.h"
 
-#include <utility>
-#include <memory>
-#include <set>
-#include <new>
-#include <ctype.h>
-#include <limits.h>
+#ifndef PDK_GLOBAL_INTERNAL_HOOKS_H
+#define PDK_GLOBAL_INTERNAL_HOOKS_H
 
+namespace pdk {
 
+// forward
+namespace kernel {
+class Object;
+} // kernel
 
+namespace hooks {
+
+using pdk::kernel::Object;
+
+enum HookIndex {
+   HookDataVersion = 0,
+   HookDataSize = 1,
+   PdkVersion = 2,
+   AddQObject = 3,
+   RemoveQObject = 4,
+   Startup = 5,
+   TypeInformationVersion = 6,
+   LastHookIndex
+};
+
+using AddQObjectCallback = void(*)(Object*);
+using RemoveQObjectCallback = void(*)(Object*);
+using StartupCallback = void(*)();
+
+} // hooks
+
+extern pdk::uintptr PDK_CORE_EXPORT sg_pdkHookData[];
+
+} // pdk
+
+#endif // PDK_GLOBAL_INTERNAL_HOOKS_H
