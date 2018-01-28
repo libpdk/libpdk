@@ -59,7 +59,7 @@ inline int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout
 #endif
 }
 
-}
+} // anonymouse
 
 int safe_poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts)
 {

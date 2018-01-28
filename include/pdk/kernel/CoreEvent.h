@@ -19,15 +19,26 @@
 #include "pdk/global/Global.h"
 
 namespace pdk {
+
+// forward declare class with namespace
+namespace os {
+namespace thread {
+namespace internal {
+class ThreadData;
+} // internal
+} // thread
+} // os
+
 namespace kernel {
 
-// forward declare with namespace
+// forward declare class with namespace
 namespace internal {
 class EventPrivate;
 class CoreApplicationPrivate;
 }
 
 class CoreApplication;
+using pdk::os::thread::internal::ThreadData;
 
 class PDK_CORE_EXPORT Event
 {

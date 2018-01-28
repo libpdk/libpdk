@@ -26,13 +26,17 @@ namespace pdk {
 namespace os {
 namespace thread {
 class Thread;
+namespace internal {
+class ThreadData;
+} // internal
 } // thread
 } // os
 
 namespace kernel {
 
 using ObjectList = std::list<Object *>;
-using Thread = ::pdk::os::thread::Thread;
+using pdk::os::thread::Thread;
+using pdk::os::thread::internal::ThreadData;
 class Object;
 class Event;
 class TimerEvent;
@@ -40,9 +44,11 @@ class ChildEvent;
 
 namespace internal {
 class ObjectPrivate;
+class CoreApplicationPrivate;
 }
 
 using internal::ObjectPrivate;
+using internal::CoreApplicationPrivate;
 
 class PDK_CORE_EXPORT ObjectData
 {
@@ -89,11 +95,9 @@ protected:
 protected:
    Object(ObjectPrivate &dd, Object *parent = nullptr);
    
-   //   friend class Application;
-   //   friend class ApplicationPrivate;
-   //   friend class CoreApplication;
-   //   friend class CoreApplicationPrivate;
-   //   friend class ThreadData;
+   friend class CoreApplication;
+   friend class CoreApplicationPrivate;
+   friend class ThreadData;
    
 protected:
    pdk::utils::ScopedPointer<ObjectData> m_implPtr;

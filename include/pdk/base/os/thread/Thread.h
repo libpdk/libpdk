@@ -25,6 +25,7 @@ namespace pdk {
 namespace kernel {
 class AbstractEventDispatcher;
 class Event;
+class CoreApplication;
 } // kernel
 
 namespace os {
@@ -39,7 +40,8 @@ class ThreadData;
 using internal::ThreadPrivate;
 using internal::ThreadData;
 using pdk::kernel::AbstractEventDispatcher;
-using pdk::kernel::Event;        
+using pdk::kernel::Event;
+using pdk::kernel::CoreApplication;
 
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
