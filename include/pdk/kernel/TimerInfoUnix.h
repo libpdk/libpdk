@@ -63,8 +63,8 @@ public:
    void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object);
    bool unregisterTimer(int timerId);
    bool unregisterTimers(Object *object);
-   std::list<AbstractEventDispatcher::TimerInfo> registeredTimers(Object *object) const;
-   int activateTimers();
+   std::list<AbstractEventDispatcher::TimerInfo> getRegisteredTimers(Object *object) const;
+   int getActivateTimers();
 public:
     timespec m_currentTime;
 private:

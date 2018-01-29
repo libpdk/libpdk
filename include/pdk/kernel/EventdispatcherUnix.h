@@ -86,7 +86,7 @@ public:
    void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object) final;
    bool unregisterTimer(int timerId) final;
    bool unregisterTimers(Object *object) final;
-   std::list<TimerInfo> registeredTimers(Object *object) const final;
+   std::list<TimerInfo> getRegisteredTimers(Object *object) const final;
    
    int remainingTime(int timerId) final;
    
@@ -108,17 +108,17 @@ public:
    EventDispatcherUNIXPrivate();
    ~EventDispatcherUNIXPrivate();
    
-   int activateTimers();
+   int getActivateTimers();
    
    void markPendingSocketNotifiers();
-   int activateSocketNotifiers();
+   int getActivateSocketNotifiers();
    void setSocketNotifierPending(SocketNotifier *notifier);
    
    ThreadPipe m_threadPipe;
    std::vector<pollfd> m_pollfds;
    
    std::map<int, SocketNotifierSetUNIX> m_socketNotifiers;
-   std::vector<SocketNotifier *> m_pendingNotifiers;
+   std::list<SocketNotifier *> m_pendingNotifiers;
    
    TimerInfoList m_timerList;
    AtomicInt m_interrupt; // bool

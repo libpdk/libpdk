@@ -66,7 +66,7 @@ public:
    virtual void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object) = 0;
    virtual bool unregisterTimer(int timerId) = 0;
    virtual bool unregisterTimers(Object *object) = 0;
-   virtual std::list<TimerInfo> registeredTimers(Object *object) const = 0;
+   virtual std::list<TimerInfo> getRegisteredTimers(Object *object) const = 0;
    virtual int remainingTime(int timerId) = 0;
    
 #ifdef PDK_OS_WIN

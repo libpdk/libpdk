@@ -123,11 +123,12 @@ bool TimerInfoList::unregisterTimers(Object *object)
 {
 }
 
-std::list<AbstractEventDispatcher::TimerInfo> TimerInfoList::registeredTimers(Object *object) const
+std::list<AbstractEventDispatcher::TimerInfo> 
+TimerInfoList::getRegisteredTimers(Object *object) const
 {
 }
 
-int TimerInfoList::activateTimers()
+int TimerInfoList::getActivateTimers()
 {
 }
 
