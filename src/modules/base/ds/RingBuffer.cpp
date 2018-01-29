@@ -213,7 +213,7 @@ pdk::pint64 RingBuffer::indexOf(char c, pint64 maxLength, pint64 pos) const
          const char *findPtr = reinterpret_cast<const char *>(std::memchr(ptr, c,
                                                                           nextBlockIndex - index));
          if (findPtr) {
-            return pdk::pint64(findPtr - ptr) + index + pos;
+            return static_cast<pdk::pint64>(findPtr - ptr) + index + pos;
          }
          if (nextBlockIndex == maxLength) {
             return -1;
