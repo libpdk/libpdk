@@ -66,7 +66,7 @@ class RingBuffer
    
    inline void truncate(pdk::pint64 pos)
    {
-      if (pos() < size()) {
+      if (pos < size()) {
          chop(size() - pos);
       }
    }
