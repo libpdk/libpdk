@@ -104,3 +104,209 @@ TEST(RingBufferTest, testReadPointerAtPositionWithHead)
    buf2 = ringBuffer.readPointerAtPosition(PDK_INT64_C(1), length);
    ASSERT_EQ(length, PDK_INT64_C(5));
 }
+
+TEST(RingBufferTest, testReadPointerAtPositionEmptyRead)
+{
+   RingBuffer ringBuffer;
+   pdk::pint64 length;
+   const char *buf = ringBuffer.readPointerAtPosition(0, length);
+   ASSERT_TRUE(buf == 0);
+   ASSERT_EQ(length, PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testReadPointerAtPositionWriteRead)
+{
+   
+}
+
+TEST(RingBufferTest, testFree)
+{
+   RingBuffer ringBuffer;
+   // make three byte arrays with different sizes
+   ringBuffer.reserve(4096);
+   ringBuffer.reserve(2048);
+   ringBuffer.append(ByteArray("01234", 5));
+   ringBuffer.free(1);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(4095) + 2048 + 5);
+   ringBuffer.free(4096);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(2047) + 5);
+   ringBuffer.free(48);
+   ringBuffer.free(2000);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(4));
+   ASSERT_TRUE(std::memcmp(ringBuffer.readPointer(), "1234", 4) == 0);
+}
+
+TEST(RingBufferTest, testReserveAndRead)
+{
+   RingBuffer ringBuffer;
+   for (int i = 1; i < 256; ++i) {
+      ByteArray ba(i, char(i));
+      char *ringPos = ringBuffer.reserve(i);
+      ASSERT_TRUE(ringPos);
+      std::memcpy(ringPos, ba.getConstRawData(), i);
+   }
+   
+   // readback and check stored data
+   for (int i = 1; i < 256; ++i) {
+      ByteArray ba;
+      ba.resize(i);
+      pdk::pint64 thisRead = ringBuffer.read(ba.getRawData(), i);
+      ASSERT_EQ(thisRead, static_cast<pdk::pint64>(i));
+      ASSERT_EQ(ba.count(char(i)), i);
+   }
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testReserveAndReadInPacketMode)
+{
+   RingBuffer ringBuffer(0);
+   // try to allocate 255 buffers
+   for (int i = 1; i < 256; ++i) {
+      char *ringPos = ringBuffer.reserve(i);
+      ASSERT_TRUE(ringPos);
+   }
+   // count and check the size of stored buffers
+   int buffersCount = 0;
+   while (!ringBuffer.isEmpty()) {
+      ByteArray ba = ringBuffer.read();
+      ++buffersCount;
+      ASSERT_EQ(ba.size(), buffersCount);
+   }
+   ASSERT_EQ(buffersCount, 255);
+}
+
+TEST(RingBufferTest, testReserveFrontAndRead)
+{
+   RingBuffer ringBuffer;
+   // fill buffer with an arithmetic progression
+   for (int i = 1; i < 256; ++i) {
+      ByteArray ba(i, char(i));
+      char *ringPos = ringBuffer.reserveFront(i);
+      ASSERT_TRUE(ringPos);
+      std::memcpy(ringPos, ba.getConstRawData(), i);
+   }
+   // readback and check stored data
+   for (int i = 255; i > 0; --i) {
+      ByteArray ba;
+      ba.resize(i);
+      pdk::pint64 thisRead = ringBuffer.read(ba.getRawData(), i);
+      ASSERT_EQ(thisRead, static_cast<pdk::pint64>(i));
+      ASSERT_EQ(ba.count(char(i)), i);
+   }
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testChop)
+{
+   RingBuffer ringBuffer;
+   // make three byte arrays with different sizes
+   ringBuffer.append(ByteArray("01234", 5));
+   ringBuffer.reserve(2048);
+   ringBuffer.reserve(4096);
+   
+   ringBuffer.chop(1);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(5) + 2048 + 4095);
+   ringBuffer.chop(4096);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(5) + 2047);
+   ringBuffer.chop(48);
+   ringBuffer.chop(2000);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(4));
+   ASSERT_TRUE(std::memcmp(ringBuffer.readPointer(), "0123", 4) == 0);
+}
+
+TEST(RingBufferTest, testUngetChar)
+{
+   RingBuffer ringBuffer(16);
+   for (int i = 1; i < 32; ++i) {
+      ringBuffer.putChar(char(i));
+   }
+   for (int i = 1; i < 31; ++i) {
+      int c = ringBuffer.getChar();
+      ASSERT_EQ(c, 1);
+      ringBuffer.getChar();
+      ringBuffer.ungetChar(char(c)); // unget first char
+   }
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(1));
+}
+
+TEST(RingBufferTest, testIndexOf)
+{
+   RingBuffer ringBuffer(16);
+   for (int i = 1; i < 256; ++i) {
+      ringBuffer.putChar(char(i));
+   }
+   for (int i = 1; i < 256; ++i) {
+      pdk::pint64 index = ringBuffer.indexOf(char(i));
+      ASSERT_EQ(index, static_cast<pdk::pint64>(i - 1));
+      ASSERT_EQ(ringBuffer.indexOf(char(i), i, i >> 1), index);
+      ASSERT_EQ(ringBuffer.indexOf(char(i), 256, i), PDK_INT64_C(-1));
+      ASSERT_EQ(ringBuffer.indexOf(char(i), i - 1), -1); // test for absent char
+   }
+}
+
+TEST(RingBufferTest, testAppendAndRead)
+{
+   RingBuffer ringBuffer;
+   ByteArray ba1("Hello world!");
+   ByteArray ba2("Test string.");
+   ByteArray ba3("0123456789");
+   ringBuffer.append(ba1);
+   ringBuffer.append(ba2);
+   ringBuffer.append(ba3);
+   
+   ASSERT_EQ(ringBuffer.read(), ba1);
+   ASSERT_EQ(ringBuffer.read(), ba2);
+   ASSERT_EQ(ringBuffer.read(), ba3);
+}
+
+TEST(RingBufferTest, testPeek)
+{
+   RingBuffer ringBuffer;
+   ByteArray testBuffer;
+   // fill buffer with an arithmetic progression
+   for (int i = 1; i < 256; ++i) {
+      char *ringPos = ringBuffer.reserve(i);
+      ASSERT_TRUE(ringPos);
+      std::memset(ringPos, i, i);
+      testBuffer.append(ringPos, i);
+   }
+   
+   // check stored data
+   ByteArray resultBuffer;
+   int peekPosition = testBuffer.size();
+   for (int i = 1; i < 256; ++i) {
+      ByteArray ba(i, 0);
+      peekPosition -= i;
+      pdk::pint64 thisPeek = ringBuffer.peek(ba.getRawData(), i, peekPosition);
+      ASSERT_EQ(thisPeek, static_cast<pdk::pint64>(i));
+      resultBuffer.prepend(ba);
+   }
+   ASSERT_EQ(resultBuffer, testBuffer);
+}
+
+TEST(RingBufferTest, testReadLine)
+{
+   RingBuffer ringBuffer;
+   ByteArray ba1("Hello world!\n", 13);
+   ByteArray ba2("\n", 1);
+   ByteArray ba3("Test string.", 12);
+   ByteArray ba4("0123456789", 10);
+   ringBuffer.append(ba1);
+   ringBuffer.append(ba2);
+   ringBuffer.append(ba3 + ba4 + ba2);
+   
+   char stringBuf[102];
+   stringBuf[101] = 0; // non-crash terminator
+   ASSERT_EQ(ringBuffer.readLine(stringBuf, sizeof(stringBuf) - 2), static_cast<pdk::pint64>(ba1.size()));
+   ASSERT_EQ(ByteArray(stringBuf, int(strlen(stringBuf))), ba1);
+   
+   // check first empty string reading
+   stringBuf[0] = char(0xFF);
+   ASSERT_EQ(ringBuffer.readLine(stringBuf, int(sizeof(stringBuf)) - 2), static_cast<pdk::pint64>(ba2.size()));
+   ASSERT_EQ(stringBuf[0], ba2.at(0));
+   
+   ASSERT_EQ(ringBuffer.readLine(stringBuf, int(sizeof(stringBuf)) - 2),
+            static_cast<pdk::pint64>(ba3.size() + ba4.size() + ba2.size()));
+   ASSERT_EQ(ByteArray(stringBuf, int(strlen(stringBuf))), ba3 + ba4 + ba2);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(0));
+}

@@ -159,7 +159,7 @@ void RingBuffer::chop(pint64 bytes)
          // keep a single block around if it does not exceed
          // the basic block size, to avoid repeated allocations
          // between uses of the buffer
-         if (m_basicBlockSize <= bytes) {
+         if (m_bufferSize <= bytes) {
             if (m_buffers.front().size() <= m_basicBlockSize) {
                m_bufferSize = 0;
                m_head = 0;
