@@ -57,13 +57,13 @@ struct ThreadPipe
    int check(const pollfd &pfd);
    
    // note for eventfd(7) support:
-   // if fds[1] is -1, then eventfd(7) is in use and is stored in fds[0]
+   // if m_fds[1] is -1, then eventfd(7) is in use and is stored in fds[0]
    int m_fds[2];
    AtomicInt m_wakeUps;
    
 #if defined(PDK_OS_VXWORKS)
-   static const int m_lenName = 20;
-   char m_name[m_lenName];
+   static constexpr int NAME_LENGTH = 20;
+   char m_name[NAME_LENGTH];
 #endif
 };
 
