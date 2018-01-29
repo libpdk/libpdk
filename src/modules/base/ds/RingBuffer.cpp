@@ -23,10 +23,11 @@ namespace internal {
 namespace {
 ByteArray &retrive_at(std::list<ByteArray> &array, size_t pos)
 {
-   PDK_ASSERT(pos > 0 && pos <= array.size());
+   PDK_ASSERT(pos >= 0 && pos < array.size());
    auto iter = array.begin();
-   while (pos--) {
-      ++iter;      
+   while (pos != 0) {
+      ++iter;  
+      --pos;
    }
    return *iter;
 }

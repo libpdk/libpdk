@@ -39,4 +39,68 @@ TEST(RingBufferTest, testConstructing)
    ASSERT_EQ(ringBuffer.read(), ByteArray());
    ASSERT_EQ(ringBuffer.getChar(), -1);
    ASSERT_FALSE(ringBuffer.canReadLine());
+   char buf[5];
+   ASSERT_EQ(ringBuffer.peek(buf, sizeof(buf)), PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testUsingInVector)
+{
+   RingBuffer ringBuffer;
+   std::vector<RingBuffer> buffers;
+   ringBuffer.reserve(5);
+   buffers.push_back(ringBuffer);
+   ASSERT_EQ(buffers[0].size(), PDK_INT64_C(5));
+}
+
+TEST(RingBufferTest, testSizeWhenReserved)
+{
+   RingBuffer ringBuffer;
+   ringBuffer.reserve(5);
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(5));
+}
+
+TEST(RingBufferTest, testSizeWhenReservedAndChopped)
+{
+   RingBuffer ringBuffer;
+   ringBuffer.reserve(31337);
+   ringBuffer.chop(31337);
+   
+   ASSERT_EQ(ringBuffer.size(), PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testReadPointerAtPositionReadTooMuch)
+{
+   RingBuffer ringBuffer;
+   pdk::pint64 length;
+   const char *buf = ringBuffer.readPointerAtPosition(42, length);
+   ASSERT_TRUE(buf == 0);
+   ASSERT_EQ(length, PDK_INT64_C(0));
+}
+
+TEST(RingBufferTest, testReadPointerAtPositionWithHead)
+{
+   RingBuffer ringBuffer;
+   char *buf = ringBuffer.reserve(4);
+   std::memcpy(buf, "0123", 4);
+   ringBuffer.free(2);
+   // ringBuffer should have stayed the same except
+   // its head it had moved to position 2
+   pdk::pint64 length;
+   const char* buf2 = ringBuffer.readPointerAtPosition(0, length);
+   ASSERT_EQ(length, 2);
+   ASSERT_EQ(*buf2, '2');
+   ASSERT_EQ(*(buf2 + 1), '3');
+   
+   // advance 2 more, ringBuffer should be empty then
+   ringBuffer.free(2);
+   buf2 = ringBuffer.readPointerAtPosition(0, length);
+   ASSERT_EQ(length, PDK_INT64_C(0));
+   ASSERT_TRUE(buf2 == 0);
+   
+   // check buffer with 2 blocks
+   std::memcpy(ringBuffer.reserve(4), "0123", 4);
+   ringBuffer.append(ByteArray("45678", 5));
+   ringBuffer.free(3);
+   buf2 = ringBuffer.readPointerAtPosition(PDK_INT64_C(1), length);
+   ASSERT_EQ(length, PDK_INT64_C(5));
 }
