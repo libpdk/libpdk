@@ -17,6 +17,7 @@
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
 #include "pdk/kernel/AbstractNativeEventFilter.h"
 #include "pdk/global/GlobalStatic.h"
+#include "pdk/base/os/thread/internal/ThreadPrivate.h"
 
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/utils/internal/LockFreeListPrivate.h"
@@ -26,6 +27,9 @@ namespace kernel {
 
 using pdk::utils::internal::LockFreeListDefaultConstants;
 using pdk::utils::internal::LockFreeList;
+using pdk::os::thread::internal::ThreadData;
+using pdk::os::thread::internal::ScopedScopeLevelCounter;
+using pdk::kernel::internal::AbstractEventDispatcherPrivate;
 
 struct PdkTimerIdFreeListConstants : public LockFreeListDefaultConstants
 {
@@ -68,10 +72,14 @@ namespace internal {
 
 int AbstractEventDispatcherPrivate::allocateTimerId()
 {
+   return sg_timerIdFreeList()->next();
 }
 
 void AbstractEventDispatcherPrivate::releaseTimerId(int timerId)
 {
+   if (PdkTimerIdFreeList *fl = sg_timerIdFreeList()) {
+      fl->release(timerId);
+   }
 }
 
 } // internal
@@ -88,12 +96,17 @@ AbstractEventDispatcher::AbstractEventDispatcher(AbstractEventDispatcherPrivate 
 AbstractEventDispatcher::~AbstractEventDispatcher()
 {}
 
-AbstractEventDispatcher *AbstractEventDispatcher::instance(Thread *thread)
+AbstractEventDispatcher *AbstractEventDispatcher::getInstance(Thread *thread)
 {
+   ThreadData *data = thread ? ThreadData::get(thread) : ThreadData::current();
+   return data->m_eventDispatcher.load();
 }
 
 int AbstractEventDispatcher::registerTimer(int interval, pdk::TimerType timerType, Object *object)
 {
+   int id = AbstractEventDispatcherPrivate::allocateTimerId();
+   registerTimer(id, interval, timerType, object);
+   return id;
 }
 
 void AbstractEventDispatcher::startingUp()
@@ -104,14 +117,44 @@ void AbstractEventDispatcher::closingDown()
 
 void AbstractEventDispatcher::installNativeEventFilter(AbstractNativeEventFilter *filterObj)
 {
+   PDK_D(AbstractEventDispatcher);
+   // clean up unused items in the list
+   implPtr->m_eventFilters.remove(nullptr);
+   implPtr->m_eventFilters.remove(filterObj);
+   implPtr->m_eventFilters.push_front(filterObj);
 }
 
 void AbstractEventDispatcher::removeNativeEventFilter(AbstractNativeEventFilter *filter)
 {
+   PDK_D(AbstractEventDispatcher);
+   for (size_t i = 0; i < implPtr->m_eventFilters.size(); ++i) {
+      implPtr->m_eventFilters.remove_if([&filter](AbstractNativeEventFilter *cur){
+         return filter == cur;
+      });
+   }
 }
 
 bool AbstractEventDispatcher::filterNativeEvent(const ByteArray &eventType, void *message, long *result)
 {
+   PDK_D(AbstractEventDispatcher);
+   if (!implPtr->m_eventFilters.empty()) {
+      // Raise the loopLevel so that deleteLater() calls in or triggered
+      // by event_filter() will be processed from the main event loop.
+      ScopedScopeLevelCounter scopeLevelCounter(implPtr->m_threadData);
+      auto iter = implPtr->m_eventFilters.begin();
+      auto end = implPtr->m_eventFilters.end();
+      while (iter != end) {
+         AbstractNativeEventFilter *filter = *iter;
+         if (!filter) {
+            continue;
+         }
+         if (filter->nativeEventFilter(eventType, message, result)) {
+            return true;
+         }
+         ++iter;
+      }
+   }
+   return false;
 }
 
 } // kernel

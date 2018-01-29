@@ -65,13 +65,13 @@ protected:
 };
 
 SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *r, const char *member)
-   : Object(AbstractEventDispatcher::instance()), 
+   : Object(AbstractEventDispatcher::getInstance()), 
      m_hasValidReceiver(true)
 {
 }
 
 SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *r/*, QtPrivate::QSlotObjectBase *slotObj*/)
-   : Object(AbstractEventDispatcher::instance()),
+   : Object(AbstractEventDispatcher::getInstance()),
      m_hasValidReceiver(r), 
      m_receiver(std::shared_ptr<const Object>(r)) /*,slotObj(slotObj) */
 {

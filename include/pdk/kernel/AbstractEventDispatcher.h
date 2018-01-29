@@ -58,7 +58,7 @@ public:
    explicit AbstractEventDispatcher(Object *parent = nullptr);
    ~AbstractEventDispatcher();
    
-   static AbstractEventDispatcher *instance(Thread *thread = nullptr);
+   static AbstractEventDispatcher *getInstance(Thread *thread = nullptr);
    virtual bool processEvents(EventLoop::ProcessEventsFlags flags) = 0;
    virtual void registerSocketNotifier(SocketNotifier *notifier) = 0;
    virtual void unregisterSocketNotifier(SocketNotifier *notifier) = 0;
