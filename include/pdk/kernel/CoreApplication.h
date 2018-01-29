@@ -71,7 +71,7 @@ public:
    
    static bool sendEvent(Object *receiver, Event *event);
    static void postEvent(Object *receiver, Event *event, pdk::EventPriority priority = pdk::EventPriority::NormalEventPriority);
-   static void sendPostedEvents(Object *receiver = nullptr, int eventType = 0);
+   static void sendPostedEvents(Object *receiver = nullptr, Event::Type eventType = Event::Type::None);
    static void removePostedEvents(Object *receiver, int eventType = 0);
    static AbstractEventDispatcher *eventDispatcher();
    static void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);

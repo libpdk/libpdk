@@ -53,7 +53,7 @@ public:
    
    explicit Thread(Object *parent = nullptr);
    ~Thread();
-   enum class Priority {
+   enum Priority {
       IdlePriority,
       LowestPriority,
       LowPriority,

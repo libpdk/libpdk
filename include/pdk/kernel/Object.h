@@ -71,6 +71,9 @@ public:
    explicit Object(Object *parent = nullptr);
    virtual ~Object();
    
+   std::string getObjectName() const;
+   void setObjectName(const std::string &name);
+   
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
    

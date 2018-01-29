@@ -125,6 +125,45 @@ void **ThreadStorageData::set(void *p)
    return &value;
 }
 
+void ThreadStorageData::finish(void **p)
+{
+   std::vector<void *> *tls = reinterpret_cast<std::vector<void *> *>(p);
+   if (!tls || tls->empty() || !sg_destructors()) {
+      return; // nothing to do
+   }
+   
+   // DEBUG_MSG("QThreadStorageData: Destroying storage for thread %p", QThread::currentThread());
+   while (!tls->empty()) {
+      void *&value = tls->back();
+      void *q = value;
+      value = 0;
+      int i = tls->size() - 1;
+      tls->resize(i);
+      if (!q) {
+         // data already deleted
+         continue;
+      }
+      
+      std::unique_lock locker(sg_destructorsMutex);
+      void (*destructor)(void *) = sg_destructors()->at(i);
+      locker.unlock();
+      
+      if (!destructor) {
+         if (Thread::getCurrentThread()) {
+            //                qWarning("QThreadStorage: Thread %p exited after QThreadStorage %d destroyed",
+            //                         QThread::currentThread(), i);
+            continue;
+         }
+      }
+      destructor(q); //crash here might mean the thread exited after threadstorage was destroyed
+      if (tls->size() > i) {
+         //re reset the tls in case it has been recreated by its own destructor.
+         (*tls)[i] = 0;
+      }
+   }
+   tls->clear();
+}
+
 } // thread
 } // os
 } // pdk

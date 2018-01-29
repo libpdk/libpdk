@@ -341,7 +341,7 @@ bool CoreApplication::compressEvent(Event *event, Object *receiver, PostEventLis
 {
 }
 
-void CoreApplication::sendPostedEvents(Object *receiver, int eventType)
+void CoreApplication::sendPostedEvents(Object *receiver, Event::Type eventType)
 {
 }
 

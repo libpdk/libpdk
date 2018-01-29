@@ -71,6 +71,24 @@ Object::~Object()
 {
 }
 
+std::string Object::getObjectName() const
+{
+   PDK_D(const Object);
+   return implPtr->m_extraData ? implPtr->m_extraData->m_objectName : std::string();
+}
+
+void Object::setObjectName(const std::string &name)
+{
+   PDK_D(Object);
+   if (!implPtr->m_extraData) {
+      implPtr->m_extraData = new internal::ObjectPrivate::ExtraData;
+   }
+   if (implPtr->m_extraData->m_objectName != name) {
+      implPtr->m_extraData->m_objectName = name;
+      // emit objectNameChanged
+   }
+}
+
 bool Object::event(Event *e)
 {
 }
