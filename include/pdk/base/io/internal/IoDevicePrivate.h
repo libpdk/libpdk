@@ -19,6 +19,7 @@
 #include "pdk/base/io/IoDevice.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/kernel/Object.h"
+#include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/base/ds/internal/RingBufferPrivate.h"
 
 #include <string>
@@ -52,7 +53,7 @@ public:
    class RingBufferRef
    {
       RingBuffer *m_buf;
-      inline QRingBufferRef() : m_buf(nullptr)
+      inline RingBufferRef() : m_buf(nullptr)
       {}
       friend class IoDevicePrivate;
    public:
@@ -66,7 +67,7 @@ public:
       inline int chunkSize() const
       {
          PDK_ASSERT(m_buf);
-         return m_buf->chunkSize();
+         return m_buf->getChunkSize();
       }
       
       inline pdk::pint64 nextDataBlockSize() const
@@ -180,7 +181,7 @@ public:
          m_buf->append(data, size);
       }
       
-      inline void append(const QByteArray &qba)
+      inline void append(const ByteArray &qba)
       { 
          PDK_ASSERT(m_buf);
          m_buf->append(qba);
@@ -224,13 +225,13 @@ public:
    void seekBuffer(pdk::pint64 newPos);
    inline void setCurrentReadChannel(int channel)
    {
-      m_buffer.m_buf = (channel < m_readBuffers.size() ? &m_readBuffers[channel] : nullptr);
+      m_buffer.m_buf = (static_cast<size_t>(channel) < m_readBuffers.size() ? &m_readBuffers[channel] : nullptr);
       m_currentReadChannel = channel;
    }
    
    inline void setCurrentWriteChannel(int channel)
    {
-      m_writeBuffer.m_buf = (channel < m_writeBuffers.size() ? &m_writeBuffers[channel] : nullptr);
+      m_writeBuffer.m_buf = (static_cast<size_t>(channel) < m_writeBuffers.size() ? &m_writeBuffers[channel] : nullptr);
       m_currentWriteChannel = channel;
    }
    
@@ -240,7 +241,7 @@ public:
    virtual pdk::pint64 peek(char *data, pdk::pint64 maxSize);
    virtual ByteArray peek(pdk::pint64 maxSize);
 public:
-   IoDevice::OpenMode m_openMode;
+   IoDevice::OpenModes m_openMode;
    std::string m_errorString;
    std::vector<RingBuffer> m_readBuffers;
    std::vector<RingBuffer> m_writeBuffers;

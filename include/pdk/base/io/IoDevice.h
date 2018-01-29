@@ -43,7 +43,7 @@ using internal::IoDevicePrivate;
 class PDK_CORE_EXPORT IoDevice : public Object
 {
 public:
-   enum OpenModeFlag
+   enum OpenMode
    {
       NotOpen = 0x0000,
       ReadOnly = 0x0001,
@@ -54,11 +54,11 @@ public:
       Text = 0x0010,
       Unbuffered = 0x0020
    };
-   PDK_DECLARE_FLAGS(OpenMode, OpenModeFlag);
+   PDK_DECLARE_FLAGS(OpenModes, OpenMode);
    IoDevice();
    explicit IoDevice(Object *parent);
    virtual ~IoDevice();
-   OpenMode getOpenMode() const;
+   OpenModes getOpenMode() const;
    void setTextModeEnable(bool enabled);
    bool isTextModeEnabled() const;
    
@@ -67,14 +67,14 @@ public:
    bool isWritable() const;
    virtual bool isSequential() const;
    
-   int readChannelCount() const;
-   int writeChannelCount() const;
+   int getReadChannelCount() const;
+   int getWriteChannelCount() const;
    int getCurrentReadChannel() const;
-   void setCurrentReadChannel();
+   void setCurrentReadChannel(int channel);
    int getCurrentWriteChannel() const;
-   void setCurrentWriteChannel();
+   void setCurrentWriteChannel(int channel);
    
-   virtual bool open(OpenMode mode);
+   virtual bool open(OpenModes mode);
    virtual void close();
    
    virtual pdk::pint64 getPosition() const;
@@ -108,7 +108,7 @@ public:
    pdk::pint64 peek(char *data, pdk::pint64 maxLength);
    ByteArray peek(pdk::pint64 maxLength);
    
-   virtual bool waitForReadReady(int msecs);
+   virtual bool waitForReadyRead(int msecs);
    virtual bool waitForBytesWritten(int msecs);
    
    void ungetChar(char c);
@@ -128,7 +128,7 @@ protected:
    virtual pdk::pint64 readData(char *data, pdk::pint64 maxLength) = 0;
    virtual pdk::pint64 readLineData(char *data, pdk::pint64 maxLength);
    virtual pdk::pint64 writeData(const char *data, pdk::pint64 length) = 0;
-   void setOpenMode(OpenMode openMode);
+   void setOpenMode(OpenModes openMode);
    void setErrorString(const std::string &errorString);
    
 private:
@@ -136,7 +136,7 @@ private:
    PDK_DISABLE_COPY(IoDevice);
 };
 
-PDK_DECLARE_OPERATORS_FOR_FLAGS(IoDevice::OpenMode)
+PDK_DECLARE_OPERATORS_FOR_FLAGS(IoDevice::OpenModes)
 
 } // io
 } // pdk
