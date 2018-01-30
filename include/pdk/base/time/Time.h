@@ -16,8 +16,101 @@
 #ifndef PDK_M_BASE_TIME_TIME_H
 #define PDK_M_BASE_TIME_TIME_H
 
+#include "pdk/base/lang/String.h"
+
+class DateTime;
+class DateTimePrivate;
+
 namespace pdk {
 namespace time {
+
+using pdk::lang::String;
+
+class PDK_CORE_EXPORT Time
+{
+private:
+   static constexpr int NULL_TIME = -1;
+   explicit constexpr Time(int ms) : mds(ms)
+   {}
+   
+public:
+   constexpr Time()
+      : m_mds(NULL_TIME)
+   {}
+   
+   Time(int hours, int minutes, int seconds = 0, int ms = 0);
+   
+   constexpr bool isNull() const
+   {
+      return m_mds == NULL_TIME;
+   }
+   
+   bool isValid() const;
+   
+   int getHour() const;
+   int getMinute() const;
+   int getSecond() const;
+   int getMsec() const;
+   String toString(pdk::DateFormat f = pdk::DateFormat::TextDate) const;
+   String toString(const String &format) const;
+   
+   bool setHMS(int h, int m, int s, int ms = 0);
+   
+   Time addSecs(int secs) const PDK_REQUIRED_RESULT;
+   int secsTo(const Time &) const;
+   Time addMSecs(int ms) const PDK_REQUIRED_RESULT;
+   int msecsTo(const Time &) const;
+   
+   constexpr bool operator==(const Time &other) const
+   {
+      return m_mds == other.m_mds;
+   }
+   
+   constexpr bool operator!=(const Time &other) const
+   {
+      return m_mds != other.m_mds;
+   }
+   
+   constexpr bool operator< (const Time &other) const
+   {
+      return m_mds <  other.m_mds;
+   }
+   
+   constexpr bool operator<=(const Time &other) const
+   {
+      return m_mds <= other.m_mds;
+   }
+   
+   constexpr bool operator> (const Time &other) const
+   { 
+      return m_mds > other.m_mds;
+   }
+   
+   constexpr bool operator>=(const Time &other) const
+   {
+      return m_mds >= other.m_mds;
+   }
+   
+   static constexpr inline Time fromMSecsSinceStartOfDay(int msecs)
+   {
+      return Time(msecs);
+   }
+   
+   constexpr inline int msecsSinceStartOfDay() const
+   {
+      return m_mds == NULL_TIME ? 0 : m_mds;
+   }
+   
+   static Time getCurrentTime();
+private:
+   friend class DateTime;
+   friend class DateTimePrivate;
+   
+private:
+   int m_mds;
+};
+
+PDK_DECLARE_TYPEINFO(Time, PDK_MOVABLE_TYPE);
 
 } // time
 } // pdk

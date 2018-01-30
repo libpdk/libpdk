@@ -23,7 +23,12 @@ namespace pdk {
 namespace time {
 
 using pdk::lang::String;
+
+// forward declare class 
 class TimeZone;
+class DateTime;
+class DateTimePrivate;
+
 class PDK_CORE_EXPORT Date
 {
 public:
@@ -123,22 +128,24 @@ public:
    }
    
 private:
-    // using extra parentheses around min to avoid expanding it if it is a macro
-    static constexpr inline pdk::pint64 nullJd()
-    {
-       return (std::numeric_limits<pdk::pint64>::min)();
-    }
-    
-    static constexpr inline pdk::pint64 minJd()
-    {
-       return PDK_INT64_C(-784350574879);
-    }
-    
-    static constexpr inline pdk::pint64 maxJd()
-    {
-       return PDK_INT64_C(784354017364);
-    }
+   // using extra parentheses around min to avoid expanding it if it is a macro
+   static constexpr inline pdk::pint64 nullJd()
+   {
+      return (std::numeric_limits<pdk::pint64>::min)();
+   }
+   
+   static constexpr inline pdk::pint64 minJd()
+   {
+      return PDK_INT64_C(-784350574879);
+   }
+   
+   static constexpr inline pdk::pint64 maxJd()
+   {
+      return PDK_INT64_C(784354017364);
+   }
 private:
+   friend class DateTime;
+   friend class DateTimePrivate;
    pdk::pint64 m_jd;
 };
 
