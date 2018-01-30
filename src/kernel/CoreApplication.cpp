@@ -39,6 +39,7 @@ namespace kernel {
 
 using pdk::utils::ScopedPointer;
 using pdk::os::thread::Thread;
+using pdk::os::thread::internal::ThreadData;
 
 namespace internal {
 
@@ -137,10 +138,6 @@ void PDK_CORE_EXPORT call_post_routines()
 
 static bool pdk_locale_initialized = false;
 
-PDK_CORE_EXPORT uint global_posted_events_count()
-{
-}
-
 #ifdef PDK_OS_UNIX
 pdk::HANDLE pdk_application_thread_id = 0;
 #endif
@@ -227,6 +224,12 @@ void CoreApplicationPrivate::execCleanup()
 
 
 } // internal
+
+uint global_posted_events_count()
+{
+   ThreadData *currentThreadData = ThreadData::current();
+   return currentThreadData->m_postEventList.size() - currentThreadData->m_postEventList.m_startOffset;
+}
 
 CoreApplication *CoreApplication::sm_self = nullptr;
 

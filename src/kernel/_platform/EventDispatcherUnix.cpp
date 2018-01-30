@@ -15,6 +15,7 @@
 
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/kernel/SocketNotifier.h"
 #include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/kernel/EventDispatcherUnix.h"
@@ -50,6 +51,9 @@
 
 namespace pdk {
 namespace kernel {
+
+using internal::EventDispatcherUNIXPrivate;
+using internal::CoreApplicationPrivate;
 
 namespace {
 
@@ -415,23 +419,84 @@ bool EventDispatcherUNIX::processEvents(EventLoop::ProcessEventsFlags flags)
    implPtr->m_interrupt.store(0);
    // we are awake, broadcast it
    // emit awake() signal;
-   
+   CoreApplicationPrivate::sendPostedEvents(0, 0, implPtr->m_threadData);
+   const bool includeTimers = (flags & EventLoop::X11ExcludeTimers) == 0;
+   const bool includeNotifiers = (flags & EventLoop::ExcludeSocketNotifiers) == 0;
+   const bool waitForEvents = flags & EventLoop::WaitForMoreEvents;
+   const bool canWait = (implPtr->m_threadData->canWaitLocked()
+                         && !implPtr->m_interrupt.load()
+                         && waitForEvents);
+   if (canWait) {
+      // emit aboutToBlock();
+   }
+   if (implPtr->m_interrupt.load()) {
+      return false;
+   }
+   timespec *ts = nullptr;
+   timespec waitTs = { 0, 0 };
+   if (!canWait || (includeTimers && implPtr->m_timerList.timerWait(waitTs))) {
+      ts = &waitTs;
+   }
+   implPtr->m_pollfds.clear();
+   implPtr->m_pollfds.reserve(1 + (includeNotifiers ? implPtr->m_socketNotifiers.size() : 0));
+   if (includeNotifiers) {
+      for (auto iter = implPtr->m_socketNotifiers.cbegin(); iter != implPtr->m_socketNotifiers.cend(); ++iter) {
+         implPtr->m_pollfds.push_back(make_pollfd(iter->first, iter->second.events()));
+      }
+   }
+   // This must be last, as it's popped off the end below
+   implPtr->m_pollfds.push_back(implPtr->m_threadPipe.prepare());
+   int nevents = 0;
+   switch(safe_poll(implPtr->m_pollfds.data(), implPtr->m_pollfds.size(), ts))
+   {
+   case -1:
+      perror("pdk::kernel::safe_poll");
+      break;
+   case 0:
+      break;
+   default:
+      nevents += implPtr->m_threadPipe.check(implPtr->m_pollfds.back());
+      implPtr->m_pollfds.pop_back();
+      if (includeNotifiers) {
+         nevents += implPtr->getActivateSocketNotifiers();
+      }
+      break;
+   }
+   if (includeTimers) {
+      nevents += implPtr->getActivateTimers();
+   }
+   // return true if we handled events, false otherwise
+   return (nevents > 0);
 }
 
 bool EventDispatcherUNIX::hasPendingEvents()
 {
+   return global_posted_events_count();
 }
 
 int EventDispatcherUNIX::remainingTime(int timerId)
 {
+#ifndef PDK_NO_DEBUG
+   if (timerId < 1) {
+      // qWarning("EventDispatcherUNIX::remainingTime: invalid argument");
+      return -1;
+   }
+#endif
+   PDK_D(EventDispatcherUNIX);
+   return implPtr->m_timerList.timerRemainingTime(timerId);
 }
 
 void EventDispatcherUNIX::wakeUp()
 {
+   PDK_D(EventDispatcherUNIX);
+   implPtr->m_threadPipe.wakeUp();
 }
 
 void EventDispatcherUNIX::interrupt()
 {
+   PDK_D(EventDispatcherUNIX);
+   implPtr->m_interrupt.store(1);
+   wakeUp();
 }
 
 void EventDispatcherUNIX::flush()

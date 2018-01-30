@@ -155,6 +155,8 @@ PDK_CORE_EXPORT std::string retrieve_app_name();                // get applicati
     }                                 \
     PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
 
+PDK_CORE_EXPORT uint global_posted_events_count();
+
 } // kernel
 } // pdk
 
