@@ -11,22 +11,18 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/12/19.
+// Created by softboy on 2018/01/30.
 
-#ifndef PDK_KERNEL_LOCALE_H
-#define PDK_KERNEL_LOCALE_H
-
-#include "pdk/global/Global.h"
+#ifndef PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
+#define PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
 
 namespace pdk {
 namespace kernel {
+namespace internal {
 
-class PDK_CORE_EXPORT Locale
-{
-   
-};
-
+} // internal
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_LOCALE_H
+
+#endif // PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
