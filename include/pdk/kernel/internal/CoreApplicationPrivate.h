@@ -81,14 +81,14 @@ public:
    void deref();
    void maybeQuit();
    void cleanupThreadData();
-   void appendApplicationPathToLibraryPaths(void);
+   void appendAppPathToLibPaths(void);
    
-   static std::string *m_cachedApplicationFilePath;
-   static void setApplicationFilePath(const std::string &path);
-   static inline void clearApplicationFilePath()
+   static std::string *m_cachedAppFilePath;
+   static void setAppFilePath(const std::string &path);
+   static inline void clearAppFilePath()
    {
-      delete m_cachedApplicationFilePath;
-      m_cachedApplicationFilePath = nullptr;
+      delete m_cachedAppFilePath;
+      m_cachedAppFilePath = nullptr;
    }
    void execCleanup();
    void processCommandLineArguments();

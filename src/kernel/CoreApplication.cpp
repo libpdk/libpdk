@@ -13,15 +13,18 @@
 //
 // Created by softboy on 2018/01/26.
 
+#include "pdk/global/GlobalStatic.h"
+#include "pdk/global/internal/HooksPrivate.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
-#include "pdk/global/GlobalStatic.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
+#include "pdk/base/os/thread/ThreadStorage.h"
+
 #include <cstdlib>
 #include <list>
 #include <mutex>
@@ -36,12 +39,25 @@
 
 #include <algorithm>
 
+#if defined(PDK_OS_UNIX)
+//# if defined(PDK_OS_DARWIN)
+//#  include "pdk/kernel/EventDispatcherCf.h"
+//# else
+//#  if !defined(PDK_NO_GLIB)
+//#   include "pdk/kernel/EventDispatcherGlib.h"
+//#  endif
+//# endif
+# include "pdk/kernel/EventDispatcherUnix.h"
+#endif
+
 namespace pdk {
 namespace kernel {
 
 using pdk::utils::ScopedPointer;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
+using pdk::os::thread::internal::PostEvent;
+using pdk::os::thread::ThreadStorageData;
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
 {
@@ -123,7 +139,7 @@ std::string CoreApplicationPrivate::getAppName() const
    return appName;
 }
 
-std::string *CoreApplicationPrivate::m_cachedApplicationFilePath = nullptr;
+std::string *CoreApplicationPrivate::m_cachedAppFilePath = nullptr;
 
 bool CoreApplicationPrivate::checkInstance(const char *method)
 {
@@ -225,8 +241,6 @@ AbstractEventDispatcher *CoreApplicationPrivate::sm_eventDispatcher = nullptr;
 
 CoreApplicationPrivate::CoreApplicationPrivate(int &aargc, char **aargv, uint flags)
    : ObjectPrivate(),
-     m_argc(aargc),
-     m_argv(aargv),
      #if defined(PDK_OS_WIN)
      m_origArgc(0),
      m_origArgv(Q_NULLPTR),
@@ -234,20 +248,59 @@ CoreApplicationPrivate::CoreApplicationPrivate(int &aargc, char **aargv, uint fl
      m_applicationType(CoreApplicationPrivate::Type::Tty),
      m_inExec(false),
      m_aboutToQuitEmitted(false),
-     m_threadDataClean(false)
+     m_threadDataClean(false),
+     m_argc(aargc),
+     m_argv(aargv)
 {
 }
 
 CoreApplicationPrivate::~CoreApplicationPrivate()
 {
+   cleanupThreadData();
+#if defined(PDK_OS_WIN)
+   delete [] m_origArgv;
+#endif
+   CoreApplicationPrivate::clearAppFilePath();
 }
 
 void CoreApplicationPrivate::cleanupThreadData()
 {
+   if (m_threadData && !m_threadDataClean) {
+      void *data = &m_threadData->m_tls;
+      ThreadStorageData::finish(reinterpret_cast<void **>(data));
+   }
+   std::lock_guard<std::mutex> locker(m_threadData->m_postEventList.m_mutex);
+   for (size_t i = 0; i < m_threadData->m_postEventList.size(); ++i) {
+      const PostEvent &pe = m_threadData->m_postEventList.at(i);
+      if (pe.m_event) {
+         --pe.m_receiver->getImplPtr()->m_postedEvents;
+         pe.m_event->m_posted = false;
+         delete pe.m_event;
+      }
+   }
+   m_threadData->m_postEventList.clear();
+   m_threadData->m_postEventList.m_recursion = 0;
+   m_threadData->m_quitNow = false;
+   m_threadDataClean = true;
 }
 
 void CoreApplicationPrivate::createEventDispatcher()
 {
+   PDK_Q(CoreApplication);
+#if defined(PDK_OS_UNIX)
+#  if defined(PDK_OS_DARWIN)
+   bool ok = false;
+   // int value = environment_variable_int_value("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
+   int value = 0;
+   if (ok && value > 0) {
+      // m_eventDispatcher = new QEventDispatcherCoreFoundation(apiPtr);
+   } else {
+      sm_eventDispatcher = new EventDispatcherUNIX(apiPtr);
+   }
+#  endif
+#else
+#  error "pdk::kernel::EventDispatcher not yet ported to this platform"
+#endif
 }
 
 void CoreApplicationPrivate::eventDispatcherReady()
@@ -268,7 +321,7 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 {
 }
 
-void CoreApplicationPrivate::appendApplicationPathToLibraryPaths()
+void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
 }
 
@@ -453,7 +506,7 @@ void CoreApplicationPrivate::maybeQuit()
 // instantiated by a library and not by an application executable, for example,
 // Active X servers.
 
-void CoreApplicationPrivate::setApplicationFilePath(const std::string &path)
+void CoreApplicationPrivate::setAppFilePath(const std::string &path)
 {
 }
 
@@ -518,7 +571,7 @@ void CoreApplication::setAppVersion(const std::string &version)
 
 std::string CoreApplication::getAppVersion()
 {
-
+   
 }
 
 PDK_GLOBAL_STATIC(std::recursive_mutex, sg_libraryPathMutex);
