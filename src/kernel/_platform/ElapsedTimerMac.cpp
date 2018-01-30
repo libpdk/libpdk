@@ -145,6 +145,5 @@ bool operator<(const ElapsedTimer &lhs, const ElapsedTimer &rhs) noexcept
    return lhs.m_t1 < rhs.m_t1;
 }
 
-
 } // kernel
 } // pdk

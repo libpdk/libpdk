@@ -52,7 +52,7 @@ inline int pdk_poll_prepare(struct pollfd *fds, nfds_t nfds,
          FD_SET(fds[i].fd, except_fds);
       }
       if (fds[i].events & PDK_POLL_EVENTS_MASK) {
-         max_fd = qMax(max_fd, fds[i].fd);
+         max_fd = std::max(max_fd, fds[i].fd);
       }
    }
    return max_fd + 1;

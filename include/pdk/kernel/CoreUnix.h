@@ -52,7 +52,7 @@
 #endif
 
 #ifdef PDK_NO_NATIVE_POLL
-#  include "pdk/pal/io/Poll.h"
+#  include "pdk/kernel/internal/PollPrivate.h"
 #else
 #  include <poll.h>
 #endif
@@ -135,7 +135,6 @@ inline timeval timespec_to_timeval(const timespec &ts)
    tv.tv_usec = ts.tv_nsec / 1000;
    return tv;
 }
-
 
 inline void ignore_sigpipe()
 {
