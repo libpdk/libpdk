@@ -17,6 +17,8 @@
 #define PDK_UTILS_LOCALE_H
 
 #include "pdk/global/Global.h"
+#include "pdk/utils/SharedData.h"
+#include <list>
 
 namespace pdk {
 
@@ -24,7 +26,20 @@ namespace pdk {
 namespace lang {
 class String;
 class StringRef;
+class Character;
 } // lang
+
+// forward declare class with namespace
+namespace io {
+class TextStream;
+} // io
+
+// forward declare class with namespace
+namespace time {
+class Date;
+class DateTime;
+class Time;
+} // time
 
 namespace utils {
 
@@ -35,6 +50,14 @@ class LocalePrivate;
 
 using pdk::lang::String;
 using pdk::lang::StringRef;
+using pdk::lang::Character;
+using pdk::time::Date;
+using pdk::time::DateTime;
+using pdk::time::Time;
+using pdk::io::TextStream;
+using StringList = std::list<std::string>;
+
+class Locale;
 
 PDK_CORE_EXPORT uint hash(const Locale &key, uint seed = 0) noexcept;
 
@@ -942,13 +965,153 @@ public:
    inline String toString(uint i) const;
    String toString(double i, char f = 'g', int prec = 6) const;
    inline String toString(float i, char f = 'g', int prec = 6) const;
-   String toString(const QDate &date, const String &formatStr) const;
-   String toString(const QDate &date, FormatType format = LongFormat) const;
-   String toString(const QTime &time, const String &formatStr) const;
-   String toString(const QTime &time, FormatType format = LongFormat) const;
-   String toString(const QDateTime &dateTime, FormatType format = LongFormat) const;
-   String toString(const QDateTime &dateTime, const String &format) const;
+   String toString(const Date &date, const String &formatStr) const;
+   String toString(const Date &date, FormatType format = FormatType::LongFormat) const;
+   String toString(const Time &time, const String &formatStr) const;
+   String toString(const Time &time, FormatType format = FormatType::LongFormat) const;
+   String toString(const DateTime &dateTime, FormatType format = FormatType::LongFormat) const;
+   String toString(const DateTime &dateTime, const String &format) const;
+   
+   String dateFormat(FormatType format = FormatType::LongFormat) const;
+   String timeFormat(FormatType format = FormatType::LongFormat) const;
+   String dateTimeFormat(FormatType format = FormatType::LongFormat) const;
+   
+   Date toDate(const String &string, FormatType = FormatType::LongFormat) const;
+   Time toTime(const String &string, FormatType = FormatType::LongFormat) const;
+   DateTime toDateTime(const String &string, FormatType format = FormatType::LongFormat) const;
+   Date toDate(const String &string, const String &format) const;
+   Time toTime(const String &string, const String &format) const;
+   DateTime toDateTime(const String &string, const String &format) const;
+   
+   Character decimalPoint() const;
+   Character groupSeparator() const;
+   Character percent() const;
+   Character zeroDigit() const;
+   Character negativeSign() const;
+   Character positiveSign() const;
+   Character exponential() const;
+   
+   String monthName(int, FormatType format = FormatType::LongFormat) const;
+   String standaloneMonthName(int, FormatType format = FormatType::LongFormat) const;
+   String dayName(int, FormatType format = FormatType::LongFormat) const;
+   String standaloneDayName(int, FormatType format = FormatType::LongFormat) const;
+   
+   pdk::DayOfWeek firstDayOfWeek() const;
+   std::list<pdk::DayOfWeek> weekdays() const;
+   
+   String amText() const;
+   String pmText() const;
+   
+   MeasurementSystem measurementSystem() const;
+   
+   pdk::LayoutDirection textDirection() const;
+   
+   String toUpper(const String &str) const;
+   String toLower(const String &str) const;
+   
+   String currencySymbol(CurrencySymbolFormat = CurrencySymbol) const;
+   String toCurrencyString(plonglong, const String &symbol = String()) const;
+   String toCurrencyString(pulonglong, const String &symbol = String()) const;
+   inline String toCurrencyString(short, const String &symbol = String()) const;
+   inline String toCurrencyString(ushort, const String &symbol = String()) const;
+   inline String toCurrencyString(int, const String &symbol = String()) const;
+   inline String toCurrencyString(uint, const String &symbol = String()) const;
+   
+   String toCurrencyString(double, const String &symbol = String(), int precision = -1) const;
+   inline String toCurrencyString(float i, const String &symbol = String(), int precision = -1) const
+   {
+      return toCurrencyString(double(i), symbol, precision);
+   }
+   
+   StringList uiLanguages() const;
+   
+   bool operator==(const Locale &other) const;
+   bool operator!=(const Locale &other) const;
+   
+   static String languageToString(Language language);
+   static String countryToString(Country country);
+   static String scriptToString(Script script);
+   static void setDefault(const Locale &locale);
+   
+   static Locale c()
+   {
+      return Locale(Language::C);
+   }
+   
+   static Locale system();
+   
+   static std::list<Locale> matchingLocales(Locale::Language language, Locale::Script script, Locale::Country country);
+   static std::list<Country> countriesForLanguage(Language lang);
+   
+   void setNumberOptions(NumberOptions options);
+   NumberOptions numberOptions() const;
+   
+   enum class QuotationStyle
+   {
+      StandardQuotation,
+      AlternateQuotation
+   };
+   
+   String quoteString(const String &str, QuotationStyle style = QuotationStyle::StandardQuotation) const;
+   String quoteString(const StringRef &str, QuotationStyle style = QuotationStyle::StandardQuotation) const;
+   
+   String createSeparatedList(const StringList &strl) const;
+   
+private:
+   Locale(LocalePrivate &dd);
+   friend class LocalePrivate;
+   friend PDK_CORE_EXPORT uint hash(const Locale &key, uint seed) noexcept;
+   
+   SharedDataPointer<LocalePrivate> m_implPtr;
 };
+
+PDK_DECLARE_SHARED(Locale)
+PDK_DECLARE_OPERATORS_FOR_FLAGS(Locale::NumberOptions)
+
+inline String Locale::toString(short i) const
+{
+   return toString(static_cast<plonglong>(i));
+}
+
+inline String Locale::toString(ushort i) const
+{
+   return toString(static_cast<pulonglong>(i));
+}
+
+inline String Locale::toString(int i) const
+{
+   return toString(static_cast<plonglong>(i));
+}
+
+inline String Locale::toString(uint i) const
+{
+   return toString(static_cast<pulonglong>(i));
+}
+
+inline String Locale::toString(float i, char f, int prec) const
+{
+   return toString(static_cast<double>(i), f, prec);
+}
+
+inline String Locale::toCurrencyString(short i, const String &symbol) const
+{
+   return toCurrencyString(static_cast<plonglong>(i), symbol);   
+}
+
+inline String Locale::toCurrencyString(ushort i, const String &symbol) const
+{
+   return toCurrencyString(static_cast<pulonglong>(i), symbol);
+}
+
+inline String Locale::toCurrencyString(int i, const String &symbol) const
+{
+   return toCurrencyString(static_cast<plonglong>(i), symbol);
+}
+
+inline String Locale::toCurrencyString(uint i, const String &symbol) const
+{
+   return toCurrencyString(static_cast<pulonglong>(i), symbol);
+}
 
 } // utils
 } // pdk

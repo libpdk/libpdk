@@ -78,6 +78,13 @@ enum class DayOfWeek
    Sunday = 7
 };
 
+enum class LayoutDirection
+{
+   LeftToRight,
+   RightToLeft,
+   LayoutDirectionAuto
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H
