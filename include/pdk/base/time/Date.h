@@ -27,7 +27,11 @@ using pdk::lang::String;
 // forward declare class 
 class TimeZone;
 class DateTime;
+namespace internal {
 class DateTimePrivate;
+} // internal
+
+using internal::DateTimePrivate;
 
 class PDK_CORE_EXPORT Date
 {
@@ -150,6 +154,7 @@ private:
 };
 
 PDK_DECLARE_TYPEINFO(Date, PDK_MOVABLE_TYPE);
+PDK_CORE_EXPORT uint hash(const Date &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk

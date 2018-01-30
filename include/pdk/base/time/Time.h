@@ -18,12 +18,15 @@
 
 #include "pdk/base/lang/String.h"
 
-class DateTime;
-class DateTimePrivate;
-
 namespace pdk {
 namespace time {
 
+class DateTime;
+namespace internal {
+class DateTimePrivate;
+} // internal
+
+using internal::DateTimePrivate;
 using pdk::lang::String;
 
 class PDK_CORE_EXPORT Time
@@ -111,6 +114,7 @@ private:
 };
 
 PDK_DECLARE_TYPEINFO(Time, PDK_MOVABLE_TYPE);
+PDK_CORE_EXPORT uint hash(const Time &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk
