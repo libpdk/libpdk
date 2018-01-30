@@ -16,4 +16,10 @@
 #ifndef PDK_M_BASE_TIME_TIME_H
 #define PDK_M_BASE_TIME_TIME_H
 
+namespace pdk {
+namespace time {
+
+} // time
+} // pdk
+
 #endif // PDK_M_BASE_TIME_TIME_H

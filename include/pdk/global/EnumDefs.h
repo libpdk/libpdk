@@ -40,10 +40,42 @@ enum class TimerType
    VeryCoarseTimer
 };
 
-enum class EventPriority {
+enum class EventPriority
+{
    HighEventPriority = 1,
    NormalEventPriority = 0,
    LowEventPriority = -1
+};
+
+enum class DateFormat
+{
+   TextDate,      // default
+   ISODate,       // ISO 8601
+   SystemLocaleShortDate,
+   SystemLocaleLongDate,
+   DefaultLocaleShortDate,
+   DefaultLocaleLongDate,
+   RFC2822Date,        // RFC 2822 (+ 850 and 1036 during parsing)
+   ISODateWithMs
+};
+
+enum class TimeSpec
+{
+   LocalTime,
+   UTC,
+   OffsetFromUTC,
+   TimeZone
+};
+
+enum class DayOfWeek
+{
+   Monday = 1,
+   Tuesday = 2,
+   Wednesday = 3,
+   Thursday = 4,
+   Friday = 5,
+   Saturday = 6,
+   Sunday = 7
 };
 
 } // pdk
