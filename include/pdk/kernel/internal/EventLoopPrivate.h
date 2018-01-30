@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/01/23.
 
-#ifndef PDK_KERNEL_EVENT_LOOP_PRIVATE_H
-#define PDK_KERNEL_EVENT_LOOP_PRIVATE_H
+#ifndef PDK_KERNEL_INTERNAL_EVENT_LOOP_PRIVATE_H
+#define PDK_KERNEL_INTERNAL_EVENT_LOOP_PRIVATE_H
 
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
@@ -59,4 +59,4 @@ private:
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_EVENT_LOOP_PRIVATE_H
+#endif // PDK_KERNEL_INTERNAL_EVENT_LOOP_PRIVATE_H

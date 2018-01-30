@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/01/25.
 
-#ifndef PDK_KERNEL_OBJECT_PRIVATE_H
-#define PDK_KERNEL_OBJECT_PRIVATE_H
+#ifndef PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
+#define PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
 
 #include <tuple>
 
@@ -118,4 +118,4 @@ struct FunctionPointer<Ret (*) (Args...) noexcept>
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_FUNCTION_TRAITS_H
+#endif // PDK_KERNEL_INTERNAL_FUNCTION_TRAITS_H

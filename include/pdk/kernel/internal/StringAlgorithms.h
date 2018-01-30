@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2017/12/19.
 
-#ifndef PDK_KERNEL_STRING_ALGORITHMS_H
-#define PDK_KERNEL_STRING_ALGORITHMS_H
+#ifndef PDK_KERNEL_INTERNAL_STRING_ALGORITHMS_H
+#define PDK_KERNEL_INTERNAL_STRING_ALGORITHMS_H
 
 #include "pdk/global/Global.h"
 #include "pdk/kernel/StringUtils.h" // for pdk::ascii_isspace
@@ -132,4 +132,4 @@ struct StringAlgorithms
 } // internal 
 } // pdk
 
-#endif // PDK_KERNEL_STRING_ALGORITHMS_H
+#endif // PDK_KERNEL_INTERNAL_STRING_ALGORITHMS_H

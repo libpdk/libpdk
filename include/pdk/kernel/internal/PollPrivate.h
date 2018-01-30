@@ -11,66 +11,40 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2018/01/23.
+// Created by softboy on 2018/01/30.
 
 #ifndef PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
 #define PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
 
-#include "pdk/kernel/Object.h"
-#include "pdk/kernel/Pointer.h"
-#include "pdk/kernel/signal/Signal.h"
-#include <vector>
-#include <list>
-#include <variant>
-#include <string>
+#include "pdk/global/Global.h"
+#include <unistd.h>
+#include <time.h>
 
 namespace pdk {
-
-// forward declare with namespace
-namespace os {
-namespace thread {
-namespace internal {
-class ThreadData;
-} // internal
-} // thread
-} // os
-
 namespace kernel {
 namespace internal {
 
-using pdk::kernel::signal::Signal;
-using pdk::os::thread::internal::ThreadData;
+#ifdef PDK_NO_NATIVE_POLL
 
-class PDK_CORE_EXPORT ObjectPrivate : public ObjectData
-{
-   PDK_DECLARE_PUBLIC(Object);
-   
-public:
-   ObjectPrivate(int version = PDK_VERSION);
-   virtual ~ObjectPrivate();
-   
-public:
-   struct ExtraData
-   {
-      ExtraData() {}
-      std::vector<int> m_runningTimers;
-      std::list<Pointer<Object>> m_eventFilters;
-      std::string m_objectName;
-   };
-   
-   static ObjectPrivate *get(Object *o)
-   {
-      return o->getImplPtr();
-   }
-   
-public:
-   union {
-      Object *m_currentChildBeingDeleted;
-   };
-   
-   ExtraData *m_extraData;
-   ThreadData *m_threadData;
+struct pollfd {
+   int   fd;
+   short events, revents;
 };
+
+typedef unsigned long int nfds_t;
+
+#define POLLIN     0x001
+#define POLLPRI    0x002
+#define POLLOUT    0x004
+#define POLLERR    0x008
+#define POLLHUP    0x010
+#define POLLNVAL   0x020
+#define POLLRDNORM 0x040
+#define POLLRDBAND 0x080
+#define POLLWRNORM 0x100
+#define POLLWRBAND 0x200
+
+#endif
 
 } // internal
 } // kernel
