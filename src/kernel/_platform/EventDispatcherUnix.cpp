@@ -17,7 +17,7 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/SocketNotifier.h"
 #include "pdk/kernel/ElapsedTimer.h"
-#include "pdk/kernel/EventdispatcherUnix.h"
+#include "pdk/kernel/EventDispatcherUnix.h"
 #include "pdk/kernel/CoreUnix.h"
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
@@ -369,10 +369,53 @@ void EventDispatcherUNIX::registerSocketNotifier(SocketNotifier *notifier)
 
 void EventDispatcherUNIX::unregisterSocketNotifier(SocketNotifier *notifier)
 {
+   PDK_ASSERT(notifier);
+   int sockfd = notifier->getSocket();
+   SocketNotifier::Type type = notifier->getType();
+#ifndef PDK_NO_DEBUG
+   if (notifier->thread() != thread() || thread() != Thread::getCurrentThread()) {
+//      qWarning("SocketNotifier: socket notifier (fd %d) cannot be disabled from another thread.\n"
+//               "(Notifier's thread is %s(%p), event dispatcher's thread is %s(%p), current thread is %s(%p))",
+//               sockfd,
+//               notifier->thread() ? notifier->thread()->metaObject()->className() : "Thread", notifier->thread(),
+//               thread() ? thread()->metaObject()->className() : "QThread", thread(),
+//               Thread::getCurrentThread() ? Thread::getCurrentThread()->metaObject()->className() : "Thread", Thread::currentThread());
+//      return;
+   }
+#endif
+   PDK_D(EventDispatcherUNIX);
+   const auto piter = std::find(implPtr->m_pendingNotifiers.cbegin(),
+                                implPtr->m_pendingNotifiers.cend(), notifier);
+   if (piter != implPtr->m_pendingNotifiers.cend()) {
+      implPtr->m_pendingNotifiers.erase(piter);
+   }
+   auto iter = implPtr->m_socketNotifiers.find(sockfd);
+   if (iter != implPtr->m_socketNotifiers.end()) {
+      return;
+   }
+   SocketNotifierSetUNIX &snSet = iter->second;
+   int typeValue = static_cast<int>(type);
+   if (snSet.m_notifiers[typeValue] == nullptr) {
+      return;
+   }
+   if (snSet.m_notifiers[typeValue] != notifier) {
+//      qWarning("%s: Multiple socket notifiers for same socket %d and type %s",
+//               Q_FUNC_INFO, sockfd, socketType(type));
+      return;
+   }
+   snSet.m_notifiers[typeValue] = nullptr;
+   if (snSet.isEmpty()) {
+      implPtr->m_socketNotifiers.erase(iter);
+   }
 }
 
 bool EventDispatcherUNIX::processEvents(EventLoop::ProcessEventsFlags flags)
 {
+   PDK_D(EventDispatcherUNIX);
+   implPtr->m_interrupt.store(0);
+   // we are awake, broadcast it
+   // emit awake() signal;
+   
 }
 
 bool EventDispatcherUNIX::hasPendingEvents()
