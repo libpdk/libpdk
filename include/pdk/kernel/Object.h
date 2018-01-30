@@ -77,7 +77,7 @@ public:
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
    
-   Thread *thread() const;
+   Thread *getThread() const;
    void moveToThread(Thread *thread);
    
    int startTimer(int interval, pdk::TimerType timerType = pdk::TimerType::CoarseTimer);

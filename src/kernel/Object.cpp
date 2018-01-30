@@ -110,7 +110,7 @@ bool Object::eventFilter(Object * /* watched */, Event * /* event */)
     return false;
 }
 
-Thread *Object::thread() const
+Thread *Object::getThread() const
 {
 }
 

@@ -48,6 +48,7 @@ public:
       Tty,
       Gui
    };
+   static void initLocale();
    static bool checkInstance(const char *method);
    static bool sendThroughObjectEventFilters(Object *, Event *);
    static bool notifyHelper(Object *, Event *);

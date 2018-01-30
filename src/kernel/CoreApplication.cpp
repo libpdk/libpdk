@@ -58,6 +58,7 @@ using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 using pdk::os::thread::internal::PostEvent;
 using pdk::os::thread::ThreadStorageData;
+using pdk::kernel::internal::CoreApplicationPrivate;
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
 {
@@ -228,11 +229,47 @@ void call_post_routines()
    }
 }
 
-static bool pdk_locale_initialized = false;
+static bool sg_localeInitialized = false;
 
 #ifdef PDK_OS_UNIX
 pdk::HANDLE pdk_application_thread_id = 0;
 #endif
+
+uint global_posted_events_count()
+{
+   ThreadData *currentThreadData = ThreadData::current();
+   return currentThreadData->m_postEventList.size() - currentThreadData->m_postEventList.m_startOffset;
+}
+
+CoreApplication *CoreApplication::sm_self = nullptr;
+struct CoreApplicationData {
+   CoreApplicationData() noexcept
+   {
+      m_appNameSet = false;
+   }
+   ~CoreApplicationData()
+   {
+      // cleanup the QAdoptedThread created for the main() thread
+      if (CoreApplicationPrivate::sm_theMainThread) {
+         internal::ThreadData *data = internal::ThreadData::get(CoreApplicationPrivate::sm_theMainThread);
+         data->deref(); // deletes the data and the adopted thread
+      }
+   }
+   
+   std::string m_orgName;
+   std::string m_orgDomain;
+   std::string m_appName; // application name, initially from argv[0], can then be modified.
+   std::string m_appVersion;
+   bool m_appNameSet; // true if setApplicationName was called
+   
+#ifndef PDK_NO_LIBRARY
+   ScopedPointer<StringList> m_appLibpaths;
+   ScopedPointer<StringList> m_manualLibpaths;
+#endif
+};
+
+PDK_GLOBAL_STATIC(CoreApplicationData, sg_coreAppData);
+static bool sg_quitLockRefEnabled = true;
 
 namespace internal {
 bool CoreApplicationPrivate::sm_isAppRunning = false;
@@ -311,18 +348,65 @@ BasicAtomicPointer<Thread> CoreApplicationPrivate::sm_theMainThread = PDK_BASIC_
 
 Thread *CoreApplicationPrivate::getMainThread()
 {
+   PDK_ASSERT(sm_theMainThread.load() != nullptr);
+   return sm_theMainThread.load();
 }
 
 bool CoreApplicationPrivate::threadRequiresCoreApplication()
 {
+   ThreadData *data = ThreadData::current(false);
+   if (!data) {
+      return true;
+   }
+   return data->m_requiresCoreApplication;
 }
 
 void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 {
+   Thread *currentThread = Thread::getCurrentThread();
+   Thread *thread = receiver->getThread();
+   //   PDK_ASSERT_X(currentThread == thr || !thr,
+   //              "CoreApplication::sendEvent",
+   //              QString::fromLatin1("Cannot send events to objects owned by a different thread. "
+   //                                  "Current thread %1. Receiver '%2' (of type '%3') was created in thread %4")
+   //              .arg(QString::number((quintptr) currentThread, 16))
+   //              .arg(receiver->objectName())
+   //              .arg(QLatin1String(receiver->metaObject()->className()))
+   //              .arg(QString::number((quintptr) thr, 16))
+   //              .toLocal8Bit().data());
+   PDK_ASSERT_X(currentThread == thread || !thread,
+                "CoreApplication::sendEvent",
+                "Cannot send events to objects owned by a different thread.");
+   PDK_UNUSED(currentThread);
+   PDK_UNUSED(thread);
 }
 
 void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
+#ifndef PDK_NO_LIBRARY
+   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
+   if (!appLibPaths) {
+      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
+   }
+   std::string appLocation = CoreApplication::getAppFilePath();
+   appLocation.erase(appLocation.find_last_of('/'));
+   // TODO we need check exist
+   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
+   if(iter == appLibPaths->cend()) {
+      appLibPaths->push_back(appLocation);
+   }
+#endif
+}
+
+void CoreApplicationPrivate::initLocale()
+{
+   if (sg_localeInitialized) {
+      return;
+   }
+   sg_localeInitialized = true;
+#ifdef PDK_OS_UNIX
+   setlocale(LC_ALL, "");
+#endif
 }
 
 void CoreApplicationPrivate::init()
@@ -354,47 +438,12 @@ void CoreApplicationPrivate::execCleanup()
 
 } // internal
 
-uint global_posted_events_count()
-{
-   ThreadData *currentThreadData = ThreadData::current();
-   return currentThreadData->m_postEventList.size() - currentThreadData->m_postEventList.m_startOffset;
-}
-
-CoreApplication *CoreApplication::sm_self = nullptr;
-
-struct CoreApplicationData {
-   CoreApplicationData() noexcept
-   {
-      m_appNameSet = false;
-   }
-   ~CoreApplicationData()
-   {
-      // cleanup the QAdoptedThread created for the main() thread
-      if (CoreApplicationPrivate::sm_theMainThread) {
-         internal::ThreadData *data = internal::ThreadData::get(CoreApplicationPrivate::sm_theMainThread);
-         data->deref(); // deletes the data and the adopted thread
-      }
-   }
-   
-   std::string m_orgName;
-   std::string m_orgDomain;
-   std::string m_appName; // application name, initially from argv[0], can then be modified.
-   std::string m_appVersion;
-   bool m_appNameSet; // true if setApplicationName was called
-   
-#ifndef PDK_NO_LIBRARY
-   ScopedPointer<StringList> m_appLibpaths;
-   ScopedPointer<StringList> m_manualLibpaths;
-#endif
-};
-
-PDK_GLOBAL_STATIC(CoreApplicationData, sg_coreAppData);
-
-static bool sg_quitLockRefEnabled = true;
-
 std::string retrieve_app_name()
 {
-   
+   if (!CoreApplicationPrivate::checkInstance("retrieve_app_name")) {
+      return std::string();
+   }
+   return CoreApplication::getInstance()->getImplPtr()->getAppName();
 }
 
 CoreApplication::CoreApplication(CoreApplicationPrivate &p)

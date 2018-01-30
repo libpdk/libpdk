@@ -114,7 +114,7 @@ private:
    static bool sendSpontaneousEvent(Object *receiver, Event *event);
    static bool notifyInternal(Object *receiver, Event *);
    friend class internal::EventDispatcherUNIXPrivate;
-   friend PDK_CORE_EXPORT std::string pdk_retrieve_app_name();
+   friend PDK_CORE_EXPORT std::string retrieve_app_name();
    friend class ClassFactory;
 private:
    PDK_DISABLE_COPY(CoreApplication);

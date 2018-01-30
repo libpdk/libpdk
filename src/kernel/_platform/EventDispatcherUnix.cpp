@@ -300,7 +300,7 @@ void EventDispatcherUNIX::registerTimer(int timerId, int interval, pdk::TimerTyp
    if (timerId < 1 || interval < 0 || !object) {
       //qWarning("EventDispatcherUNIX::registerTimer: invalid arguments");
       return;
-   } else if (object->thread() != thread() || thread() != Thread::getCurrentThread()) {
+   } else if (object->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
       //qWarning("EventDispatcherUNIX::registerTimer: timers cannot be started from another thread");
       return;
    }
@@ -315,7 +315,7 @@ bool EventDispatcherUNIX::unregisterTimer(int timerId)
    if (timerId < 1) {
       // qWarning("EventDispatcherUNIX::unregisterTimer: invalid argument");
       return false;
-   } else if (thread() != Thread::getCurrentThread()) {
+   } else if (getThread() != Thread::getCurrentThread()) {
       // qWarning("EventDispatcherUNIX::unregisterTimer: timers cannot be stopped from another thread");
       return false;
    }
@@ -330,7 +330,7 @@ bool EventDispatcherUNIX::unregisterTimers(Object *object)
    if (!object) {
       // qWarning("QEventDispatcherUNIX::unregisterTimers: invalid argument");
       return false;
-   } else if (object->thread() != thread() || thread() != Thread::getCurrentThread()) {
+   } else if (object->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
       // qWarning("EventDispatcherUNIX::unregisterTimers: timers cannot be stopped from another thread");
       return false;
    }
@@ -356,7 +356,7 @@ void EventDispatcherUNIX::registerSocketNotifier(SocketNotifier *notifier)
    int sockfd = notifier->getSocket();
    SocketNotifier::Type type = notifier->getType();
 #ifndef PDK_NO_DEBUG
-   if (notifier->thread() != thread() || thread() != Thread::getCurrentThread()) {
+   if (notifier->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
       // qWarning("SocketNotifier: socket notifiers cannot be enabled from another thread");
       return;
    }
@@ -377,7 +377,7 @@ void EventDispatcherUNIX::unregisterSocketNotifier(SocketNotifier *notifier)
    int sockfd = notifier->getSocket();
    SocketNotifier::Type type = notifier->getType();
 #ifndef PDK_NO_DEBUG
-   if (notifier->thread() != thread() || thread() != Thread::getCurrentThread()) {
+   if (notifier->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
 //      qWarning("SocketNotifier: socket notifier (fd %d) cannot be disabled from another thread.\n"
 //               "(Notifier's thread is %s(%p), event dispatcher's thread is %s(%p), current thread is %s(%p))",
 //               sockfd,

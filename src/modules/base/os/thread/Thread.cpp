@@ -280,7 +280,7 @@ void Thread::setEventDispatcher(AbstractEventDispatcher *eventDispatcher)
       // qWarning("Thread::setEventDispatcher: An event dispatcher has already been created for this thread");
    } else {
       eventDispatcher->moveToThread(this);
-      if (eventDispatcher->thread() == this) {
+      if (eventDispatcher->getThread() == this) {
          implPtr->m_data->m_eventDispatcher = eventDispatcher;
       } else {
          // qWarning("Thread::setEventDispatcher: Could not move event dispatcher to target thread");
