@@ -16,12 +16,146 @@
 #ifndef PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
 #define PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/io/TextStream.h"
+#include "pdk/kernel/Object.h"
+
 namespace pdk {
-namespace kernel {
+namespace io {
 namespace internal {
 
+using pdk::kernel::Object;
+
+class DeviceClosedNotifier : public Object
+{
+public:
+   inline DeviceClosedNotifier()
+   {}
+   
+   inline void setupDevice(TextStream *stream, IoDevice *device)
+   {
+      // disconnect();
+      //      if (device)
+      //         connect(device, SIGNAL(aboutToClose()), this, SLOT(flushStream()));
+      this->m_stream = stream;
+   }
+   
+   // SLOTS
+public:
+   inline void flushStream()
+   {
+      stream->flush();
+   }
+   
+private:
+   TextStream *m_stream;
+};
+
+class TextStreamPrivate
+{
+   PDK_DECLARE_PUBLIC(TextStream);
+public:
+   class Params
+   {
+   public:
+      void reset();
+      
+      int m_realNumberPrecision;
+      int m_integerBase;
+      int m_fieldWidth;
+      Character m_padChar;
+      TextStream::FieldAlignment m_fieldAlignment;
+      TextStream::RealNumberNotation m_realNumberNotation;
+      TextStream::NumberFlags m_numberFlags;
+   };   
+   
+   TextStreamPrivate(TextStream *apiPtr);
+   ~TextStreamPrivate();
+   void reset();
+   
+   IoDevice *m_device;
+   DeviceClosedNotifier m_deviceClosedNotifier;
+   // string
+   std::string *m_string;
+   int m_stringOffset;
+   IoDevice::OpenMode m_stringOpenMode;
+   
+   std::string m_writeBuffer;
+   std::string m_readBuffer;
+   int m_readBufferOffset;
+   int m_readConverterSavedStateOffset; //the offset between readBufferStartDevicePos and that start of the buffer
+   pdk::pint64 m_readBufferStartDevicePos;
+   
+   Params m_params;
+   
+   // status
+   TextStream::Status m_status;
+   Locale m_locale;
+   TextStream *apiPtr;
+   
+   int m_lastTokenSize;
+   bool m_deleteDevice;
+   
+   // i/o
+   enum class TokenDelimiter {
+      Space,
+      NotSpace,
+      EndOfLine
+   };
+   
+   std::string read(int maxLength);
+   bool scan(const Character **ptr, int *tokenLength,
+             int maxLength, TokenDelimiter delimiter);
+   inline const Character *readPtr() const;
+   inline void consumeLastToken();
+   inline void consume(int nchars);
+   void saveConverterState(pdk::pint64 newPos);
+   void restoreToSavedConverterState();
+   
+   // Return value type for getNumber()
+   enum class NumberParsingStatus {
+      npsOk,
+      npsMissingDigit,
+      npsInvalidPrefix
+   };
+   
+   inline bool getChar(Character *ch);
+   inline void ungetChar(Character ch);
+   NumberParsingStatus getNumber(pulonglong *l);
+   bool getReal(double *f);
+   
+   inline void write(const std::string &data) 
+   {
+      write(data.begin(), data.length());
+   }
+   
+   inline void write(Character ch);
+   void write(const Character *data, int len);
+   void write(Latin1String data);
+   void writePadding(int len);
+   inline void putString(const std::string &ch, bool number = false)
+   {
+      putString(ch.c_str(), ch.length(), number);
+   }
+   void putString(const Character *data, int len, bool number = false);
+   void putString(Latin1String data, bool number = false);
+   inline void putChar(Character ch);
+   void putNumber(pulonglong number, bool negative);
+   
+   struct PaddingResult {
+      int left;
+      int right;
+   };
+   PaddingResult padding(int len) const;
+   
+   // buffers
+   bool fillReadBuffer(pdk::pint64 maxBytes = -1);
+   void resetReadBuffer();
+   void flushWriteBuffer();
+};
+
 } // internal
-} // kernel
+} // io
 } // pdk
 
 

@@ -18,6 +18,7 @@
 
 #include "pdk/kernel/Object.h"
 #include "pdk/kernel/Pointer.h"
+#include "pdk/kernel/signal/Signal.h"
 #include <vector>
 #include <list>
 #include <variant>
@@ -37,6 +38,7 @@ class ThreadData;
 namespace kernel {
 namespace internal {
 
+using pdk::kernel::signal::Signal;
 using pdk::os::thread::internal::ThreadData;
 
 class PDK_CORE_EXPORT ObjectPrivate : public ObjectData
@@ -50,6 +52,7 @@ public:
 public:
    struct ExtraData
    {
+      ExtraData() {}
       std::vector<int> m_runningTimers;
       std::list<Pointer<Object>> m_eventFilters;
       std::string m_objectName;
