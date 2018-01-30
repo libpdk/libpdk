@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2017/12/19.
 
-#ifndef PDK_KERNEL_LOCALE_H
-#define PDK_KERNEL_LOCALE_H
+#ifndef PDK_UTILS_LOCALE_H
+#define PDK_UTILS_LOCALE_H
 
 #include "pdk/global/Global.h"
 
@@ -26,7 +26,7 @@ class String;
 class StringRef;
 } // lang
 
-namespace kernel {
+namespace utils {
 
 // forward declare class with namespace
 namespace internal {
@@ -950,7 +950,7 @@ public:
    String toString(const QDateTime &dateTime, const String &format) const;
 };
 
-} // kernel
+} // utils
 } // pdk
 
-#endif // PDK_KERNEL_LOCALE_H
+#endif // PDK_UTILS_LOCALE_H

@@ -16,8 +16,14 @@
 #ifndef PDK_M_BASE_TIME_TIMEZONE_H
 #define PDK_M_BASE_TIME_TIMEZONE_H
 
+#include "pdk/utils/Locale.h"
+#include "pdk/base/time/DateTime.h"
+
 namespace pdk {
 namespace time {
+
+using pdk::utils::Locale;
+
 
 } // time
 } // pdk

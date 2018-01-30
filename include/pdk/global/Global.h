@@ -53,6 +53,9 @@
 #define PDK_UNITTEST_EXPORT PDK_DECL_EXPORT
 #define PDK_UNITTEST_IMPORT PDK_DECL_IMPORT
 
+#define PDK_CONFIG(feature) (1/PDK_FEATURE_##feature == 1)
+#define PDK_REQUIRE_CONFIG(feature) PDK_STATIC_ASSERT_X(PDK_FEATURE_##feature == 1, "Required feature " #feature " for file " __FILE__ " not available.")
+
 #define PDK_DISABLE_COPY(Class)\
    Class(const Class &) = delete;\
    Class &operator=(const Class &) = delete
