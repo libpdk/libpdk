@@ -25,6 +25,8 @@
 #include <cstdlib>
 #include <list>
 #include <mutex>
+#include <string>
+#include <cstring>
 
 #ifdef PDK_OS_UNIX
 #  include <locale.h>
@@ -41,27 +43,35 @@ using pdk::utils::ScopedPointer;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 
-namespace internal {
-
-bool CoreApplicationPrivate::sm_setuidAllowed = false;
-
-std::string CoreApplicationPrivate::getAppName() const
+extern "C" void PDK_CORE_EXPORT startup_hook()
 {
 }
 
-std::string *CoreApplicationPrivate::m_cachedApplicationFilePath = nullptr;
+using StartupFuncList = std::list<StartUpFunction>;
+PDK_GLOBAL_STATIC(StartupFuncList, sg_preRList);
+using ShutdownFuncList = std::list<CleanUpFunction>;
+PDK_GLOBAL_STATIC(ShutdownFuncList, sg_postRList);
 
-bool CoreApplicationPrivate::checkInstance(const char *method)
-{
-   
-}
-
-} // internal
+static std::mutex sg_preRoutinesMutex;
 
 namespace {
 
 void call_pre_routines()
 {
+   StartupFuncList *list = sg_preRList();
+   if (!list) {
+      return;
+   }
+   std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
+   // Unlike pdk::kernel::call_post_routines, we don't empty the list, because
+   // PDK_COREAPP_STARTUP_FUNCTION is a macro, so the user expects
+   // the function to be executed every time CoreApplication is created.
+   auto iter = list->cbegin();
+   auto end = list->cend();
+   while (iter != end) {
+      (*iter)();
+      ++iter;
+   }
 }
 
 #if defined(PDK_OS_WIN)
@@ -101,39 +111,105 @@ bool do_notify(Object *, Event *)
 
 namespace internal {
 
-void CoreApplicationPrivate::processCommandLineArguments()
-{}
+bool CoreApplicationPrivate::sm_setuidAllowed = false;
 
-}
-
-extern "C" void PDK_CORE_EXPORT startup_hook()
+std::string CoreApplicationPrivate::getAppName() const
 {
+   std::string appName;
+   if (m_argv[0]) {
+      char *p = std::strrchr(m_argv[0], '/');
+      appName = p ? (p + 1) : m_argv[0];
+   }
+   return appName;
 }
 
-using StartupFuncList = std::list<StartUpFunction>;
-PDK_GLOBAL_STATIC(StartupFuncList, sg_preRList);
-using ShutdownFuncList = std::list<CleanUpFunction>;
-PDK_GLOBAL_STATIC(ShutdownFuncList, sg_postRList);
+std::string *CoreApplicationPrivate::m_cachedApplicationFilePath = nullptr;
 
-static std::mutex sg_preRoutinesMutex;
+bool CoreApplicationPrivate::checkInstance(const char *method)
+{
+   bool flag = (CoreApplication::sm_self != nullptr);
+   if (!flag) {
+      // qWarning("CoreApplication::%s: Please instantiate the CoreApplication object first", method);
+   }
+   return flag;
+}
+
+void CoreApplicationPrivate::processCommandLineArguments()
+{
+   int j = m_argc ? 1 : 0;
+   for (int i = 1; i < m_argc; ++i) {
+      if (!m_argv[i]) {
+         continue;
+      }
+      if (*m_argv[i] != '-') {
+         m_argv[j++] = m_argv[i];
+         continue;
+      }
+      const char *arg = m_argv[i];
+      if (arg[1] == '-') { // startsWith("--")
+         ++arg;
+      }
+      m_argv[j++] = m_argv[i];
+   }
+   
+   if (j < m_argc) {
+      m_argv[j] = 0;
+      m_argc = j;
+   }
+}
+
+} // anonymous namespace
 
 void add_pre_routine(StartUpFunction func)
 {
-   
+   StartupFuncList *list = sg_preRList();
+   if (!list) {
+      return;
+   }
+   // Due to C++11 parallel dynamic initialization, this can be called
+   // from multiple threads.
+   std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
+   if (CoreApplication::getInstance()) {
+      func();
+   }
+   list->push_back(func);
 }
 
 void add_post_routine(CleanUpFunction func)
 {
-   
+   ShutdownFuncList *list = sg_postRList();
+   if (!list) {
+      return;
+   }
+   list->push_front(func);
 }
 
 void remove_post_routine(CleanUpFunction func)
 {
-   
+   ShutdownFuncList *list = sg_postRList();
+   if (!list) {
+      return;
+   }
+   list->remove(func);
 }
 
-void PDK_CORE_EXPORT call_post_routines()
+void call_post_routines()
 {
+   ShutdownFuncList *list = nullptr;
+   try {
+      list = sg_postRList();
+   } catch (const std::bad_alloc &) {
+      // ignore - if we can't allocate a post routine list,
+      // there's a high probability that there's no post
+      // routine to be executed :)
+   }
+   if (!list) {
+      return;
+   }
+   while (!list->empty()) {
+      (list->front())();
+      list->pop_front();
+   }
 }
 
 static bool pdk_locale_initialized = false;
@@ -236,7 +312,7 @@ CoreApplication *CoreApplication::sm_self = nullptr;
 struct CoreApplicationData {
    CoreApplicationData() noexcept
    {
-      m_applicationNameSet = false;
+      m_appNameSet = false;
    }
    ~CoreApplicationData()
    {
@@ -249,9 +325,9 @@ struct CoreApplicationData {
    
    std::string m_orgName;
    std::string m_orgDomain;
-   std::string m_application; // application name, initially from argv[0], can then be modified.
-   std::string m_applicationVersion;
-   bool m_applicationNameSet; // true if setApplicationName was called
+   std::string m_appName; // application name, initially from argv[0], can then be modified.
+   std::string m_appVersion;
+   bool m_appNameSet; // true if setApplicationName was called
    
 #ifndef PDK_NO_LIBRARY
    ScopedPointer<StringList> m_appLibpaths;
@@ -259,7 +335,7 @@ struct CoreApplicationData {
 #endif
 };
 
-PDK_GLOBAL_STATIC(CoreApplicationData, sg_coreappdata);
+PDK_GLOBAL_STATIC(CoreApplicationData, sg_coreAppData);
 
 static bool sg_quitLockRefEnabled = true;
 
@@ -396,15 +472,15 @@ void CoreApplication::quit()
 {
 }
 
-std::string CoreApplication::getApplicationDirPath()
+std::string CoreApplication::getAppDirPath()
 {
 }
 
-std::string CoreApplication::getApplicationFilePath()
+std::string CoreApplication::getAppFilePath()
 {
 }
 
-pdk::pint64 CoreApplication::getApplicationPid()
+pdk::pint64 CoreApplication::getAppPid()
 {
 }
 
@@ -412,35 +488,35 @@ StringList CoreApplication::getArguments()
 {
 }
 
-void CoreApplication::setOrganizationName(const std::string &orgName)
+void CoreApplication::setOrgName(const std::string &orgName)
 {
 }
 
-std::string CoreApplication::getOrganizationName()
+std::string CoreApplication::getOrgName()
 {
 }
 
-void CoreApplication::setOrganizationDomain(const std::string &orgDomain)
+void CoreApplication::setOrgDomain(const std::string &orgDomain)
 {
 }
 
-std::string CoreApplication::getOrganizationDomain()
+std::string CoreApplication::getOrgDomain()
 {
 }
 
-void CoreApplication::setApplicationName(const std::string &application)
+void CoreApplication::setAppName(const std::string &application)
 {
 }
 
-std::string CoreApplication::getApplicationName()
+std::string CoreApplication::getAppName()
 {
 }
 
-void CoreApplication::setApplicationVersion(const std::string &version)
+void CoreApplication::setAppVersion(const std::string &version)
 {
 }
 
-std::string CoreApplication::getApplicationVersion()
+std::string CoreApplication::getAppVersion()
 {
 
 }

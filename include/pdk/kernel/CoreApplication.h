@@ -52,18 +52,20 @@ public:
    ~CoreApplication();
    
    static StringList getArguments();
-   static void setOrganizationDomain(const std::string &orgDomain);
-   static std::string getOrganizationDomain();
-   static void setOrganizationName(const std::string &orgName);
-   static std::string getOrganizationName();
-   static void setApplicationName(const std::string &application);
-   static std::string getApplicationName();
-   static void setApplicationVersion(const std::string &version);
-   static std::string getApplicationVersion();
+   void setOrgDomain(const std::string &domain);
+   std::string getOrgDomain();
+   void setOrgName(const std::string &name);
+   std::string getOrgName();
+   void setAppName(const std::string &name);
+   std::string getAppName();
+   void setAppVersion(const std::string &version);
+   std::string getAppVersion();
    static void setSetuidAllowed(bool allow);
    static bool isSetuidAllowed();
    static CoreApplication *getInstance()
-   {}
+   {
+      return sm_self;
+   }
    static int exec();
    static void processEvents(EventLoop::ProcessEventsFlags flags = EventLoop::AllEvents);
    static void processEvents(EventLoop::ProcessEventsFlags flags, int maxtime);
@@ -79,9 +81,9 @@ public:
    static bool startingUp();
    static bool closingDown();
    
-   static std::string getApplicationDirPath();
-   static std::string getApplicationFilePath();
-   static pdk::pint64 getApplicationPid();
+   static std::string getAppDirPath();
+   static std::string getAppFilePath();
+   static pdk::pint64 getAppPid();
    
    static void setLibraryPaths(const StringList &);
    static StringList getLibraryPaths();
@@ -156,6 +158,7 @@ PDK_CORE_EXPORT std::string retrieve_app_name();                // get applicati
     PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
 
 PDK_CORE_EXPORT uint global_posted_events_count();
+void PDK_CORE_EXPORT call_post_routines();
 
 } // kernel
 } // pdk
