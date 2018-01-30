@@ -13,21 +13,7 @@
 //
 // Created by softboy on 2018/01/30.
 
-#ifndef PDK_M_BASE_TIME_DATE_H
-#define PDK_M_BASE_TIME_DATE_H
+#ifndef PDK_M_BASE_TIME_TIMEZONE_H
+#define PDK_M_BASE_TIME_TIMEZONE_H
 
-#include "pdk/base/lang/String.h"
-#include <limits>
-
-namespace pdk {
-namespace time {
-
-class TimeZone
-{
-   
-};
-
-} // time
-} // pdk
-
-#endif // PDK_M_BASE_TIME_DATE_H
+#endif // PDK_M_BASE_TIME_TIMEZONE_H
