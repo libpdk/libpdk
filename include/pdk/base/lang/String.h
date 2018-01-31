@@ -18,6 +18,9 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/base/lang/Character.h"
+#include "pdk/base/lang/StringLiteral.h"
+#include "pdk/base/lang/StringView.h"
+#include "pdk/base/lang/StringAlgorithms.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/RefCount.h"
 
@@ -40,8 +43,6 @@ namespace pdk {
 namespace lang {
 
 using pdk::ds::ByteArray;
-using pdk::ds::internal::TypedArrayData;
-using pdk::ds::internal::ArrayData;
 
 class CharacterRef;
 class String;
@@ -50,6 +51,16 @@ class StringList;
 
 class Latin1String
 {
+public:
+   using value_type = const char;
+   using reference = value_type&;
+   using const_reference = reference;
+   using iterator = value_type*;
+   using const_iterator = iterator;
+   using difference_type = int; // violates Container concept requirements
+   using size_type = int;       // violates Container concept requirements
+   using reverse_iterator = std::reverse_iterator<iterator>;
+   using const_reverse_iterator = reverse_iterator;
 public:
    constexpr inline Latin1String() noexcept
       : m_size(0),
@@ -108,26 +119,140 @@ public:
       return at(i);
    }
    
-   PDK_REQUIRED_RESULT 
+   PDK_REQUIRED_RESULT constexpr Latin1Character front() const
+   {
+      return at(0);
+   }
+   
+   PDK_REQUIRED_RESULT constexpr Latin1Character back() const
+   {
+      return at(size() - 1);
+   }
+   
+   PDK_REQUIRED_RESULT bool startsWith(Latin1String s, 
+                                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      //return QtPrivate::startsWith(*this, s, cs);
+   }
+   
+   PDK_REQUIRED_RESULT constexpr bool startsWith(Character c) const noexcept
+   {
+      return !isEmpty() && front() == c;
+   }
+   
+   PDK_REQUIRED_RESULT inline bool startsWith(Character c, pdk::CaseSensitivity cs) const noexcept
+   {
+      //return QtPrivate::startsWith(*this, QStringView(&c, 1), cs);
+   }
+   
+   PDK_REQUIRED_RESULT bool endsWith(Latin1String s, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      //return QtPrivate::endsWith(*this, s, cs);
+   }
+   
+   PDK_REQUIRED_RESULT constexpr bool endsWith(Character c) const noexcept
+   {
+      return !isEmpty() && back() == c;
+   }
+   
+   PDK_REQUIRED_RESULT inline bool endsWith(Character c, pdk::CaseSensitivity cs) const noexcept
+   {
+      //return QtPrivate::endsWith(*this, QStringView(&c, 1), cs);
+   }
+   
+   constexpr const_iterator begin() const noexcept
+   {
+      return getRawData();
+   }
+   
+   constexpr const_iterator cbegin() const noexcept
+   {
+      return getRawData();
+   }
+   
+   constexpr const_iterator end() const noexcept
+   {
+      return getRawData() + size();
+   }
+   
+   constexpr const_iterator cend() const noexcept
+   {
+      return getRawData() + size();
+   }
+   
+   const_reverse_iterator rbegin() const noexcept
+   {
+      return const_reverse_iterator(end());
+   }
+   
+   const_reverse_iterator crbegin() const noexcept
+   {
+      return const_reverse_iterator(end());
+   }
+   
+   const_reverse_iterator rend() const noexcept
+   {
+      return const_reverse_iterator(begin());
+   }
+   
+   const_reverse_iterator crend() const noexcept
+   {
+      return const_reverse_iterator(begin());
+   }
    
    constexpr Latin1String substring(int pos) const
    {
+      PDK_ASSERT(pos >= 0);
+      PDK_ASSERT(pos <= size()); 
       return Latin1String(m_data + pos, m_size - pos);
    }
    
    constexpr Latin1String substring(int pos, int n) const
    {
+      PDK_ASSERT(pos >= 0);
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(pos + n <= size());
       return Latin1String(m_data + pos, n);
    }
    
    constexpr Latin1String left(int n) const
    {
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(n <= size()); 
       return Latin1String(m_data, n);
    }
    
    constexpr Latin1String right(int n) const
    {
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(n <= size()); 
       return Latin1String(m_data + m_size - n, n);
+   }
+   
+   PDK_REQUIRED_RESULT constexpr Latin1String chopped(int n) const
+   {
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(n <= size()); 
+      return Latin1String(m_data, m_size - n);
+   }
+   
+   PDK_DECL_RELAXED_CONSTEXPR void chop(int n)
+   {
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(n <= size());
+      m_size -= n;
+   }
+   
+   PDK_DECL_RELAXED_CONSTEXPR void truncate(int n)
+   {
+      PDK_ASSERT(n >= 0);
+      PDK_ASSERT(n <= size());
+      m_size = n;
+   }
+   
+   PDK_REQUIRED_RESULT Latin1String trimmed() const noexcept
+   {
+      //return QtPrivate::trimmed(*this);
    }
    
    inline bool operator==(const String &s) const noexcept;
@@ -140,48 +265,6 @@ public:
 private:
    int m_size;
    const char *m_data;
-};
-
-using StringData = TypedArrayData<char16_t>;
-
-#define PDK_UNICODE_LITERAL_II(str) u"" str
-#define PDK_UNICODE_LITERAL(str) PDK_UNICODE_LITERAL_II(str)
-
-#define StringLiteral(str) \
-   ([]() -> pdk::lang::String { \
-   enum { Size = sizeof(PDK_UNICODE_LITERAL(str))/2 - 1 }; \
-   static const pdk::lang::StaticStringData<Size> stringLiteral = { \
-   PDK_STATIC_STRING_DATA_HEADER_INITIALIZER(Size), \
-   PDK_UNICODE_LITERAL(str) }; \
-   pdk::lang::StringDataPtr holder = { stringLiteral.getDataPtr() }; \
-   const pdk::lang::String qstringLiteralTemp(holder); \
-   return qstringLiteralTemp; \
-}()) \
-   /**/
-
-#define PDK_STATIC_STRING_DATA_HEADER_INITIALIZER_WITH_OFFSET(size, offset) \
-{ PDK_REFCOUNT_INITIALIZE_STATIC, size, 0, 0, offset }\
-   /**/
-
-#define Q_STATIC_STRING_DATA_HEADER_INITIALIZER(size) \
-   PDK_STATIC_STRING_DATA_HEADER_INITIALIZER_WITH_OFFSET(size, sizeof(StringData))
-/**/
-
-template <int N>
-struct StaticStringData
-{
-   ArrayData m_header;
-   char16_t m_data[N + 1];
-   StringData *getDataPtr() const
-   {
-      PDK_ASSERT(m_header.m_ref.isStatic());
-      return const_cast<StringData *>(static_cast<const StringData *>(&m_header));
-   }
-};
-
-struct StringDataPtr
-{
-   StringData *m_ptr;
 };
 
 class PDK_CORE_EXPORT String
@@ -253,7 +336,7 @@ public:
    
    String(const char *str) = delete;
    String(const ByteArray &str) = delete;
-  
+   
    
    String(int size, pdk::Initialization);
    constexpr inline String(StringDataPtr dataPtr) : m_data(dataPtr.m_ptr) {}
@@ -364,12 +447,12 @@ public:
    String section(Character separator, int start, int end = -1, SectionFlags flag = SectionFlag::Default);
    String section(const String &separator, int start, int end = -1, SectionFlags flag = SectionFlag::Default);
    
-   String left(int n) const PDK_REQUIRED_RESULT;
-   String right(int n) const PDK_REQUIRED_RESULT;
-   String substring(int pos, int n = -1) const PDK_REQUIRED_RESULT;
-   StringRef leftRef(int n) const PDK_REQUIRED_RESULT;
-   StringRef rightRef(int n) const PDK_REQUIRED_RESULT;
-   StringRef substringRef(int pos, int n = -1) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT String left(int n) const;
+   PDK_REQUIRED_RESULT String right(int n) const;
+   PDK_REQUIRED_RESULT String substring(int pos, int n = -1) const;
+   PDK_REQUIRED_RESULT StringRef leftRef(int n) const;
+   PDK_REQUIRED_RESULT StringRef rightRef(int n) const;
+   PDK_REQUIRED_RESULT StringRef substringRef(int pos, int n = -1) const;
    
    bool startsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
@@ -381,8 +464,8 @@ public:
    bool endsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool endsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
-   String leftJustified(int width, Character fill = Latin1Character(' '), bool truncate = false) const PDK_REQUIRED_RESULT;
-   String rightJustified(int width, Character fill = Latin1Character(' '), bool truncate = false) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT String leftJustified(int width, Character fill = Latin1Character(' '), bool truncate = false) const;
+   PDK_REQUIRED_RESULT String rightJustified(int width, Character fill = Latin1Character(' '), bool truncate = false) const;
    
 #if defined(PDK_CC_GNU)
    // required due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61941
@@ -392,34 +475,34 @@ public:
 #  define PDK_REQUIRED_RESULT_PUSHED
 #endif
    
-   PDK_ALWAYS_INLINE String toLower() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toLower() const &
    {}
    
-   PDK_ALWAYS_INLINE String toLower() && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toLower() &&
    {}
    
-   PDK_ALWAYS_INLINE String toUpper() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toUpper() const &
    {}
    
-   PDK_ALWAYS_INLINE String toUpper() && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toUpper() &&
    {}
    
-   PDK_ALWAYS_INLINE String toCaseFolded() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toCaseFolded() const &
    {}
    
-   PDK_ALWAYS_INLINE String toCaseFolded() && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toCaseFolded() &&
    {}
    
-   PDK_ALWAYS_INLINE String trimmed() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String trimmed() const &
    {}
    
-   PDK_ALWAYS_INLINE String trimmed() && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String trimmed() &&
    {}
    
-   PDK_ALWAYS_INLINE String simplified() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String simplified() const &
    {}
    
-   PDK_ALWAYS_INLINE String simplified() && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String simplified() &&
    {}
    
 #ifdef PDK_REQUIRED_RESULT_PUSHED
@@ -479,29 +562,30 @@ public:
    String &replace(Character c, Latin1String after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    String &replace(Character c, const String &after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    
-   StringList split(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
-   std::vector<String> splitRef(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
-   StringList split(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
-   std::vector<String> splitRef(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT StringList split(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   PDK_REQUIRED_RESULT std::vector<String> splitRef(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   PDK_REQUIRED_RESULT StringList split(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   PDK_REQUIRED_RESULT std::vector<String> splitRef(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
-   String normalized(NormalizationForm mode, Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const PDK_REQUIRED_RESULT;
-   String repeated(int times) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT String normalized(NormalizationForm mode, 
+                     Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const;
+   PDK_REQUIRED_RESULT String repeated(int times) const;
    const char16_t *utf16() const;
    
-   ByteArray toLatin1() const & PDK_REQUIRED_RESULT;
-   ByteArray toLatin1() const && PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray toLatin1() const &;
+   PDK_REQUIRED_RESULT ByteArray toLatin1() const &&;
    
-   ByteArray toUtf8() const & PDK_REQUIRED_RESULT;
-   ByteArray toUtf8() const && PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray toUtf8() const &;
+   PDK_REQUIRED_RESULT ByteArray toUtf8() const &&;
    
-   ByteArray toLocal8Bit() const & PDK_REQUIRED_RESULT;
-   ByteArray toLocal8Bit() const && PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const &;
+   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const &&;
    
-   std::vector<char32_t> toUcs4() const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT std::vector<char32_t> toUcs4() const;
    
    static inline String fromLatin1(const char *str, int size = -1)
    {
@@ -545,7 +629,7 @@ public:
    static String fromUcs4(const uint *str, int size = -1);
    
    inline int toWCharArray(wchar_t *array) const;
-   static inline String fromWCharArray(const wchar_t *string, int size = -1) PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT static inline String fromWCharArray(const wchar_t *string, int size = -1);
    
    String &setRawData(const Character *unicode, int size);
    String &setUnicode(const Character *unicode, int size);
@@ -874,16 +958,16 @@ inline void String::squeeze()
    }
 }
 
-inline int String::toWCharArray(wchar_t *array) const
-{
-   int length = size();
-   if (sizeof(wchar_t) == sizeof(Character)) {
-      std::memcpy(array, m_data->getData(), sizeof(Character) * length);
-      return length;
-   } else {
-      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
-   }
-}
+//inline int String::toWCharArray(wchar_t *array) const
+//{
+//   int length = size();
+//   if (sizeof(wchar_t) == sizeof(Character)) {
+//      std::memcpy(array, m_data->getData(), sizeof(Character) * length);
+//      return length;
+//   } else {
+//      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
+//   }
+//}
 
 inline String String::fromWCharArray(const wchar_t *string, int size)
 {
@@ -1004,13 +1088,13 @@ inline String String::fromStdU32String(const std::u32string &str)
    return fromUcs4(str.data(), str.size());
 }
 
-inline std::u32string String::toStdU32String() const
-{
-   std::u32string u32Str(length(), char32_t(0));
-   int len = toUcs4Helper(m_data->getData(), length(), reinterpret_cast<char32_t *>(&u32Str[0]));
-   u32Str.resize(len);
-   return u32Str;
-}
+//inline std::u32string String::toStdU32String() const
+//{
+//   std::u32string u32Str(length(), char32_t(0));
+//   int len = toUcs4Helper(m_data->getData(), length(), reinterpret_cast<char32_t *>(&u32Str[0]));
+//   u32Str.resize(len);
+//   return u32Str;
+//}
 
 inline bool operator ==(String::Null, String::Null)
 {
@@ -2007,5 +2091,7 @@ void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;
 
 } // lang
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::lang::Latin1String, PDK_MOVABLE_TYPE);
 
 #endif // PDK_M_BASE_LANG_STRING_H

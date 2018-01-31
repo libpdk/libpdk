@@ -357,132 +357,132 @@ bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
 
 }
 
-String::Data *String::fromLatin1Helper(const char *str, int size)
-{
-   Data *dptr;
-   if (!str) {
-      dptr = Data::getSharedNull();
-   } else if (size == 0 || (!*str && size < 0)) {
-      dptr = Data::allocate(0);
-   } else {
-      if (size < 0) {
-         size = pdk::strlen(str);
-      }
-      dptr = Data::allocate(size + 1);
-      PDK_CHECK_ALLOC_PTR(dptr);
-      dptr->m_size = size;
-      dptr->getData()[size] = '\0';
-      char16_t *dest = dptr->getData();
-      internal::utf16_from_latin1(dest, str, static_cast<uint>(size));
-   }
-   return dptr;
-}
+//String::Data *String::fromLatin1Helper(const char *str, int size)
+//{
+//   Data *dptr;
+//   if (!str) {
+//      dptr = Data::getSharedNull();
+//   } else if (size == 0 || (!*str && size < 0)) {
+//      dptr = Data::allocate(0);
+//   } else {
+//      if (size < 0) {
+//         size = pdk::strlen(str);
+//      }
+//      dptr = Data::allocate(size + 1);
+//      PDK_CHECK_ALLOC_PTR(dptr);
+//      dptr->m_size = size;
+//      dptr->getData()[size] = '\0';
+//      char16_t *dest = dptr->getData();
+//      internal::utf16_from_latin1(dest, str, static_cast<uint>(size));
+//   }
+//   return dptr;
+//}
 
-namespace internal {
+//namespace internal {
 
-void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept
-{
-   /* SIMD:
-    * Unpacking with SSE has been shown to improve performance on recent CPUs
-    * The same method gives no improvement with NEON.
-    */
-#if defined(__SSE2__)
-   const char *end = str + size;
-   pdk::ptrdiff offset = 0;
-   // we're going to read str[offset..offset+15] (16 bytes)
-   for (; str + offset + 15 < end; offset += 16) {
-      const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(str + offset));
-#  ifdef __AVX2__
-      // zero extend to an YMM register
-      const __m256i extended = _mm256_cvtepu8_epi16(chunk);
-      // store
-      _mm256_storeu_si256(reinterpret_cast<__m256i *>(dest + offset), extended);
-#  else
-      const __m128i nullMask = _mm_set1_epi32(0);
-      const __m128i firstHalf = _mm_unpacklo_epi8(chunk, nullMask);
-      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset), firstHalf);
-      const __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
-      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset + 8), secondHalf);
-#  endif
-   }
-   size = size % 16;
-   dest += offset;
-   str += offset;
-#  if !defined(__OPTIMIZE_SIZE__)
-   return UnrollTailLoop<15>::exec(static_cast<int>(size), [=](int i) { dest[i] = static_cast<uchar>(str[i]); });
-#  endif
-#endif
-   while (--size) {
-      *dest++ = static_cast<uchar>(*str++);
-   }
-}
+//void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept
+//{
+//   /* SIMD:
+//    * Unpacking with SSE has been shown to improve performance on recent CPUs
+//    * The same method gives no improvement with NEON.
+//    */
+//#if defined(__SSE2__)
+//   const char *end = str + size;
+//   pdk::ptrdiff offset = 0;
+//   // we're going to read str[offset..offset+15] (16 bytes)
+//   for (; str + offset + 15 < end; offset += 16) {
+//      const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(str + offset));
+//#  ifdef __AVX2__
+//      // zero extend to an YMM register
+//      const __m256i extended = _mm256_cvtepu8_epi16(chunk);
+//      // store
+//      _mm256_storeu_si256(reinterpret_cast<__m256i *>(dest + offset), extended);
+//#  else
+//      const __m128i nullMask = _mm_set1_epi32(0);
+//      const __m128i firstHalf = _mm_unpacklo_epi8(chunk, nullMask);
+//      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset), firstHalf);
+//      const __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
+//      _mm_storeu_si128(reinterpret_cast<__m128i *>(dest + offset + 8), secondHalf);
+//#  endif
+//   }
+//   size = size % 16;
+//   dest += offset;
+//   str += offset;
+//#  if !defined(__OPTIMIZE_SIZE__)
+//   return UnrollTailLoop<15>::exec(static_cast<int>(size), [=](int i) { dest[i] = static_cast<uchar>(str[i]); });
+//#  endif
+//#endif
+//   while (--size) {
+//      *dest++ = static_cast<uchar>(*str++);
+//   }
+//}
 
-} // internal
+//} // internal
 
-String::String(const Character *unicode, int size)
-{
-   if (!unicode) {
-      m_data = Data::getSharedNull();
-   } else {
-      if (size < 0) {
-         size = 0;
-         while (!unicode[size].isNull()) {
-            ++size;
-         }
-      }
-      if (!size) {
-         m_data = Data::allocate(0);
-      } else {
-         m_data = Data::allocate(0);
-         PDK_CHECK_ALLOC_PTR(m_data);
-         m_data->m_size = size;
-         std::memcpy(m_data->getData(), unicode, size * sizeof(Character));
-         m_data->getData()[size] = '\0';
-      }
-   }
-}
+//String::String(const Character *unicode, int size)
+//{
+//   if (!unicode) {
+//      m_data = Data::getSharedNull();
+//   } else {
+//      if (size < 0) {
+//         size = 0;
+//         while (!unicode[size].isNull()) {
+//            ++size;
+//         }
+//      }
+//      if (!size) {
+//         m_data = Data::allocate(0);
+//      } else {
+//         m_data = Data::allocate(0);
+//         PDK_CHECK_ALLOC_PTR(m_data);
+//         m_data->m_size = size;
+//         std::memcpy(m_data->getData(), unicode, size * sizeof(Character));
+//         m_data->getData()[size] = '\0';
+//      }
+//   }
+//}
 
-int String::compareHelper(const Character *lhs, int lhsLength, 
-                          const char *rhs, int rhsLength, CaseSensitivity cs) noexcept
-{
-   if (!rhs) {
-      return lhsLength;
-   }
-   if (PDK_UNLIKELY(rhsLength < 0)) {
-      rhsLength = static_cast<int>(std::strlen(rhs));
-   }
-}
+//int String::compareHelper(const Character *lhs, int lhsLength, 
+//                          const char *rhs, int rhsLength, CaseSensitivity cs) noexcept
+//{
+//   if (!rhs) {
+//      return lhsLength;
+//   }
+//   if (PDK_UNLIKELY(rhsLength < 0)) {
+//      rhsLength = static_cast<int>(std::strlen(rhs));
+//   }
+//}
 
-int String::compareHelper(const Character *lhs, int lhsLength, Latin1String rhs, 
-                          CaseSensitivity cs) noexcept
-{
+//int String::compareHelper(const Character *lhs, int lhsLength, Latin1String rhs, 
+//                          CaseSensitivity cs) noexcept
+//{
    
-}
+//}
 
-int String::compareHelper(const Character *lhs, int lhsLength, 
-                          const Character *rhs, int rhsLength, CaseSensitivity cs) noexcept
-{
+//int String::compareHelper(const Character *lhs, int lhsLength, 
+//                          const Character *rhs, int rhsLength, CaseSensitivity cs) noexcept
+//{
    
-}
+//}
 
-bool String::operator ==(Latin1String other) const noexcept
-{
-   if (m_data->m_size != other.size()) {
-      return false;
-   }
-   if (!other.size()) {
-      return isEmpty();
-   }
-   return compareHelper(getRawData(), size(), other, pdk::CaseSensitivity::Sensitive) == 0;
-}
+//bool String::operator ==(Latin1String other) const noexcept
+//{
+//   if (m_data->m_size != other.size()) {
+//      return false;
+//   }
+//   if (!other.size()) {
+//      return isEmpty();
+//   }
+//   return compareHelper(getRawData(), size(), other, pdk::CaseSensitivity::Sensitive) == 0;
+//}
 
-bool operator ==(const String &lhs, const String &rhs) noexcept
-{
-   if (lhs.size() != rhs.size()) {
-      return false;
-   }
-   return mem_equals(lhs.m_data->getData(), rhs.m_data->getData(), lhs.size());
-}
+//bool operator ==(const String &lhs, const String &rhs) noexcept
+//{
+//   if (lhs.size() != rhs.size()) {
+//      return false;
+//   }
+//   return mem_equals(lhs.m_data->getData(), rhs.m_data->getData(), lhs.size());
+//}
 
 
 } // lang
