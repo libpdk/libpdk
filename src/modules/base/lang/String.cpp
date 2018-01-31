@@ -592,7 +592,16 @@ void String::reallocData(uint alloc, bool grow)
 {}
 
 String &String::operator =(const String &other) noexcept
-{}
+{
+   if (this != &other) {
+      other.m_data->m_ref.ref();
+      if (!m_data->m_ref.deref()) {
+         Data::deallocate(m_data);
+      }
+      m_data = other.m_data;
+   }
+   return *this;
+}
 
 String &String::operator =(Latin1String other)
 {}
