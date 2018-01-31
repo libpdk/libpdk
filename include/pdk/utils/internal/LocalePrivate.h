@@ -528,32 +528,6 @@ String read_escaped_format_string(const String &format, int *idx);
 bool split_locale_name(const String &name, String &lang, String &script, String &cntry);
 int repeat_count(const String &s, int i);
 
-enum { AsciiSpaceMask = (1 << (' ' - 1)) |
-       (1 << ('\t' - 1)) |   // 9: HT - horizontal tab
-       (1 << ('\n' - 1)) |   // 10: LF - line feed
-       (1 << ('\v' - 1)) |   // 11: VT - vertical tab
-       (1 << ('\f' - 1)) |   // 12: FF - form feed
-       (1 << ('\r' - 1)) };  // 13: CR - carriage return
-
-constexpr inline bool ascii_isspace(uchar c)
-{
-   return c >= 1U && c <= 32U && (static_cast<uint>(AsciiSpaceMask) >> static_cast<uint>(c - 1)) & 1U;
-}
-
-PDK_STATIC_ASSERT(ascii_isspace(' '));
-PDK_STATIC_ASSERT(ascii_isspace('\t'));
-PDK_STATIC_ASSERT(ascii_isspace('\n'));
-PDK_STATIC_ASSERT(ascii_isspace('\v'));
-PDK_STATIC_ASSERT(ascii_isspace('\f'));
-PDK_STATIC_ASSERT(ascii_isspace('\r'));
-PDK_STATIC_ASSERT(!ascii_isspace('\0'));
-PDK_STATIC_ASSERT(!ascii_isspace('\a'));
-PDK_STATIC_ASSERT(!ascii_isspace('a'));
-PDK_STATIC_ASSERT(!ascii_isspace('\177'));
-PDK_STATIC_ASSERT(!ascii_isspace(uchar('\200')));
-PDK_STATIC_ASSERT(!ascii_isspace(uchar('\xA0')));
-PDK_STATIC_ASSERT(!ascii_isspace(uchar('\377')));
-
 } // internal
 
 template <>
