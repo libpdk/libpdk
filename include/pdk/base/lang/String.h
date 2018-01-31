@@ -29,6 +29,7 @@
 #include <iterator>
 #include <stdarg.h>
 #include <vector>
+#include <list>
 
 #ifdef truncate
 #error String.h must be included before any header file that defines truncate
@@ -47,7 +48,7 @@ using pdk::ds::ByteArray;
 class CharacterRef;
 class String;
 class StringRef;
-class StringList;
+using StringList = std::list<String>;
 
 class Latin1String
 {
@@ -142,7 +143,7 @@ public:
    
    PDK_REQUIRED_RESULT inline bool startsWith(Character c, pdk::CaseSensitivity cs) const noexcept
    {
-      //return QtPrivate::startsWith(*this, QStringView(&c, 1), cs);
+      //return QtPrivate::startsWith(*this, StringView(&c, 1), cs);
    }
    
    PDK_REQUIRED_RESULT bool endsWith(Latin1String s, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
@@ -157,7 +158,7 @@ public:
    
    PDK_REQUIRED_RESULT inline bool endsWith(Character c, pdk::CaseSensitivity cs) const noexcept
    {
-      //return QtPrivate::endsWith(*this, QStringView(&c, 1), cs);
+      //return QtPrivate::endsWith(*this, StringView(&c, 1), cs);
    }
    
    constexpr const_iterator begin() const noexcept
@@ -331,7 +332,6 @@ public:
    {
       
    }
-   inline String(const Null &);
    inline String(const String &other) noexcept;
    
    String(const char *str) = delete;
@@ -342,18 +342,12 @@ public:
    constexpr inline String(StringDataPtr dataPtr) : m_data(dataPtr.m_ptr) {}
    inline ~String();
    
-   String &operator +=(const char *str) = delete;
-   String &operator +=(const ByteArray &str) = delete;
    String &operator =(const char *str) = delete;
    String &operator =(const ByteArray &str) = delete;
    
-   String &operator =(const Null &);
    String &operator =(Character c);
    String &operator =(const String &other) noexcept;
-   inline String &operator =(Latin1String other)
-   {
-      
-   }
+   inline String &operator =(Latin1String other);
    
    template <int N>
    String &operator =(const char (&str)[N]);
@@ -369,6 +363,10 @@ public:
       std::swap(m_data, other.m_data);
       return *this;
    }
+   
+   String &operator +=(const char *str) = delete;
+   String &operator +=(const ByteArray &str) = delete;
+   
    
    inline void swap(String &other) noexcept
    {
@@ -425,6 +423,59 @@ public:
    const Character operator [](uint i) const;
    CharacterRef operator [](uint i);
    
+   PDK_REQUIRED_RESULT String arg(pdk::plonglong a, int fieldwidth=0, int base=10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(pdk::pulonglong a, int fieldwidth=0, int base=10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(long a, int fieldwidth=0, int base=10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(ulong a, int fieldwidth=0, int base=10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(int a, int fieldWidth = 0, int base = 10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(uint a, int fieldWidth = 0, int base = 10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(short a, int fieldWidth = 0, int base = 10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(ushort a, int fieldWidth = 0, int base = 10,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(double a, int fieldWidth = 0, char fmt = 'g', int prec = -1,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(char a, int fieldWidth = 0,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(Character a, int fieldWidth = 0,
+                                  Character fillChar = Latin1Character(' ')) const;
+#if PDK_STRINGVIEW_LEVEL < 2
+   PDK_REQUIRED_RESULT String arg(const String &a, int fieldWidth = 0,
+                                  Character fillChar = Latin1Character(' ')) const;
+#endif
+   PDK_REQUIRED_RESULT String arg(StringView a, int fieldWidth = 0,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(Latin1String a, int fieldWidth = 0,
+                                  Character fillChar = Latin1Character(' ')) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4, const String &a5) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4, const String &a5, const String &a6) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4, const String &a5, const String &a6,
+                                  const String &a7) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4, const String &a5, const String &a6,
+                                  const String &a7, const String &a8) const;
+   PDK_REQUIRED_RESULT String arg(const String &a1, const String &a2, const String &a3,
+                                  const String &a4, const String &a5, const String &a6,
+                                  const String &a7, const String &a8, const String &a9) const;
+   
+   String &vsprintf(const char *format, va_list ap) PDK_ATTRIBUTE_FORMAT_PRINTF(2, 0);
+   String &sprintf(const char *format, ...) PDK_ATTRIBUTE_FORMAT_PRINTF(2, 3);
+   static String vasprintf(const char *format, va_list ap) PDK_ATTRIBUTE_FORMAT_PRINTF(1, 0);
+   static String asprintf(const char *format, ...) PDK_ATTRIBUTE_FORMAT_PRINTF(1, 2);
+   
    int indexOf(Character needle, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    int indexOf(const String &needle, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    int indexOf(Latin1String needle, int from = 0, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
@@ -444,8 +495,8 @@ public:
    int count(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    int count(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
-   String section(Character separator, int start, int end = -1, SectionFlags flag = SectionFlag::Default);
-   String section(const String &separator, int start, int end = -1, SectionFlags flag = SectionFlag::Default);
+   String section(Character separator, int start, int end = -1, SectionFlags flags = SectionFlag::Default) const;
+   String section(const String &separator, int start, int end = -1, SectionFlags flags = SectionFlag::Default) const;
    
    PDK_REQUIRED_RESULT String left(int n) const;
    PDK_REQUIRED_RESULT String right(int n) const;
@@ -453,14 +504,16 @@ public:
    PDK_REQUIRED_RESULT StringRef leftRef(int n) const;
    PDK_REQUIRED_RESULT StringRef rightRef(int n) const;
    PDK_REQUIRED_RESULT StringRef substringRef(int pos, int n = -1) const;
-   
+#if PDK_STRINGVIEW_LEVEL < 2
    bool startsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+#endif
    bool startsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
-   
+#if PDK_STRINGVIEW_LEVEL < 2
    bool endsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool endsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+#endif
    bool endsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool endsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
@@ -505,6 +558,7 @@ public:
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String simplified() &&
    {}
    
+   PDK_REQUIRED_RESULT String toHtmlEscaped() const;
 #ifdef PDK_REQUIRED_RESULT_PUSHED
 #  pragma pop_macro("PDK_REQUIRED_RESULT")
 #endif
@@ -516,7 +570,7 @@ public:
    inline String &insert(int i, const StringRef &str);
    String &insert(int i, Latin1String str);
    
-   String &append(Character c);
+   String &append(Character ch);
    String &append(const Character *str, int length);
    String &append(const String &str);
    String &append(const StringRef &str);
@@ -545,13 +599,13 @@ public:
    inline String &operator +=(Latin1String str)
    {}
    
-   String &remove(int i, int length);
+   String &remove(int pos, int length);
    String &remove(Character c, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    String &remove(const String &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    
-   String &replace(int i, int length, Character after);
-   String &replace(int i, int length, const Character *after, int alength);
-   String &replace(int i, int length, const String &after);
+   String &replace(int pos, int length, Character after);
+   String &replace(int pos, int length, const Character *after, int alength);
+   String &replace(int pos, int length, const String &after);
    String &replace(Character before, Character after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    String &replace(const Character *before, int blength, const Character *after, int alength, 
                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
@@ -563,16 +617,16 @@ public:
    String &replace(Character c, const String &after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    
    PDK_REQUIRED_RESULT StringList split(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
-   PDK_REQUIRED_RESULT std::vector<String> splitRef(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+                                        pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   PDK_REQUIRED_RESULT std::vector<StringRef> splitRef(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                                                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    PDK_REQUIRED_RESULT StringList split(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
-   PDK_REQUIRED_RESULT std::vector<String> splitRef(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
-                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+                                        pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   PDK_REQUIRED_RESULT std::vector<StringRef> splitRef(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
+                                                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
    PDK_REQUIRED_RESULT String normalized(NormalizationForm mode, 
-                     Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const;
+                                         Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const;
    PDK_REQUIRED_RESULT String repeated(int times) const;
    const char16_t *utf16() const;
    
@@ -647,6 +701,41 @@ public:
                              pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
    static inline int compare(const String &lhs, const StringRef &rhs,
                              pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+   
+   int localeAwareCompare(const String &str) const;
+   int localeAwareCompare(const StringRef &str) const;
+   static int localeAwareCompare(const StringRef &lhs, const String &rhs);
+   static int localeAwareCompare(const StringRef &lhs, const StringRef &rhs);
+   
+   short  toShort(bool *ok = nullptr, int base = 10) const;
+   ushort toUShort(bool *ok = nullptr, int base = 10) const;
+   int toInt(bool *ok = nullptr, int base = 10) const;
+   uint toUInt(bool *ok = nullptr, int base = 10) const;
+   long toLong(bool *ok =nullptr, int base = 10) const;
+   ulong toULong(bool *ok = nullptr, int base = 10) const;
+   pdk::plonglong toLongLong(bool *ok = nullptr, int base = 10) const;
+   pdk::pulonglong toULongLong(bool *ok = nullptr, int base = 10) const;
+   float toFloat(bool *ok = nullptr) const;
+   double toDouble(bool *ok = nullptr) const;
+   
+   String &setNum(short, int base=10);
+   String &setNum(ushort, int base=10);
+   String &setNum(int, int base=10);
+   String &setNum(uint, int base=10);
+   String &setNum(long, int base=10);
+   String &setNum(ulong, int base=10);
+   String &setNum(pdk::plonglong, int base=10);
+   String &setNum(pdk::pulonglong, int base=10);
+   String &setNum(float, char f='g', int prec=6);
+   String &setNum(double, char f='g', int prec=6);
+   
+   static String number(int, int base=10);
+   static String number(uint, int base=10);
+   static String number(long, int base=10);
+   static String number(ulong, int base=10);
+   static String number(pdk::plonglong, int base=10);
+   static String number(pdk::pulonglong, int base=10);
+   static String number(double, char f='g', int prec=6);
    
    friend PDK_CORE_EXPORT bool operator ==(const String &lhs, const String &rhs) noexcept;
    friend PDK_CORE_EXPORT bool operator <(const String &lhs, const String &rhs) noexcept;
@@ -767,7 +856,7 @@ private:
    friend inline bool operator >(Character lhs, Latin1String rhs) noexcept;
    
    void reallocData(uint alloc, bool grow = false);
-   
+   String multiArg(int numArgs, const String **args) const;
    static int compareHelper(const Character *lhs, int lhsLength,
                             const Character *rhs, int rhsLength,
                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
@@ -776,6 +865,8 @@ private:
                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
    static int compareHelper(const Character *lhs, int lhsLength, Latin1String rhs,
                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+   static int localeAwareCompareHelper(const Character *lhs, int lhsLength,
+                                       const Character *rhs, int rhsLength);
    
    static String toLowerHelper(const String &str);
    static String toLowerHelper(String &str);
@@ -798,6 +889,8 @@ private:
    static ByteArray toUtf8Helper(const String &str);
    static ByteArray toLocal8BitHelper(const Character *str, int size);
    static int toUcs4Helper(const char16_t *str, int length, char32_t *out);
+   static pdk::plonglong toIntegralHelper(const Character *data, int len, bool *ok, int base);
+   static pdk::pulonglong toIntegralHelper(const Character *data, uint len, bool *ok, int base);
    void replaceHelper(uint *indices, int nIndices, int blength, const Character *after, int alength);
    
    friend class CharacterRef;
@@ -1558,6 +1651,8 @@ public:
       }
    }
    
+   bool isRightToLeft() const;
+   
    bool startsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
@@ -1627,10 +1722,10 @@ public:
       return rend();
    }
    
-   ByteArray toLatin1() const PDK_REQUIRED_RESULT;
-   ByteArray toUtf8() const PDK_REQUIRED_RESULT;
-   ByteArray toLocal8Bit() const PDK_REQUIRED_RESULT;
-   std::vector<char32_t> toUcs4() const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray toLatin1() const;
+   PDK_REQUIRED_RESULT ByteArray toUtf8() const;
+   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const;
+   PDK_REQUIRED_RESULT std::vector<char32_t> toUcs4() const;
    
    inline void clear()
    {
@@ -1638,6 +1733,8 @@ public:
       m_position = 0;
       m_size = 0;
    }
+   
+   String toString() const;
    
    inline bool isEmpty() const
    {
@@ -1673,7 +1770,22 @@ public:
    static int compare(const StringRef &lhs, Latin1String rhs, 
                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
    
-   StringRef trimmed() const PDK_REQUIRED_RESULT;
+   int localeAwareCompare(const String &other) const;
+   int localeAwareCompare(const StringRef &other) const;
+   static int localeAwareCompare(const StringRef &lhs, const String &rhs);
+   static int localeAwareCompare(const StringRef &lhs, const StringRef &rhs);
+   
+   PDK_REQUIRED_RESULT StringRef trimmed() const;
+   short  toShort(bool *ok = nullptr, int base = 10) const;
+   ushort toUShort(bool *ok = nullptr, int base = 10) const;
+   int toInt(bool *ok = nullptr, int base = 10) const;
+   uint toUInt(bool *ok = nullptr, int base = 10) const;
+   long toLong(bool *ok = nullptr, int base = 10) const;
+   ulong toULong(bool *ok = nullptr, int base = 10) const;
+   pdk::plonglong toLongLong(bool *ok = nullptr, int base = 10) const;
+   pdk::pulonglong toULongLong(bool *ok = nullptr, int base = 10) const;
+   float toFloat(bool *ok = nullptr) const;
+   double toDouble(bool *ok = nullptr) const;
 private:
    const String *m_str; 
    int m_position;

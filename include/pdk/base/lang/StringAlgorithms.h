@@ -74,10 +74,10 @@ PDK_REQUIRED_RESULT PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION
 bool ends_with(Latin1String haystack, Latin1String needle, pdk::CaseSensitivity cs =  pdk::CaseSensitivity::Sensitive) noexcept;
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION 
-StringView trimmed(StringView s) noexcept;
+StringView trimmed(StringView str) noexcept;
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION 
-Latin1String trimmed(Latin1String s) noexcept;
+Latin1String trimmed(Latin1String str) noexcept;
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT 
 ByteArray convert_to_latin1(StringView str);
@@ -91,7 +91,7 @@ ByteArray convert_to_local_8bit(StringView str);
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT 
 std::vector<uint> convert_to_ucs4(StringView str);
 
-} // internal
+} // stringprivate
 } // lang
 } // pdk
 

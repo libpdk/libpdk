@@ -401,7 +401,7 @@ public:
    
    PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR int length() const /* not nothrow! */
    {
-      return PDK_ASSERT(int(size()) == size()), int(size());
+      return static_cast<int>(size());
    }
    
    PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR Character first() const

@@ -80,10 +80,10 @@ TEST(FlagTest, testConstExpr)
 
 TEST(FlagsTest, testSignedness)
 {
-   PDK_STATIC_ASSERT(pdk::internal::IsUnsignedClassicEnum<Option>::value ==
-                     pdk::internal::IsUnsignedClassicEnum<Options::UnderType>::value);
-   PDK_STATIC_ASSERT(pdk::internal::IsSignedClassicEnum<Option>::value ==
-                     pdk::internal::IsSignedClassicEnum<Options::UnderType>::value);
+//   PDK_STATIC_ASSERT(pdk::internal::IsUnsignedClassicEnum<Option>::value ==
+//                     pdk::internal::IsUnsignedClassicEnum<Options::UnderType>::value);
+//   PDK_STATIC_ASSERT(pdk::internal::IsSignedClassicEnum<Option>::value ==
+//                     pdk::internal::IsSignedClassicEnum<Options::UnderType>::value);
 }
 
 namespace
