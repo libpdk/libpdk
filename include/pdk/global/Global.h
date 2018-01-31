@@ -250,6 +250,7 @@ using registeruint = typename IntegerForSize<PDK_PROCESSOR_WORDSIZE>::Unsigned;
 using uintptr = typename IntegerForSizeof<void *>::Unsigned;
 using intptr = typename IntegerForSizeof<void *>::Signed;
 using ptrdiff = intptr;
+using sizetype = typename IntegerForSizeof<std::size_t>::Signed;
 
 template <typename T>
 static inline T *get_ptr_helper(T *ptr)
