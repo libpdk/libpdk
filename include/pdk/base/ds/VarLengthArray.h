@@ -167,14 +167,36 @@ public:
    
    inline void append(const T &value)
    {
-      if (m_size == m_capacity) { // i.e. s != 0
+      if (m_size == m_capacity) { // i.e. s != 
+         T copy(value);
+         realloc(m_size, m_size << 1);
+         const int idx = m_size++;
+         if (pdk::TypeInfo<T>::isComplex) {
+            new (m_ptr + idx) T(std::move(copy));
+         } else {
+            m_ptr[idx] = std::move(copy);
+         }
+      } else {
+         const int idx = m_size++;
+         if (pdk::TypeInfo<T>::isComplex) {
+            new (m_ptr + idx) T(value);
+         } else {
+            m_ptr[idx] = value;
+         }
+      }
+      
+   }
+   
+   void append(T &&value)
+   {
+      if (m_size == m_capacity) {
          realloc(m_size, m_size << 1);
       }
       const int idx = m_size++;
       if (pdk::TypeInfo<T>::isComplex) {
-         new (m_ptr + idx) T(value);
+         new (m_ptr + idx) T(std::move(value));
       } else {
-         m_ptr[idx] = value;
+         m_ptr[idx] = std::move(value);
       }
    }
    
@@ -314,6 +336,11 @@ public:
       append(value);
    }
    
+   inline void push_back(T &&value)
+   {
+      append(std::move(value));
+   }
+   
    inline void pop_back()
    {
       removeLast();
@@ -337,6 +364,11 @@ public:
    inline const T &back() const
    {
       return last();
+   }
+   
+   void shrink_to_fit()
+   {
+      squeeze();
    }
    
    inline T &first()
@@ -504,6 +536,7 @@ inline void VarLengthArray<T, PreAlloc>::realloc(int size, int allocSize)
    T *oldPtr = m_ptr;
    int oldSize = m_size;
    const int copySize = std::min(size, oldSize);
+   PDK_ASSUME(copySize >= 0);
    if (allocSize != m_capacity) {
       if (allocSize > PreAlloc) {
          T *newPtr = reinterpret_cast<T *>(std::malloc(allocSize * sizeof(T)));
@@ -516,7 +549,7 @@ inline void VarLengthArray<T, PreAlloc>::realloc(int size, int allocSize)
          m_capacity = PreAlloc;
       }
       m_size = 0;
-      if (pdk::TypeInfo<T>::isStatic) {
+      if (!pdk::TypeInfoQuery<T>::isRelocatable) {
          try {
             while (m_size < copySize) {
                new (m_ptr + m_size) T(*(oldPtr + m_size));
@@ -626,7 +659,7 @@ VarLengthArray<T, PreAlloc>::insert(ConstIterator before, SizeType n, const T &v
    if (n != 0) {
       resize(m_size + n);
       const T copy(value);
-      if (pdk::TypeInfo<T>::isStatic) {
+      if (!pdk::TypeInfoQuery<T>::isRelocatable) {
          T *begin = m_ptr + offset;
          T *end = m_ptr + m_size;
          T *iter = end - n;
