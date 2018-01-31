@@ -190,9 +190,9 @@ PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file,
 
 #if !defined(PDK_ASSERT)
 #  if defined(PDK_NO_DEBUG) && !defined(PDK_FORCE_ASSERTS)
-#     define PDK_ASSERT(cond) do { } while ((false) && (cond))
+#     define PDK_ASSERT(cond) static_cast<void>(false && (cond))
 #  else
-#     define PDK_ASSERT(cond) ((!(cond)) ? ::pdk::pdk_assert(#cond,__FILE__,__LINE__) : ::pdk::pdk_noop())
+#     define PDK_ASSERT(cond) ((cond) ? static_cast<void>(0) : ::pdk::pdk_assert(#cond,__FILE__,__LINE__))
 #  endif
 #endif
 

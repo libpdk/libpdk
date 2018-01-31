@@ -24,6 +24,7 @@
 #include <cstdarg>
 #include <string>
 #include <iterator>
+#include <stdarg.h>
 #include <vector>
 
 #ifdef truncate
@@ -85,8 +86,20 @@ public:
       return m_data;
    }
    
+   constexpr bool isNull() const noexcept
+   {
+      return !getRawData();
+   }
+   
+   constexpr bool isEmpty() const noexcept
+   {
+      return !size();
+   }
+   
    constexpr Latin1Character at(int i) const
    {
+      PDK_ASSERT(i >= 0);
+      PDK_ASSERT(i < size());
       return Latin1Character(m_data[i]);
    }
    
@@ -94,6 +107,8 @@ public:
    {
       return at(i);
    }
+   
+   PDK_REQUIRED_RESULT 
    
    constexpr Latin1String substring(int pos) const
    {
