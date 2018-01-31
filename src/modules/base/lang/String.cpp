@@ -91,271 +91,301 @@ inline RetType UnrollTailLoop<0>::exec(int, RetType returnIfExited, Functor1, Fu
 
 #endif
 
-//int unicode_stricmp(const char16_t *lhsBegin, const char16_t *lhsEnd, 
-//                    const char16_t *rhsBegin, const char16_t *rhsEnd)
-//{
-//   if (lhsBegin == rhsBegin) {
-//      return (lhsEnd - rhsEnd);
-//   }
-//   if (lhsBegin == 0) {
-//      return -1;
-//   }
-//   if (rhsBegin == 0) {
-//      return 1;
-//   }
-//   const char16_t *e = rhsEnd;
+
+// Unicode case-insensitive comparison
+int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd, 
+                    const Character *rhsBegin, const Character *rhsEnd)
+{
+   if (lhsBegin == rhsBegin) {
+      return (rhsEnd - lhsEnd);
+   }
+   if (!rhsBegin) {
+      return lhsEnd - lhsBegin;
+   }
+   if (!lhsBegin) {
+      return rhsBegin - rhsEnd;
+   }
+   const Character *end = rhsEnd;
    
-//   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
-//      e = rhsBegin + (lhsEnd - lhsBegin);
-//   }
-//   char32_t lhsLast = 0;
-//   char32_t rhsLast = 0;
-//   while (lhsBegin < e) {
-//      int diff = internal::fold_case(*rhsBegin, rhsLast) - internal::fold_case(*lhsBegin, lhsLast);
-//      if (diff) {
-//         return diff;
-//      }
-//      ++lhsBegin;
-//      ++rhsBegin;
-//   }
-//   if (rhsBegin == rhsEnd) {
-//      if (lhsBegin == lhsEnd) {
-//         return 0;
-//      }
-//      return 1;
-//   }
-//   return -1;
-//}
-
-//int unicode_stricmp(const char16_t *lhs, const char16_t *lhsEnd, const uchar *rhs, const uchar *rhsEnd)
-//{
-//   if (lhs == 0) {
-//      if (rhs == 0) {
-//         return 0;
-//      }
-//      return -1;
-//   }
-//   if (rhs == 0) {
-//      return 1;
-//   }
-//   const char16_t *e = lhs;
-//   if (rhsEnd - rhs < lhsEnd - lhs) {
-//      e = lhs + (rhsEnd - rhs);
-//   }
-//   while (lhs < e) {
-//      int diff = internal::fold_case(*lhs) - internal::fold_case(*rhs);
-//      if (diff) {
-//         return diff;
-//      }
-//      ++lhs;
-//      ++rhs;
-//   }
-//   if (lhs == lhsEnd) {
-//      if (rhs == rhsEnd) {
-//         return 0;
-//      }
-//      return -1;
-//   }
-//   return 1;
-//}
-
-//// Unicode case-sensitive compare two same-sized strings
-//int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
-//{
-//#ifdef __OPTIMIZE_SIZE__
-//   const Character *end = lhs + length;
-//   while (lhs < end) {
-//      if (int diff = (int)lhs->unicode() - (int)rhs->unicode()) {
-//         return diff;
-//      }
-//      ++lhs;
-//      ++rhs;
-//   }
-//   return 0;
-//#else
-//#  ifdef __SSE2__
-//   const char *ptr = reinterpret_cast<const char *>(lhs);
-//   pdk::ptrdiff distance = reinterpret_cast<const char *>(rhs) - ptr;
-//   lhs += length & ~7;
-//   rhs += length & ~7;
-//   length &= 7;
-//   // we're going to read ptr[0..15] (16 bytes)
-//   for (; ptr + 15 < reinterpret_cast<const char *>(rhs); ptr += 16) {
-//      __m128i lhsData = _mm_loadu_si128((const __m128i*)ptr);
-//      __m128i rhsData = _mm_loadu_si128((const __m128i*)(ptr + distance));
-//      __m128i result = _mm_cmpeq_epi16(lhsData, rhsData);
-//      uint mask = ~_mm_movemask_epi8(result);
-//      if (static_cast<ushort>(mask)) {
-//         // found a different byte
-//         uint idx = pdk::count_trailing_zero_bits(mask);
-//         return reinterpret_cast<const Character *>(ptr + idx)->unicode()
-//               - reinterpret_cast<const Character *>(ptr + distance + idx)->unicode();
-//      }
-//   }
-//   const auto &lambda = [=](int i) -> int {
-//      return reinterpret_cast<const Character *>(ptr)[i].unicode()
-//            - reinterpret_cast<const Character *>(ptr + distance)[i].unicode();
-//   };
-//   return UnrollTailLoop<7>::exec(length, 0, lambda, lambda);
-//#  endif
-   
-//   if (!length) {
-//      return 0;
-//   }
-//   // check alignment
-//   if ((reinterpret_cast<pdk::uintptr>(lhs) & 2) == (reinterpret_cast<pdk::uintptr>(rhs) & 2)) {
-//      // both addresses have the same alignment
-//      if (reinterpret_cast<pdk::uintptr>(lhs) & 2) {
-//         // both addresses are not aligned to 4-bytes boundaries
-//         // compare the first character
-//         if (*lhs != *rhs) {
-//            return lhs->unicode() - rhs->unicode();
-//         }
-//         --length;
-//         ++lhs;
-//         ++rhs;
-         
-//      }
-//      // both addresses are 4-bytes aligned
-//      // do a fast 32-bit comparison
-//      const char32_t *dlhs = reinterpret_cast<const char32_t *>(lhs);
-//      const char32_t *drhs = reinterpret_cast<const char32_t *>(rhs);
-//      const char32_t *e = dlhs + (length >> 1);
-//      for (; dlhs != e; ++dlhs, ++drhs) {
-//         if (*dlhs != *drhs) {
-//            lhs = reinterpret_cast<const Character *>(dlhs);
-//            rhs = reinterpret_cast<const Character *>(drhs);
-//            if (*lhs != *rhs) {
-//               return lhs->unicode() - rhs->unicode();
-//            }
-//            return lhs[1].unicode() - rhs[1].unicode();
-//         }
-//      }
-//      lhs = reinterpret_cast<const Character *>(dlhs);
-//      rhs = reinterpret_cast<const Character *>(drhs);
-//      return (length & 1) ? lhs->unicode() - rhs->unicode() : 0;
-//   } else {
-//      const Character *e = lhs + length;
-//      for (; lhs != e; ++lhs, ++rhs) {
-//         if (*lhs != *rhs) {
-//            return lhs->unicode() - rhs->unicode();
-//         }
-//      }
-//   }
-//   return 0;
-//#endif
-   
-//}
-
-//int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
-//{
-//   const char16_t *ulhs = reinterpret_cast<const char16_t *>(lhs);
-//   const char16_t *end = ulhs + length;
-   
-//#ifdef __SSE2__
-//   __m128i nullMask = _mm_setzero_si128();
-//   pdk::ptrdiff offset = 0;
-//   // we're going to read uc[offset..offset+15] (32 bytes)
-//   // and c[offset..offset+15] (16 bytes)
-//   for (; ulhs + offset + 15 < end; offset += 16) {
-//      __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(rhs + offset));
-//#  ifdef __AVX2__
-//      // expand Latin 1 data via zero extension
-//      __m256i rhsData = _mm256_cvtepu8_epi16(chunk);
-//      // load UTF-16 data and compare
-//      __m256i lhsData = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ulhs + offset));
-//      __m256i result = _mm256_cmpeq_epi16(lhsData, rhsData);
-//      uint mask = ~_mm256_movemask_epi8(result);
-//#  else
-//      // expand via unpacking
-//      __m128i firstHalf = _mm_unpackhi_epi8(chunk, nullMask);
-//      __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
-//      // load UTF-16 data and compare
-//      __m128i lhsData1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
-//      __m128i lhsData2 = _mm_loadu_si128((const __m128i*)(ulhs + offset + 8));
-//      // load UTF-16 data and compare
-//      __m128i result1 = _mm_cmpeq_epi16(firstHalf, lhsData1);
-//      __m128i result2 = _mm_cmpeq_epi16(secondHalf, lhsData2);
-//      uint mask = ~(_mm_movemask_epi8(result1) | _mm_movemask_epi8(result2) << 16);
-//#  endif
-//      if (mask) {
-//         uint idx = pdk::count_trailing_zero_bits(mask);
-//         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
-//      }
-//   }
-//#  ifdef PDK_PROCESSOR_X86_64
-//   constexpr const int MAX_TAIL_LENGTH = 7;
-//   if (ulhs + offset + 7 < end) {
-//      // same, but we're using an 8-byte load
-//      __m128i chunk = _mm_cvtsi64_si128(pdk::from_unaligned<long long>(rhs + offset));
-//      __m128i secondHalf = _mm_unpacklo_epi8(chunk, nullMask);
-//      __m128i lhsdata = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
-//      __m128i result = _mm_cmpeq_epi16(secondHalf, lhsdata);
-//      uint mask = ~_mm_movemask_epi8(result);
-//      if (static_cast<ushort>(mask)) {
-//         uint idx = pdk::count_trailing_zero_bits(mask);
-//         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
-//      }
-//      offset += 8;
-//   }
-//#  else
-//   PDK_UNUSED(nullMask);
-//   constexpr const int MAX_TAIL_LENGTH = 15;
-//#  endif
-//   ulhs += offset;
-//   rhs += offset;
-//#  if !defined(__OPTIMIZE_SIZE__)
-//   const auto &lambda = [=](int i) {
-//      return ulhs[i] - static_cast<ushort>(rhs[i]);
-//   };
-//   return UnrollTailLoop<MAX_TAIL_LENGTH>::exec(end - ulhs, 0, lambda, lambda);
-//#  endif
-//#endif
-//   while (ulhs < end) {
-//      int diff = *ulhs - *rhs;
-//      if (diff) {
-//         return diff;
-//      }
-//      ++ulhs;
-//      ++rhs;
-//   }
-//   return 0;
-//}
-
-//// Unicode case-insensitive compare two same-sized strings
-//int unicode_strnicmp(const char16_t *lhs, const char16_t *rhs, int length)
-//{
-//   return unicode_stricmp(lhs, lhs + length, rhs, rhs + length);
-//}
-
-//// Unicode case-sensitive comparison
-//int unicode_strcmp(const Character *lhs, int lhsLength, const Character *rhs, int rhsLength)
-//{
-//   if (lhs == rhs && lhsLength == rhsLength) {
-//      return 0;
-//   }
-//   int length = std::min(lhsLength, rhsLength);
-//   int result = unicode_strncmp(lhs, rhs, length);
-//   return result ? result : (lhsLength - rhsLength);
-//}
-
-//int unicode_strcmp(const Character *lhs, int lhsLength, const uchar *rhs, int rhsLength)
-//{
-//   int length = std::min(lhsLength, rhsLength);
-//   int result = unicode_strncmp(lhs, rhs, length);
-//   return result ? result : (lhsLength - rhsLength);
-//}
-
-//bool mem_equals(const char16_t *lhs, const char16_t *rhs, int length)
-//{
-//   if (lhs == rhs || !length) {
-//      return true;
-//   }
-//   return unicode_strncmp(reinterpret_cast<const Character *>(lhs), 
-//                          reinterpret_cast<const Character *>(rhs), length) == 0;
-//}
-
+   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
+      end = rhsBegin + (lhsEnd - lhsBegin);
+   }
+   char32_t lhsLast = 0;
+   char32_t rhsLast = 0;
+   while (rhsBegin < end) {
+      int diff = internal::fold_case(lhsBegin->unicode(), lhsLast) - internal::fold_case(rhsBegin->unicode(), rhsLast);
+      if (diff) {
+         return diff;
+      }
+      ++lhsBegin;
+      ++rhsBegin;
+   }
+   if (rhsBegin == rhsEnd) {
+      if (lhsBegin == lhsEnd) {
+         return 0;
+      }
+      return 1;
+   }
+   return -1;
 }
+
+// Case-insensitive comparison between a Unicode string and a Latin1String
+int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd, const char *rhsBegin, const char *rhsEnd)
+{
+   if (!rhsBegin) {
+      return lhsEnd - lhsBegin;
+   }
+   if (!lhsBegin) {
+      return rhsBegin - rhsEnd;
+   }
+   const char *end = rhsEnd;
+   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
+      end = rhsBegin + (lhsEnd - lhsBegin);
+   }
+   while (rhsBegin < end) {
+      int diff = internal::fold_case(lhsBegin->unicode()) - internal::fold_case(static_cast<char16_t>(*rhsBegin));
+      if (diff) {
+         return diff;
+      }
+      ++lhsBegin;
+      ++rhsBegin;
+   }
+   if (rhsBegin == rhsEnd) {
+      if (lhsBegin == lhsEnd) {
+         return 0;
+      }
+      return 1;
+   }
+   return -1;
+}
+
+// Unicode case-sensitive compare two same-sized strings
+int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
+{
+#ifdef __OPTIMIZE_SIZE__
+   const Character *end = rhs + length;
+   while (rhs < end) {
+      if (int diff = (int)lhs->unicode() - (int)rhs->unicode()) {
+         return diff;
+      }
+      ++lhs;
+      ++rhs;
+   }
+   return 0;
+#else
+#  ifdef __SSE2__
+   const char *ptr = reinterpret_cast<const char *>(lhs);
+   pdk::ptrdiff distance = reinterpret_cast<const char *>(rhs) - ptr;
+   lhs += length & ~7;
+   rhs += length & ~7;
+   length &= 7;
+   // we're going to read ptr[0..15] (16 bytes)
+   for (; ptr + 15 < reinterpret_cast<const char *>(rhs); ptr += 16) {
+      __m128i lhsData = _mm_loadu_si128((const __m128i*)ptr);
+      __m128i rhsData = _mm_loadu_si128((const __m128i*)(ptr + distance));
+      __m128i result = _mm_cmpeq_epi16(lhsData, rhsData);
+      uint mask = ~_mm_movemask_epi8(result);
+      if (static_cast<ushort>(mask)) {
+         // found a different byte
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return reinterpret_cast<const Character *>(ptr + idx)->unicode()
+               - reinterpret_cast<const Character *>(ptr + distance + idx)->unicode();
+      }
+   }
+   const auto &lambda = [=](int i) -> int {
+      return reinterpret_cast<const Character *>(ptr)[i].unicode()
+            - reinterpret_cast<const Character *>(ptr + distance)[i].unicode();
+   };
+   return UnrollTailLoop<7>::exec(length, 0, lambda, lambda);
+#  endif
+   
+   if (!length) {
+      return 0;
+   }
+   // check alignment
+   if ((reinterpret_cast<pdk::uintptr>(lhs) & 2) == (reinterpret_cast<pdk::uintptr>(rhs) & 2)) {
+      // both addresses have the same alignment
+      if (reinterpret_cast<pdk::uintptr>(lhs) & 2) {
+         // both addresses are not aligned to 4-bytes boundaries
+         // compare the first character
+         if (*lhs != *rhs) {
+            return lhs->unicode() - rhs->unicode();
+         }
+         --length;
+         ++lhs;
+         ++rhs;
+         
+      }
+      // both addresses are 4-bytes aligned
+      // do a fast 32-bit comparison
+      const char32_t *dlhs = reinterpret_cast<const char32_t *>(lhs);
+      const char32_t *drhs = reinterpret_cast<const char32_t *>(rhs);
+      const char32_t *e = dlhs + (length >> 1);
+      for (; dlhs != e; ++dlhs, ++drhs) {
+         if (*dlhs != *drhs) {
+            lhs = reinterpret_cast<const Character *>(dlhs);
+            rhs = reinterpret_cast<const Character *>(drhs);
+            if (*lhs != *rhs) {
+               return lhs->unicode() - rhs->unicode();
+            }
+            return lhs[1].unicode() - rhs[1].unicode();
+         }
+      }
+      lhs = reinterpret_cast<const Character *>(dlhs);
+      rhs = reinterpret_cast<const Character *>(drhs);
+      return (length & 1) ? lhs->unicode() - rhs->unicode() : 0;
+   } else {
+      const Character *e = lhs + length;
+      for (; lhs != e; ++lhs, ++rhs) {
+         if (*lhs != *rhs) {
+            return lhs->unicode() - rhs->unicode();
+         }
+      }
+   }
+   return 0;
+#endif
+   
+}
+
+int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
+{
+   const char16_t *ulhs = reinterpret_cast<const char16_t *>(lhs);
+   const char16_t *end = ulhs + length;
+   
+#ifdef __SSE2__
+   __m128i nullMask = _mm_setzero_si128();
+   pdk::ptrdiff offset = 0;
+   // we're going to read uc[offset..offset+15] (32 bytes)
+   // and c[offset..offset+15] (16 bytes)
+   for (; ulhs + offset + 15 < end; offset += 16) {
+      __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(rhs + offset));
+#  ifdef __AVX2__
+      // expand Latin 1 data via zero extension
+      __m256i rhsData = _mm256_cvtepu8_epi16(chunk);
+      // load UTF-16 data and compare
+      __m256i lhsData = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ulhs + offset));
+      __m256i result = _mm256_cmpeq_epi16(lhsData, rhsData);
+      uint mask = ~_mm256_movemask_epi8(result);
+#  else
+      // expand via unpacking
+      __m128i firstHalf = _mm_unpackhi_epi8(chunk, nullMask);
+      __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
+      // load UTF-16 data and compare
+      __m128i lhsData1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
+      __m128i lhsData2 = _mm_loadu_si128((const __m128i*)(ulhs + offset + 8));
+      // load UTF-16 data and compare
+      __m128i result1 = _mm_cmpeq_epi16(firstHalf, lhsData1);
+      __m128i result2 = _mm_cmpeq_epi16(secondHalf, lhsData2);
+      uint mask = ~(_mm_movemask_epi8(result1) | _mm_movemask_epi8(result2) << 16);
+#  endif
+      if (mask) {
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
+      }
+   }
+#  ifdef PDK_PROCESSOR_X86_64
+   constexpr const int MAX_TAIL_LENGTH = 7;
+   if (ulhs + offset + 7 < end) {
+      // same, but we're using an 8-byte load
+      __m128i chunk = _mm_cvtsi64_si128(pdk::from_unaligned<long long>(rhs + offset));
+      __m128i secondHalf = _mm_unpacklo_epi8(chunk, nullMask);
+      __m128i lhsdata = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
+      __m128i result = _mm_cmpeq_epi16(secondHalf, lhsdata);
+      uint mask = ~_mm_movemask_epi8(result);
+      if (static_cast<ushort>(mask)) {
+         uint idx = pdk::count_trailing_zero_bits(mask);
+         return ulhs[offset + idx / 2] - rhs[offset + idx / 2];
+      }
+      offset += 8;
+   }
+#  else
+   PDK_UNUSED(nullMask);
+   constexpr const int MAX_TAIL_LENGTH = 15;
+#  endif
+   ulhs += offset;
+   rhs += offset;
+#  if !defined(__OPTIMIZE_SIZE__)
+   const auto &lambda = [=](int i) {
+      return ulhs[i] - static_cast<ushort>(rhs[i]);
+   };
+   return UnrollTailLoop<MAX_TAIL_LENGTH>::exec(end - ulhs, 0, lambda, lambda);
+#  endif
+#endif
+   while (ulhs < end) {
+      int diff = *ulhs - *rhs;
+      if (diff) {
+         return diff;
+      }
+      ++ulhs;
+      ++rhs;
+   }
+   return 0;
+}
+
+template <typename Number>
+constexpr int lencmp(Number lhs, Number rhs) noexcept
+{
+   return lhs == rhs ? 0 :
+                       lhs >  rhs ? 1 :
+                                     -1 ;
+}
+
+// Unicode case-sensitive comparison
+int unicode_strcmp(const Character *lhs, int lhsLength, const Character *rhs, int rhsLength)
+{
+   if (lhs == rhs && lhsLength == rhsLength) {
+      return 0;
+   }
+   int length = std::min(lhsLength, rhsLength);
+   int result = unicode_strncmp(lhs, rhs, length);
+   return result ? result : lencmp(lhsLength, rhsLength);
+}
+
+int unicode_strcmp(const Character *lhs, int lhsLength, const char *rhs, int rhsLength)
+{
+   int length = std::min(lhsLength, rhsLength);
+   int result = unicode_strncmp(lhs, reinterpret_cast<const uchar *>(rhs), length);
+   return result ? result : lencmp(lhsLength, rhsLength);
+}
+
+int pdk_compare_strings(StringView lhs, StringView rhs, pdk::CaseSensitivity cs) noexcept
+{
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      return unicode_strcmp(lhs.begin(), lhs.size(), rhs.begin(), rhs.size());
+   }
+   return unicode_stricmp(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+
+int pdk_compare_strings(StringView lhs, Latin1String rhs, pdk::CaseSensitivity cs) noexcept
+{
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      return unicode_strcmp(lhs.begin(), lhs.size(), rhs.begin(), rhs.size());
+   }
+   return unicode_stricmp(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+int pdk_compare_strings(Latin1String lhs, StringView rhs, pdk::CaseSensitivity cs) noexcept
+{
+   return -pdk_compare_strings(rhs, lhs, cs);
+}
+
+int pdk_compare_strings(Latin1String lhs, Latin1String rhs, pdk::CaseSensitivity cs) noexcept
+{
+   if (lhs.isEmpty()) {
+      return lencmp(0, rhs.size());
+   }
+   const auto length = std::min(lhs.size(), rhs.size());
+   int result;
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      result = pdk::strncmp(lhs.getRawData(), rhs.getRawData(), length);
+   } else {
+      result = pdk::strnicmp(lhs.getRawData(), rhs.getRawData(), length);
+   }
+   return result ? result : lencmp(lhs.size(), rhs.size());
+}
+
+} // anonymous namespace
 
 namespace internal {
 
@@ -400,9 +430,43 @@ void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept
 } // internal
 
 
-pdk::sizetype stringprivate::ustrlen(const ushort *str) noexcept
+pdk::sizetype stringprivate::ustrlen(const char16_t *str) noexcept
 {
-   
+   pdk::sizetype result = 0;
+#ifdef __SSE2__
+   // find the 16-byte alignment immediately prior or equal to str
+   pdk::uintptr misalignment = reinterpret_cast<pdk::uintptr>(str) & 0xf;
+   PDK_ASSERT((misalignment & 1) == 0);
+   const char16_t *ptr = str - (misalignment / 2);
+   // load 16 bytes and see if we have a null
+   // (aligned loads can never segfault)
+   const __m128i zeroes = _mm_setzero_si128();
+   __m128i data = _mm_load_si128(reinterpret_cast<const __m128i *>(ptr));
+   __m128i comparison = _mm_cmpeq_epi16(data, zeroes);
+   pdk::puint32 mask = _mm_movemask_epi8(comparison);
+   // ignore the result prior to the beginning of str
+   mask >>= misalignment;
+   // Have we found something in the first block? Need to handle it now
+   // because of the left shift above.
+   if (mask) {
+      return pdk::count_trailing_zero_bits(static_cast<pdk::puint32>(mask)) / 2;
+   }
+   do {
+      ptr += 8;
+      data = _mm_load_si128(reinterpret_cast<const __m128i *>(ptr));
+      
+      comparison = _mm_cmpeq_epi16(data, zeroes);
+      mask = _mm_movemask_epi8(comparison);
+   } while (mask == 0);
+   // found a null
+   uint idx = pdk::count_trailing_zero_bits(static_cast<pdk::puint32>(mask));
+   return ptr - str + idx / 2;
+#endif
+   if (sizeof(wchar_t) == sizeof(char16_t))
+      return wcslen(reinterpret_cast<const wchar_t *>(str));
+   while (*str++)
+      ++result;
+   return result;
 }
 
 int stringprivate::compare_strings(StringView lhs, StringView rhs, CaseSensitivity cs) noexcept
@@ -485,10 +549,32 @@ int String::toUcs4Helper(const char16_t *str, int length, char32_t *out)
 }
 
 String::String(const Character *unicode, int size)
-{}
+{
+   if (!unicode) {
+      m_data = Data::getSharedNull();
+   } else {
+      if (size < 0) {
+         size = 0;
+         while (!unicode[size].isNull()) {
+            ++size;
+         }
+      }
+      if (!size) {
+         m_data = Data::allocate(0);
+      } else {
+         m_data = Data::allocate(size + 1);
+         PDK_CHECK_ALLOC_PTR(m_data);
+         m_data->m_size = size;
+         std::memcpy(m_data->getData(), unicode, size * sizeof(Character));
+         m_data->getData()[size] = '\0';
+      }
+   }
+}
 
 String::String(int size, Character c)
-{}
+{
+   
+}
 
 String::String(int size, Initialization)
 {}
@@ -585,7 +671,12 @@ String &String::replace(Character c, Latin1String after, CaseSensitivity cs)
 {}
 
 bool operator ==(const String &lhs, const String &rhs) noexcept
-{}
+{
+   if (lhs.m_data->m_size != rhs.m_data->m_size) {
+      return false;
+   }
+   return pdk_compare_strings(lhs, rhs, pdk::CaseSensitivity::Sensitive) == 0;
+}
 
 bool String::operator ==(Latin1String other) const noexcept
 {}
@@ -1140,17 +1231,17 @@ ulong StringRef::toULong(bool *ok, int base) const
 
 int StringRef::toInt(bool *ok, int base) const
 {
-  
+   
 }
 
 uint StringRef::toUInt(bool *ok, int base) const
 {
-  
+   
 }
 
 short StringRef::toShort(bool *ok, int base) const
 {
-    
+   
 }
 
 ushort StringRef::toUShort(bool *ok, int base) const
@@ -1160,7 +1251,7 @@ ushort StringRef::toUShort(bool *ok, int base) const
 
 double StringRef::toDouble(bool *ok) const
 {
-    
+   
 }
 
 float StringRef::toFloat(bool *ok) const

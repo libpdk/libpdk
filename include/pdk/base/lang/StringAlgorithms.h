@@ -35,7 +35,7 @@ using pdk::ds::ByteArray;
 namespace stringprivate {
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION 
-pdk::sizetype ustrlen(const ushort *str) noexcept;
+pdk::sizetype ustrlen(const char16_t *str) noexcept;
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION 
 int compare_strings(StringView lhs, StringView rhs, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;

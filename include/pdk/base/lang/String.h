@@ -339,7 +339,10 @@ public:
    
    
    String(int size, pdk::Initialization);
-   constexpr inline String(StringDataPtr dataPtr) : m_data(dataPtr.m_ptr) {}
+   constexpr inline String(StringDataPtr dataPtr)
+      : m_data(dataPtr.m_ptr)
+   {}
+   
    inline ~String();
    
    String &operator =(const char *str) = delete;

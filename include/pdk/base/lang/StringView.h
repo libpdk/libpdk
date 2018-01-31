@@ -150,12 +150,12 @@ private:
          return result;
       }
 #endif
-      return stringprivate::ustrlen(reinterpret_cast<const ushort *>(str));
+      return stringprivate::ustrlen(reinterpret_cast<const char16_t *>(str));
    }
    
    static pdk::sizetype lengthHelperPointer(const Character *str) noexcept
    {
-      return stringprivate::ustrlen(reinterpret_cast<const ushort *>(str));
+      return stringprivate::ustrlen(reinterpret_cast<const char16_t *>(str));
    }
    
    template <typename CharType>
@@ -202,12 +202,12 @@ public:
    
    template <typename String, if_compatible_qstring_like<String> = true>
    StringView(const String &str) noexcept
-      : StringView(str.isNull() ? nullptr : str.data(), pdk::sizetype(str.size()))
+      : StringView(str.isNull() ? nullptr : str.getRawData(), pdk::sizetype(str.size()))
    {}
    
    template <typename StdBasicString, if_compatible_string<StdBasicString> = true>
    StringView(const StdBasicString &str) noexcept
-      : StringView(str.data(), pdk::sizetype(str.size())) {}
+      : StringView(str.getRawData(), pdk::sizetype(str.size())) {}
    
    PDK_REQUIRED_RESULT inline String toString() const; // defined in qstring.h
    

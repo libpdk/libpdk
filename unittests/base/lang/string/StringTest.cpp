@@ -320,31 +320,30 @@ TEST(StringTest, testLength)
 
 TEST(StringTest, testAccess)
 {
-//   String a;
-//   String b;
-//   String bb;
-//   String c = String::fromLatin1("String C");
-//   Character temp[10];
-//   temp[0] = 'S';
-//   temp[1] = 't';
-//   temp[2] = 'r';
-//   temp[3] = 'i';
-//   temp[4] = 'n';
-//   temp[5] = 'g';
-//   temp[6] = ' ';
-//   temp[7] = 'D';
-//   temp[8] = 'X';
-//   temp[9] = '\0';
-//   String d(temp, 8);
-//   String ca(a);
-//   String cb(b);
-//   String cc(c);
+   String a;
+   String b;
+   String bb;
+   String c = String::fromLatin1("String C");
+   Character temp[10];
+   temp[0] = 'S';
+   temp[1] = 't';
+   temp[2] = 'r';
+   temp[3] = 'i';
+   temp[4] = 'n';
+   temp[5] = 'g';
+   temp[6] = ' ';
+   temp[7] = 'D';
+   temp[8] = 'X';
+   temp[9] = '\0';
+   String d(temp, 8);
+   String ca(a);
+   String cb(b);
+   String cc(c);
    
-//   ASSERT_EQ(a, ca);
-//   ASSERT_TRUE(a.isNull());
-//   // error: C-style cast from 'const char [1]' to 'pdk::lang::String' uses deleted function
-//   //ASSERT_TRUE(a == (String)"");
-//   ASSERT_EQ(b, cb);
-//   ASSERT_EQ(c, cc);
-//   ASSERT_EQ(d, Latin1String("String D"));
+   ASSERT_EQ(a, ca);
+   ASSERT_TRUE(a.isNull());
+   String e(Latin1String("String E"));
+   String f;
+   f = e;
+   
 }
