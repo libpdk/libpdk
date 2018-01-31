@@ -24,7 +24,7 @@ namespace lang {
 using pdk::ds::internal::TypedArrayData;
 using pdk::ds::internal::ArrayData;
 
-using StringData = TypedArrayData<ushort>;
+using StringData = TypedArrayData<char16_t>;
 
 #if defined(PDK_OS_WIN) && !defined(PDK_COMPILER_UNICODE_STRINGS)
 // fall back to wchar_t if the a Windows compiler does not

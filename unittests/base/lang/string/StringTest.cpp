@@ -23,6 +23,7 @@
 #include <string>
 #include <algorithm>
 #include <type_traits>
+#include <tuple>
 
 using pdk::lang::String;
 using pdk::lang::StringRef;
@@ -283,30 +284,61 @@ public:
    }
 };
 
+void length_data(std::list<std::tuple<String, int>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("Test")), 4));
+   data.push_back(std::make_tuple(String(Latin1String("The quick brown fox jumps over the lazy dog")), 43));
+   data.push_back(std::make_tuple(String(), 0));
+   data.push_back(std::make_tuple(String(Latin1String("A")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("AB")), 2));
+   data.push_back(std::make_tuple(String(Latin1String("AB\n")), 3));
+   data.push_back(std::make_tuple(String(Latin1String("AB\nC")), 4));
+   data.push_back(std::make_tuple(String(Latin1String("\n")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("\nA")), 2));
+   data.push_back(std::make_tuple(String(Latin1String("\nAB")), 3));
+   data.push_back(std::make_tuple(String(Latin1String("\nAB\nCDE")), 7));
+   data.push_back(std::make_tuple(String(Latin1String("shdnftrheid fhgnt gjvnfmd chfugkh bnfhg thgjf vnghturkf chfnguh bjgnfhvygh hnbhgutjfv dhdnjds dcjs d")), 100));
 }
 
+}
+
+TEST(StringTest, testLength)
+{
+   using DataType = std::list<std::tuple<String, int>>;
+   DataType data;
+   length_data(data);
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      String string = std::get<0>(item);
+      int length = std::get<1>(item);
+      ASSERT_EQ(string.length(), length);
+      ++begin;
+   }
+}
 
 TEST(StringTest, testAccess)
 {
-   String a;
-   String b;
-   String bb;
-   String c = String::fromLatin1("String C");
-   Character temp[10];
-   temp[0] = 'S';
-   temp[1] = 't';
-   temp[2] = 'r';
-   temp[3] = 'i';
-   temp[4] = 'n';
-   temp[5] = 'g';
-   temp[6] = ' ';
-   temp[7] = 'D';
-   temp[8] = 'X';
-   temp[9] = '\0';
-   String d(temp, 8);
-   String ca(a);
-   String cb(b);
-   String cc(c);
+//   String a;
+//   String b;
+//   String bb;
+//   String c = String::fromLatin1("String C");
+//   Character temp[10];
+//   temp[0] = 'S';
+//   temp[1] = 't';
+//   temp[2] = 'r';
+//   temp[3] = 'i';
+//   temp[4] = 'n';
+//   temp[5] = 'g';
+//   temp[6] = ' ';
+//   temp[7] = 'D';
+//   temp[8] = 'X';
+//   temp[9] = '\0';
+//   String d(temp, 8);
+//   String ca(a);
+//   String cb(b);
+//   String cc(c);
    
 //   ASSERT_EQ(a, ca);
 //   ASSERT_TRUE(a.isNull());
