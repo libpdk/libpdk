@@ -15,6 +15,7 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/global/PlatformDefs.h"
+#include "pdk/global/GlobalStatic.h"
 #include "pdk/kernel/HashFuncs.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/utils/Locale.h"
@@ -34,10 +35,60 @@ static SystemLocale *sg_systemLocale = nullptr;
 
 class SystemLocaleSingleton : public SystemLocale
 {
-   
+public:
+   SystemLocaleSingleton() : SystemLocale(true) {}
 };
 
+PDK_GLOBAL_STATIC(SystemLocaleSingleton, sg_globalSystemLocale);
+static LocaleData *sg_systemData = 0;
+static LocaleData sg_globalLocaleData;
+
 #endif // PDK_NO_SYSTEMLOCALE
+
+Locale::Language LocalePrivate::codeToLanguage(const lang::Character *code, int len) noexcept
+{
+   if (len != 2 && len != 3) {
+      return Locale::Language::C;
+   }
+   ushort uc1 = code[0].toLower().unicode();
+   ushort uc2 = code[1].toLower().unicode();
+   ushort uc3 = len > 2 ? code[2].toLower().unicode() : 0;
+   const unsigned char *c = sg_languageCodeList;
+   for (; *c != 0; c += 3) {
+      if (uc1 == c[0] && uc2 == c[1] && uc3 == c[2]) {
+         return Locale::Language((c - sg_languageCodeList)/3);
+      }
+   }
+   // legacy codes
+   if (uc1 == 'n' && uc2 == 'o' && uc3 == 0) { // no -> nb
+      PDK_STATIC_ASSERT(Locale::Language::Norwegian == Locale::Language::NorwegianBokmal);
+      return Locale::Language::Norwegian;
+   }
+   if (uc1 == 't' && uc2 == 'l' && uc3 == 0) { // tl -> fil
+      PDK_STATIC_ASSERT(Locale::Language::Tagalog == Locale::Language::Filipino);
+      return Locale::Language::Tagalog;
+   }
+   if (uc1 == 's' && uc2 == 'h' && uc3 == 0) { // sh -> sr[_Latn]
+      PDK_STATIC_ASSERT(Locale::Language::SerboCroatian == Locale::Language::Serbian);
+      return Locale::Language::SerboCroatian;
+   }
+   if (uc1 == 'm' && uc2 == 'o' && uc3 == 0) { // mo -> ro
+      PDK_STATIC_ASSERT(Locale::Language::Moldavian == Locale::Language::Romanian);
+      return Locale::Language::Moldavian;
+   }
+   // Android uses the following deprecated codes
+   if (uc1 == 'i' && uc2 == 'w' && uc3 == 0) {// iw -> he
+      return Locale::Language::Hebrew;
+   }
+   if (uc1 == 'i' && uc2 == 'n' && uc3 == 0) { // in -> id
+      return Locale::Language::Indonesian;
+   }
+   if (uc1 == 'j' && uc2 == 'i' && uc3 == 0) {// ji -> yi
+      return Locale::Language::Yiddish;
+   }
+   return Locale::Language::C;
+}
+
 } // internal
 
 } // utils
