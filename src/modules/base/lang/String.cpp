@@ -35,6 +35,7 @@
 #define ULLONG_MAX quint64_C(18446744073709551615)
 #endif
 
+#define IS_RAW_DATA(d) ((d)->m_offset != sizeof(StringData))
 
 namespace pdk {
 namespace lang {
@@ -589,7 +590,28 @@ void String::resize(int size, Character fillChar)
 {}
 
 void String::reallocData(uint alloc, bool grow)
-{}
+{
+   auto allocOptions = m_data->detachFlags();
+   if (grow) {
+      allocOptions |= ArrayData::Grow;
+   }
+   if (m_data->m_ref.isShared() || IS_RAW_DATA(m_data)) {
+      Data *newDataPtr = Data::allocate(alloc, allocOptions);
+      PDK_CHECK_ALLOC_PTR(newDataPtr);
+      newDataPtr->m_size = std::min(static_cast<int>(alloc - 1), m_data->m_size);
+      std::memcpy(newDataPtr->getData(), m_data->getData(), newDataPtr->m_size * sizeof(Character));
+      newDataPtr->getData()[newDataPtr->m_size] = '\0';
+      if (!m_data->m_ref.deref()) {
+         Data::deallocate(m_data);
+      }
+      m_data = newDataPtr;
+   } else {
+      Data *dptr = Data::reallocateUnaligned(m_data, alloc, allocOptions);
+      PDK_CHECK_ALLOC_PTR(dptr);
+      m_data = dptr;
+      
+   }
+}
 
 String &String::operator =(const String &other) noexcept
 {
@@ -688,7 +710,12 @@ bool operator ==(const String &lhs, const String &rhs) noexcept
 }
 
 bool String::operator ==(Latin1String other) const noexcept
-{}
+{
+   if (m_data->m_size != other.size()) {
+      return false;
+   }
+   return pdk_compare_strings(*this, other, pdk::CaseSensitivity::Sensitive) == 0;
+}
 
 bool operator<(const String &lhs, const String &rhs) noexcept
 {

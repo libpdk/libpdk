@@ -36,6 +36,30 @@ static const ArrayData pdkArray[3] = {
 static const ArrayData &pdkArrayEmpty = pdkArray[0];
 static const ArrayData &pdkArrayUnsharableEmpty = pdkArray[1];
 
+inline size_t calculate_block_size(size_t &capacity, size_t objectSize, size_t headerSize,
+                                   uint options)
+{
+   // Calculate the byte size
+   // allocSize = objectSize * capacity + headerSize, but checked for overflow
+   // plus padded to grow in size
+   if (options & ArrayData::Grow) {
+      auto r = pdk::utils::calculate_growing_block_size(capacity, objectSize, headerSize);
+      capacity = r.m_elementCount;
+      return r.m_size;
+   } else {
+      return pdk::utils::calculate_block_size(capacity, objectSize, headerSize);
+   }
+}
+
+ArrayData *reallocate_data(ArrayData *header, size_t allocSize, uint options)
+{
+    header = static_cast<ArrayData *>(::realloc(header, allocSize));
+    if (header) {
+       header->m_capacityReserved = bool(options & ArrayData::CapacityReserved);
+    }
+    return header;
+}
+
 }
 
 ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment, 
@@ -62,17 +86,7 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    if (headerSize > static_cast<size_t>(INT_MAX)) {
       return 0;
    }
-   // Calculate the byte size
-   // allocSize = objectSize * capacity + headerSize, but checked for overflow
-   // plus padded to grow in size
-   size_t allocSize;
-   if (options & Grow) {
-      pdk::utils::CalculateGrowingBlockSizeResult r = pdk::utils::calculate_growing_block_size(capacity, objectSize, headerSize);
-      capacity = r.m_elementCount;
-      allocSize = r.m_size;
-   } else {
-      allocSize = pdk::utils::calculate_block_size(capacity, objectSize, headerSize);
-   }
+   size_t allocSize = calculate_block_size(capacity, objectSize, headerSize, options);
    ArrayData *header = static_cast<ArrayData *>(std::malloc(allocSize));
    if (header) {
       pdk::uintptr data = (reinterpret_cast<pdk::uintptr>(header) + sizeof(ArrayData) + alignment - 1)
@@ -90,6 +104,21 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
    return header;
 }
 
+ArrayData *ArrayData::reallocateUnaligned(ArrayData *data, size_t objectSize,
+                               size_t capacity, AllocationOptions options) noexcept
+{
+   PDK_ASSERT(data);
+   PDK_ASSERT(data->isMutable());
+   PDK_ASSERT(!data->m_ref.isShared());
+   size_t headerSize = sizeof(ArrayData);
+   size_t allocSize = calculate_block_size(capacity, objectSize, headerSize, options);
+   ArrayData *header = static_cast<ArrayData *>(reallocate_data(data, allocSize, options));
+   if (header) {
+      header->m_alloc = capacity;
+   }
+   return header;       
+}
+
 void ArrayData::deallocate(ArrayData *data, size_t objectSize, size_t alignment) noexcept
 {
    PDK_ASSERT(alignment >= alignof(ArrayData) && !(alignment & (alignment - 1)));
@@ -104,6 +133,8 @@ void ArrayData::deallocate(ArrayData *data, size_t objectSize, size_t alignment)
                 "Static data can not be deleted");
    std::free(data);
 }
+
+
 
 ContainerImplHelper::CutResult ContainerImplHelper::mid(int originalLength, int *position, int *length)
 {

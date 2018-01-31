@@ -345,5 +345,6 @@ TEST(StringTest, testAccess)
    String e(Latin1String("String E"));
    String f;
    f = e;
-   
+   f[7] = 'F';
+   ASSERT_EQ(e, Latin1String("String E"));
 }

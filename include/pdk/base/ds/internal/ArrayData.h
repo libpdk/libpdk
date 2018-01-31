@@ -89,8 +89,10 @@ struct PDK_CORE_EXPORT ArrayData
       return result;
    }
    
-   static ArrayData *allocate(size_t objectSize, size_t alignment,
-                              size_t capacity, AllocationOptions options = Default) noexcept PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT static ArrayData *allocate(size_t objectSize, size_t alignment,
+                              size_t capacity, AllocationOptions options = Default) noexcept;
+   PDK_REQUIRED_RESULT static ArrayData *reallocateUnaligned(ArrayData *data, size_t objectSize,
+                                                             size_t capacity, AllocationOptions options = Default) noexcept;
    static void deallocate(ArrayData *data, size_t objectSize, size_t alignment) noexcept;
    static ArrayData *getSharedNull() noexcept
    {
@@ -415,8 +417,8 @@ struct TypedArrayData : ArrayData
       T m_data;
    };
    
-   static TypedArrayData *allocate(size_t capacity,
-                                   AllocationOptions options = Default) PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT static TypedArrayData *allocate(size_t capacity,
+                                   AllocationOptions options = Default)
    {
       PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
       return static_cast<TypedArrayData *>(ArrayData::allocate(
@@ -427,6 +429,14 @@ struct TypedArrayData : ArrayData
    {
       PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
       ArrayData::deallocate(data, sizeof(T), alignof(AlignmentDummy));
+   }
+   
+   static TypedArrayData *reallocateUnaligned(TypedArrayData *data, size_t capacity,
+                                              AllocationOptions options = Default)
+   {
+      PDK_STATIC_ASSERT(sizeof(TypedArrayData) == sizeof(ArrayData));
+      return static_cast<TypedArrayData *>(ArrayData::reallocateUnaligned(data, sizeof(T),
+                                                                          capacity, options));
    }
    
    static TypedArrayData *fromRawData(const T *data, size_t size,
