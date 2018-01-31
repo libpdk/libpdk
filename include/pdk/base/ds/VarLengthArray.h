@@ -28,9 +28,6 @@
 namespace pdk {
 namespace ds {
 
-template <typename T, int PreAlloc>
-class PodList;
-
 template<typename T, int PreAlloc>
 class VarLengthArray
 {
@@ -367,7 +364,6 @@ public:
    }
    
 private:
-   friend class PodList<T, PreAlloc>;
    void realloc(int size, int alloc);
    
    bool isValidIterator(const ConstIterator &iter) const

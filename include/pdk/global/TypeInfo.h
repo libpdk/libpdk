@@ -26,9 +26,10 @@ class TypeInfo
 {
 public:
    enum {
+      isSpecilized = std::is_enum<T>::value,
       isPointer = false,
       isIntegral = std::is_integral<T>::value,
-      isComplex = true,
+      isComplex = !isIntegral && !std::is_enum<T>::value,
       isStatic = true,
       isRelocatable = std::is_enum<T>::value,
       isLarge = (sizeof(T)>sizeof(void*)),
@@ -41,6 +42,7 @@ class TypeInfo<void>
 {
 public:
    enum {
+      isSpecilized = true,
       isPointer = false,
       isIntegral = false,
       isComplex = false,
@@ -56,6 +58,7 @@ class TypeInfo<T*>
 {
 public:
    enum {
+      isSpecilized = true,
       isPointer = true,
       isIntegral = false,
       isComplex = false,
@@ -79,13 +82,96 @@ struct TypeInfoQuery<T, typename std::enable_if<TypeInfo<T>::isRelocatable || tr
       : public TypeInfo<T>
 {};
 
+template <class T, class T1, class T2 = T1, class T3 = T1, class T4 = T1>
+class TypeInfoMerger
+{
+public:
+   enum {
+      isSpecialized = true,
+      isComplex = TypeInfoQuery<T1>::isComplex || TypeInfoQuery<T2>::isComplex
+      || TypeInfoQuery<T3>::isComplex || TypeInfoQuery<T4>::isComplex,
+      isStatic = TypeInfoQuery<T1>::isStatic || TypeInfoQuery<T2>::isStatic
+      || TypeInfoQuery<T3>::isStatic || TypeInfoQuery<T4>::isStatic,
+      isRelocatable = TypeInfoQuery<T1>::isRelocatable && TypeInfoQuery<T2>::isRelocatable
+      && TypeInfoQuery<T3>::isRelocatable && TypeInfoQuery<T4>::isRelocatable,
+      isLarge = sizeof(T) > sizeof(void*),
+      isPointer = false,
+      isIntegral = false,
+      sizeOf = sizeof(T)
+   };
+};
+
+} // pdk
+
+constexpr const int PDK_COMPLEX_TYPE = 0;
+constexpr const int PDK_PRIMITIVE_TYPE = 0x1;
+constexpr const int PDK_STATIC_TYPE = 0;
+constexpr const int PDK_MOVABLE_TYPE = 0x2;
+constexpr const int PDK_RELOCATABLE_TYPE = 0x4;
+
+#define PDK_DECLARE_MOVABLE_CONTAINER(CONTAINER) \
+template <typename T> \
+class pdk::TypeInfo< CONTAINER<T> > \
+{ \
+public: \
+    enum { \
+        isSpecialized = true, \
+        isPointer = false, \
+        isIntegral = false, \
+        isComplex = true, \
+        isRelocatable = true, \
+        isStatic = false, \
+        isLarge = (sizeof(CONTAINER<T>) > sizeof(void*)), \
+        sizeOf = sizeof(CONTAINER<T>) \
+    }; \
 }
 
-constexpr int PDK_COMPLEX_TYPE = 0;
-constexpr int PDK_PRIMITIVE_TYPE = 0x1;
-constexpr int PDK_STATIC_TYPE = 0;
-constexpr int PDK_MOVABLE_TYPE = 0x2;
-constexpr int PDK_RELOCATABLE_TYPE = 0x4;
+#include <vector>
+#include <list>
+#include <array>
+#include <queue>
+#include <stack>
+
+PDK_DECLARE_MOVABLE_CONTAINER(std::vector);
+PDK_DECLARE_MOVABLE_CONTAINER(std::list);
+PDK_DECLARE_MOVABLE_CONTAINER(std::stack);
+PDK_DECLARE_MOVABLE_CONTAINER(std::queue);
+PDK_DECLARE_MOVABLE_CONTAINER(std::priority_queue);
+
+#undef PDK_DECLARE_MOVABLE_CONTAINER
+
+#define PDK_DECLARE_MOVABLE_CONTAINER(CONTAINER) \
+template <typename K, typename V> \
+class pdk::TypeInfo< CONTAINER<K, V> > \
+{ \
+public: \
+    enum { \
+        isSpecialized = true, \
+        isPointer = false, \
+        isIntegral = false, \
+        isComplex = true, \
+        isStatic = true, \
+        isRelocatable = true, \
+        isLarge = (sizeof(CONTAINER<K, V>) > sizeof(void*)), \
+        sizeOf = sizeof(CONTAINER<K, V>) \
+    }; \
+}
+
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+
+PDK_DECLARE_MOVABLE_CONTAINER(std::set);
+PDK_DECLARE_MOVABLE_CONTAINER(std::map);
+PDK_DECLARE_MOVABLE_CONTAINER(std::multiset);
+PDK_DECLARE_MOVABLE_CONTAINER(std::multimap);
+PDK_DECLARE_MOVABLE_CONTAINER(std::unordered_set);
+PDK_DECLARE_MOVABLE_CONTAINER(std::unordered_map);
+PDK_DECLARE_MOVABLE_CONTAINER(std::unordered_multiset);
+PDK_DECLARE_MOVABLE_CONTAINER(std::unordered_multimap);
+
+#undef PDK_DECLARE_MOVABLE_CONTAINER
 
 namespace pdk {
 
@@ -94,6 +180,7 @@ namespace pdk {
 {\
    public: \
    enum { \
+   isSpecialized = true, \
    isComplex = (((FLAGS) & PDK_PRIMITIVE_TYPE) == 0), \
    isStatic = (((FLAGS) & (PDK_MOVABLE_TYPE | PDK_PRIMITIVE_TYPE)) == 0), \
    isRelocatable = !isStatic || ((FLAGS) & PDK_RELOCATABLE_TYPE), \
@@ -148,10 +235,14 @@ PDK_DECLARE_TYPEINFO(pint64, PDK_PRIMITIVE_TYPE);
 PDK_DECLARE_TYPEINFO(puint64, PDK_PRIMITIVE_TYPE);
 PDK_DECLARE_TYPEINFO(float, PDK_PRIMITIVE_TYPE);
 PDK_DECLARE_TYPEINFO(double, PDK_PRIMITIVE_TYPE);
-#ifndef PDK_OS_DARWIN
 PDK_DECLARE_TYPEINFO(long double, PDK_PRIMITIVE_TYPE);
-#endif
 
+PDK_DECLARE_TYPEINFO(char16_t, PDK_PRIMITIVE_TYPE);
+PDK_DECLARE_TYPEINFO(char32_t, PDK_PRIMITIVE_TYPE);
+
+#if !defined(PDK_CC_MSVC) || defined(_NATIVE_WCHAR_T_DEFINED)
+PDK_DECLARE_TYPEINFO(wchar_t, PDK_PRIMITIVE_TYPE);
+#endif
 
 } // pdk
 
