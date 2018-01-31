@@ -391,5 +391,6 @@ using HANDLE = void *;
 #include "pdk/global/Flags.h"
 #include "pdk/global/Numeric.h"
 #include "pdk/global/EnumDefs.h"
+#include "pdk/utils/Funcs.h"
 
 #endif // PDK_GLOBAL_GLOBAL_H

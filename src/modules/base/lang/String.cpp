@@ -20,6 +20,22 @@
 #include "pdk/kernel/Algorithms.h"
 #include "pdk/global/Endian.h"
 
+
+#ifdef truncate
+#  undef truncate
+#endif
+
+#ifndef LLONG_MAX
+#define LLONG_MAX qint64_C(9223372036854775807)
+#endif
+#ifndef LLONG_MIN
+#define LLONG_MIN (-LLONG_MAX - qint64_C(1))
+#endif
+#ifndef ULLONG_MAX
+#define ULLONG_MAX quint64_C(18446744073709551615)
+#endif
+
+
 namespace pdk {
 namespace lang {
 

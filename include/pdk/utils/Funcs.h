@@ -11,17 +11,22 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/11/14.
+// Created by softboy on 2018/01/31.
 
-#ifndef PDK_GLOBAL_TYPE_TRAITS_H
-#define PDK_GLOBAL_TYPE_TRAITS_H
+#ifndef PDK_UTILS_FUNCS_H
+#define PDK_UTILS_FUNCS_H
 
-#include "pdk/global/Global.h"
+#include <type_traits>
 
 namespace pdk {
-namespace internal {
 
-} // internal
+template <typename Enumeration>
+auto as_integer(Enumeration const value)
+-> typename std::underlying_type<Enumeration>::type
+{
+   return static_cast<typename std::underlying_type<Enumeration>::type>(value);
+}
+
 } // pdk
 
-#endif // PDK_GLOBAL_TYPE_TRAITS_H
+#endif // PDK_UTILS_FUNCS_H

@@ -97,7 +97,7 @@ public:
    uisng UnderType = int;
 #else
    using UnderType = typename std::conditional<
-   internal::IsUnsignedClassicEnum<Enum>::value,
+   std::is_unsigned<typename std::underlying_type<Enum>::type>::value,
    unsigned int,
    signed int
    >::type;
