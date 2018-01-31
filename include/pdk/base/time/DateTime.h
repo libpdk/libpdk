@@ -188,11 +188,11 @@ private:
    Data m_implPtr;
 };
 
-PDK_DECLARE_SHARED(DateTime)
-
 PDK_CORE_EXPORT uint hash(const DateTime &key, uint seed = 0);
 
 } // time
 } // pdk
+
+PDK_DECLARE_SHARED(pdk::time::DateTime)
 
 #endif // PDK_M_BASE_TIME_DATETIME_H

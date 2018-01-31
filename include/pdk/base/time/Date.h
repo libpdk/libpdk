@@ -43,7 +43,7 @@ public:
    };
 private:
    explicit PDK_DECL_CONSTEXPR Date(pdk::pint64 julianDay) 
-      : jd(julianDay)
+      : m_jd(julianDay)
    {}
 public:
    constexpr Date()
@@ -81,9 +81,9 @@ public:
    Date addDays(pdk::pint64 days) const PDK_REQUIRED_RESULT;
    Date addMonths(int months) const PDK_REQUIRED_RESULT;
    Date addYears(int years) const PDK_REQUIRED_RESULT;
-   pdk::pint64 daysTo(const QDate &) const;
+   pdk::pint64 daysTo(const Date &) const;
    
-   constexpr bool operator==(const QDate &other) const
+   constexpr bool operator==(const Date &other) const
    {
       return m_jd == other.m_jd;
    }
@@ -153,10 +153,11 @@ private:
    pdk::pint64 m_jd;
 };
 
-PDK_DECLARE_TYPEINFO(Date, PDK_MOVABLE_TYPE);
 PDK_CORE_EXPORT uint hash(const Date &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::time::Date, PDK_MOVABLE_TYPE);
 
 #endif // PDK_M_BASE_TIME_DATE_H

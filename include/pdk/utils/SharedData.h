@@ -37,7 +37,7 @@ public:
    {}
    
    inline SharedData(const SharedData &)
-      : ref(0) 
+      : m_ref(0) 
    {}
    
 private:
@@ -183,7 +183,7 @@ public:
       return *this;
    }
    
-   inline bool operator!() const { return !d; }
+   inline bool operator!() const { return !m_implPtr; }
    
    inline void swap(SharedDataPointer &other) noexcept
    {
@@ -391,7 +391,7 @@ inline void SharedDataPointer<T>::detachHelper()
 template <typename T>
 inline T *ExplicitlySharedDataPointer<T>::clone()
 {
-   return new T(*d);
+   return new T(*m_implPtr);
 }
 
 template <typename T>
@@ -429,16 +429,35 @@ inline void swap(ExplicitlySharedDataPointer<T> &lhs, ExplicitlySharedDataPointe
 template <typename T>
 inline uint hash(const SharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
-    return hash(ptr.data(), seed);
+   return hash(ptr.data(), seed);
 }
 template <typename T>
 inline uint hash(const ExplicitlySharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
-    return hash(ptr.data(), seed);
+   return hash(ptr.data(), seed);
 }
 
 } // utils
 } // pdk
+
+namespace std {
+
+template <class T>
+inline void swap(pdk::utils::SharedDataPointer<T> &lhs, pdk::utils::SharedDataPointer<T> &rhs)
+{
+   lhs.swap(rhs);
+}
+
+template <class T>
+inline void swap(pdk::utils::ExplicitlySharedDataPointer<T> &lhs, pdk::utils::ExplicitlySharedDataPointer<T> &rhs)
+{
+   lhs.swap(rhs);
+}
+
+} // std
+
+template<typename T> PDK_DECLARE_TYPEINFO_BODY(pdk::utils::SharedDataPointer<T>, PDK_MOVABLE_TYPE);
+template<typename T> PDK_DECLARE_TYPEINFO_BODY(pdk::utils::ExplicitlySharedDataPointer<T>, PDK_MOVABLE_TYPE);
 
 #endif // PDK_UTILS_SHARED_DATA_H
 

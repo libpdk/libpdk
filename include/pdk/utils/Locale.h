@@ -18,13 +18,13 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/utils/SharedData.h"
+#include "pdk/base/lang/String.h"
 #include <list>
 
 namespace pdk {
 
 // forward declare class with namespace
 namespace lang {
-class String;
 class StringRef;
 class Character;
 } // lang
@@ -47,7 +47,6 @@ namespace utils {
 namespace internal {
 class LocalePrivate;
 } // internal
-
 using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::lang::Character;
@@ -1065,7 +1064,6 @@ private:
    SharedDataPointer<LocalePrivate> m_implPtr;
 };
 
-PDK_DECLARE_SHARED(Locale)
 PDK_DECLARE_OPERATORS_FOR_FLAGS(Locale::NumberOptions)
 
 inline String Locale::toString(short i) const
@@ -1115,5 +1113,7 @@ inline String Locale::toCurrencyString(uint i, const String &symbol) const
 
 } // utils
 } // pdk
+
+//PDK_DECLARE_SHARED(pdk::utils::Locale)
 
 #endif // PDK_UTILS_LOCALE_H

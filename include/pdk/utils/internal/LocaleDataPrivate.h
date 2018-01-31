@@ -37,11 +37,11 @@ struct CountryLanguage
 
 static const CountryLanguage ImperialMeasurementSystems[] = 
 {
-   { Locale::Language::English, Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
-   { Locale::Language::English, Locale::Country::UnitedStatesMinorOutlyingIslands, Locale::MeasurementSystem::ImperialUSSystem },
-   { Locale::Language::Spanish, Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
-   { Locale::Language::Hawaiian, Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
-   { Locale::Language::English, Locale::Country::UnitedKingdom, Locale::MeasurementSystem::ImperialUKSystem }
+   { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
+   { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedStatesMinorOutlyingIslands, Locale::MeasurementSystem::ImperialUSSystem },
+   { (pdk::puint16)Locale::Language::Spanish, (pdk::puint16)Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
+   { (pdk::puint16)Locale::Language::Hawaiian, (pdk::puint16)Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
+   { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedKingdom, Locale::MeasurementSystem::ImperialUKSystem }
 };
 
 static const int ImperialMeasurementSystemsCount =

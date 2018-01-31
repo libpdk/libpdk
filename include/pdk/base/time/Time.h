@@ -33,7 +33,8 @@ class PDK_CORE_EXPORT Time
 {
 private:
    static constexpr int NULL_TIME = -1;
-   explicit constexpr Time(int ms) : mds(ms)
+   explicit constexpr Time(int ms)
+      : m_mds(ms)
    {}
    
 public:
@@ -113,10 +114,11 @@ private:
    int m_mds;
 };
 
-PDK_DECLARE_TYPEINFO(Time, PDK_MOVABLE_TYPE);
 PDK_CORE_EXPORT uint hash(const Time &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::time::Time, PDK_MOVABLE_TYPE);
 
 #endif // PDK_M_BASE_TIME_TIME_H

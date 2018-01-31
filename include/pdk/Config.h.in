@@ -16,4 +16,6 @@
 #ifndef PDK_CONFIG_H
 #define PDK_CONFIG_H
 
+#define PDK_FEATURE_ICU -1
+
 #endif // PDK_CONFIG_H

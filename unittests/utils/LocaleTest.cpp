@@ -13,32 +13,9 @@
 //
 // Created by softboy on 2018/01/31.
 
-#include "pdk/global/Global.h"
-#include "pdk/global/PlatformDefs.h"
-#include "pdk/kernel/HashFuncs.h"
-#include "pdk/base/lang/String.h"
+#include "gtest/gtest.h"
 #include "pdk/utils/Locale.h"
-#include "pdk/utils/internal/LocalePrivate.h"
-#include "pdk/utils/internal/LocaleDataPrivate.h"
-#include "pdk/base/time/Date.h"
-#include "pdk/base/time/DateTime.h"
-#include "pdk/base/time/Time.h"
 
-namespace pdk {
-namespace utils {
-
-namespace internal {
-#ifndef PDK_NO_SYSTEMLOCALE
-
-static SystemLocale *sg_systemLocale = nullptr;
-
-class SystemLocaleSingleton : public SystemLocale
+TEST(LocaleTest, testConstruct)
 {
-   
-};
-
-#endif // PDK_NO_SYSTEMLOCALE
-} // internal
-
-} // utils
-} // pdk
+}

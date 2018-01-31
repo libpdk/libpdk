@@ -90,7 +90,7 @@ constexpr int PDK_RELOCATABLE_TYPE = 0x4;
 namespace pdk {
 
 #define PDK_DECLARE_TYPEINFO_BODY(TYPE, FLAGS)\
-   class pdk::TypeInfo<TYPE>\
+   class ::pdk::TypeInfo<TYPE>\
 {\
    public: \
    enum { \

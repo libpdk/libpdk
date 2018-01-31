@@ -28,6 +28,7 @@
 
 namespace pdk {
 namespace utils {
+
 namespace internal {
 
 using pdk::lang::String;
@@ -51,8 +52,8 @@ public:
       {}
       
       CurrencyToStringArgument(const std::any &value, const String &symbol)
-         : value(value),
-           symbol(symbol)
+         : m_value(value),
+           m_symbol(symbol)
       {}
       
       std::any m_value;
@@ -227,17 +228,17 @@ public:
                          int precision = -1,
                          DoubleForm form = DoubleForm::DFSignificantDigits,
                          int width = -1,
-                         unsigned flags = Flags::NoFlags) const;
+                         unsigned flags = (unsigned)Flags::NoFlags) const;
    
    String longLongToString(pdk::pint64 l, int precision = -1,
                            int base = 10,
                            int width = -1,
-                           unsigned flags = Flags::NoFlags) const;
+                           unsigned flags = (unsigned)Flags::NoFlags) const;
    
    String unsLongLongToString(pdk::puint64 l, int precision = -1,
                               int base = 10,
                               int width = -1,
-                              unsigned flags = Flags::NoFlags) const;
+                              unsigned flags = (unsigned)Flags::NoFlags) const;
    
    // this function is meant to be called with the result of stringToDouble or bytearrayToDouble
    static float convertDoubleToFloat(double d, bool *ok)
@@ -366,7 +367,7 @@ public:
    {
       LocalePrivate *retval = new LocalePrivate;
       retval->m_data = data;
-      retval->ref.store(0);
+      retval->m_ref.store(0);
       retval->m_numberOptions = numberOptions;
       return retval;
    }
@@ -490,14 +491,6 @@ public:
    Locale::NumberOptions m_numberOptions;
 };
 
-template <>
-inline LocalePrivate *SharedDataPointer<LocalePrivate>::clone()
-{
-   // cannot use LocalePrivate's copy constructor
-   // since it is deleted in C++11
-   return LocalePrivate::create(m_implPtr->m_data, m_implPtr->m_numberOptions);
-}
-
 inline char LocaleData::digitToCLocale(Character in) const
 {
    const ushort tenUnicode = m_zero + 10;
@@ -562,6 +555,15 @@ PDK_STATIC_ASSERT(!ascii_isspace(uchar('\xA0')));
 PDK_STATIC_ASSERT(!ascii_isspace(uchar('\377')));
 
 } // internal
+
+template <>
+inline LocalePrivate *SharedDataPointer<internal::LocalePrivate>::clone()
+{
+   // cannot use LocalePrivate's copy constructor
+   // since it is deleted in C++11
+   return internal::LocalePrivate::create(m_implPtr->m_data, m_implPtr->m_numberOptions);
+}
+
 } // utils
 } // pdk
 
