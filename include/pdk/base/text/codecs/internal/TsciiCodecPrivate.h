@@ -16,10 +16,15 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_TSCII_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_TSCII_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+
 
 } // internal
 } // codecs

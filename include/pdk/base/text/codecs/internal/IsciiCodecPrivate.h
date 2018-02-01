@@ -16,10 +16,31 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_ISCII_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_ISCII_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+class IsciiCodec : public TextCodec {
+public:
+   explicit IsciiCodec(int i)
+      : m_idx(i) {}
+   ~IsciiCodec();
+   
+   static TextCodec *create(const char *name);
+   
+   ByteArray name() const override;
+   int mibEnum() const override;
+   
+   String convertToUnicode(const char *, int, ConverterState *) const override;
+   ByteArray convertFromUnicode(const Character *, int, ConverterState *) const override;
+   
+private:
+   int m_idx;
+};
 
 } // internal
 } // codecs

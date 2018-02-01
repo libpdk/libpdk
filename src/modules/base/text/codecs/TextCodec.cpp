@@ -25,6 +25,11 @@ namespace pdk {
 namespace text {
 namespace codecs {
 
+namespace internal {
+bool text_codec_name_match(const char *a, const char *b)
+{}
+} // internal
+
 TextCodec::ConverterState::~ConverterState()
 {}
 

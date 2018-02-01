@@ -591,7 +591,6 @@ SimpleTextCodec::SimpleTextCodec(int i)
 {
 }
 
-
 SimpleTextCodec::~SimpleTextCodec()
 {
    delete m_reverseMap.load();
