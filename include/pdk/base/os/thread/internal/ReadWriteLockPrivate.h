@@ -57,7 +57,7 @@ public:
    int m_writerCount;
    int m_waitingReaders;
    int m_waitingWriters;
-   bool m_recursive;
+   const bool m_recursive;
    int m_id;
    std::thread::id m_currentWriter;
    std::map<std::thread::id, int> m_currentReaders;

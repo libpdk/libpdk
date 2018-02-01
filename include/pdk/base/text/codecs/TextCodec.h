@@ -20,12 +20,19 @@
 #include <list>
 
 namespace pdk {
+
+namespace io {
+class IoDevice;
+} // io
+
 namespace text {
 namespace codecs {
 
 using pdk::ds::ByteArray;
 using pdk::lang::Character;
 using pdk::lang::String;
+using pdk::lang::StringView;
+using pdk::io::IoDevice;
 
 class TextDecoder;
 class TextEncoder;
@@ -68,7 +75,12 @@ public:
    
 public:
    static TextCodec *codecForName(const ByteArray &name);
-   static TextCodec *codecForName(const char *name);
+   
+   inline static TextCodec *codecForName(const char *name)
+   {
+      return codecForName(ByteArray(name));
+   }
+   
    static TextCodec *codecForMib(int mib);
    static std::list<ByteArray> getAvailableCodecs();
    static std::list<int> getAvailableMibs();
@@ -76,18 +88,51 @@ public:
    static TextCodec *getCodecForLocale();
    static void setCodecForLocale(TextCodec *codec);
    
+   static TextCodec *codecForHtml(const ByteArray &ba);
+   static TextCodec *codecForHtml(const ByteArray &ba, TextCodec *defaultCodec);
+   
    static TextCodec *codecForUtfText(const ByteArray &ba);
    static TextCodec *codecForUtfText(const ByteArray &ba, TextCodec *defaultCodec);
    
    bool canEncode(Character c) const;
+#if PDK_STRINGVIEW_LEVEL < 2
    bool canEncode(const String &str) const;
+#endif
+   bool canEncode(const StringView &str) const;
    
    String toUnicode(const ByteArray &str) const;
    String toUnicode(const char *str) const;
+#if PDK_STRINGVIEW_LEVEL < 2
    ByteArray fromUnicode(const String &unicodeStr) const;
+#endif
+   ByteArray fromUnicode(const StringView &unicodeStr) const;
    
+   String toUnicode(const char *in, int length, ConverterState *state = nullptr) const
+   {
+      return convertToUnicode(in, length, state);
+   }
+   
+   ByteArray fromUnicode(const Character *in, int length, ConverterState *state = nullptr) const
+   {
+      return convertFromUnicode(in, length, state);
+   }
+   
+   TextDecoder *makeDecoder(ConversionFlags flags = ConversionFlag::DefaultConversion) const;
+   TextEncoder *makeEncoder(ConversionFlags flags = ConversionFlag::DefaultConversion) const;
+   
+   virtual ByteArray name() const = 0;
+   virtual std::list<ByteArray> aliases() const;
+   virtual int mibEnum() const = 0;
+   
+protected:
+   virtual String convertToUnicode(const char *in, int length, ConverterState *state) const = 0;
+   virtual ByteArray convertFromUnicode(const Character *in, int length, ConverterState *state) const = 0;
+   
+   TextCodec();
+   virtual ~TextCodec();
 private:
    PDK_DISABLE_COPY(TextCodec);
+   friend struct CoreGlobalData;
 };
 
 } // codecs

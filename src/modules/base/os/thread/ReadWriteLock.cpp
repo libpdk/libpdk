@@ -395,13 +395,13 @@ bool ReadWriteLock::tryLockForWrite(int timeout)
 
 void ReadWriteLock::unlock()
 {
-   ReadWriteLockPrivate *dptr = m_implPtr.load();
+   ReadWriteLockPrivate *dptr = m_implPtr.loadAcquire();
    while (true) {
       PDK_ASSERT_X(dptr, "ReadWriteLock::unlock()", "Cannot unlock an unlocked lock");
       // Fast case: no contention: (no waiters, no other readers)
       if (reinterpret_cast<pdk::uintptr>(dptr) <= 2) {
          // 1 or 2 (StateLockedForRead or StateLockedForWrite)
-         if (!m_implPtr.testAndSetRelease(dptr, nullptr, dptr)) {
+         if (!m_implPtr.testAndSetOrdered(dptr, nullptr, dptr)) {
             continue;  
          }
          return;
@@ -410,7 +410,7 @@ void ReadWriteLock::unlock()
       if (reinterpret_cast<pdk::uintptr>(dptr) & StateLockedForRead) {
          PDK_ASSERT(reinterpret_cast<pdk::uintptr>(dptr) > (1U << 4));// otherwise that would be the fast case
          auto val = reinterpret_cast<ReadWriteLockPrivate *>(reinterpret_cast<pdk::uintptr>(dptr) - (1U<<4));
-         if (!m_implPtr.testAndSetRelease(dptr, val, dptr)) {
+         if (!m_implPtr.testAndSetOrdered(dptr, val, dptr)) {
             continue;
          }
          return;

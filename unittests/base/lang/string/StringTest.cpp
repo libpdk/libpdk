@@ -14,6 +14,7 @@
 // Created by zzu_softboy on 2017/12/23.
 
 #include "gtest/gtest.h"
+#include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/base/ds/ByteArray.h"
@@ -347,4 +348,8 @@ TEST(StringTest, testAccess)
    f = e;
    f[7] = 'F';
    ASSERT_EQ(e, Latin1String("String E"));
+   char text[]="String f";
+   f = text;
+   text[7]='!';
+   ASSERT_EQ(f, Latin1String("String f"));
 }

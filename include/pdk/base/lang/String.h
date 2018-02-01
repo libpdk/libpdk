@@ -329,9 +329,9 @@ public:
    inline String(Latin1String other);
    template <int N>
    inline String(const char (&str)[N])
-   {
-      
-   }
+      : m_data(fromAsciiHelper(str, N - 1))
+   {}
+   
    inline String(const String &other) noexcept;
    
    String(const char *str) = delete;
@@ -353,7 +353,10 @@ public:
    inline String &operator =(Latin1String other);
    
    template <int N>
-   String &operator =(const char (&str)[N]);
+   inline String &operator =(const char (&str)[N])
+   {
+      return (*this = fromUtf8(str, N - 1));
+   }
    
    inline String(String &&other) noexcept
       : m_data(other.m_data)
@@ -652,7 +655,7 @@ public:
    
    static inline String fromUtf8(const char *str, int size = -1)
    {
-      
+      return fromUtf8Helper(str, (str && size == -1) ? static_cast<int>(std::strlen(str)) : size);
    }
    
    static inline String fromLocal8Bit(const char *str, int size = -1)

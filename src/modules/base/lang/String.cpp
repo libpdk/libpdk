@@ -858,7 +858,12 @@ String String::fromLocal8BitHelper(const char *str, int size)
 {}
 
 String String::fromUtf8Helper(const char *str, int size)
-{}
+{
+   if (!str) {
+      return String();
+   }
+   PDK_ASSERT(size != -1);
+}
 
 String String::fromUtf16(const char16_t *str, int size)
 {}
