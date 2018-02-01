@@ -72,7 +72,7 @@ public:
    CoreApplicationPrivate(int &aargc,  char **aargv, uint flags);
    ~CoreApplicationPrivate();
    void init();
-   std::string getAppName() const;
+   String getAppName() const;
    bool sendThroughApplicationEventFilters(Object *, Event *);
 #ifdef PDK_OS_WIN
    static void removePostedTimerEvent(Object *object, int timerId);
@@ -84,8 +84,8 @@ public:
    void cleanupThreadData();
    void appendAppPathToLibPaths(void);
    
-   static std::string *m_cachedAppFilePath;
-   static void setAppFilePath(const std::string &path);
+   static String *m_cachedAppFilePath;
+   static void setAppFilePath(const String &path);
    static inline void clearAppFilePath()
    {
       delete m_cachedAppFilePath;
@@ -101,7 +101,7 @@ public:
    static BasicAtomicPointer<Thread> sm_theMainThread;
    
    CoreApplicationPrivate::Type m_applicationType;
-   std::string m_cachedApplicationDirPath;
+   String m_cachedApplicationDirPath;
    bool m_inExec;
    bool m_aboutToQuitEmitted;
    bool m_threadDataClean;

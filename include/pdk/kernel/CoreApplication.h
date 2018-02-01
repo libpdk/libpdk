@@ -21,14 +21,16 @@
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
 #include "pdk/utils/ScopedPointer.h"
+#include "pdk/base/ds/StringList.h"
 #include <string>
 
 #define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance();
 
 namespace pdk {
+
 namespace kernel {
 
-// forward declare with namespace
+// forward declare class with namespace
 namespace internal {
 class CoreApplicationPrivate;
 class EventDispatcherUNIXPrivate;
@@ -37,9 +39,10 @@ class EventDispatcherUNIXPrivate;
 class PostEventList;
 class AbstractEventDispatcher;
 class AbstractNativeEventFilter;
-using StringList = std::list<std::string>;
 
 using internal::CoreApplicationPrivate;
+using pdk::ds::StringList;
+using pdk::lang::String;
 
 class PDK_CORE_EXPORT CoreApplication : public Object
 {
@@ -52,14 +55,14 @@ public:
    ~CoreApplication();
    
    static StringList getArguments();
-   void setOrgDomain(const std::string &domain);
-   std::string getOrgDomain();
-   void setOrgName(const std::string &name);
-   std::string getOrgName();
-   void setAppName(const std::string &name);
-   std::string getAppName();
-   void setAppVersion(const std::string &version);
-   std::string getAppVersion();
+   void setOrgDomain(const String &domain);
+   String getOrgDomain();
+   void setOrgName(const String &name);
+   String getOrgName();
+   void setAppName(const String &name);
+   String getAppName();
+   void setAppVersion(const String &version);
+   String getAppVersion();
    static void setSetuidAllowed(bool allow);
    static bool isSetuidAllowed();
    static CoreApplication *getInstance()
@@ -81,14 +84,14 @@ public:
    static bool startingUp();
    static bool closingDown();
    
-   static std::string getAppDirPath();
-   static std::string getAppFilePath();
+   static String getAppDirPath();
+   static String getAppFilePath();
    static pdk::pint64 getAppPid();
    
    static void setLibraryPaths(const StringList &);
    static StringList getLibraryPaths();
-   static void addLibraryPath(const std::string &);
-   static void removeLibraryPath(const std::string &);
+   static void addLibraryPath(const String &);
+   static void removeLibraryPath(const String &);
    
    static void flush();
    
@@ -114,7 +117,7 @@ private:
    static bool sendSpontaneousEvent(Object *receiver, Event *event);
    static bool notifyInternal(Object *receiver, Event *);
    friend class internal::EventDispatcherUNIXPrivate;
-   friend PDK_CORE_EXPORT std::string retrieve_app_name();
+   friend PDK_CORE_EXPORT String retrieve_app_name();
    friend class ClassFactory;
 private:
    PDK_DISABLE_COPY(CoreApplication);
@@ -149,7 +152,7 @@ using CleanUpFunction = void (*)();
 PDK_CORE_EXPORT void add_pre_routine(StartUpFunction);
 PDK_CORE_EXPORT void add_post_routine(CleanUpFunction);
 PDK_CORE_EXPORT void remove_post_routine(CleanUpFunction);
-PDK_CORE_EXPORT std::string retrieve_app_name();                // get application name
+PDK_CORE_EXPORT String retrieve_app_name();                // get application name
 
 #define PDK_COREAPP_STARTUP_FUNCTION(AFUNC) \
     static void AFUNC ## _ctor_function() {  \

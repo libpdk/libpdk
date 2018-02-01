@@ -19,7 +19,6 @@
 #include "pdk/global/Global.h"
 #include "pdk/utils/SharedData.h"
 #include "pdk/base/lang/String.h"
-#include <list>
 
 namespace pdk {
 
@@ -28,6 +27,11 @@ namespace lang {
 class StringRef;
 class Character;
 } // lang
+
+// forward declare class with namespace
+namespace ds {
+class StringList;
+} // ds
 
 // forward declare class with namespace
 namespace io {
@@ -54,7 +58,7 @@ using pdk::time::Date;
 using pdk::time::DateTime;
 using pdk::time::Time;
 using pdk::io::TextStream;
-using StringList = std::list<std::string>;
+using pdk::ds::StringList;
 
 class Locale;
 

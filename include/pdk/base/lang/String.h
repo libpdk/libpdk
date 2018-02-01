@@ -41,6 +41,12 @@ PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
 #endif
 
 namespace pdk {
+
+// forward declare class with namespace
+namespace ds {
+class StringList;
+} // ds
+
 namespace lang {
 
 using pdk::ds::ByteArray;
@@ -48,7 +54,7 @@ using pdk::ds::ByteArray;
 class CharacterRef;
 class String;
 class StringRef;
-using StringList = std::list<String>;
+using pdk::ds::StringList;
 
 class Latin1String
 {

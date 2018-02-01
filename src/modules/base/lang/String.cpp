@@ -15,6 +15,7 @@
 
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringAlgorithms.h"
+#include "pdk/base/ds/StringList.h"
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/pal/kernel/Simd.h"
 #include "pdk/base/lang/internal/StringHelper.h"

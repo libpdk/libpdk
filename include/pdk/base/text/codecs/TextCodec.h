@@ -21,9 +21,18 @@
 
 namespace pdk {
 
+// forward declare class with namespace
 namespace io {
 class IoDevice;
 } // io
+
+namespace kernel {
+namespace internal {
+
+struct CoreGlobalData;
+
+} // internal
+} // kernel
 
 namespace text {
 namespace codecs {
@@ -33,6 +42,7 @@ using pdk::lang::Character;
 using pdk::lang::String;
 using pdk::lang::StringView;
 using pdk::io::IoDevice;
+using pdk::kernel::internal::CoreGlobalData;
 
 class TextDecoder;
 class TextEncoder;

@@ -39,6 +39,12 @@ PDK_FORWARD_DECLARE_OBJC_CLASS(NSData);
 #endif
 
 namespace pdk {
+
+// forward declare class with namespace
+namespace lang {
+class String;
+} // ds
+
 namespace ds {
 
 using ByteArrayData = internal::ArrayData;
@@ -79,6 +85,8 @@ struct ByteArrayDataPtr
       const pdk::ds::ByteArray byteArray(holder);\
       return byteArray;\
    }())
+
+using pdk::lang::String;
 
 class ByteRef;
 

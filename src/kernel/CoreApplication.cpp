@@ -130,17 +130,17 @@ namespace internal {
 
 bool CoreApplicationPrivate::sm_setuidAllowed = false;
 
-std::string CoreApplicationPrivate::getAppName() const
+String CoreApplicationPrivate::getAppName() const
 {
-   std::string appName;
-   if (m_argv[0]) {
-      char *p = std::strrchr(m_argv[0], '/');
-      appName = p ? (p + 1) : m_argv[0];
-   }
-   return appName;
+//   String appName;
+//   if (m_argv[0]) {
+//      char *p = std::strrchr(m_argv[0], '/');
+//      appName = p ? (p + 1) : m_argv[0];
+//   }
+//   return appName;
 }
 
-std::string *CoreApplicationPrivate::m_cachedAppFilePath = nullptr;
+String *CoreApplicationPrivate::m_cachedAppFilePath = nullptr;
 
 bool CoreApplicationPrivate::checkInstance(const char *method)
 {
@@ -256,10 +256,10 @@ struct CoreApplicationData {
       }
    }
    
-   std::string m_orgName;
-   std::string m_orgDomain;
-   std::string m_appName; // application name, initially from argv[0], can then be modified.
-   std::string m_appVersion;
+   String m_orgName;
+   String m_orgDomain;
+   String m_appName; // application name, initially from argv[0], can then be modified.
+   String m_appVersion;
    bool m_appNameSet; // true if setApplicationName was called
    
 #ifndef PDK_NO_LIBRARY
@@ -383,19 +383,19 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 
 void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
-#ifndef PDK_NO_LIBRARY
-   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
-   if (!appLibPaths) {
-      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
-   }
-   std::string appLocation = CoreApplication::getAppFilePath();
-   appLocation.erase(appLocation.find_last_of('/'));
-   // TODO we need check exist
-   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
-   if(iter == appLibPaths->cend()) {
-      appLibPaths->push_back(appLocation);
-   }
-#endif
+//#ifndef PDK_NO_LIBRARY
+//   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
+//   if (!appLibPaths) {
+//      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
+//   }
+//   String appLocation = CoreApplication::getAppFilePath();
+//   appLocation.erase(appLocation.find_last_of('/'));
+//   // TODO we need check exist
+//   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
+//   if(iter == appLibPaths->cend()) {
+//      appLibPaths->push_back(appLocation);
+//   }
+//#endif
 }
 
 void CoreApplicationPrivate::initLocale()
@@ -438,10 +438,10 @@ void CoreApplicationPrivate::execCleanup()
 
 } // internal
 
-std::string retrieve_app_name()
+String retrieve_app_name()
 {
    if (!CoreApplicationPrivate::checkInstance("retrieve_app_name")) {
-      return std::string();
+      return String();
    }
    return CoreApplication::getInstance()->getImplPtr()->getAppName();
 }
@@ -555,7 +555,7 @@ void CoreApplicationPrivate::maybeQuit()
 // instantiated by a library and not by an application executable, for example,
 // Active X servers.
 
-void CoreApplicationPrivate::setAppFilePath(const std::string &path)
+void CoreApplicationPrivate::setAppFilePath(const String &path)
 {
 }
 
@@ -574,11 +574,11 @@ void CoreApplication::quit()
 {
 }
 
-std::string CoreApplication::getAppDirPath()
+String CoreApplication::getAppDirPath()
 {
 }
 
-std::string CoreApplication::getAppFilePath()
+String CoreApplication::getAppFilePath()
 {
 }
 
@@ -590,35 +590,35 @@ StringList CoreApplication::getArguments()
 {
 }
 
-void CoreApplication::setOrgName(const std::string &orgName)
+void CoreApplication::setOrgName(const String &orgName)
 {
 }
 
-std::string CoreApplication::getOrgName()
+String CoreApplication::getOrgName()
 {
 }
 
-void CoreApplication::setOrgDomain(const std::string &orgDomain)
+void CoreApplication::setOrgDomain(const String &orgDomain)
 {
 }
 
-std::string CoreApplication::getOrgDomain()
+String CoreApplication::getOrgDomain()
 {
 }
 
-void CoreApplication::setAppName(const std::string &application)
+void CoreApplication::setAppName(const String &application)
 {
 }
 
-std::string CoreApplication::getAppName()
+String CoreApplication::getAppName()
 {
 }
 
-void CoreApplication::setAppVersion(const std::string &version)
+void CoreApplication::setAppVersion(const String &version)
 {
 }
 
-std::string CoreApplication::getAppVersion()
+String CoreApplication::getAppVersion()
 {
    
 }
@@ -633,11 +633,11 @@ void CoreApplication::setLibraryPaths(const StringList &paths)
 {
 }
 
-void CoreApplication::addLibraryPath(const std::string &path)
+void CoreApplication::addLibraryPath(const String &path)
 {
 }
 
-void CoreApplication::removeLibraryPath(const std::string &path)
+void CoreApplication::removeLibraryPath(const String &path)
 {
 }
 
