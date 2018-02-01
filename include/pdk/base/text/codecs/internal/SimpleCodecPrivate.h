@@ -16,5 +16,40 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_SIMPLE_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_SIMPLE_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+
+namespace pdk {
+namespace text {
+namespace codecs {
+namespace internal {
+
+template <typename T>
+class AtomicPointer;
+
+class SimpleTextCodec: public TextCodec
+{
+public:
+   static constexpr const int NUM_SIMPLE_CODEC = 30;
+   explicit SimpleTextCodec(int);
+   ~SimpleTextCodec();
+   
+   String convertToUnicode(const char *, int, ConverterState *) const override;
+   ByteArray convertFromUnicode(const Character *, int, ConverterState *) const override;
+   
+   ByteArray name() const override;
+   std::list<ByteArray> aliases() const override;
+   int mibEnum() const override;
+   
+private:
+   int m_forwardIndex;
+   mutable AtomicPointer<ByteArray> m_reverseMap;
+};
+
+
+} // internal
+} // codecs
+} // text
+} // pdk
 
 #endif // PDK_M_BASE_TEXT_CODECS_INTERNAL_SIMPLE_CODEC_PRIVATE_H

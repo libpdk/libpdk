@@ -16,5 +16,14 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_SJIS_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_SJIS_CODEC_PRIVATE_H
 
+namespace pdk {
+namespace text {
+namespace codecs {
+namespace internal {
+
+} // internal
+} // codecs
+} // text
+} // pdk
 
 #endif // PDK_M_BASE_TEXT_CODECS_INTERNAL_SJIS_CODEC_PRIVATE_H
