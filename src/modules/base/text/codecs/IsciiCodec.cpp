@@ -259,7 +259,6 @@ String IsciiCodec::convertToUnicode(const char* chars, int len, ConverterState *
    return result;
 }
 
-
 } // internal
 } // codecs
 } // text
