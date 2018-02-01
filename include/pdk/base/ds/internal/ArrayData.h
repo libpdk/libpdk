@@ -371,12 +371,12 @@ struct TypedArrayData : ArrayData
    
    friend class ConstIterator;
    
-   T *getData()
+   inline T *getData()
    {
       return static_cast<T *>(ArrayData::getData());
    }
    
-   const T *getData() const
+   inline const T *getData() const
    {
       return static_cast<const T *>(ArrayData::getData());
    }

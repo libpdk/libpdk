@@ -184,23 +184,8 @@ void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
       }
       m_data = ptr;
    } else {
-      size_t blockSize;
-      if (options & Data::Grow) {
-         pdk::utils::CalculateGrowingBlockSizeResult allocResult = 
-               pdk::utils::calculate_growing_block_size(alloc, 
-                                                        sizeof(pdk::lang::Character),
-                                                        sizeof(Data));
-         blockSize = allocResult.m_size;
-         alloc = static_cast<uint>(allocResult.m_elementCount);
-      } else {
-         blockSize = pdk::utils::calculate_block_size(alloc, 
-                                                      sizeof(pdk::lang::Character),
-                                                      sizeof(Data));
-      }
-      Data *ptr = static_cast<Data *>(std::realloc(m_data, blockSize));
+      Data *ptr = Data::reallocateUnaligned(m_data, alloc, options);
       PDK_CHECK_ALLOC_PTR(ptr);
-      ptr->m_alloc = alloc;
-      ptr->m_capacityReserved = (options & Data::CapacityReserved) ? 1 : 0;
       m_data = ptr;
    }
 }

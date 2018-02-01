@@ -138,7 +138,7 @@ public:
    
    ByteArray &fill(char c, int size = -1);
    inline int capacity() const;
-   void reserve(int size);
+   inline void reserve(int size);
    inline void squeeze();
    
 #ifndef PDK_NO_CAST_FROM_BYTEARRAY
@@ -150,15 +150,27 @@ public:
    const char *getRawData() const;
    inline const char *getConstRawData() const;
    inline void detach();
-   bool isDetached() const;
+   inline bool isDetached() const;
    
    inline bool isSharedWith(const ByteArray &other) const;
    void clear();
-   char at(int i) const;
-   char operator [](int i) const;
-   char operator [](uint i) const;
-   ByteRef operator [](int i);
-   ByteRef operator [](uint i);
+   inline char at(int i) const;
+   inline char operator [](int i) const;
+   inline char operator [](uint i) const;
+   inline ByteRef operator [](int i);
+   inline ByteRef operator [](uint i);
+   
+   PDK_REQUIRED_RESULT char front() const
+   {
+      return at(0);
+   }
+   
+   PDK_REQUIRED_RESULT inline ByteRef front();
+   PDK_REQUIRED_RESULT char back() const {
+      return at(size() - 1);
+   }
+   
+   PDK_REQUIRED_RESULT inline ByteRef back();
    
    int indexOf(char needle, int from = 0) const;
    int indexOf(const char *needle, int from = 0) const;
@@ -167,17 +179,23 @@ public:
    int lastIndexOf(const char *needle, int from = -1) const;
    int lastIndexOf(const ByteArray &needle, int from = -1) const;
    
-   bool contains(char c) const;
-   bool contains(const char *array) const;
-   bool contains(const ByteArray &array) const;
+   inline bool contains(char c) const;
+   inline bool contains(const char *array) const;
+   inline bool contains(const ByteArray &array) const;
    
    int count(char c) const;
    int count(const char *array) const;
    int count(const ByteArray &array) const;
    
-   ByteArray left(int length) const PDK_REQUIRED_RESULT;
-   ByteArray right(int length) const PDK_REQUIRED_RESULT;
-   ByteArray mid(int index, int length = -1) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray left(int length) const;
+   PDK_REQUIRED_RESULT ByteArray right(int length) const;
+   PDK_REQUIRED_RESULT ByteArray mid(int index, int length = -1) const;
+   PDK_REQUIRED_RESULT ByteArray chopped(int len) const
+   {
+      PDK_ASSERT(len >= 0);
+      PDK_ASSERT(len <= size());
+      return left(size() - len);
+   }
    
    bool startsWith(const ByteArray &array) const;
    bool startsWith(char c) const;
@@ -190,57 +208,69 @@ public:
    void truncate(int pos);
    void chop(int n);
    
-   PDK_ALWAYS_INLINE ByteArray toLower() const & PDK_REQUIRED_RESULT
+#  if defined(PDK_CC_GNU) && !defined(PDK_CC_CLANG) && !defined(PDK_CC_INTEL) && !PDK_HAS_CPP_ATTRIBUTE(nodiscard)
+    // required due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61941
+#    pragma push_macro("PDK_REQUIRED_RESULT")
+#    undef PDK_REQUIRED_RESULT
+#    define PDK_REQUIRED_RESULT
+#    define PDK_REQUIRED_RESULT_pushed
+#  endif
+   
+   PDK_REQUIRED_RESULT ByteArray toLower() const &
    {
       return toLowerHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray toLower() const && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray toLower() const &&
    {
       return toLowerHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray toUpper() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray toUpper() const &
    {
       return toUpperHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray toUpper() const && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray toUpper() const &&
    {
       return toUpperHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray trimmed() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray trimmed() const &
    {
       return trimmedHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray trimmed() const && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray trimmed() const &&
    {
       return trimmedHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray simplified() const & PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray simplified() const &
    {
       return simplifiedHelper(*this);
    }
    
-   PDK_ALWAYS_INLINE ByteArray simplified() const && PDK_REQUIRED_RESULT
+   PDK_REQUIRED_RESULT ByteArray simplified() const &&
    {
       return simplifiedHelper(*this);
    }
    
-   ByteArray leftJustified(int width, char fill = ' ', bool truncate = false) const PDK_REQUIRED_RESULT;
-   ByteArray rightJustified(int width, char fill = ' ', bool truncate = false) const PDK_REQUIRED_RESULT;
+#  ifdef PDK_REQUIRED_RESULT_pushed
+#    pragma pop_macro("PDK_REQUIRED_RESULT")
+#  endif
+   
+   PDK_REQUIRED_RESULT ByteArray leftJustified(int width, char fill = ' ', bool truncate = false) const;
+   PDK_REQUIRED_RESULT ByteArray rightJustified(int width, char fill = ' ', bool truncate = false) const;
    
    ByteArray &prepend(char c);
-   ByteArray &prepend(int count, char c);
+   inline ByteArray &prepend(int count, char c);
    ByteArray &prepend(const char *str);
    ByteArray &prepend(const char *str, int length);
    ByteArray &prepend(const ByteArray &array);
    
    ByteArray &append(char c);
-   ByteArray &append(int count, char c);
+   inline ByteArray &append(int count, char c);
    ByteArray &append(const char *str);
    ByteArray &append(const char *str, int length);
    ByteArray &append(const ByteArray &array);
@@ -256,21 +286,21 @@ public:
    ByteArray &replace(int index, int length, const char *after);
    ByteArray &replace(int index, int length, const char *after, int alength);
    ByteArray &replace(int index, int length, const ByteArray &after);
-   ByteArray &replace(char before, const char *after);
+   inline ByteArray &replace(char before, const char *after);
    ByteArray &replace(char before, const ByteArray &after);
-   ByteArray &replace(const char *before, const char *after);
+   inline ByteArray &replace(const char *before, const char *after);
    ByteArray &replace(const char *before, int blength, const char *after, int alength);
    ByteArray &replace(const ByteArray &before, const ByteArray &after);
-   ByteArray &replace(const ByteArray &before, const char *after);
+   inline ByteArray &replace(const ByteArray &before, const char *after);
    ByteArray &replace(const char *before, const ByteArray &after);
    ByteArray &replace(char before, char after);
    
-   ByteArray &operator+=(char c);
-   ByteArray &operator+=(const char *str);
-   ByteArray &operator+=(const ByteArray &array);
+   inline ByteArray &operator+=(char c);
+   inline ByteArray &operator+=(const char *str);
+   inline ByteArray &operator+=(const ByteArray &array);
    
    std::list<ByteArray> split(char sep) const;
-   ByteArray repeated(int times) const PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT ByteArray repeated(int times) const;
    
 //   short toShort(bool *ok = nullptr, int base = 10) const;
 //   ushort toUnsignedShort(bool *ok = nullptr, int base = 10) const;
@@ -367,12 +397,16 @@ public:
    using const_pointer = const char *;
    using value_type = char;
    
-   void push_back(char c);
-   void push_back(const char *c);
-   void push_back(const ByteArray &array);
-   void push_front(char c);
-   void push_front(const char *c);
-   void push_front(const ByteArray &array);
+   inline void push_back(char c);
+   inline void push_back(const char *c);
+   inline void push_back(const ByteArray &array);
+   inline void push_front(char c);
+   inline void push_front(const char *c);
+   inline void push_front(const ByteArray &array);
+   void shrink_to_fit()
+   {
+      squeeze();
+   }
    
    static inline ByteArray fromStdString(const std::string &str);
    inline std::string toStdString() const;
@@ -622,6 +656,16 @@ inline ByteRef ByteArray::operator [](int index)
 inline ByteRef ByteArray::operator [](uint index)
 {
    return ByteRef(*this, index);
+}
+
+inline ByteRef ByteArray::front()
+{
+   return operator[](0);
+}
+
+inline ByteRef ByteArray::back()
+{
+   return operator[](size() - 1);
 }
 
 inline ByteArray::iterator ByteArray::begin()
