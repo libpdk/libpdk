@@ -11,26 +11,30 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/12/24.
+// Created by softboy on 2018/02/01.
 
+#ifndef PDK_KERNEL_INTERNAL_CORE_GLOBAL_DATA_PRIVATE_H
+#define PDK_KERNEL_INTERNAL_CORE_GLOBAL_DATA_PRIVATE_H
 
-#ifndef PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H
-#define PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H
+#include "pdk/global/Global.h"
+#include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/ds/ByteArray.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+#include <map>
+#include <mutex>
 
 namespace pdk {
-namespace lang {
-
-class Character;
-
+namespace kernel {
 namespace internal {
 
-char32_t fold_case(const char16_t *ch, const char16_t *start) noexcept;
-char32_t fold_case(char32_t ch, char32_t &last) noexcept;
-char16_t fold_case(char16_t ch) noexcept;
-Character fold_case(Character ch) noexcept;
+using pdk::ds::ByteArray;
+using pdk::text::codecs::TextCodec;
+
+
+using TextCodecCache = std::map<ByteArray, TextCodec *>;
 
 } // internal
-} // lang
+} // kernel
 } // pdk
 
-#endif // PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H
+#endif // PDK_KERNEL_INTERNAL_CORE_GLOBAL_DATA_PRIVATE_H

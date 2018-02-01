@@ -16,4 +16,57 @@
 #ifndef PDK_M_BASE_LANG_STRING_MATCHER_H
 #define PDK_M_BASE_LANG_STRING_MATCHER_H
 
+#include "pdk/base/lang/String.h"
+
+namespace pdk {
+namespace lang {
+
+namespace internal {
+class StringMatcherPrivate;
+} // internal
+
+using internal::StringMatcherPrivate;
+class PDK_CORE_EXPORT StringMatcher
+{
+public:
+   StringMatcher();
+   explicit StringMatcher(const String &pattern,
+                          pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
+   StringMatcher(const Character *uc, int len,
+                 pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
+   StringMatcher(const StringMatcher &other);
+   ~StringMatcher();
+   
+   StringMatcher &operator=(const StringMatcher &other);
+   
+   void setPattern(const String &pattern);
+   void setCaseSensitivity(pdk::CaseSensitivity cs);
+   
+   int indexIn(const String &str, int from = 0) const;
+   int indexIn(const Character *str, int length, int from = 0) const;
+   String getPattern() const;
+   inline pdk::CaseSensitivity getCaseSensitivity() const
+   {
+      return m_cs;
+   }
+   
+private:
+   StringMatcherPrivate *m_implPtr;
+   String m_pattern;
+   pdk::CaseSensitivity m_cs;
+   struct Data {
+      uchar m_skiptable[256];
+      const Character *m_uc;
+      int m_len;
+   };
+   union {
+      uint m_data[256];
+      Data m_p;
+   };
+};
+
+
+} // lang
+} // pdk
+
 #endif // PDK_M_BASE_LANG_STRING_LITERAL_H

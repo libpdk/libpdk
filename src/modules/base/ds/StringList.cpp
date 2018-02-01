@@ -11,26 +11,5 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/12/24.
+// Created by softboy on 2018/02/01.
 
-
-#ifndef PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H
-#define PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H
-
-namespace pdk {
-namespace lang {
-
-class Character;
-
-namespace internal {
-
-char32_t fold_case(const char16_t *ch, const char16_t *start) noexcept;
-char32_t fold_case(char32_t ch, char32_t &last) noexcept;
-char16_t fold_case(char16_t ch) noexcept;
-Character fold_case(Character ch) noexcept;
-
-} // internal
-} // lang
-} // pdk
-
-#endif // PDK_M_BASE_LANG_INTERNAL_STRING_HELPER_H

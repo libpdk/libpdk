@@ -245,13 +245,13 @@ PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
 
 namespace internal {
 
-char32_t fold_case(const char32_t *ch, const char32_t *start) noexcept
+char32_t fold_case(const char16_t *ch, const char16_t *start) noexcept
 {
-    char32_t ucs4 = *ch;
-    if (Character::isLowSurrogate(ucs4) && ch > start && Character::isHighSurrogate(*(ch - 1))) {
-       ucs4 = Character::surrogateToUcs4(*(ch - 1), ucs4);
-    }
-    return convert_case_helper<CasefoldTraits>(ucs4);
+   char32_t ucs4 = *ch;
+   if (Character::isLowSurrogate(ucs4) && ch > start && Character::isHighSurrogate(*(ch - 1))) {
+      ucs4 = Character::surrogateToUcs4(*(ch - 1), ucs4);
+   }
+   return convert_case_helper<CasefoldTraits>(ucs4);
 }
 
 char32_t fold_case(char32_t ch, char32_t &last) noexcept
@@ -269,7 +269,7 @@ char16_t fold_case(char16_t ch) noexcept
     return convert_case_helper<CasefoldTraits>(ch);
 }
 
-inline Character fold_case(Character ch) noexcept
+Character fold_case(Character ch) noexcept
 {
    return Character(fold_case(ch.unicode()));
 }
