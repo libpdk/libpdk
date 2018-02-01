@@ -108,14 +108,14 @@ public:
 #if PDK_STRINGVIEW_LEVEL < 2
    bool canEncode(const String &str) const;
 #endif
-   bool canEncode(const StringView &str) const;
+   bool canEncode(const StringView str) const;
    
    String toUnicode(const ByteArray &str) const;
    String toUnicode(const char *str) const;
 #if PDK_STRINGVIEW_LEVEL < 2
    ByteArray fromUnicode(const String &unicodeStr) const;
 #endif
-   ByteArray fromUnicode(const StringView &unicodeStr) const;
+   ByteArray fromUnicode(const StringView unicodeStr) const;
    
    String toUnicode(const char *in, int length, ConverterState *state = nullptr) const
    {

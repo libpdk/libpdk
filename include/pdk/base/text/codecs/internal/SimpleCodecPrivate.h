@@ -20,12 +20,20 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 
 namespace pdk {
+
+// forward delcare class with namespace
+namespace os {
+namespace thread {
+template <typename T>
+class AtomicPointer;
+} // thread
+} // os
+
 namespace text {
 namespace codecs {
 namespace internal {
 
-template <typename T>
-class AtomicPointer;
+using pdk::os::thread::AtomicPointer;
 
 class SimpleTextCodec: public TextCodec
 {
@@ -45,7 +53,6 @@ private:
    int m_forwardIndex;
    mutable AtomicPointer<ByteArray> m_reverseMap;
 };
-
 
 } // internal
 } // codecs
