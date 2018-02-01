@@ -269,6 +269,11 @@ char16_t fold_case(char16_t ch) noexcept
     return convert_case_helper<CasefoldTraits>(ch);
 }
 
+inline Character fold_case(Character ch) noexcept
+{
+   return Character(fold_case(ch.unicode()));
+}
+
 }
 
 String Character::getDecomposition() const
@@ -276,6 +281,7 @@ String Character::getDecomposition() const
    return Character::getDecomposition(m_data);
 }
 
+// @TODO string decomposition
 String Character::getDecomposition(char32_t ucs4)
 {
    unsigned short buffer[3];

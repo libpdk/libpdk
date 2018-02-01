@@ -400,6 +400,12 @@ public:
       : m_data(char16_t(c))
    {}
    
+#if defined(PDK_OS_WIN)
+    PDK_STATIC_ASSERT(sizeof(wchar_t) == sizeof(ushort));
+    constexpr Character(wchar_t ch) noexcept
+       : m_data(ushort(ch)) {} // implicit
+#endif
+   
    inline Category getCategory() const noexcept
    {
       return Character::getCategory(m_data);
@@ -737,8 +743,6 @@ private:
    char16_t m_data;
 };
 
-//PDK_DECLARE_TYPEINFO(Character, PDK_MOVABLE_TYPE);
-
 constexpr inline bool operator ==(Character lhs, Character rhs) noexcept
 {
    return lhs.m_data == rhs.m_data;
@@ -769,7 +773,68 @@ constexpr inline bool operator <=(Character lhs, Character rhs) noexcept
    return !operator >(lhs, rhs);
 }
 
+constexpr inline bool operator==(Character lhs, std::nullptr_t) noexcept
+{
+   return lhs.isNull();
+}
+
+constexpr inline bool operator< (Character,     std::nullptr_t) noexcept
+{
+   return false;
+}
+
+constexpr inline bool operator==(std::nullptr_t, Character rhs) noexcept
+{
+   return rhs.isNull();
+}
+
+constexpr inline bool operator< (std::nullptr_t, Character rhs) noexcept
+{
+   return !rhs.isNull();
+}
+
+constexpr inline bool operator!=(Character lhs, std::nullptr_t) noexcept
+{
+   return !operator==(lhs, nullptr);
+}
+
+constexpr inline bool operator>=(Character lhs, std::nullptr_t) noexcept
+{
+   return !operator< (lhs, nullptr);
+}
+
+constexpr inline bool operator> (Character lhs, std::nullptr_t) noexcept
+{
+   return operator< (nullptr, lhs);
+}
+constexpr inline bool operator<=(Character lhs, std::nullptr_t) noexcept
+{
+   return !operator< (nullptr, lhs);
+}
+
+constexpr inline bool operator!=(std::nullptr_t, Character rhs) noexcept
+{
+   return !operator==(nullptr, rhs);
+}
+
+constexpr inline bool operator>=(std::nullptr_t, Character rhs) noexcept
+{
+   return !operator< (nullptr, rhs);
+}
+
+constexpr inline bool operator> (std::nullptr_t, Character rhs) noexcept
+{
+   return  operator< (rhs, nullptr);
+}
+
+constexpr inline bool operator<=(std::nullptr_t, Character rhs) noexcept
+{
+   return !operator< (rhs, nullptr);
+}
+
 } // lang
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::lang::Character, PDK_MOVABLE_TYPE);
 
 #endif // PDK_M_BASE_LANG_CHARACTER_H
