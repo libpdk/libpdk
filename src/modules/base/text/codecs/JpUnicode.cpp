@@ -27,7 +27,7 @@ using pdk::ds::ByteArray;
 
 #define        USE_JISX0212
 
-#define        Q_STRICT
+#define        PDK_STRICT
 
 #define        IsLatin(c)        (/*((c) >= 0x00) &&*/ ((c) <= 0x7f))
 #define        IsKana(c)        (((c) >= 0xa1) && ((c) <= 0xdf))
@@ -195,9 +195,6 @@ uint JpUnicodeConv::unicodeToJisx0208(uint h, uint l) const
    return jis;
 }
 
-/*!
-    \internal
-*/
 uint JpUnicodeConv::unicodeToJisx0212(uint h, uint l) const
 {
    if (m_rule & UDC){
@@ -219,9 +216,6 @@ uint JpUnicodeConv::unicodeToJisx0212(uint h, uint l) const
    return jis;
 }
 
-/*!
-    \internal
-*/
 uint JpUnicodeConv::sjisToUnicode(uint h, uint l) const
 {
    if (h == 0) {
@@ -232,9 +226,6 @@ uint JpUnicodeConv::sjisToUnicode(uint h, uint l) const
    return 0x0000;
 }
 
-/*!
-    \internal
-*/
 uint JpUnicodeConv::unicodeToSjis(uint h, uint l) const
 {
    uint jis;
@@ -251,7 +242,6 @@ uint JpUnicodeConv::unicodeToSjis(uint h, uint l) const
 /*
  * Unicode 1.1 with JISX0201 conversion.
  */
-
 class JpUnicodeConv_Unicode_JISX0201 : public JpUnicodeConv {
 public:
    JpUnicodeConv_Unicode_JISX0201(int r) : JpUnicodeConv(r) {}
@@ -318,9 +308,6 @@ uint JpUnicodeConv_Unicode_ASCII::unicodeToJisx0208(uint h, uint l) const
    return JpUnicodeConv::unicodeToJisx0208(h, l);
 }
 
-/*!
-    \internal
-*/
 uint JpUnicodeConv_Unicode_ASCII::unicodeToJisx0212(uint h, uint l) const
 {
    if ((h == 0x00) && (l == 0x7e)) {
@@ -335,7 +322,6 @@ uint JpUnicodeConv_Unicode_ASCII::unicodeToJisx0212(uint h, uint l) const
 /*
  * JISX0221 with JISX0201 conversion.
  */
-
 class JpUnicodeConv_JISX0221_JISX0201 : public JpUnicodeConv {
 public:
    JpUnicodeConv_JISX0221_JISX0201(int r) : JpUnicodeConv(r) {}
@@ -375,7 +361,7 @@ uint JpUnicodeConv_JISX0221_JISX0201::unicodeToAscii(uint h, uint l) const
 
 uint JpUnicodeConv_JISX0221_JISX0201::unicodeToJisx0208(uint h, uint l) const
 {
-#ifdef Q_STRICT
+#ifdef PDK_STRICT
    if ((h == 0x20) && (l == 0x15)) {
       return 0x0000;
    }
@@ -389,7 +375,6 @@ uint JpUnicodeConv_JISX0221_JISX0201::unicodeToJisx0208(uint h, uint l) const
 /*
  * JISX0221 with ASCII conversion.
  */
-
 class JpUnicodeConv_JISX0221_ASCII : public JpUnicodeConv {
 public:
    JpUnicodeConv_JISX0221_ASCII(int r) : JpUnicodeConv(r) {}
@@ -445,7 +430,7 @@ uint JpUnicodeConv_JISX0221_ASCII::unicodeToJisx0201Latin(uint h, uint l) const
 
 uint JpUnicodeConv_JISX0221_ASCII::unicodeToJisx0208(uint h, uint l) const
 {
-#ifdef Q_STRICT
+#ifdef PDK_STRICT
    if (((h == 0x00) && (l == 0x5c)) ||
        ((h == 0x20) && (l == 0x15)) ||
        ((h == 0xff) && ((l == 0xe3) || (l == 0xe5)))) {
@@ -554,9 +539,6 @@ uint JpUnicodeConv_Sun::unicodeToJisx0208(uint h, uint l) const
    return JpUnicodeConv::unicodeToJisx0208(h, l);
 }
 
-/*!
-    \internal
-*/
 uint JpUnicodeConv_Sun::unicodeToJisx0212(uint h, uint l) const
 {
 #if 1
@@ -574,7 +556,6 @@ uint JpUnicodeConv_Sun::unicodeToJisx0212(uint h, uint l) const
 /*
  * Microsoft conversion.
  */
-
 class JpUnicodeConv_Microsoft : public JpUnicodeConv {
 public:
    JpUnicodeConv_Microsoft(int r) : JpUnicodeConv(r) {}
@@ -642,7 +623,7 @@ uint JpUnicodeConv_Microsoft::unicodeToJisx0201Latin(uint h, uint l) const
 
 uint JpUnicodeConv_Microsoft::unicodeToJisx0208(uint h, uint l) const
 {
-#ifdef Q_STRICT
+#ifdef PDK_STRICT
    if (((h == 0x00) && ((l == 0x5c) || (l == 0xa2) || (l == 0xa3) || (l == 0xac))) ||
        ((h == 0x20) && (l == 0x16)) ||
        ((h == 0x22) && (l == 0x12)) ||
@@ -672,7 +653,7 @@ uint JpUnicodeConv_Microsoft::unicodeToJisx0208(uint h, uint l) const
 
 uint JpUnicodeConv_Microsoft::unicodeToJisx0212(uint h, uint l) const
 {
-#ifdef Q_STRICT
+#ifdef PDK_STRICT
    if ((h == 0x00) && ((l == 0x7e) || (l == 0xa6))) {
       return 0x0000;
    }
@@ -691,10 +672,6 @@ uint JpUnicodeConv_Microsoft::unicodeToJisx0212(uint h, uint l) const
    return JpUnicodeConv::unicodeToJisx0212(h, l);
 }
 
-
-/*!
-    \internal
-*/
 JpUnicodeConv *JpUnicodeConv::newConverter(int rule)
 {
    ByteArray env = pdk::pdk_getenv("UNICODEMAP_JP");
