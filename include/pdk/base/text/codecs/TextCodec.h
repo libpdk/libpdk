@@ -145,8 +145,52 @@ private:
    friend struct CoreGlobalData;
 };
 
+PDK_DECLARE_OPERATORS_FOR_FLAGS(TextCodec::ConversionFlags)
+
+class PDK_CORE_EXPORT TextEncoder {
+public:
+   explicit TextEncoder(const TextCodec *codec)
+      : m_codec(codec),
+        m_state()
+   {}
+   
+   explicit TextEncoder(const TextCodec *codec, TextCodec::ConversionFlags flags);
+   ~TextEncoder();
+#if PDK_STRINGVIEW_LEVEL < 2
+   ByteArray fromUnicode(const String& str);
+#endif
+   ByteArray fromUnicode(StringView str);
+   ByteArray fromUnicode(const Character *uc, int len);
+   bool hasFailure() const;
+private:
+   PDK_DISABLE_COPY(TextEncoder);
+   const TextCodec *m_codec;
+   TextCodec::ConverterState m_state;
+};
+
+
+class PDK_CORE_EXPORT TextDecoder
+{
+public:
+   explicit TextDecoder(const TextCodec *codec)
+      : m_codec(codec), m_state()
+   {}
+   explicit TextDecoder(const TextCodec *codec, TextCodec::ConversionFlags flags);
+   ~TextDecoder();
+   String toUnicode(const char* chars, int len);
+   String toUnicode(const ByteArray &ba);
+   void toUnicode(String *target, const char *chars, int len);
+   bool hasFailure() const;
+private:
+   PDK_DISABLE_COPY(TextDecoder);
+   const TextCodec *m_codec;
+   TextCodec::ConverterState m_state;
+};
+
 } // codecs
 } // text
 } // pdk
+
+
 
 #endif // PDK_M_BASE_TEXT_CODECS_TEXT_CODEC_H
