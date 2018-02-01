@@ -24,7 +24,8 @@ namespace text {
 namespace codecs {
 namespace internal {
 
-class IsciiCodec : public TextCodec {
+class IsciiCodec : public TextCodec
+{
 public:
    explicit IsciiCodec(int i)
       : m_idx(i) {}

@@ -25,7 +25,8 @@ namespace text {
 namespace codecs {
 namespace internal {
 
-class SjisCodec : public TextCodec {
+class SjisCodec : public TextCodec
+{
 public:
     static ByteArray nameImpl();
     static std::list<ByteArray> aliasesImpl();

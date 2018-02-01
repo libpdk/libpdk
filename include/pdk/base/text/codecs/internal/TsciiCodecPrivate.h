@@ -49,7 +49,8 @@ namespace text {
 namespace codecs {
 namespace internal {
 
-class TsciiCodec : public TextCodec {
+class TsciiCodec : public TextCodec
+{
 public:
    ~TsciiCodec();
    

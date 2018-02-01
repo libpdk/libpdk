@@ -16,10 +16,49 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_EUCJP_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_EUCJP_CODEC_PRIVATE_H
 
+#include "pdk/base/text/codecs/internal/JpUnicodePrivate.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+#include <list>
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+class EucJpCodec : public TextCodec
+{
+public:
+   static ByteArray nameImpl();
+   static std::list<ByteArray> aliasesImpl() 
+   {
+      return std::list<ByteArray>();
+   }
+   static int mibEnumImpl();
+   
+   ByteArray name() const
+   {
+      return nameImpl();
+   }
+   
+   std::list<ByteArray> aliases() const
+   {
+      return aliasesImpl();
+   }
+   
+   int mibEnum() const 
+   {
+      return mibEnumImpl();
+   }
+   
+   String convertToUnicode(const char *, int, ConverterState *) const;
+   ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
+   
+   EucJpCodec();
+   ~EucJpCodec();
+   
+protected:
+   const JpUnicodeConv *conv;
+};
 
 } // internal
 } // codecs

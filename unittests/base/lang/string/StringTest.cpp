@@ -18,6 +18,7 @@
 #include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
 #include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"
 #include "pdk/base/text/codecs/internal/Big5CodecPrivate.h"
+#include "pdk/base/text/codecs/internal/EucjpCodecPrivate.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
