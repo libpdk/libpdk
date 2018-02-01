@@ -16,10 +16,39 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_LATIN_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_LATIN_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+class Latin1Codec : public TextCodec
+{
+public:
+    ~Latin1Codec();
+
+    String convertToUnicode(const char *, int, ConverterState *) const override;
+    ByteArray convertFromUnicode(const Character *, int, ConverterState *) const override;
+
+    ByteArray name() const override;
+    std::list<ByteArray> aliases() const override;
+    int mibEnum() const override;
+};
+
+class Latin15Codec: public TextCodec
+{
+public:
+    ~Latin15Codec();
+
+    String convertToUnicode(const char *, int, ConverterState *) const override;
+    ByteArray convertFromUnicode(const Character *, int, ConverterState *) const override;
+
+    ByteArray name() const override;
+    std::list<ByteArray> aliases() const override;
+    int mibEnum() const override;
+};
 
 } // internal
 } // codecs
