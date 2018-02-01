@@ -121,10 +121,11 @@
 #     define __ARM_FEATURE_NEON
 #  endif
 #elif (defined(PDK_CC_INTEL) || defined(PDK_CC_MSVC) \
-   || (defined(PDK_CC_GNU) && !defined(PDK_CC_CLANG) && (__GNUC__-0) * 100 + (__GNUC_MINOR__-0) >= 409))
+   || (defined(PDK_CC_GNU) && !defined(PDK_CC_CLANG) && (__GNUC__-0) * 100 + (__GNUC_MINOR__-0) >= 409)\
+   || (defined(PDK_CC_CLANG) && PDK_CC_CLANG >= 308))
 #  define PDK_COMPILER_SUPPORTS_SIMD_ALWAYS
-#  define PDK_COMPILER_SUPPORTS_HERE(x) PDK_COMPILER_SUPPORTS(x)
-#  if defined(PDK_CC_GNU) !defined(PDK_CC_INTEL)
+#  define PDK_COMPILER_SUPPORTS_HERE(x) ((__ ## x ## __) || PDK_COMPILER_SUPPORTS(x))
+#  if defined(PDK_CC_GNU) && !defined(PDK_CC_INTEL)
 /* GCC requires attributes for a function */
 #    define PDK_FUNCTION_TARGET(x) __attribute__((__target__(PDK_FUNCTION_TARGET_STRING_ ## x)))
 #  else
@@ -171,32 +172,51 @@
 #  include <smmintrin.h>
 #endif
 
+// SSE4.2 intrinsics
 #define PDK_FUNCTION_TARGET_STRING_SSE4_2 "sse4.2"
 #if defined(__SSE4_2__) || (defined(PDK_COMPILER_SUPPORTS_SSE4_2) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS))
 #  include <nmmintrin.h>
-#endif
-
-// AVX intrinsics
-#define PDK_FUNCTION_TARGET_STRING_AVX "avx"
-#define PDK_FUNCTION_TARGET_STRING_AVX2 "avx2"
-#if defined(__AVX__) || (defined(PDK_COMPILER_SUPPORTS_AVX) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS))
-// immintrin.h is the ultimate header, we don't need anything else after this
-#  include <immintrin.h>
-#  if defined(PDK_CC_MSVC) && (defined(_M_AVX) || defined(__AVX__))
-// MS Visual Studio 2010 has no macro pre-defined to identify the use of /arch:AVX
-// MS Visual Studio 2013 adds it: __AVX__
-// See: http://connect.microsoft.com/VisualStudio/feedback/details/605858/arch-avx-should-define-a-predefined-macro-in-x64-and-set-a-unique-value-for-m-ix86-fp-in-win32
-#    define __SSE3__ 1
-#    define __SSSE3__ 1
-// no Intel CPU supports SSE4a, so don't define it
-#    define __SSE4_1__ 1
-#    define __SSE4_2__ 1
-#    ifndef __AVX__
-#       define __AVX__ 1
-#    endif
+#  if defined(__SSE4_2__) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS) && (defined(PDK_CC_INTEL) || defined(PDK_CC_MSVC))
+// POPCNT instructions:
+// All processors that support SSE4.2 support POPCNT
+// (but neither MSVC nor the Intel compiler define this macro)
+#    define __POPCNT__                      1
 #  endif
 #endif
 
+// AVX intrinsics
+#if defined(__AVX__) || (defined(PDK_COMPILER_SUPPORTS_AVX) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS))
+// immintrin.h is the ultimate header, we don't need anything else after this
+#include <immintrin.h>
+
+#  if defined(__AVX__) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS) && (defined(PDK_CC_INTEL) || defined(PDK_CC_MSVC))
+// AES, PCLMULQDQ instructions:
+// All processors that support AVX support AES, PCLMULQDQ
+// (but neither MSVC nor the Intel compiler define these macros)
+#    define __AES__                         1
+#    define __PCLMUL__                      1
+#  endif
+
+#  if defined(__AVX2__) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS) && (defined(PDK_CC_INTEL) || defined(PDK_CC_MSVC))
+// F16C & RDRAND instructions:
+// All processors that support AVX2 support F16C & RDRAND:
+// (but neither MSVC nor the Intel compiler define these macros)
+#    define __F16C__                        1
+#    define __RDRND__                       1
+#  endif
+#endif
+
+#if defined(__AES__) || defined(__PCLMUL__) || (defined(PDK_COMPILER_SUPPORTS_AES) && defined(PDK_COMPILER_SUPPORTS_SIMD_ALWAYS))
+#  include <wmmintrin.h>
+#endif
+
+#define PDK_FUNCTION_TARGET_STRING_SSE2      "sse2"
+#define PDK_FUNCTION_TARGET_STRING_SSE3      "sse3"
+#define PDK_FUNCTION_TARGET_STRING_SSSE3     "ssse3"
+#define PDK_FUNCTION_TARGET_STRING_SSE4_1    "sse4.1"
+#define PDK_FUNCTION_TARGET_STRING_SSE4_2    "sse4.2"
+#define PDK_FUNCTION_TARGET_STRING_AVX       "avx"
+#define PDK_FUNCTION_TARGET_STRING_AVX2      "avx2"
 #define PDK_FUNCTION_TARGET_STRING_AVX512F       "avx512f"
 #define PDK_FUNCTION_TARGET_STRING_AVX512CD      "avx512cd"
 #define PDK_FUNCTION_TARGET_STRING_AVX512ER      "avx512er"
@@ -207,8 +227,11 @@
 #define PDK_FUNCTION_TARGET_STRING_AVX512IFMA    "avx512ifma"
 #define PDK_FUNCTION_TARGET_STRING_AVX512VBMI    "avx512vbmi"
 
-#define PDK_FUNCTION_TARGET_STRING_F16C          "f16c"
-#define PDK_FUNCTION_TARGET_STRING_RDRAND        "rdrnd"
+#define PDK_FUNCTION_TARGET_STRING_AES           "aes,sse4.2"
+#define PDK_FUNCTION_TARGET_STRING_PCLMUL        "pclmul,sse4.2"
+#define PDK_FUNCTION_TARGET_STRING_POPCNT        "popcnt"
+#define PDK_FUNCTION_TARGET_STRING_F16C          "f16c,avx"
+#define PDK_FUNCTION_TARGET_STRING_RDRND         "rdrnd"
 #define PDK_FUNCTION_TARGET_STRING_BMI           "bmi"
 #define PDK_FUNCTION_TARGET_STRING_BMI2          "bmi2"
 #define PDK_FUNCTION_TARGET_STRING_RDSEED        "rdseed"

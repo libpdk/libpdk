@@ -320,7 +320,7 @@ PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what,
 
 using NoImplicitBoolCast = int;
 
-#define PDK_CHECK_ALLOC_PTR(ptr) do { if (!(ptr)) throw std::bad_alloc(); } while (0)
+#define PDK_CHECK_ALLOC_PTR(ptr) do { if (!(ptr)) throw std::bad_alloc(); } while (false)
 
 template <typename T>
 constexpr inline T abs(const T &value)
