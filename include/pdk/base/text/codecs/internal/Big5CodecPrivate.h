@@ -16,10 +16,68 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_BIG5_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_BIG5_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+#include <list>
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+class Big5Codec : public TextCodec {
+public:
+   static ByteArray nameImpl();
+   static std::list<ByteArray> aliasesImpl();
+   static int mibEnumImpl();
+   
+   ByteArray name() const
+   {
+      return nameImpl();
+   }
+   
+   std::list<ByteArray> aliases() const
+   {
+      return aliasesImpl();
+   }
+   
+   int mibEnum() const
+   {
+      return mibEnumImpl();
+   }
+   
+   String convertToUnicode(const char *, int, ConverterState *) const;
+   ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
+};
+
+class Big5hkscsCodec : public TextCodec {
+public:
+   static ByteArray nameImpl();
+   
+   static std::list<ByteArray> aliasesImpl()
+   {
+      return std::list<ByteArray>();
+   }
+   static int mibEnumImpl();
+   
+   ByteArray name() const
+   {
+      return nameImpl();
+   }
+   
+   std::list<ByteArray> aliases() const
+   {
+      return aliasesImpl();
+   }
+   
+   int mibEnum() const
+   {
+      return mibEnumImpl();
+   }
+   
+   String convertToUnicode(const char *, int, ConverterState *) const;
+   ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
+};
 
 } // internal
 } // codecs

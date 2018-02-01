@@ -22,6 +22,11 @@ namespace text {
 namespace codecs {
 namespace internal {
 
+using pdk::ds::ByteArray;
+using pdk::lang::String;
+using pdk::lang::Character;
+using pdk::lang::Latin1Character;
+
 struct Codecs {
    const char m_name[10];
    ushort m_base;
