@@ -13,25 +13,37 @@
 //
 // Created by softboy on 2018/02/01.
 
-#ifndef PDK_M_BASE_DS_STRING_LIST_H
-#define PDK_M_BASE_DS_STRING_LIST_H
-
-#include "pdk/base/lang/String.h"
-#include "pdk/base/lang/StringMatcher.h"
-#include <list>
+#include "pdk/kernel/internal/CoreGlobalDataPrivate.h"
+#include "pdk/global/GlobalStatic.h"
 
 namespace pdk {
-namespace ds {
+namespace kernel {
+namespace internal {
 
-using pdk::lang::String;
+PDK_GLOBAL_STATIC(CoreGlobalData, sg_globalInstance);
 
-class StringList : public std::list<String>
+CoreGlobalData::CoreGlobalData()
+#if PDK_CONFIG(TEXT_CODEC)
+   : m_codecForLocale(nullptr)
+   #endif
 {
-   
-};
+}
 
-} // ds
+CoreGlobalData::~CoreGlobalData()
+{
+#if PDK_CONFIG(TEXT_CODEC)
+   m_codecForLocale = nullptr;
+   for (std::list<TextCodec *>::const_iterator iter = m_allCodecs.cbegin(); iter != m_allCodecs.cend(); ++iter){
+      delete *iter;
+   }
+#endif
+}
+
+CoreGlobalData *CoreGlobalData::getInstance()
+{
+   return sg_globalInstance();
+}
+
+} // internal
+} // kernel
 } // pdk
-
-
-#endif // PDK_M_BASE_DS_STRING_LIST_H
