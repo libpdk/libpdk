@@ -55,7 +55,6 @@ static const uchar Ss3 = 0x8f;        // Single Shift 3
 
 #define        IS_KANA(c)        (((c) >= 0xa1) && ((c) <= 0xdf))
 #define        IS_EUC_CHAR(c)        (((c) >= 0xa1) && ((c) <= 0xfe))
-
 #define        PDK_VALID_CHAR(u)        ((u) ? Character((ushort)(u)) : Character(Character::ReplacementCharacter))
 
 /*!
@@ -127,7 +126,6 @@ ByteArray EucJpCodec::convertFromUnicode(const Character *uc, int len, Converter
    }
    return rstr;
 }
-
 
 String EucJpCodec::convertToUnicode(const char* chars, int len, ConverterState *state) const
 {

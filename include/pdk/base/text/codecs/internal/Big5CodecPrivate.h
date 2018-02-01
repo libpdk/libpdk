@@ -25,7 +25,8 @@ namespace text {
 namespace codecs {
 namespace internal {
 
-class Big5Codec : public TextCodec {
+class Big5Codec : public TextCodec
+{
 public:
    static ByteArray nameImpl();
    static std::list<ByteArray> aliasesImpl();
@@ -50,7 +51,8 @@ public:
    ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
 };
 
-class Big5hkscsCodec : public TextCodec {
+class Big5hkscsCodec : public TextCodec
+{
 public:
    static ByteArray nameImpl();
    
