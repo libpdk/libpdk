@@ -16,6 +16,7 @@
 #ifndef PDK_UTILS_FUNCS_H
 #define PDK_UTILS_FUNCS_H
 
+#include "pdk/global/Global.h"
 #include <type_traits>
 
 namespace pdk {
@@ -26,6 +27,26 @@ auto as_integer(Enumeration const value)
 {
    return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 }
+
+// forward declare class with namespace
+namespace ds {
+class ByteArray;
+} // ds
+
+// forward declare class with namespace
+namespace lang {
+class String;
+} // lang
+
+PDK_CORE_EXPORT ds::ByteArray pdk_getenv(const char *varName);
+PDK_CORE_EXPORT lang::String pdk_env_var(const char *varName);
+PDK_CORE_EXPORT lang::String pdk_env_var(const char *varName, const lang::String &defaultValue);
+PDK_CORE_EXPORT bool pdk_putenv(const char *varName, const ds::ByteArray &value);
+PDK_CORE_EXPORT bool pdk_unsetenv(const char *varName);
+
+PDK_CORE_EXPORT bool env_var_is_empty(const char *varName) noexcept;
+PDK_CORE_EXPORT bool env_var_isset(const char *varName) noexcept;
+PDK_CORE_EXPORT int  env_var_intval(const char *varName, bool *ok = nullptr) noexcept;
 
 } // pdk
 

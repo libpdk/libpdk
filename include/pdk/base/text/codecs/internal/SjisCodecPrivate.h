@@ -21,6 +21,8 @@ namespace text {
 namespace codecs {
 namespace internal {
 
+
+
 } // internal
 } // codecs
 } // text
