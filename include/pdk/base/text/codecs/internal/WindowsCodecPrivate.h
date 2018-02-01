@@ -16,10 +16,27 @@
 #ifndef PDK_M_BASE_TEXT_CODECS_INTERNAL_WINDOWS_CODEC_PRIVATE_H
 #define PDK_M_BASE_TEXT_CODECS_INTERNAL_WINDOWS_CODEC_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+
 namespace pdk {
 namespace text {
 namespace codecs {
 namespace internal {
+
+class WindowsLocalCodec: public TextCodec
+{
+public:
+    WindowsLocalCodec();
+    ~WindowsLocalCodec();
+
+    String convertToUnicode(const char *, int, ConverterState *) const;
+    ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
+    String convertToUnicodeCharByChar(const char *chars, int length, ConverterState *state) const;
+
+    ByteArray name() const;
+    int mibEnum() const;
+};
 
 } // internal
 } // codecs
