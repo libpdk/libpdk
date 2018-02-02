@@ -42,6 +42,24 @@ inline char to_lower(char c)
    return c;
 }
 
+char *pdk_ulltoa2(char *p, pdk::pulonglong n, int base)
+{
+#if defined(PDK_CHECK_RANGE)
+    if (base < 2 || base > 36) {
+        // qWarning("ByteArray::setNum: Invalid base %d", base);
+        base = 10;
+    }
+#endif
+    const char b = 'a' - 10;
+    do {
+        const int c = n % base;
+        n /= base;
+        *--p = c + (c < 10 ? '0' : b);
+    } while (n);
+
+    return p;
+}
+
 }
 
 ByteArray::ByteArray(const char *data, int size)
@@ -83,6 +101,79 @@ ByteArray::ByteArray(int size, Initialization)
    PDK_CHECK_ALLOC_PTR(m_data);
    m_data->m_size = size;
    m_data->getData()[size] = '\0';
+}
+
+ByteArray &ByteArray::setNum(pdk::plonglong n, int base)
+{
+    const int buffsize = 66; // big enough for MAX_ULLONG in base 2
+    char buff[buffsize];
+    char *p;
+
+    if (n < 0 && base == 10) {
+        p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(-(1 + n)) + 1, base);
+        *--p = '-';
+    } else {
+        p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(n), base);
+    }
+
+    clear();
+    append(p, buffsize - (p - buff));
+    return *this;
+}
+
+ByteArray &ByteArray::setNum(pdk::pulonglong n, int base)
+{
+    const int buffsize = 66; // big enough for MAX_ULLONG in base 2
+    char buff[buffsize];
+    char *p = pdk_ulltoa2(buff + buffsize, n, base);
+
+    clear();
+    append(p, buffsize - (p - buff));
+    return *this;
+}
+
+// @TODO wait for locale
+ByteArray &ByteArray::setNum(double n, char f, int prec)
+{
+   std::string ret = std::to_string(n);
+   clear();
+   append(ret.data(), ret.size());
+   return *this;
+}
+
+ByteArray ByteArray::number(int n, int base)
+{
+    ByteArray s;
+    s.setNum(n, base);
+    return s;
+}
+
+ByteArray ByteArray::number(uint n, int base)
+{
+    ByteArray s;
+    s.setNum(n, base);
+    return s;
+}
+
+ByteArray ByteArray::number(pdk::plonglong n, int base)
+{
+    ByteArray s;
+    s.setNum(n, base);
+    return s;
+}
+
+ByteArray ByteArray::number(pdk::pulonglong n, int base)
+{
+    ByteArray s;
+    s.setNum(n, base);
+    return s;
+}
+
+ByteArray ByteArray::number(double n, char f, int prec)
+{
+    ByteArray s;
+    s.setNum(n, f, prec);
+    return s;
 }
 
 ByteArray ByteArray::fromRawData(const char *data, int size)

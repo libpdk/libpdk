@@ -90,9 +90,9 @@ public:
     ByteArray convertFromUnicode(const Character *, int, ConverterState *) const;
 };
 
-class QGb2312Codec : public Gb18030Codec {
+class Gb2312Codec : public Gb18030Codec {
 public:
-    QGb2312Codec();
+    Gb2312Codec();
 
     static ByteArray nameImpl();
     static std::list<ByteArray> aliasesImpl() { return std::list<ByteArray>(); }

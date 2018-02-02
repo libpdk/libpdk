@@ -76,15 +76,15 @@ struct ByteArrayDataPtr
 
 #define ByteArrayLiteral(str) \
    ([]()-> pdk::ds::ByteArray {\
-      enum { Size = sizeof(str) - 1 };\
-      static const pdk::ds::StaticByteArrayData<Size> byteArrayLiteral = {\
-         PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(Size),\
-         str\
-      };\
-      pdk::ds::ByteArrayDataPtr holder = { byteArrayLiteral.getDataPtr() };\
-      const pdk::ds::ByteArray byteArray(holder);\
-      return byteArray;\
-   }())
+   enum { Size = sizeof(str) - 1 };\
+   static const pdk::ds::StaticByteArrayData<Size> byteArrayLiteral = {\
+   PDK_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER(Size),\
+   str\
+};\
+   pdk::ds::ByteArrayDataPtr holder = { byteArrayLiteral.getDataPtr() };\
+   const pdk::ds::ByteArray byteArray(holder);\
+   return byteArray;\
+}())
 
 using pdk::lang::String;
 
@@ -217,7 +217,7 @@ public:
    void chop(int n);
    
 #  if defined(PDK_CC_GNU) && !defined(PDK_CC_CLANG) && !defined(PDK_CC_INTEL) && !PDK_HAS_CPP_ATTRIBUTE(nodiscard)
-    // required due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61941
+   // required due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61941
 #    pragma push_macro("PDK_REQUIRED_RESULT")
 #    undef PDK_REQUIRED_RESULT
 #    define PDK_REQUIRED_RESULT
@@ -310,44 +310,44 @@ public:
    std::list<ByteArray> split(char sep) const;
    PDK_REQUIRED_RESULT ByteArray repeated(int times) const;
    
-//   short toShort(bool *ok = nullptr, int base = 10) const;
-//   ushort toUnsignedShort(bool *ok = nullptr, int base = 10) const;
-//   int toInt(bool *ok = nullptr, int base = 10) const;
-//   uint toUnsignedInt(bool *ok = nullptr, int base = 10) const;
-//   long toLong(bool *ok = nullptr, int base = 10) const;
-//   ulong toUnsignedLong(bool *ok = nullptr, int base = 10) const;
-//   long long toLongLong(bool *ok = nullptr, int base = 10) const;
-//   unsigned long long toUnsignedLongLong(bool *ok = nullptr, int base = 10) const;
-//   float toFloat(bool *ok = nullptr) const;
-//   double toDouble(bool *ok = nullptr) const;
+   //   short toShort(bool *ok = nullptr, int base = 10) const;
+   //   ushort toUnsignedShort(bool *ok = nullptr, int base = 10) const;
+   //   int toInt(bool *ok = nullptr, int base = 10) const;
+   //   uint toUnsignedInt(bool *ok = nullptr, int base = 10) const;
+   //   long toLong(bool *ok = nullptr, int base = 10) const;
+   //   ulong toUnsignedLong(bool *ok = nullptr, int base = 10) const;
+   //   long long toLongLong(bool *ok = nullptr, int base = 10) const;
+   //   unsigned long long toUnsignedLongLong(bool *ok = nullptr, int base = 10) const;
+   //   float toFloat(bool *ok = nullptr) const;
+   //   double toDouble(bool *ok = nullptr) const;
    
    ByteArray toBase64(Base64Options options) const;
    ByteArray toBase64() const;
    ByteArray toHex() const;
-//   ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
-//                               const ByteArray &include = ByteArray(),
-//                               char percent = '%') const;
+   //   ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
+   //                               const ByteArray &include = ByteArray(),
+   //                               char percent = '%') const;
    
-//   ByteArray &setNum(short number, int base = 10);
-//   ByteArray &setNum(ushort number, int base = 10);
-//   ByteArray &setNum(int number, int base = 10);
-//   ByteArray &setNum(uint number, int base = 10);
-//   ByteArray &setNum(long long number, int base = 10);
-//   ByteArray &setNum(unsigned long long number, int base = 10);
-//   ByteArray &setNum(float number, char format = 'g', int prec = 6);
-//   ByteArray &setNum(double number, char format = 'g', int prec = 6);
-//   ByteArray &setRawData(const char *a, int n);
+   inline ByteArray &setNum(short, int base = 10);
+   inline ByteArray &setNum(ushort, int base = 10);
+   inline ByteArray &setNum(int, int base = 10);
+   inline ByteArray &setNum(uint, int base = 10);
+   ByteArray &setNum(pdk::plonglong, int base = 10);
+   ByteArray &setNum(pdk::pulonglong, int base = 10);
+   inline ByteArray &setNum(float, char f = 'g', int prec = 6);
+   ByteArray &setNum(double, char f = 'g', int prec = 6);
+   ByteArray &setRawData(const char *a, int n);
    
-//   static ByteArray number(int, int base = 10) PDK_REQUIRED_RESULT;
-//   static ByteArray number(uint, int base = 10) PDK_REQUIRED_RESULT;
-//   static ByteArray number(long long, int base = 10) PDK_REQUIRED_RESULT;
-//   static ByteArray number(unsigned long long, int base = 10) PDK_REQUIRED_RESULT;
-//   static ByteArray number(double, char format = 'g', int prec = 6) PDK_REQUIRED_RESULT;
-   static ByteArray fromRawData(const char *data, int size) PDK_REQUIRED_RESULT;
-   static ByteArray fromBase64(const ByteArray &base64, Base64Options options) PDK_REQUIRED_RESULT;
-   static ByteArray fromBase64(const ByteArray &base64) PDK_REQUIRED_RESULT;
-   static ByteArray fromHex(const ByteArray &hexEncoded) PDK_REQUIRED_RESULT;
-//   static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
+   PDK_REQUIRED_RESULT static ByteArray number(int, int base = 10);
+   PDK_REQUIRED_RESULT static ByteArray number(uint, int base = 10);
+   PDK_REQUIRED_RESULT static ByteArray number(pdk::plonglong, int base = 10);
+   PDK_REQUIRED_RESULT static ByteArray number(pdk::pulonglong, int base = 10);
+   PDK_REQUIRED_RESULT static ByteArray number(double, char f = 'g', int prec = 6);
+   PDK_REQUIRED_RESULT static ByteArray fromRawData(const char *data, int size);
+   PDK_REQUIRED_RESULT static ByteArray fromBase64(const ByteArray &base64, Base64Options options);
+   PDK_REQUIRED_RESULT static ByteArray fromBase64(const ByteArray &base64);
+   PDK_REQUIRED_RESULT static ByteArray fromHex(const ByteArray &hexEncoded);
+   //   static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%') PDK_REQUIRED_RESULT;
    
    using Iterator = char *;
    using iterator = Iterator;
@@ -920,32 +920,32 @@ inline ByteArray &ByteArray::replace(const char *before, const char *after)
    return replace(before, pdk::strlen(before), after, pdk::strlen(after));
 }
 
-//inline ByteArray &ByteArray::setNum(short number, int base)
-//{
-//   return base == 10 ? setNum(static_cast<long long>(number), base)
-//                     : setNum(static_cast<unsigned long long>(static_cast<unsigned short>(number)), base);
-//}
+inline ByteArray &ByteArray::setNum(short n, int base)
+{
+   return base == 10 ? setNum(static_cast<pdk::plonglong>(n), base) 
+                     : setNum(static_cast<pdk::pulonglong>(ushort(n)), base);
+}
 
-//inline ByteArray &ByteArray::setNum(ushort number, int base)
-//{
-//   return setNum(static_cast<unsigned long long>(number), base);
-//}
+inline ByteArray &ByteArray::setNum(ushort n, int base)
+{
+   return setNum(static_cast<pdk::pulonglong>(n), base);
+}
 
-//inline ByteArray &ByteArray::setNum(int number, int base)
-//{
-//   return base == 10 ? setNum(static_cast<long long>(number), base)
-//                     : setNum(static_cast<unsigned long long>(static_cast<uint>(number)), base);
-//}
+inline ByteArray &ByteArray::setNum(int n, int base)
+{
+   return base == 10 ? setNum(static_cast<pdk::plonglong>(n), base) 
+                     : setNum(static_cast<pdk::pulonglong>(static_cast<uint>(n)), base);
+}
 
-//inline ByteArray &ByteArray::setNum(uint number, int base)
-//{
-//   return setNum(static_cast<unsigned long long>(number), base);
-//}
+inline ByteArray &ByteArray::setNum(uint n, int base)
+{
+   return setNum(static_cast<pdk::pulonglong>(n), base);
+}
 
-//inline ByteArray &ByteArray::setNum(float number, char format, int prec)
-//{
-//   return setNum(static_cast<double>(number), format, prec);
-//}
+inline ByteArray &ByteArray::setNum(float n, char f, int prec)
+{
+   return setNum(static_cast<double>(n), f, prec);
+}
 
 inline std::string ByteArray::toStdString() const
 {

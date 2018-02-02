@@ -394,38 +394,38 @@ ByteArray GbkCodec::convertFromUnicode(const Character *uc, int len, ConverterSt
 
 
 /*!
-  The QGb2312Codec class provides conversion to and from the Chinese
+  The Gb2312Codec class provides conversion to and from the Chinese
   GB2312 encoding.
   
   The GB2312 encoding has been superseded by the GB18030 encoding and
-  GB18030 is backward compatible to GB2312.  For this reason the QGb2312Codec
+  GB18030 is backward compatible to GB2312.  For this reason the Gb2312Codec
   class is implemented in terms of the GB18030 codec and uses its
   0xA1A1-0xFEFE subset for conversion from and to Unicode.
   
-  The QGb2312Codec is kept mainly for compatibility reasons with older software.
+  The Gb2312Codec is kept mainly for compatibility reasons with older software.
 */
 
 
 /*!
-    Constructs a QGb2312Codec object.
+    Constructs a Gb2312Codec object.
 */
-QGb2312Codec::QGb2312Codec()
+Gb2312Codec::Gb2312Codec()
    : Gb18030Codec()
 {
 }
 
-int QGb2312Codec::mibEnumImpl()
+int Gb2312Codec::mibEnumImpl()
 {
    return 2025;
 }
 
-ByteArray QGb2312Codec::nameImpl()
+ByteArray Gb2312Codec::nameImpl()
 {
    return "GB2312";
 }
 
 
-String QGb2312Codec::convertToUnicode(const char* chars, int len, ConverterState *state) const
+String Gb2312Codec::convertToUnicode(const char* chars, int len, ConverterState *state) const
 {
    uchar buf[2] = {0, 0};
    int nbuf = 0;
@@ -500,7 +500,7 @@ String QGb2312Codec::convertToUnicode(const char* chars, int len, ConverterState
 }
 
 
-ByteArray QGb2312Codec::convertFromUnicode(const Character *uc, int len, ConverterState *state) const
+ByteArray Gb2312Codec::convertFromUnicode(const Character *uc, int len, ConverterState *state) const
 {
    char replacement = '?';
    if (state) {
@@ -514,7 +514,7 @@ ByteArray QGb2312Codec::convertFromUnicode(const Character *uc, int len, Convert
    rstr.resize(rlen);
    uchar* cursor = (uchar*)rstr.getRawData();
    
-   //qDebug("QGb2312Codec::fromUnicode(const String& uc, int& lenInOut = %d) const", lenInOut);
+   //qDebug("Gb2312Codec::fromUnicode(const String& uc, int& lenInOut = %d) const", lenInOut);
    for (int i = 0; i < len; i++) {
       Character ch = uc[i];
       uchar buf[2];
