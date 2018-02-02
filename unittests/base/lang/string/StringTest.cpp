@@ -23,6 +23,7 @@
 #include "pdk/base/text/codecs/internal/Gb18030CodecPrivate.h"
 #include "pdk/base/text/codecs/internal/WindowsCodecPrivate.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
+#include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
@@ -358,7 +359,7 @@ TEST(StringTest, testAccess)
    f[7] = 'F';
    ASSERT_EQ(e, Latin1String("String E"));
    char text[]="String f";
-//   f = text;
-//   text[7]='!';
-//   ASSERT_EQ(f, Latin1String("String f"));
+   f = text;
+   text[7]='!';
+   ASSERT_EQ(f, Latin1String("String f"));
 }

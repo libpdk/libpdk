@@ -20,10 +20,10 @@
 #include <vector>
 #include <algorithm>
 
-#include "pdk/base/ds/internal/ByteArrayMatcher.h"
+#include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/base/ds/ByteArray.h"
 
-using pdk::ds::internal::ByteArrayMatcher;
+using pdk::ds::ByteArrayMatcher;
 using pdk::ds::ByteArray;
 
 TEST(ByteArrayMatcherTest, testInterface)
@@ -44,31 +44,31 @@ TEST(ByteArrayMatcherTest, testInterface)
    ByteArrayMatcher matcher6;
    matcher6 = matcher3;
    
-   ASSERT_EQ(matcher1.findIndex(haystack), 42);
-   ASSERT_EQ(matcher2.findIndex(haystack), 42);
-   ASSERT_EQ(matcher3.findIndex(haystack), 42);
-   ASSERT_EQ(matcher4.findIndex(haystack), 42);
-   ASSERT_EQ(matcher5.findIndex(haystack), 42);
-   ASSERT_EQ(matcher6.findIndex(haystack), 42);
+   ASSERT_EQ(matcher1.indexIn(haystack), 42);
+   ASSERT_EQ(matcher2.indexIn(haystack), 42);
+   ASSERT_EQ(matcher3.indexIn(haystack), 42);
+   ASSERT_EQ(matcher4.indexIn(haystack), 42);
+   ASSERT_EQ(matcher5.indexIn(haystack), 42);
+   ASSERT_EQ(matcher6.indexIn(haystack), 42);
    
-   ASSERT_EQ(matcher1.findIndex(haystack.getConstRawData(), haystack.size()), 42);
+   ASSERT_EQ(matcher1.indexIn(haystack.getConstRawData(), haystack.size()), 42);
    
-   ASSERT_EQ(matcher1.findIndex(haystack, 43), 84);
-   ASSERT_EQ(matcher1.findIndex(haystack.getConstRawData(), haystack.size(), 43), 84);
-   ASSERT_EQ(matcher1.findIndex(haystack, 85), -1);
-   ASSERT_EQ(matcher1.findIndex(haystack.getConstRawData(), haystack.size(), 85), -1);
+   ASSERT_EQ(matcher1.indexIn(haystack, 43), 84);
+   ASSERT_EQ(matcher1.indexIn(haystack.getConstRawData(), haystack.size(), 43), 84);
+   ASSERT_EQ(matcher1.indexIn(haystack, 85), -1);
+   ASSERT_EQ(matcher1.indexIn(haystack.getConstRawData(), haystack.size(), 85), -1);
    
    ByteArrayMatcher matcher7(ByteArray("123"));
-   ASSERT_EQ(matcher7.findIndex(haystack), 6);
+   ASSERT_EQ(matcher7.indexIn(haystack), 6);
    
    matcher7 = ByteArrayMatcher(ByteArray("abc"));
-   ASSERT_EQ(matcher7.findIndex(haystack), 31);
+   ASSERT_EQ(matcher7.indexIn(haystack), 31);
    
    matcher7.setPattern(matcher4.getPattern());
-   ASSERT_EQ(matcher7.findIndex(haystack), 42);
+   ASSERT_EQ(matcher7.indexIn(haystack), 42);
 }
 
-TEST(ByteArrayMatcherTest, testFindIndex)
+TEST(ByteArrayMatcherTest, testindexIn)
 {
    static ByteArrayMatcher matcher;
    const char pdata[] = { 0x0, 0x0, 0x1 };
@@ -78,12 +78,12 @@ TEST(ByteArrayMatcherTest, testFindIndex)
    haystack[7] = 0x1;
    
    matcher = ByteArrayMatcher(pattern);
-   ASSERT_EQ(matcher.findIndex(haystack, 0), 5);
-   ASSERT_EQ(matcher.findIndex(haystack, 1), 5);
-   ASSERT_EQ(matcher.findIndex(haystack, 2), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 0), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 1), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 2), 5);
    
    matcher.setPattern(pattern);
-   ASSERT_EQ(matcher.findIndex(haystack, 0), 5);
-   ASSERT_EQ(matcher.findIndex(haystack, 1), 5);
-   ASSERT_EQ(matcher.findIndex(haystack, 2), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 0), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 1), 5);
+   ASSERT_EQ(matcher.indexIn(haystack, 2), 5);
 }

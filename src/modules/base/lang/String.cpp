@@ -21,6 +21,9 @@
 #include "pdk/base/lang/internal/StringHelper.h"
 #include "pdk/kernel/Algorithms.h"
 #include "pdk/global/Endian.h"
+#include "pdk/base/lang/internal/UnicodeTables.h"
+#include "pdk/base/text/codecs/TextCodec.h"
+#include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 
 #ifdef truncate
 #  undef truncate

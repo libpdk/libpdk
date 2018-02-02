@@ -16,7 +16,7 @@
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/MemoryHelper.h"
 #include "pdk/base/lang/Character.h"
-#include "pdk/base/ds/internal/ByteArrayMatcher.h"
+#include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/kernel/internal/StringAlgorithms.h"
 
 #include <limits.h>
@@ -433,12 +433,9 @@ void ByteArray::clear()
    m_data = Data::getSharedNull();
 }
 
-namespace internal {
-
-int find_byte_array(const char *haystack, int haystackLength, int from,
-                    const char *needle, int needleLength);
-
-}
+int pdk_find_byte_array(
+      const char *haystack0, int haystackLen, int from,
+      const char *needle, int needleLen);
 
 int ByteArray::indexOf(const ByteArray &needle, int from) const
 {
@@ -453,8 +450,8 @@ int ByteArray::indexOf(const ByteArray &needle, int from) const
    if (from > selfLength || searchedLength + from > selfLength) {
       return -1;
    }
-   return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
-                                    needle.m_data->getData(), searchedLength);
+   return pdk_find_byte_array(m_data->getData(), m_data->m_size, from, 
+                              needle.m_data->getData(), searchedLength);
 }
 
 int ByteArray::indexOf(const char *needle, int from) const
@@ -470,7 +467,7 @@ int ByteArray::indexOf(const char *needle, int from) const
    if (searchedLength == 0) {
       return from;
    }
-   return internal::find_byte_array(m_data->getData(), m_data->m_size, from, 
+   return pdk_find_byte_array(m_data->getData(), m_data->m_size, from, 
                                     needle, searchedLength);
 }
 
@@ -536,8 +533,8 @@ int ByteArray::count(const ByteArray &array) const
    int num = 0;
    int pos = -1;
    if (m_data->m_size > 500 && array.m_data->m_size > 5) {
-      internal::ByteArrayMatcher matcher(array);
-      while ((pos = matcher.findIndex(*this, pos + 1)) != -1) {
+      ByteArrayMatcher matcher(array);
+      while ((pos = matcher.indexIn(*this, pos + 1)) != -1) {
          ++num;
       }
    } else {
@@ -942,12 +939,12 @@ ByteArray &ByteArray::replace(const char *before, int blength, const char *after
       b = copy;
    }
    
-   internal::ByteArrayMatcher matcher(before, blength);
+   ByteArrayMatcher matcher(before, blength);
    int index = 0;
    
    if (blength == alength) {
       if (blength) {
-         while ((index = matcher.findIndex(*this, index)) != -1) {
+         while ((index = matcher.indexIn(*this, index)) != -1) {
             std::memcpy(selfDataPtr + index, after, alength);
             index += blength;
          }
@@ -956,7 +953,7 @@ ByteArray &ByteArray::replace(const char *before, int blength, const char *after
       uint to = 0;
       uint movestart = 0;
       uint num = 0;
-      while ((index = matcher.findIndex(*this, index)) != -1) {
+      while ((index = matcher.indexIn(*this, index)) != -1) {
          if (num) {
             int msize = index - movestart;
             if (msize > 0) {
@@ -987,7 +984,7 @@ ByteArray &ByteArray::replace(const char *before, int blength, const char *after
          uint indices[4096];
          uint pos = 0;
          while(pos < 4095) {
-            index = matcher.findIndex(*this, index);
+            index = matcher.indexIn(*this, index);
             if (index == -1) {
                break;
             }
