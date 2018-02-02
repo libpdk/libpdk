@@ -61,12 +61,19 @@
 
 
 namespace pdk {
+
+namespace lang {
+namespace internal {
+void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;
+} // internal
+} // lang
+
 namespace text {
 namespace codecs {
 
 using pdk::kernel::CoreApplicationPrivate;
 
-using TextCodecListConstIter = std::list<TextCodec*>::const_iterator;
+using TextCodecListConstIter = std::list<TextCodec *>::const_iterator;
 using ByteArrayListConstIter = std::list<ByteArray>::const_iterator;
 using pdk::kernel::internal::TextCodecCache;
 
@@ -78,14 +85,10 @@ std::recursive_mutex *pdk_text_codecs_mutex()
 }
 
 #if !PDK_CONFIG(ICU)
-namespace internal {
-bool text_codec_name_match(const char *a, const char *b)
-{}
-} // internal
 
 namespace {
 
-char tolower(char c)
+char pdk_tolower(char c)
 {
    if (c >= 'A' && c <= 'Z') {
       return c + 0x20;
@@ -93,7 +96,7 @@ char tolower(char c)
    return c;
 }
 
-bool isalnum(char c)
+bool pdk_isalnum(char c)
 {
    return (c >= '0' && c <= '9') || ((c | 0x20) >= 'a' && (c | 0x20) <= 'z');
 }
@@ -268,6 +271,39 @@ void setup()
 }
 
 } // anonymous namespace
+
+namespace internal {
+bool text_codec_name_match(const char *n, const char *h)
+{
+   if (pdk::stricmp(n, h) == 0) {
+      return true;
+   }
+   // if the letters and numbers are the same, we have a match
+   while (*n != '\0') {
+      if (std::isalnum(*n)) {
+         for (;;) {
+            if (*h == '\0'){
+               return false;
+            }
+            if (pdk_isalnum(*h)) {
+               break;
+            }
+            ++h;
+         }
+         if (pdk_tolower(*n) != pdk_tolower(*h)) {
+            return false;
+         }
+         ++h;
+      }
+      ++n;
+   }
+   while (*h && !pdk_isalnum(*h)) {
+      ++h;
+   }
+   return (*h == '\0');
+}
+} // internal
+
 #else
 namespace {
 void setup()
@@ -382,74 +418,139 @@ TextCodec* TextCodec::codecForMib(int mib)
 
 std::list<ByteArray> TextCodec::getAvailableCodecs()
 {
+   std::lock_guard<std::recursive_mutex> locker(*sg_textCodecsMutex());
+   CoreGlobalData *globalData = CoreGlobalData::getInstance();
+   if (globalData->m_allCodecs.empty())
+      setup();
    
+   std::list<ByteArray> codecs;
+   
+   for (TextCodecListConstIter iter = globalData->m_allCodecs.cbegin(), cend = globalData->m_allCodecs.cend(); iter != cend; ++iter) {
+      codecs.push_back((*iter)->name());
+      codecs.merge((*iter)->aliases());
+   }
+   
+#if PDK_CONFIG(ICU)
+   codecs += internal::IcuCodec::availableCodecs();
+#endif
+   
+   return codecs;
 }
 
 std::list<int> TextCodec::getAvailableMibs()
 {
+#if PDK_CONFIG(ICU)
+   return QIcuCodec::availableMibs();
+#else
+   std::lock_guard<std::recursive_mutex> locker(*sg_textCodecsMutex());
+   CoreGlobalData *globalData = CoreGlobalData::getInstance();
+   if (globalData->m_allCodecs.empty()) {
+      setup();
+   }
+   std::list<int> codecs;
+   for (TextCodecListConstIter iter = globalData->m_allCodecs.cbegin(), cend = globalData->m_allCodecs.cend(); iter != cend; ++iter) {
+      codecs.push_back((*iter)->mibEnum());
+   }
+   return codecs;
+#endif
 }
 
 void TextCodec::setCodecForLocale(TextCodec *c)
 {
-   
+   CoreGlobalData::getInstance()->m_codecForLocale.storeRelease(c);
 }
 
 TextCodec* TextCodec::getCodecForLocale()
 {
+   CoreGlobalData *globalData = CoreGlobalData::getInstance();
+   if (!globalData) {
+      return 0;
+   }
+   TextCodec *codec = globalData->m_codecForLocale.loadAcquire();
+   if (!codec) {
+#if PDK_CONFIG(ICU)
+      sg_textCodecsMutex()->lock();
+      codec = internal::IcuCodec::defaultCodecUnlocked();
+      sg_textCodecsMutex()->unlock();
+#else
+      // setup_locale_mapper locks as necessary
+      codec = setup_locale_mapper();
+#endif
+   }
    
+   return codec;
 }
 
 std::list<ByteArray> TextCodec::aliases() const
 {
+   return std::list<ByteArray>();
 }
 
 TextDecoder* TextCodec::makeDecoder(TextCodec::ConversionFlags flags) const
 {
-   
+   return new TextDecoder(this, flags);
 }
 
 TextEncoder* TextCodec::makeEncoder(TextCodec::ConversionFlags flags) const
 {
-   
+   return new TextEncoder(this, flags);
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
 ByteArray TextCodec::fromUnicode(const String& str) const
 {
+   return convertFromUnicode(str.getConstRawData(), str.length(), 0);
 }
 #endif
 
 ByteArray TextCodec::fromUnicode(StringView str) const
 {
+   return convertFromUnicode(str.data(), str.length(), nullptr);
 }
 
-String TextCodec::toUnicode(const ByteArray& a) const
+String TextCodec::toUnicode(const ByteArray& array) const
 {
+   return convertToUnicode(array.getConstRawData(), array.length(), 0);
 }
 
 bool TextCodec::canEncode(Character ch) const
 {
+   ConverterState state;
+   state.m_flags = ConversionFlag::ConvertInvalidToNull;
+   convertFromUnicode(&ch, 1, &state);
+   return (state.m_invalidChars == 0);
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
 
-bool TextCodec::canEncode(const String& s) const
+bool TextCodec::canEncode(const String& str) const
 {
+   ConverterState state;
+   state.m_flags = ConversionFlag::ConvertInvalidToNull;
+   convertFromUnicode(str.getConstRawData(), str.length(), &state);
+   return (state.m_invalidChars == 0);
 }
 #endif
 
-bool TextCodec::canEncode(StringView s) const
+bool TextCodec::canEncode(StringView str) const
 {
+   ConverterState state;
+   state.m_flags = ConversionFlag::ConvertInvalidToNull;
+   convertFromUnicode(str.data(), str.length(), &state);
+   return !state.m_invalidChars;
 }
 
 String TextCodec::toUnicode(const char *chars) const
 {
+   int len = pdk::strlen(chars);
+   return convertToUnicode(chars, len, 0);
 }
 
 TextEncoder::TextEncoder(const TextCodec *codec, TextCodec::ConversionFlags flags)
    : m_codec(codec),
      m_state()
 {
+   m_state.m_flags = flags;
 }
 
 TextEncoder::~TextEncoder()
@@ -458,27 +559,31 @@ TextEncoder::~TextEncoder()
 
 bool TextEncoder::hasFailure() const
 {
+   return m_state.m_invalidChars != 0;
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
 ByteArray TextEncoder::fromUnicode(const String& str)
 {
+   return m_codec->fromUnicode(str.getConstRawData(), str.length(), &m_state);
 }
 #endif
 
 ByteArray TextEncoder::fromUnicode(StringView str)
 {
-   
+   return m_codec->fromUnicode(str.data(), str.length(), &m_state);
 }
 
 ByteArray TextEncoder::fromUnicode(const Character *uc, int len)
 {
+   return m_codec->fromUnicode(uc, len, &m_state);
 }
 
 TextDecoder::TextDecoder(const TextCodec *codec, TextCodec::ConversionFlags flags)
    : m_codec(codec),
      m_state()
 {
+   m_state.m_flags = flags;
 }
 
 TextDecoder::~TextDecoder()
@@ -487,38 +592,115 @@ TextDecoder::~TextDecoder()
 
 String TextDecoder::toUnicode(const char *chars, int len)
 {
+   return m_codec->toUnicode(chars, len, &m_state);
 }
+
+using ::pdk::lang::internal::utf16_from_latin1;
 
 void TextDecoder::toUnicode(String *target, const char *chars, int len)
 {
+   PDK_ASSERT(target);
+   switch (m_codec->mibEnum()) {
+   case 106: // utf8
+      static_cast<const internal::Utf8Codec*>(m_codec)->convertToUnicode(target, chars, len, &m_state);
+      break;
+   case 4: // latin1
+      target->resize(len);
+      utf16_from_latin1((char16_t*)target->getRawData(), chars, len);
+      break;
+   default:
+      *target = m_codec->toUnicode(chars, len, &m_state);
+   }
 }
 
 String TextDecoder::toUnicode(const ByteArray &ba)
 {
+   return m_codec->toUnicode(ba.getConstRawData(), ba.length(), &m_state);
 }
-
 
 bool TextDecoder::hasFailure() const
 {
-   
+   return m_state.m_invalidChars != 0;
 }
 
 TextCodec *TextCodec::codecForHtml(const ByteArray &ba, TextCodec *defaultCodec)
 {
+   // determine charset
+   TextCodec *c = TextCodec::codecForUtfText(ba, 0);
+   if (!c) {
+      static PDK_RELAXED_CONSTEXPR auto matcher = pdk::ds::pdk_make_static_byte_array_matcher("meta ");
+      ByteArray header = ba.left(1024).toLower();
+      int pos = matcher.indexIn(header);
+      if (pos != -1) {
+         static PDK_RELAXED_CONSTEXPR auto matcher = pdk::ds::pdk_make_static_byte_array_matcher("charset=");
+         pos = matcher.indexIn(header, pos);
+         if (pos != -1) {
+            pos += pdk::strlen("charset=");
+            int pos2 = pos;
+            // The attribute can be closed with either """, "'", ">" or "/",
+            // none of which are valid charset characters.
+            while (++pos2 < header.size()) {
+               char ch = header.at(pos2);
+               if (ch == '\"' || ch == '\'' || ch == '>') {
+                  ByteArray name = header.mid(pos, pos2 - pos);
+                  if (name == "unicode") // QTBUG-41998, ICU will return UTF-16.
+                     name = ByteArrayLiteral("UTF-8");
+                  c = TextCodec::codecForName(name);
+                  return c ? c : defaultCodec;
+               }
+            }
+         }
+      }
+   }
+   if (!c) {
+      c = defaultCodec;
+   }
+   return c;
 }
 
 TextCodec *TextCodec::codecForHtml(const ByteArray &ba)
 {
-   
+   return codecForHtml(ba, TextCodec::codecForName("ISO-8859-1"));
 }
 
 TextCodec *TextCodec::codecForUtfText(const ByteArray &ba, TextCodec *defaultCodec)
 {
+   const int arraySize = ba.size();
+   if (arraySize > 3) {
+      if ((uchar)ba[0] == 0x00
+          && (uchar)ba[1] == 0x00
+          && (uchar)ba[2] == 0xFE
+          && (uchar)ba[3] == 0xFF)
+         return TextCodec::codecForMib(1018); // utf-32 be
+      else if ((uchar)ba[0] == 0xFF
+               && (uchar)ba[1] == 0xFE
+               && (uchar)ba[2] == 0x00
+               && (uchar)ba[3] == 0x00)
+         return TextCodec::codecForMib(1019); // utf-32 le
+   }
+   
+   if (arraySize < 2) {
+      return defaultCodec;
+   }
+   if ((uchar)ba[0] == 0xfe && (uchar)ba[1] == 0xff) {
+      return TextCodec::codecForMib(1013); // utf16 be
+   } else if ((uchar)ba[0] == 0xff && (uchar)ba[1] == 0xfe) {
+      return TextCodec::codecForMib(1014); // utf16 le
+   }
+   if (arraySize < 3) {
+      return defaultCodec;
+   }
+   if ((uchar)ba[0] == 0xef
+       && (uchar)ba[1] == 0xbb
+       && (uchar)ba[2] == 0xbf) {
+      return TextCodec::codecForMib(106); // utf-8
+   }
+   return defaultCodec;
 }
 
 TextCodec *TextCodec::codecForUtfText(const ByteArray &ba)
 {
-   
+   return codecForUtfText(ba, TextCodec::codecForMib(/*Latin 1*/ 4));
 }
 
 } // codecs
