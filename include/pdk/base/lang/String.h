@@ -356,7 +356,7 @@ public:
    
    String &operator =(Character c);
    String &operator =(const String &other) noexcept;
-   inline String &operator =(Latin1String other);
+   String &operator =(Latin1String other);
    
    template <int N>
    inline String &operator =(const char (&str)[N])

@@ -260,7 +260,7 @@ String Utf8::convertToUnicode(const char *chars, int len)
    // The table holds for invalid sequences too: we'll insert one replacement char
    // per invalid byte.
    String result(len, pdk::Uninitialized);
-   Character *data = const_cast<Character*>(result.getConstRawData()); // we know we're not shared
+   Character *data = const_cast<Character *>(result.getConstRawData()); // we know we're not shared
    const Character *end = convertToUnicode(data, chars, len);
    result.truncate(end - data);
    return result;

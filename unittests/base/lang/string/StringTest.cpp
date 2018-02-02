@@ -14,15 +14,15 @@
 // Created by zzu_softboy on 2017/12/23.
 
 #include "gtest/gtest.h"
-#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/Big5CodecPrivate.h"
-#include "pdk/base/text/codecs/internal/EucjpCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/EuckrCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/Gb18030CodecPrivate.h"
-#include "pdk/base/text/codecs/internal/WindowsCodecPrivate.h"
-#include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/Big5CodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/EucjpCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/EuckrCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/Gb18030CodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/WindowsCodecPrivate.h"
+//#include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
@@ -362,4 +362,9 @@ TEST(StringTest, testAccess)
    f = text;
    text[7]='!';
    ASSERT_EQ(f, Latin1String("String f"));
+   f[7] = 'F';
+   ASSERT_EQ(text[7], '!');
+   
+   a = Latin1String("");
+   a[0] = 'A';
 }

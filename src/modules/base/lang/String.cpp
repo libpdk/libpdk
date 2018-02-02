@@ -24,6 +24,7 @@
 #include "pdk/base/lang/internal/UnicodeTables.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
+#include <cstring>
 
 #ifdef truncate
 #  undef truncate
@@ -43,6 +44,8 @@
 
 namespace pdk {
 namespace lang {
+
+using pdk::text::codecs::internal::Utf8;
 
 namespace
 {
@@ -332,7 +335,7 @@ constexpr int lencmp(Number lhs, Number rhs) noexcept
 {
    return lhs == rhs ? 0 :
                        lhs >  rhs ? 1 :
-                                     -1 ;
+                                    -1 ;
 }
 
 // Unicode case-sensitive comparison
@@ -578,20 +581,56 @@ String::String(const Character *unicode, int size)
 
 String::String(int size, Character c)
 {
-   
+   m_data = Data::allocate(size + 1);
+   PDK_CHECK_ALLOC_PTR(m_data);
+   m_data->m_size = size;
+   m_data->getData()[size] = '\0';
 }
 
 String::String(int size, Initialization)
-{}
+{
+   m_data = Data::allocate(size + 1);
+   PDK_CHECK_ALLOC_PTR(m_data);
+   m_data->m_size = size;
+   m_data->getData()[size] = '\0';
+}
 
 String::String(Character c)
-{}
+{
+   m_data = Data::allocate(2);
+   PDK_CHECK_ALLOC_PTR(m_data);
+   m_data->m_size = 1;
+   m_data->getData()[0] = c.unicode();
+   m_data->getData()[1] = '\0';
+}
 
 void String::resize(int size)
-{}
+{
+   if (size < 0) {
+      size = 0;
+   }
+   if (IS_RAW_DATA(m_data) && !m_data->m_ref.isShared() && size < m_data->m_size) {
+      m_data->m_size = size;
+      return;
+   }
+   if (m_data->m_ref.isShared() || static_cast<uint>(size) + 1u > m_data->m_alloc) {
+      reallocData(static_cast<uint>(size) + 1u, true);
+   }
+   if (m_data->m_alloc) {
+      m_data->m_size = size;
+      m_data->getData()[size] = '\0';
+   }
+}
 
 void String::resize(int size, Character fillChar)
-{}
+{
+   const int oldSize = length();
+   resize(size);
+   const int difference = length() - oldSize;
+   if (difference > 0) {
+      std::fill_n(m_data->begin() + oldSize, difference, fillChar.unicode());
+   }
+}
 
 void String::reallocData(uint alloc, bool grow)
 {
@@ -613,7 +652,6 @@ void String::reallocData(uint alloc, bool grow)
       Data *dptr = Data::reallocateUnaligned(m_data, alloc, allocOptions);
       PDK_CHECK_ALLOC_PTR(dptr);
       m_data = dptr;
-      
    }
 }
 
@@ -630,34 +668,152 @@ String &String::operator =(const String &other) noexcept
 }
 
 String &String::operator =(Latin1String other)
-{}
+{
+   if (isDetached() && other.size() < capacity()) {
+      // assumes m_data->m_alloc == 0 -> !isDetached() (sharedNull)
+      m_data->m_size = other.size();
+      m_data->getData()[other.size()] = 0;
+      internal::utf16_from_latin1(m_data->getData(), other.latin1(), other.size());
+   } else {
+      *this = fromLatin1(other.latin1(), other.size());
+   }
+   return *this;
+}
 
 String &String::operator =(Character ch)
-{}
+{
+   if (isDetached() && capacity() >= 1) {
+      // assumes m_data->m_alloc == 0 -> !isDetached() (sharedNull)
+      char16_t *data = m_data->getData();
+      data[0] = ch.unicode();
+      data[1] = '\0';
+      m_data->m_size = 1;
+   } else {
+      operator =(String(ch));
+   }
+   return *this;
+}
 
 String &String::insert(int i, Latin1String str)
-{}
+{
+   const char *rawStr = str.latin1();
+   if (i < 0 || !rawStr || !(*rawStr)) {
+      return *this;
+   }
+   int len = str.size();
+   if (PDK_UNLIKELY(i > m_data->m_size)) {
+      resize(i + len, Latin1Character(' '));
+   } else {
+      resize(m_data->m_size + len);
+   }
+   std::memmove(m_data->getData() + i + len, m_data->getData() + i, (m_data->m_size - i - len) * sizeof(Character));
+   internal::utf16_from_latin1(m_data->getData() + i, rawStr, static_cast<uint>(len));
+   return *this;
+}
 
 String &String::insert(int i, const Character *str, int length)
-{}
+{
+   if (i < 0 || length <= 0) {
+      return *this;
+   }
+   const char16_t *rawStr = reinterpret_cast<const char16_t *>(str);
+   if (rawStr >= m_data->getData() && rawStr < m_data->getData() + m_data->m_alloc) {
+      // Part of me - take a copy
+      char16_t *temp = static_cast<char16_t *>(std::malloc(length * sizeof(Character)));
+      PDK_CHECK_ALLOC_PTR(temp);
+      std::memcpy(temp, rawStr, length * sizeof(Character));
+      insert(i, reinterpret_cast<const Character *>(temp), length);
+      std::free(temp);
+      return *this;
+   }
+   if (PDK_UNLIKELY(i > m_data->m_size)) {
+      resize(i + length, Latin1Character(' '));
+   } else {
+      resize(m_data->m_size + length);
+   }
+   std::memmove(m_data->getData() + i + length, m_data->getData() + i, (m_data->m_size - i - length) * sizeof(Character));
+   std::memcpy(m_data->getData() + i, rawStr, length * sizeof(Character));
+   return *this;
+}
 
 String &String::insert(int i, Character c)
-{}
+{
+   if (i < 0) {
+      i += m_data->m_size;
+   }
+   if (i < 0) {
+      return *this;
+   }
+   if (PDK_UNLIKELY(i > m_data->m_size)) {
+      resize(i + 1, Latin1Character(' '));
+   } else {
+      resize(m_data->m_size + 1);
+   }
+   std::memmove(m_data->getData() + i + 1, m_data->getData() + i, (m_data->m_size - i - 1) * sizeof(Character));
+   m_data->getData()[i] = c.unicode();
+   return *this;
+}
 
 String &String::append(const String &str)
-{}
+{
+   if (str.m_data != Data::getSharedNull()) {
+      if (m_data == Data::getSharedNull()) {
+         operator =(str);
+      } else {
+         if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size + str.m_data->m_size) + 1u > m_data->m_alloc) {
+            reallocData(static_cast<uint>(m_data->m_size + str.m_data->m_size) + 1u, true);
+         }
+         std::memcpy(m_data->getData() + m_data->m_size, str.m_data->getData(), str.m_data->m_size * sizeof(Character));
+         m_data->m_size += str.m_data->m_size;
+         m_data->getData()[m_data->m_size] = '\0';
+      }
+   }
+   return *this;
+}
 
 String &String::append(const Character *str, int length)
-{}
+{
+   if (str && length > 0) {
+      if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size + length) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + length) + 1u, true);
+      }
+      std::memcpy(m_data->getData() + m_data->m_size, str, length * sizeof(Character));
+      m_data->m_size += length;
+      m_data->getData()[m_data->m_size] = '\0';
+   }
+   return *this;
+}
 
 String &String::append(Latin1String str)
-{}
+{
+   const char *rawStr = str.latin1();
+   if (rawStr) {
+      int len = str.size();
+      if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size + len) + 1u > m_data->m_alloc) {
+         reallocData(static_cast<uint>(m_data->m_size + len) + 1u, true);
+      }
+      char16_t *target = m_data->getData() + m_data->m_size;
+      internal::utf16_from_latin1(target, rawStr, static_cast<uint>(len));
+      target[len] = '\0';
+      m_data->m_size += len;
+   }
+   return *this;
+}
 
 String &String::append(Character ch)
-{}
+{
+   if (m_data->m_ref.isShared() || static_cast<uint>(m_data->m_size) + 2u > m_data->m_alloc) {
+      reallocData(static_cast<uint>(m_data->m_size) + 2u, true);
+   }
+   m_data->getData()[m_data->m_size++] = ch.unicode();
+   m_data->getData()[m_data->m_size] = '\0';
+   return *this;
+}
 
 String &String::remove(int pos, int length)
-{}
+{
+   
+}
 
 String &String::remove(const String &str, CaseSensitivity cs)
 {}
@@ -867,6 +1023,7 @@ String String::fromUtf8Helper(const char *str, int size)
       return String();
    }
    PDK_ASSERT(size != -1);
+   return Utf8::convertToUnicode(str, size);
 }
 
 String String::fromUtf16(const char16_t *str, int size)
