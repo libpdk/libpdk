@@ -812,14 +812,54 @@ String &String::append(Character ch)
 
 String &String::remove(int pos, int length)
 {
-   
+   if (pos < 0) {
+      pos += m_data->m_size;
+   }
+   if (static_cast<uint>(pos) >= static_cast<uint>(m_data->m_size)) {
+      // range problems
+      // do nothing
+   } else if (length >= m_data->m_size - pos) {
+      // truncate
+      resize(pos);
+   } else if (length > 0) {
+      detach();
+      std::memmove(m_data->getData() + pos, m_data->getData() + pos + length,
+                   (m_data->m_size - pos - length + 1) * sizeof(Character));
+      m_data->m_size -= length;
+   }
+   return *this;
 }
 
 String &String::remove(const String &str, CaseSensitivity cs)
-{}
+{
+   if (str.m_data->m_size) {
+      int i = 0;
+      while ((i = indexOf(str, i, cs))) {
+         remove(i, str.m_data->m_size);
+      }
+   }
+   return *this;
+}
 
-String &String::remove(Character c, CaseSensitivity cs)
-{}
+String &String::remove(Character ch, CaseSensitivity cs)
+{
+   const int idx = indexOf(ch, 0, cs);
+   if (idx != -1) {
+      const auto first = begin(); // implicit detach()
+      auto last = end();
+      if (cs == pdk::CaseSensitivity::Sensitive) {
+         last = std::remove(first + idx, last, ch);
+      } else {
+         const Character c = ch.toCaseFolded();
+         auto caseInsensEqual = [c](Character x) {
+            return c == x.toCaseFolded();
+         };
+         last = std::remove_if(first + idx, last, caseInsensEqual);
+      }
+      resize(last - first);
+   }
+   return *this;
+}
 
 String &String::replace(int pos, int length, const String &after)
 {}
