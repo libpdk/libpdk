@@ -91,7 +91,8 @@ list(APPEND PDK_BASE_MODULE_SOURCES
    ${CODEC_DIR}/LatinCodec.cpp
    ${CODEC_DIR}/TextCodec.cpp
    ${CODEC_DIR}/TsciiCodec.cpp
-   ${CODEC_DIR}/UtfCodec.cpp)
+   ${CODEC_DIR}/UtfCodec.cpp
+   ${CODEC_DIR}/SimpleCodec.cpp)
 
 if (PDK_HAS_FEATURE_ICU)
    list(APPEND PDK_BASE_MODULE_SOURCES
@@ -104,7 +105,8 @@ else()
       ${CODEC_DIR}/JisCodec.cpp
       ${CODEC_DIR}/SjisCodec.cpp
       ${CODEC_DIR}/EuckrCodec.cpp
-      ${CODEC_DIR}/Big5Codec.cpp)
+      ${CODEC_DIR}/Big5Codec.cpp
+      )
    if (PDK_HAS_FEATURE_ICONV)
       list(APPEND PDK_BASE_MODULE_SOURCES
          ${CODEC_DIR}/IconvCodec.cpp)
