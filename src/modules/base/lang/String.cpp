@@ -1848,25 +1848,108 @@ String String::rightJustified(int width, Character fill, bool truncate) const
    return result;
 }
 
+namespace internal {
+namespace unicodetables {
+namespace {
+
+template <typename Traits, typename T>
+PDK_NEVER_INLINE
+String detach_and_convert_case(T &str, StringIterator it)
+{
+   PDK_ASSERT(!str.isEmpty());
+   String s = std::move(str);             // will copy if T is const QString
+   Character *pp = s.begin() + it.index(); // will detach if necessary
+   
+   do {
+      char32_t uc = it.nextUnchecked();
+      const Properties *prop = get_unicode_properties(uc);
+      signed short caseDiff = Traits::caseDiff(prop);
+      
+      if (PDK_UNLIKELY(Traits::caseSpecial(prop))) {
+         const ushort *specialCase = special_case_map + caseDiff;
+         ushort length = *specialCase++;
+         
+         if (PDK_LIKELY(length == 1)) {
+            *pp++ = Character(*specialCase);
+         } else {
+            // slow path: the string is growing
+            int inpos = it.index() - 1;
+            int outpos = pp - s.constBegin();
+            s.replace(outpos, 1, reinterpret_cast<const Character *>(specialCase), length);
+            pp = const_cast<Character *>(s.constBegin()) + outpos + length;
+            
+            // do we need to adjust the input iterator too?
+            // if it is pointing to s's data, str is empty
+            if (str.isEmpty()) {
+               it = StringIterator(s.constBegin(), inpos + length, s.constEnd());
+            } 
+         }
+      } else if (PDK_UNLIKELY(Character::requiresSurrogates(uc))) {
+         // so far, case convertion never changes planes (guaranteed by the qunicodetables generator)
+         pp++;
+         *pp++ = Character::getLowSurrogate(uc + caseDiff);
+      } else {
+         *pp++ = Character(uc + caseDiff);
+      }
+   } while (it.hasNext());
+   
+   return s;
+}
+
+template <typename Traits, typename T>
+String convert_case(T &str)
+{
+   const Character *p = str.constBegin();
+   const Character *e = p + str.size();
+   
+   // this avoids out of bounds check in the loop
+   while (e != p && e[-1].isHighSurrogate()) {
+      --e;
+   }
+   StringIterator it(p, e);
+   while (it.hasNext()) {
+      char32_t uc = it.nextUnchecked();
+      if (Traits::caseDiff(get_unicode_properties(uc))) {
+         it.recedeUnchecked();
+         return detach_and_convert_case<Traits>(str, it);
+      }
+   }
+   return std::move(str);
+}
+
+} // anonymous namespace
+} // unicodetables
+} // internal
+
 String String::toLowerHelper(const String &str)
-{}
+{
+   return internal::unicodetables::convert_case<internal::unicodetables::LowercaseTraits>(str);
+}
 
 String String::toLowerHelper(String &str)
 {
-   
+   return internal::unicodetables::convert_case<internal::unicodetables::LowercaseTraits>(str);
 }
 
 String String::toCaseFoldedHelper(const String &str)
-{}
+{
+   return internal::unicodetables::convert_case<internal::unicodetables::CasefoldTraits>(str);
+}
 
 String String::toCaseFoldedHelper(String &str)
-{}
+{
+   return internal::unicodetables::convert_case<internal::unicodetables::CasefoldTraits>(str);
+}
 
 String String::toUpperHelper(const String &str)
-{}
+{
+   return internal::unicodetables::convert_case<internal::unicodetables::UppercaseTraits>(str);
+}
 
 String String::toUpperHelper(String &str)
-{}
+{
+   return internal::unicodetables::convert_case<internal::unicodetables::UppercaseTraits>(str);
+}
 
 String &String::sprintf(const char *format, ...)
 {

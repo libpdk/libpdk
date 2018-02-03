@@ -20,7 +20,7 @@ namespace lang {
 namespace internal {
 namespace unicodetables {
 
-const unsigned short uc_property_trie[] = {
+static const unsigned short uc_property_trie[] = {
    6256, 6288, 6320, 6352, 6384, 6416, 6448, 6480,
    6512, 6544, 6576, 6608, 6640, 6672, 6704, 6736,
    6768, 6800, 6832, 6864, 6896, 6928, 6960, 6992,
@@ -5718,7 +5718,7 @@ const unsigned short uc_property_trie[] = {
    2494, 2494, 2494, 2494, 2494, 2494, 2489, 2489
 };
 
-const Properties uc_properties[] = {
+static const Properties uc_properties[] = {
    { 9, 18, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 0, 21, 2 },
    { 9, 8, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 0, 5, 17, 2 },
    { 9, 7, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 2, 2, 34, 2 },
@@ -8515,7 +8515,7 @@ const unsigned short special_case_map[] = {
    0x3, 0x3a9, 0x342, 0x399
 };
 
-const unsigned short uc_decomposition_trie[] = {
+static const unsigned short uc_decomposition_trie[] = {
    // 0 - 0x3400
    
    1548, 1548, 1548, 1548, 1548, 1548, 1548, 1548,
@@ -10329,7 +10329,7 @@ const unsigned short uc_decomposition_trie[] = {
    0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
 
-const unsigned short uc_decomposition_map[] = {
+static const unsigned short uc_decomposition_map[] = {
    0x103, 0x20, 0x210, 0x20, 0x308, 0x109, 0x61, 0x210,
    0x20, 0x304, 0x109, 0x32, 0x109, 0x33, 0x210, 0x20,
    0x301, 0x110, 0x3bc, 0x210, 0x20, 0x327, 0x109, 0x31,
@@ -12133,7 +12133,7 @@ const unsigned short uc_decomposition_map[] = {
    0x101, 0x9f16, 0x101, 0x9f3b, 0x201, 0xd869, 0xde00
 };
 
-const unsigned short uc_ligature_trie[] = {
+static const unsigned short uc_ligature_trie[] = {
    // 0 - 0x3100
    
    631, 631, 631, 631, 631, 631, 631, 631,
@@ -12523,7 +12523,7 @@ const unsigned short uc_ligature_trie[] = {
    0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
 
-const unsigned short uc_ligature_map[] = {
+static const unsigned short uc_ligature_map[] = {
    0x54, 0x41, 0xc0, 0x45, 0xc8, 0x49, 0xcc, 0x4e,
    0x1f8, 0x4f, 0xd2, 0x55, 0xd9, 0x57, 0x1e80, 0x59,
    0x1ef2, 0x61, 0xe0, 0x65, 0xe8, 0x69, 0xec, 0x6e,

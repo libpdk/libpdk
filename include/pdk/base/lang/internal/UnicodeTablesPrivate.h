@@ -76,6 +76,8 @@ struct Properties
 PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char32_t ucs4) noexcept;
 PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char16_t ucs4) noexcept;
 
+extern const unsigned short special_case_map[];
+
 struct LowercaseTraits
 {
    static inline signed short caseDiff(const Properties *prop)
