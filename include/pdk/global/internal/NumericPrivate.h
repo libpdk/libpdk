@@ -22,6 +22,13 @@
 
 namespace pdk {
 
+constexpr PDK_DECL_CONST_FUNCTION static inline double pdk_inf() noexcept
+{
+   PDK_STATIC_ASSERT_X(std::numeric_limits<double>::has_infinity,
+                       "platform has no definition for infinity for type double");
+   return std::numeric_limits<double>::infinity();
+}
+
 constexpr PDK_DECL_CONST_FUNCTION static inline double pdk_snan() noexcept
 {
    PDK_STATIC_ASSERT_X(std::numeric_limits<double>::has_signaling_NaN,

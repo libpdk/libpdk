@@ -16,6 +16,7 @@
 #include "pdk/utils/internal/LocaleToolsPrivate.h"
 #include "pdk/utils/internal/LocalePrivate.h"
 #include "pdk/utils/internal/DoubleScanPrintPrivate.h"
+#include "pdk/global/internal/NumericPrivate.h"
 #include "pdk/base/lang/String.h"
 
 #include <ctype.h>
@@ -46,6 +47,8 @@ namespace utils {
 namespace internal {
 
 PDK_CLOCALE_HOLDER
+
+using pdk::lang::Latin1String;
 
 void double_to_ascii(double d, LocaleData::DoubleForm form, int precision, char *buf, int bufSize,
                      bool &sign, int &length, int &decpt)
@@ -244,8 +247,8 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    // "-nan" or "+nan"
    if (pdk::strcmp(num, "nan") == 0) {
       processed = 3;
-      return qt_snan();
-   } else if ((num[0] == '-' || num[0] == '+') && qstrcmp(num + 1, "nan") == 0) {
+      return pdk::pdk_snan();
+   } else if ((num[0] == '-' || num[0] == '+') && pdk::strcmp(num + 1, "nan") == 0) {
       processed = 0;
       ok = false;
       return 0.0;
@@ -253,48 +256,29 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    
    // Infinity values are implementation defined in the sscanf case. In the libdouble-conversion
    // case we need infinity as overflow marker.
-   if (qstrcmp(num, "+inf") == 0) {
+   if (pdk::strcmp(num, "+inf") == 0) {
       processed = 4;
-      return qt_inf();
-   } else if (qstrcmp(num, "inf") == 0) {
+      return pdk::pdk_inf();
+   } else if (pdk::strcmp(num, "inf") == 0) {
       processed = 3;
-      return qt_inf();
-   } else if (qstrcmp(num, "-inf") == 0) {
+      return pdk::pdk_inf();
+   } else if (pdk::strcmp(num, "-inf") == 0) {
       processed = 4;
-      return -qt_inf();
+      return -pdk::pdk_inf();
    }
    
    double d = 0.0;
-#if !defined(QT_NO_DOUBLECONVERSION) && !defined(QT_BOOTSTRAPPED)
-   int conv_flags = (trailingJunkMode == TrailingJunkAllowed) ?
-            double_conversion::StringToDoubleConverter::ALLOW_TRAILING_JUNK :
-            double_conversion::StringToDoubleConverter::NO_FLAGS;
-   double_conversion::StringToDoubleConverter conv(conv_flags, 0.0, qt_snan(), 0, 0);
-   d = conv.StringToDouble(num, numLen, &processed);
-   
-   if (!qIsFinite(d)) {
-      ok = false;
-      if (qIsNaN(d)) {
-         // Garbage found. We don't accept it and return 0.
-         processed = 0;
-         return 0.0;
-      } else {
-         // Overflow. That's not OK, but we still return infinity.
-         return d;
-      }
-   }
-#else
-   if (qDoubleSscanf(num, QT_CLOCALE, "%lf%n", &d, &processed) < 1)
+   if (pdk_double_sscanf(num, PDK_CLOCALE, "%lf%n", &d, &processed) < 1) {
       processed = 0;
-   
-   if ((trailingJunkMode == TrailingJunkProhibited && processed != numLen) || qIsNaN(d)) {
+   }
+   if ((trailingJunkMode == TrailingJunkProhibited && processed != numLen) || std::isnan(d)) {
       // Implementation defined nan symbol or garbage found. We don't accept it.
       processed = 0;
       ok = false;
       return 0.0;
    }
    
-   if (!qIsFinite(d)) {
+   if (!std::isfinite(d)) {
       // Overflow. Check for implementation-defined infinity symbols and reject them.
       // We assume that any infinity symbol has to contain a character that cannot be part of a
       // "normal" number (that is 0-9, ., -, +, e).
@@ -309,13 +293,11 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
       }
       return d;
    }
-#endif // !defined(QT_NO_DOUBLECONVERSION) && !defined(QT_BOOTSTRAPPED)
-   
    // Otherwise we would have gotten NaN or sorted it out above.
-   Q_ASSERT(trailingJunkMode == TrailingJunkAllowed || processed == numLen);
+   PDK_ASSERT(trailingJunkMode == TrailingJunkAllowed || processed == numLen);
    
    // Check if underflow has occurred.
-   if (isZero(d)) {
+   if (is_zero(d)) {
       for (int i = 0; i < processed; ++i) {
          if (num[i] >= '1' && num[i] <= '9') {
             // if a digit before any 'e' is not 0, then a non-zero number was intended.
@@ -329,6 +311,201 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    return d;
 }
 
+unsigned long long
+pdk_strtoull(const char * nptr, const char **endptr, int base, bool *ok)
+{
+   // strtoull accepts negative numbers. We don't.
+   // Use a different variable so we pass the original nptr to strtoul
+   // (we need that so endptr may be nptr in case of failure)
+   const char *begin = nptr;
+   while (ascii_isspace(*begin)) {
+      ++begin;
+   }
+   if (*begin == '-') {
+      *ok = false;
+      return 0;
+   }
+   
+   *ok = true;
+   errno = 0;
+   char *endptr2 = 0;
+   unsigned long long result = std::strtoull(nptr, &endptr2, base);
+   if (endptr)
+      *endptr = endptr2;
+   if ((result == 0 || result == std::numeric_limits<unsigned long long>::max())
+       && (errno || endptr2 == nptr)) {
+      *ok = false;
+      return 0;
+   }
+   return result;
+}
+
+long long
+pdk_strtoll(const char * nptr, const char **endptr, int base, bool *ok)
+{
+   *ok = true;
+   errno = 0;
+   char *endptr2 = 0;
+   long long result = std::strtoll(nptr, &endptr2, base);
+   if (endptr) {
+      *endptr = endptr2;
+   }
+   if ((result == 0 || result == std::numeric_limits<long long>::min()
+        || result == std::numeric_limits<long long>::max())
+       && (errno || nptr == endptr2)) {
+      *ok = false;
+      return 0;
+   }
+   return result;
+}
+
+String pdk_ulltoa(pdk::pulonglong l, int base, const Character _zero)
+{
+   ushort buff[65]; // length of MAX_ULLONG in base 2
+   ushort *p = buff + 65;
+   if (base != 10 || _zero.unicode() == '0') {
+      while (l != 0) {
+         int c = l % base;
+         --p;
+         if (c < 10) {
+            *p = '0' + c;
+         } else {
+            *p = c - 10 + 'a';
+         }
+         l /= base;
+      }
+   }
+   else {
+      while (l != 0) {
+         int c = l % base;
+         *(--p) = _zero.unicode() + c;
+         l /= base;
+      }
+   }
+   return String(reinterpret_cast<Character *>(p), 65 - (p - buff));
+}
+
+String pdk_lltoa(pdk::plonglong l, int base, const Character zero)
+{
+   return pdk_ulltoa(l < 0 ? -l : l, base, zero);
+}
+
+String &decimal_form(Character zero, Character decimal, Character group,
+                     String &digits, int decpt, int precision,
+                     PrecisionMode pm,
+                     bool always_show_decpt,
+                     bool thousands_group)
+{
+   if (decpt < 0) {
+      for (int i = 0; i < -decpt; ++i) {
+         digits.prepend(zero);
+      }
+      decpt = 0;
+   }
+   else if (decpt > digits.length()) {
+      for (int i = digits.length(); i < decpt; ++i) {
+         digits.append(zero);
+      }
+   }
+   if (pm == PMDecimalDigits) {
+      uint decimal_digits = digits.length() - decpt;
+      for (int i = decimal_digits; i < precision; ++i)
+         digits.append(zero);
+   }
+   else if (pm == PMSignificantDigits) {
+      for (int i = digits.length(); i < precision; ++i) {
+         digits.append(zero);
+      }
+   }
+   else { // pm == PMChopTrailingZeros
+   }
+   
+   if (always_show_decpt || decpt < digits.length())
+      digits.insert(decpt, decimal);
+   
+   if (thousands_group) {
+      for (int i = decpt - 3; i > 0; i -= 3) {
+         digits.insert(i, group);
+      }
+   }
+   if (decpt == 0) {
+      digits.prepend(zero);
+   }
+   return digits;
+}
+
+String &exponent_form(Character zero, Character decimal, Character exponential,
+                      Character group, Character plus, Character minus,
+                      String &digits, int decpt, int precision,
+                      PrecisionMode pm,
+                      bool always_show_decpt,
+                      bool leading_zero_in_exponent)
+{
+   int exp = decpt - 1;
+   
+   if (pm == PMDecimalDigits) {
+      for (int i = digits.length(); i < precision + 1; ++i) {
+         digits.append(zero);
+      }
+   }
+   else if (pm == PMSignificantDigits) {
+      for (int i = digits.length(); i < precision; ++i)
+         digits.append(zero);
+   }
+   else { // pm == PMChopTrailingZeros
+   }
+   
+   if (always_show_decpt || digits.length() > 1)
+      digits.insert(1, decimal);
+   
+   digits.append(exponential);
+   digits.append(LocaleData::longLongToString(zero, group, plus, minus,
+                                              exp, leading_zero_in_exponent ? 2 : 1, 10, -1, 
+                                              pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AlwaysShowSign)));
+   
+   return digits;
+}
+
+double pdk_strtod(const char *s00, const char **se, bool *ok)
+{
+   const int len = static_cast<int>(strlen(s00));
+   PDK_ASSERT(len >= 0);
+   return pdk_strntod(s00, len, se, ok);
+}
+
+double pdk_strntod(const char *s00, int len, const char **se, bool *ok)
+{
+   int processed = 0;
+   bool nonNullOk = false;
+   double d = ascii_to_double(s00, len, nonNullOk, processed, TrailingJunkAllowed);
+   if (se) {
+      *se = s00 + processed;
+   }
+   if (ok) {
+      *ok = nonNullOk;
+   }
+   return d;
+}
+
+String pdk_dtoa(double d, int *decpt, int *sign)
+{
+   bool nonNullSign = false;
+   int nonNullDecpt = 0;
+   int length = 0;
+   
+   // Some versions of libdouble-conversion like an extra digit, probably for '\0'
+   char result[LocaleData::DoubleMaxSignificant + 1];
+   double_to_ascii(d, LocaleData::DoubleForm::DFSignificantDigits, Locale::FloatingPointShortest, result,
+                 LocaleData::DoubleMaxSignificant + 1, nonNullSign, length, nonNullDecpt);
+   
+   if (sign) {
+      *sign = nonNullSign ? 1 : 0;
+   }
+   if (decpt) {
+      *decpt = nonNullDecpt;
+   }
+   return Latin1String(result, length);
+}
 
 } // internal
 } // utils
