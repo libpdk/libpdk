@@ -13,7 +13,7 @@
 //
 // Created by softboy on 2017/11/15.
 
-#include "pdk/base/lang/internal/UnicodeTables.h"
+#include "pdk/base/lang/internal/UnicodeTablesPrivate.h"
 
 namespace pdk {
 namespace lang {

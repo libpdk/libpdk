@@ -24,7 +24,7 @@
 #include "pdk/base/lang/internal/StringHelper.h"
 #include "pdk/kernel/Algorithms.h"
 #include "pdk/global/Endian.h"
-#include "pdk/base/lang/internal/UnicodeTables.h"
+#include "pdk/base/lang/internal/UnicodeTablesPrivate.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include <cstring>
@@ -1741,9 +1741,10 @@ int String::localeAwareCompareHelper(const Character *lhs, int lhsLength, const 
    PDK_ASSERT(rhs || rhsLength == 0);
    
    // do the right thing for null and empty
-   if (lhsLength == 0 || rhsLength == 0)
+   if (lhsLength == 0 || rhsLength == 0) {
       return pdk_compare_strings(StringView(lhs, lhsLength), StringView(rhs, rhsLength),
                                  pdk::CaseSensitivity::Sensitive);
+   }
    
 #if defined(PDK_OS_WIN)
    int res = CompareStringEx(LOCALE_NAME_USER_DEFAULT, 0, (LPCWSTR)lhs, lhsLength, (LPCWSTR)rhs, rhsLength, NULL, NULL, 0);
@@ -1785,19 +1786,67 @@ int String::localeAwareCompareHelper(const Character *lhs, int lhsLength, const 
    }
    return delta;
 #else
-   return qt_compare_strings(QStringView(data1, length1), QStringView(data2, length2),
-                             Qt::CaseSensitive);
+   return pdk_compare_strings(StringView(lhs, lhsLength), StringView(rhs, rhsLength),
+                              pdk::CaseSensitivity::Sensitive);
 #endif
 }
 
 const char16_t *String::utf16() const
-{}
+{
+   if (IS_RAW_DATA(m_data)) {
+      // ensure '\0'-termination for ::fromRawData strings
+      const_cast<String *>(this)->reallocData(static_cast<uint>(m_data->m_size) + 1u);
+   }
+   return m_data->getData();
+}
 
 String String::leftJustified(int width, Character fill, bool truncate) const
-{}
+{
+   String result;
+   int len = length();
+   int padlen = width - len;
+   if (padlen > 0) {
+      result.resize(len + padlen);
+      if (len) {
+         std::memcpy(result.m_data->getData(), m_data->getData(), sizeof(Character)*len);
+      }
+      Character *uc = reinterpret_cast<Character *>(result.m_data->getData()) + len;
+      while (padlen--) {
+         * uc++ = fill;
+      }
+   } else {
+      if (truncate) {
+         result = left(width);
+      } else {
+         result = *this;
+      }
+   }
+   return result;
+}
 
 String String::rightJustified(int width, Character fill, bool truncate) const
-{}
+{
+   String result;
+   int len = length();
+   int padlen = width - len;
+   if (padlen > 0) {
+      result.resize(len+padlen);
+      Character *uc = reinterpret_cast<Character *>(result.m_data->getData());
+      while (padlen--) {
+         * uc++ = fill;
+      }
+      if (len) {
+         std::memcpy(uc, m_data->getData(), sizeof(Character) * len);
+      }
+   } else {
+      if (truncate) {
+         result = left(width);
+      } else {
+         result = *this;
+      }  
+   }
+   return result;
+}
 
 String String::toLowerHelper(const String &str)
 {}

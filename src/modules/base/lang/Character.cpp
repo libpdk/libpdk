@@ -14,7 +14,7 @@
 // Created by softboy on 2017/11/14.
 
 #include "pdk/base/lang/Character.h"
-#include "pdk/base/lang/internal/UnicodeTables.h"
+#include "pdk/base/lang/internal/UnicodeTablesPrivate.h"
 #include "UnicodeTables.cpp"
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/internal/StringHelper.h"
