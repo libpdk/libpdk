@@ -158,6 +158,5 @@ String LocalePrivate::countryToCode(Locale::Country country)
 }
 
 } // internal
-
 } // utils
 } // pdk

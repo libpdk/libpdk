@@ -14,6 +14,7 @@
 // Created by zzu_softboy on 2017/12/23.
 
 #include "gtest/gtest.h"
+#include "pdk/utils/internal/LocaleToolsPrivate.h"
 //#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
 //#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
 //#include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"

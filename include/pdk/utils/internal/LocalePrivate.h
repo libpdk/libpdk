@@ -28,7 +28,6 @@
 
 namespace pdk {
 namespace utils {
-
 namespace internal {
 
 using pdk::lang::String;
