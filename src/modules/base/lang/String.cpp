@@ -15,7 +15,9 @@
 
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringAlgorithms.h"
+#include "pdk/base/lang/internal/StringAlgorithmsPrivate.h"
 #include "pdk/base/ds/StringList.h"
+#include "pdk/base/lang/StringIterator.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/pal/kernel/Simd.h"
@@ -26,6 +28,17 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include <cstring>
+
+#include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <wchar.h>
+
+#ifdef PDK_OS_MAC
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 #ifdef truncate
 #  undef truncate
@@ -52,7 +65,10 @@ namespace pdk {
 namespace lang {
 
 using pdk::text::codecs::internal::Utf8;
+using pdk::text::codecs::internal::Utf16;
+using pdk::text::codecs::internal::Utf32;
 using pdk::ds::VarLengthArray;
+using pdk::lang::StringIterator;
 using pdk::text::codecs::TextCodec;
 
 // forward declare with namespace
@@ -542,6 +558,29 @@ ByteArray pdk_convert_to_local_8bit(StringView string)
    return pdk_convert_to_latin1(string);
 }
 
+ByteArray pdk_convert_to_utf8(StringView str)
+{
+   if (str.isNull()) {
+      return ByteArray();
+   }
+   return Utf8::convertFromUnicode(str.data(), str.length());
+}
+
+std::vector<char32_t> pdk_convert_to_ucs4(StringView string)
+{
+   std::vector<char32_t> v(string.length());
+   char32_t *a = v.data();
+   StringIterator iter(string);
+   while (iter.hasNext()) {
+      *a++ = iter.next();
+   }
+   v.resize(a - v.data());
+   return v;
+}
+
+template <typename StringView>
+StringView pdk_trimmed(StringView str) noexcept;
+
 } // anonymous namespace
 
 namespace internal {
@@ -710,22 +749,22 @@ ByteArray stringprivate::convert_to_local_8bit(StringView str)
 
 ByteArray stringprivate::convert_to_utf8(StringView str)
 {
-   
+   return pdk_convert_to_utf8(str);  
 }
 
-std::vector<uint> stringprivate::convert_to_ucs4(StringView str)
+std::vector<char32_t> stringprivate::convert_to_ucs4(StringView str)
 {
-   
+   return pdk_convert_to_ucs4(str);
 }
 
 Latin1String stringprivate::trimmed(Latin1String str) noexcept
 {
-   
+   return pdk_trimmed(str);
 }
 
 StringView stringprivate::trimmed(StringView str) noexcept
 {
-   
+   return pdk_trimmed(str);
 }
 
 bool stringprivate::starts_with(Latin1String haystack, Latin1String needle, CaseSensitivity cs) noexcept
@@ -754,7 +793,12 @@ bool stringprivate::ends_with(StringView haystack, StringView needle, CaseSensit
 
 int String::toUcs4Helper(const char16_t *str, int length, char32_t *out)
 {
-   
+   int count = 0;
+   StringIterator i(StringView(str, length));
+   while (i.hasNext()) {
+      out[count++] = i.next();
+   }
+   return count;
 }
 
 String::String(const Character *unicode, int size)
@@ -1474,7 +1518,9 @@ ByteArray String::toUtf8Helper(const String &str)
 {}
 
 std::vector<char32_t> String::toUcs4() const
-{}
+{
+   return pdk_convert_to_ucs4(*this);
+}
 
 String::Data *String::fromLatin1Helper(const char *str, int size)
 {
@@ -1498,10 +1544,32 @@ String::Data *String::fromLatin1Helper(const char *str, int size)
 }
 
 String::Data *String::fromAsciiHelper(const char *str, int size)
-{}
+{
+   String s = fromUtf8(str, size);
+   s.m_data->m_ref.ref();
+   return s.m_data;
+}
 
 String String::fromLocal8BitHelper(const char *str, int size)
-{}
+{
+   if (!str) {
+      return String();
+   }
+   if (size == 0 || (!*str && size < 0)) {
+      StringDataPtr empty = { Data::allocate(0) };
+      return String(empty);
+   }
+#if !defined(PDK_NO_TEXTCODEC)
+   if (size < 0) {
+      size = pdk::strlen(str);
+   }
+   TextCodec *codec = TextCodec::getCodecForLocale();
+   if (codec) {
+      return codec->toUnicode(str, size);
+   }
+#endif // !PDK_NO_TEXTCODEC
+   return fromLatin1(str, size);
+}
 
 String String::fromUtf8Helper(const char *str, int size)
 {
@@ -1513,56 +1581,145 @@ String String::fromUtf8Helper(const char *str, int size)
 }
 
 String String::fromUtf16(const char16_t *str, int size)
-{}
+{
+   if (!str) {
+      return String();
+   }
+   if (size < 0) {
+      size = 0;
+      while (str[size] != 0) {
+         ++size;
+      }
+   }
+   return Utf16::convertToUnicode(reinterpret_cast<const char *>(str), size * 2, 0);
+}
 
 String String::fromUcs4(const char32_t *str, int size)
-{}
+{
+   if (!str)
+      return String();
+   if (size < 0) {
+      size = 0;
+      while (str[size] != 0) {
+         ++size;
+      }
+   }
+   return Utf32::convertToUnicode(reinterpret_cast<const char *>(str), size * 4, 0);
+}
 
 String &String::setUnicode(const Character *unicode, int size)
-{}
+{
+   resize(size);
+   if (unicode && size) {
+      std::memcpy(m_data->getData(), unicode, size * sizeof(Character));
+   }
+   return *this;
+}
 
 String String::simplifiedHelper(const String &str)
-{}
+{
+   return internal::StringAlgorithms<const String>::simplifiedHelper(str);
+}
 
 String String::simplifiedHelper(String &str)
-{}
+{
+   return internal::StringAlgorithms<String>::simplifiedHelper(str);
+}
+
+namespace {
+
+template <typename StringView>
+StringView pdk_trimmed(StringView str) noexcept
+{
+   auto begin = str.begin();
+   auto end = str.end();
+   internal::StringAlgorithms<const StringView>::trimmedHelperPositions(begin, end);
+   return StringView{begin, end};
+}
+
+} // anonymous namespace
 
 String String::trimmedHelper(const String &str)
-{}
+{
+   return internal::StringAlgorithms<const String>::trimmedHelper(str);
+}
 
 String String::trimmedHelper(String &str)
-{}
+{
+   return internal::StringAlgorithms<String>::trimmedHelper(str);
+}
 
 void String::truncate(int pos)
-{}
+{
+   if (pos < m_data->m_size) {
+      resize(pos);
+   }
+}
 
 void String::chop(int n)
-{}
+{
+   if (n > 0) {
+      resize(m_data->m_size - n);
+   }
+}
 
-String &String::fill(Character c, int size)
-{}
+String &String::fill(Character ch, int size)
+{
+   resize(size < 0 ? m_data->m_size : size);
+   if (m_data->m_size) {
+      Character *i = reinterpret_cast<Character *>(m_data->getData()) + m_data->m_size;
+      Character *b = reinterpret_cast<Character *>(m_data->getData());
+      while (i != b) {
+         *--i = ch;
+      }
+   }
+   return *this;
+}
 
 int String::compare(const String &str, CaseSensitivity cs) const noexcept
-{}
+{
+   return pdk_compare_strings(*this, str, cs);
+}
 
 int String::compareHelper(const Character *lhs, int lhsLength, 
                           const Character *rhs, int rhsLength, CaseSensitivity cs) noexcept
 {
-   
+   PDK_ASSERT(lhsLength >= 0);
+   PDK_ASSERT(rhsLength >= 0);
+   PDK_ASSERT(lhs || lhsLength == 0);
+   PDK_ASSERT(rhs || rhsLength == 0);
+   return pdk_compare_strings(StringView(lhs, lhsLength),
+                              StringView(rhs, rhsLength), cs);
 }
 
 int String::compare(Latin1String str, CaseSensitivity cs) const noexcept
-{}
+{
+   return pdk_compare_strings(*this, str, cs);
+}
 
 int String::compareHelper(const Character *lhs, int lhsLength, 
                           const char *rhs, int rhsLength, CaseSensitivity cs) noexcept
 {
-   
+   PDK_ASSERT(lhsLength >= 0);
+   PDK_ASSERT(lhs || lhsLength == 0);
+   if (!rhs) {
+      return lhsLength;
+   }  
+   if (PDK_UNLIKELY(rhsLength < 0)) {
+      rhsLength = int(pdk::strlen(rhs));
+   }
+   // ### make me nothrow in all cases
+   VarLengthArray<char16_t> s2(rhsLength);
+   const auto beg = reinterpret_cast<Character *>(s2.getRawData());
+   const auto end = Utf8::convertToUnicode(beg, rhs, rhsLength);
+   return pdk_compare_strings(StringView(lhs, lhsLength), StringView(beg, end - beg), cs);
 }
 
 int String::compareHelper(const Character *lhs, int lhsLength, Latin1String rhs, CaseSensitivity cs) noexcept
 {
-   
+   PDK_ASSERT(lhsLength >= 0);
+   PDK_ASSERT(lhs || lhsLength == 0);
+   return pdk_compare_strings(StringView(lhs, lhsLength), rhs, cs);
 }
 
 #if !defined(CSTR_LESS_THAN)
@@ -1571,11 +1728,67 @@ int String::compareHelper(const Character *lhs, int lhsLength, Latin1String rhs,
 #define CSTR_GREATER_THAN 3
 #endif
 
-int String::localeAwareCompare(const String &str) const
-{}
+int String::localeAwareCompare(const String &other) const
+{
+   return localeAwareCompareHelper(getConstRawData(), length(), other.getConstRawData(), other.length());  
+}
 
 int String::localeAwareCompareHelper(const Character *lhs, int lhsLength, const Character *rhs, int rhsLength)
-{}
+{
+   PDK_ASSERT(lhsLength >= 0);
+   PDK_ASSERT(lhs || lhsLength == 0);
+   PDK_ASSERT(rhsLength >= 0);
+   PDK_ASSERT(rhs || rhsLength == 0);
+   
+   // do the right thing for null and empty
+   if (lhsLength == 0 || rhsLength == 0)
+      return pdk_compare_strings(StringView(lhs, lhsLength), StringView(rhs, rhsLength),
+                                 pdk::CaseSensitivity::Sensitive);
+   
+#if defined(PDK_OS_WIN)
+   int res = CompareStringEx(LOCALE_NAME_USER_DEFAULT, 0, (LPCWSTR)lhs, lhsLength, (LPCWSTR)rhs, rhsLength, NULL, NULL, 0);
+   switch (res) {
+   case CSTR_LESS_THAN:
+      return -1;
+   case CSTR_GREATER_THAN:
+      return 1;
+   default:
+      return 0;
+   }
+#elif defined (PDK_OS_MAC)
+   // Use CFStringCompare for comparing strings on Mac. This makes pdk order
+   // strings the same way as native applications do, and also respects
+   // the "Order for sorted lists" setting in the International preferences
+   // panel.
+   const CFStringRef thisString =
+         CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault,
+                                            reinterpret_cast<const UniChar *>(lhs), lhsLength, kCFAllocatorNull);
+   const CFStringRef otherString =
+         CFStringCreateWithCharactersNoCopy(kCFAllocatorDefault,
+                                            reinterpret_cast<const UniChar *>(rhs), rhsLength, kCFAllocatorNull);
+   
+   const int result = CFStringCompare(thisString, otherString, kCFCompareLocalized);
+   CFRelease(thisString);
+   CFRelease(otherString);
+   return result;
+#elif PDK_CONFIG(ICU)
+   if (!defaultCollator()->hasLocalData())
+      defaultCollator()->setLocalData(QCollator());
+   return defaultCollator()->localData().compare(data1, length1, data2, length2);
+#elif defined(PDK_OS_UNIX)
+   // declared in <string.h>
+   int delta = strcoll(toLocal8BitHelper(lhs, lhsLength).getConstRawData(), 
+                       toLocal8BitHelper(rhs, rhsLength).getConstRawData());
+   if (delta == 0) {
+      delta = pdk_compare_strings(StringView(lhs, lhsLength), StringView(rhs, rhsLength),
+                                  pdk::CaseSensitivity::Sensitive);
+   }
+   return delta;
+#else
+   return qt_compare_strings(QStringView(data1, length1), QStringView(data2, length2),
+                             Qt::CaseSensitive);
+#endif
+}
 
 const char16_t *String::utf16() const
 {}
@@ -1900,7 +2113,9 @@ ByteArray StringRef::toUtf8() const
 {}
 
 std::vector<char32_t> StringRef::toUcs4() const
-{}
+{
+   
+}
 
 StringRef StringRef::trimmed() const
 {}

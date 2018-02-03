@@ -38,7 +38,7 @@ struct StringAlgorithms
       return pdk::ascii_isspace(ch);
    }
    
-   static inline bool isSpace(QChar ch)
+   static inline bool isSpace(Character ch)
    {
       return ch.isSpace();
    }
@@ -52,13 +52,13 @@ struct StringAlgorithms
       // in-place trimming:
       CharType *data = const_cast<CharType *>(str.cbegin());
       if (begin != data) {
-         std::memmove(data, begin, (end - begin) * sizeof(Char));
+         std::memmove(data, begin, (end - begin) * sizeof(CharType));
       }
       str.resize(end - begin);
       return std::move(str);
    }
    
-   static inline StringType trimmedHelperInplace(const NakedStringType &, const CharType *, const Char *)
+   static inline StringType trimmedHelperInplace(const NakedStringType &, const CharType *, const CharType *)
    {
       // can't happen
       PDK_UNREACHABLE();
@@ -79,15 +79,14 @@ struct StringAlgorithms
    
    static inline StringType trimmedHelper(StringType &str)
    {
-      const Char *begin = str.cbegin();
-      const Char *end = str.cend();
+      const CharType *begin = str.cbegin();
+      const CharType *end = str.cend();
       trimmedHelperPositions(begin, end);
-      
       if (begin == str.cbegin() && end == str.cend()) {
          return str;
       }
       if (!isConst && str.isDetached()) {
-         return trimmed_helper_inplace(str, begin, end);
+         return trimmedHelperInplace(str, begin, end);
       }
       return StringType(begin, end - begin);
    }
@@ -116,7 +115,7 @@ struct StringAlgorithms
          if (src == end) {
             break;
          }
-         if (*src != QChar::Space) {
+         if (*src != Character::Space) {
             unmodified = false;
          }
          *ptr++ = Character::Space;

@@ -89,7 +89,7 @@ PDK_REQUIRED_RESULT PDK_CORE_EXPORT
 ByteArray convert_to_local_8bit(StringView str);
 
 PDK_REQUIRED_RESULT PDK_CORE_EXPORT 
-std::vector<uint> convert_to_ucs4(StringView str);
+std::vector<char32_t> convert_to_ucs4(StringView str);
 
 } // stringprivate
 } // lang

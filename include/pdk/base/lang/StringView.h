@@ -100,6 +100,7 @@ struct IsCompatibleStdBasicString
 
 class StringView
 {
+public:
 #if defined(PDK_OS_WIN) && !defined(PDK_COMPILER_UNICODE_STRINGS)
    using storage_type = wchar_t;
 #else

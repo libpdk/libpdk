@@ -79,6 +79,9 @@ public:
         m_data(str)
    {}
    
+   constexpr explicit Latin1String(const char *f, const char *l)
+      : Latin1String(f, int(l - f)) {}
+   
    constexpr inline explicit Latin1String(const char *str, int size) noexcept
       : m_size(size),
         m_data(str)
