@@ -33,6 +33,8 @@ namespace internal {
 using pdk::lang::String;
 using pdk::lang::Character;
 using pdk::lang::Latin1Character;
+using pdk::lang::Latin1String;
+using pdk::lang::StringView;
 using pdk::ds::ByteArray;
 using pdk::ds::VarLengthArray;
 using pdk::os::thread::BasicAtomicInt;
@@ -182,7 +184,7 @@ public:
    enum class Flags
    {
       NoFlags             = 0,
-      Alternate           = 0x01,
+      AddTrailingZeroes   = 0x01,
       ZeroPadded          = 0x02,
       LeftAdjusted        = 0x04,
       BlankBeforePositive = 0x08,
@@ -193,7 +195,7 @@ public:
       ShowBase            = 0x80,
       UppercaseBase       = 0x100,
       ZeroPadExponent     = 0x200,
-      ForcePoint          = Alternate
+      ForcePoint          = 0x400
    };
    
    enum class NumberMode
@@ -371,6 +373,16 @@ public:
       return retval;
    }
    
+   static LocalePrivate *get(Locale &locale)
+   {
+      return locale.m_implPtr;
+   }
+   
+   static const LocalePrivate *get(const Locale &locale)
+   {
+      return locale.m_implPtr;
+   }
+   
    Character decimal() const
    {
       return Character(m_data->m_decimal);
@@ -423,56 +435,28 @@ public:
    
    ByteArray bcp47Name(char separator = '-') const;
    
-   inline String languageCode() const 
+   inline Latin1String languageCode() const 
    {
       return LocalePrivate::languageToCode(Locale::Language(m_data->m_languageId));
    }
    
-   inline String scriptCode() const
+   inline Latin1String scriptCode() const
    {
       return LocalePrivate::scriptToCode(Locale::Script(m_data->m_scriptId));
    }
    
-   inline String countryCode() const
+   inline Latin1String countryCode() const
    {
       return LocalePrivate::countryToCode(Locale::Country(m_data->m_countryId));
    }
    
-   static String languageToCode(Locale::Language language);
-   static String scriptToCode(Locale::Script script);
-   static String countryToCode(Locale::Country country);
-   static Locale::Language codeToLanguage(const Character *code, int len) noexcept;
-   static Locale::Language codeToLanguage(const String &code) noexcept
-   {
-      return codeToLanguage(code.getRawData(), code.size());
-   }
+   static Latin1String languageToCode(Locale::Language language);
+   static Latin1String scriptToCode(Locale::Script script);
+   static Latin1String countryToCode(Locale::Country country);
    
-   static Locale::Language codeToLanguage(const StringRef &code) noexcept
-   {
-      return codeToLanguage(code.getRawData(), code.size());
-   }
-   
-   static Locale::Script codeToScript(const Character *code, int len) noexcept;
-   static Locale::Script codeToScript(const String &code) noexcept 
-   {
-      return codeToScript(code.getRawData(), code.size());
-   }
-   
-   static Locale::Script codeToScript(const StringRef &code) noexcept
-   {
-      return codeToScript(code.getRawData(), code.size());
-   }
-   
-   static Locale::Country codeToCountry(const Character *code, int len) noexcept;
-   static Locale::Country codeToCountry(const String &code) noexcept
-   {
-      return codeToCountry(code.getRawData(), code.size());
-   }
-   
-   static Locale::Country codeToCountry(const StringRef &code) noexcept
-   {
-      return codeToCountry(code.getRawData(), code.size());
-   }
+   static Locale::Language codeToLanguage(StringView code) noexcept;
+   static Locale::Script codeToScript(StringView code) noexcept;
+   static Locale::Country codeToCountry(StringView code) noexcept;
    
    static void getLangAndCountry(const String &name, Locale::Language &lang,
                                  Locale::Script &script, Locale::Country &cntry);
@@ -525,7 +509,7 @@ inline char LocaleData::digitToCLocale(Character in) const
 
 String read_escaped_format_string(const String &format, int *idx);
 bool split_locale_name(const String &name, String &lang, String &script, String &cntry);
-int repeat_count(const String &s, int i);
+int repeat_count(StringView str);
 
 } // internal
 

@@ -70,7 +70,7 @@ class PDK_CORE_EXPORT Locale
 public:
    // GENERATED PART STARTS HERE
    // see pdk/kernel/internal/LocaleDataPrivate.h for more info on generated data
-   enum class Language
+   enum class Language : uint
    {
       AnyLanguage = 0,
       C = 1,
@@ -451,7 +451,7 @@ public:
       LastLanguage = Tangut
    };
    
-   enum class Script
+   enum class Script : uint
    {
       AnyScript = 0,
       ArabicScript = 1,
@@ -601,7 +601,7 @@ public:
       
       LastScript = JamoScript
    };
-   enum class Country
+   enum class Country : uint
    {
       AnyCountry = 0,
       Afghanistan = 1,
@@ -891,7 +891,7 @@ public:
       NarrowFormat
    };
    
-   enum class NumberOption 
+   enum class NumberOption
    {
       DefaultNumberOptions = 0x0,
       OmitGroupSeparator = 0x01,
