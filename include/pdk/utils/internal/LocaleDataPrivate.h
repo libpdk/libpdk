@@ -35,7 +35,7 @@ struct CountryLanguage
    Locale::MeasurementSystem system;
 };
 
-static const CountryLanguage ImperialMeasurementSystems[] = 
+static const CountryLanguage sg_imperialMeasurementSystems[] = 
 {
    { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedStates, Locale::MeasurementSystem::ImperialUSSystem },
    { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedStatesMinorOutlyingIslands, Locale::MeasurementSystem::ImperialUSSystem },
@@ -44,8 +44,8 @@ static const CountryLanguage ImperialMeasurementSystems[] =
    { (pdk::puint16)Locale::Language::English, (pdk::puint16)Locale::Country::UnitedKingdom, Locale::MeasurementSystem::ImperialUKSystem }
 };
 
-static const int ImperialMeasurementSystemsCount =
-      sizeof(ImperialMeasurementSystems)/sizeof(ImperialMeasurementSystems[0]);
+static const int sg_imperialMeasurementSystemsCount =
+      sizeof(sg_imperialMeasurementSystems)/sizeof(sg_imperialMeasurementSystems[0]);
 
 // GENERATED PART STARTS HERE
 

@@ -50,6 +50,7 @@ using pdk::lang::Latin1Character;
 using pdk::lang::StringView;
 using pdk::utils::SharedDataPointer;
 using internal::LocaleData;
+using internal::SystemLocale;
 
 namespace internal {
 
@@ -848,10 +849,10 @@ String Locale::quoteString(const StringRef &str, QuotationStyle style) const
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res;
       if (style == Locale::QuotationStyle::AlternateQuotation) {
-         res = internal::system_locale()->query(internal::SystemLocale::QueryType::StringToAlternateQuotation, std::any(str));
+         res = internal::system_locale()->query(SystemLocale::QueryType::StringToAlternateQuotation, std::any(str));
       }
       if (!res.has_value() || style == Locale::QuotationStyle::StandardQuotation) {
-         res = internal::system_locale()->query(internal::SystemLocale::QueryType::StringToStandardQuotation, std::any(str));
+         res = internal::system_locale()->query(SystemLocale::QueryType::StringToStandardQuotation, std::any(str));
       }
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -870,7 +871,7 @@ String Locale::createSeparatedList(const StringList &list) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res;
-      res = internal::system_locale()->query(internal::SystemLocale::QueryType::ListToSeparatedString, std::any(list));
+      res = internal::system_locale()->query(SystemLocale::QueryType::ListToSeparatedString, std::any(list));
       if (res.has_value()) {
          return std::any_cast<String>(res);
       }
@@ -1166,8 +1167,8 @@ String Locale::toString(const Date &date, FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DateToStringLong 
-                                                      : internal::SystemLocale::QueryType::DateToStringShort,
+                                                      ? SystemLocale::QueryType::DateToStringLong 
+                                                      : SystemLocale::QueryType::DateToStringShort,
                                                       date);
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1234,8 +1235,8 @@ String Locale::toString(const DateTime &dateTime, FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DateTimeToStringLong
-                                                      : internal::SystemLocale::QueryType::DateTimeToStringShort,
+                                                      ? SystemLocale::QueryType::DateTimeToStringLong
+                                                      : SystemLocale::QueryType::DateTimeToStringShort,
                                                       dateTime);
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1255,8 +1256,8 @@ String Locale::toString(const Time &time, FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::TimeToStringLong 
-                                                      : internal::SystemLocale::QueryType::TimeToStringShort,
+                                                      ? SystemLocale::QueryType::TimeToStringLong 
+                                                      : SystemLocale::QueryType::TimeToStringShort,
                                                       time);
       if (res.has_value()) {
          std::any_cast<String>(res);
@@ -1273,8 +1274,8 @@ String Locale::dateFormat(FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DateFormatLong 
-                                                      : internal::SystemLocale::QueryType::DateFormatShort,
+                                                      ? SystemLocale::QueryType::DateFormatLong 
+                                                      : SystemLocale::QueryType::DateFormatShort,
                                                       std::any());
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1301,8 +1302,8 @@ String Locale::timeFormat(FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::TimeFormatLong 
-                                                      : internal::SystemLocale::QueryType::TimeFormatShort,
+                                                      ? SystemLocale::QueryType::TimeFormatLong 
+                                                      : SystemLocale::QueryType::TimeFormatShort,
                                                       std::any());
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1330,8 +1331,8 @@ String Locale::dateTimeFormat(FormatType format) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(format == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DateTimeFormatLong
-                                                      : internal::SystemLocale::QueryType::DateTimeFormatShort,
+                                                      ? SystemLocale::QueryType::DateTimeFormatLong
+                                                      : SystemLocale::QueryType::DateTimeFormatShort,
                                                       std::any());
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1542,8 +1543,8 @@ String Locale::monthName(int month, FormatType type) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(type == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::MonthNameLong
-                                                      : internal::SystemLocale::QueryType::MonthNameShort,
+                                                      ? SystemLocale::QueryType::MonthNameLong
+                                                      : SystemLocale::QueryType::MonthNameShort,
                                                       month);
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1578,8 +1579,8 @@ String Locale::standaloneMonthName(int month, FormatType type) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(type == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::StandaloneMonthNameLong 
-                                                      : internal::SystemLocale::QueryType::StandaloneMonthNameShort,
+                                                      ? SystemLocale::QueryType::StandaloneMonthNameLong 
+                                                      : SystemLocale::QueryType::StandaloneMonthNameShort,
                                                       month);
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1618,8 +1619,8 @@ String Locale::dayName(int day, FormatType type) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(type == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DayNameLong 
-                                                      : internal::SystemLocale::QueryType::DayNameShort,
+                                                      ? SystemLocale::QueryType::DayNameLong 
+                                                      : SystemLocale::QueryType::DayNameShort,
                                                       day);
       if (res.has_value()) {
          std::any_cast<String>(res);
@@ -1656,8 +1657,8 @@ String Locale::standaloneDayName(int day, FormatType type) const
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
       std::any res = internal::system_locale()->query(type == FormatType::LongFormat
-                                                      ? internal::SystemLocale::QueryType::DayNameLong
-                                                      : internal::SystemLocale::QueryType::DayNameShort,
+                                                      ? SystemLocale::QueryType::DayNameLong
+                                                      : SystemLocale::QueryType::DayNameShort,
                                                       day);
       if (res.has_value()) {
          return std::any_cast<String>(res);
@@ -1693,7 +1694,7 @@ pdk::DayOfWeek Locale::firstDayOfWeek() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
-      std::any res = internal::system_locale()->query(internal::SystemLocale::QueryType::FirstDayOfWeek, std::any());
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::FirstDayOfWeek, std::any());
       if (res.has_value()) {
          return static_cast<pdk::DayOfWeek>(std::any_cast<uint>(res));
       }
@@ -1701,6 +1702,95 @@ pdk::DayOfWeek Locale::firstDayOfWeek() const
 #endif
    return static_cast<pdk::DayOfWeek>(m_implPtr->m_data->m_firstDayOfWeek);
 }
+
+namespace internal {
+
+Locale::MeasurementSystem LocalePrivate::measurementSystem() const
+{
+   for (int i = 0; i < sg_imperialMeasurementSystemsCount; ++i) {
+      if (sg_imperialMeasurementSystems[i].languageId == m_data->m_languageId
+          && sg_imperialMeasurementSystems[i].countryId == m_data->m_countryId) {
+         return sg_imperialMeasurementSystems[i].system;
+      }
+   }
+   return Locale::MeasurementSystem::MetricSystem;
+}
+
+} // internal
+
+std::list<pdk::DayOfWeek> Locale::weekdays() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::Weekdays, std::any());
+      if (res.has_value()) {
+         return std::any_cast<std::list<pdk::DayOfWeek>>(res);
+      }
+   }
+#endif
+   std::list<pdk::DayOfWeek> weekdays;
+   pdk::puint16 weekendStart = m_implPtr->m_data->m_weekendStart;
+   pdk::puint16 weekendEnd = m_implPtr->m_data->m_weekendEnd;
+   for (int day = pdk::as_integer<pdk::DayOfWeek>(pdk::DayOfWeek::Monday);
+        day <= pdk::as_integer<pdk::DayOfWeek>(pdk::DayOfWeek::Sunday); day++) {
+      if ((weekendEnd >= weekendStart && (day < weekendStart || day > weekendEnd)) ||
+          (weekendEnd < weekendStart && (day > weekendEnd && day < weekendStart)))
+         weekdays.push_back(static_cast<pdk::DayOfWeek>(day));
+   }
+   return weekdays;
+}
+
+Locale::MeasurementSystem Locale::measurementSystem() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::MeasurementSystem, std::any());
+      if (res.has_value()) {
+         return MeasurementSystem(std::any_cast<int>(res));
+      }
+   }
+#endif
+   return m_implPtr->measurementSystem();
+}
+
+pdk::LayoutDirection Locale::textDirection() const
+{
+   switch (getScript()) {
+   case Script::AdlamScript:
+   case Script::ArabicScript:
+   case Script::AvestanScript:
+   case Script::CypriotScript:
+   case Script::HatranScript:
+   case Script::HebrewScript:
+   case Script::ImperialAramaicScript:
+   case Script::InscriptionalPahlaviScript:
+   case Script::InscriptionalParthianScript:
+   case Script::KharoshthiScript:
+   case Script::LydianScript:
+   case Script::MandaeanScript:
+   case Script::ManichaeanScript:
+   case Script::MendeKikakuiScript:
+   case Script::MeroiticCursiveScript:
+   case Script::MeroiticScript:
+   case Script::NabataeanScript:
+   case Script::NkoScript:
+   case Script::OldHungarianScript:
+   case Script::OldNorthArabianScript:
+   case Script::OldSouthArabianScript:
+   case Script::OrkhonScript:
+   case Script::PalmyreneScript:
+   case Script::PhoenicianScript:
+   case Script::PsalterPahlaviScript:
+   case Script::SamaritanScript:
+   case Script::SyriacScript:
+   case Script::ThaanaScript:
+      return pdk::LayoutDirection::RightToLeft;
+   default:
+      break;
+   }
+   return pdk::LayoutDirection::LeftToRight;
+}
+
 
 } // utils
 } // pdk
