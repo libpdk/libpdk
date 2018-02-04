@@ -145,7 +145,7 @@ public:
    {
       if (other.m_implPtr != m_implPtr) {
          if (other.m_implPtr) {
-            other.d->ref.ref();
+            other.m_implPtr->m_ref.ref();
          }
          T *old = m_implPtr;
          m_implPtr = other.m_implPtr;

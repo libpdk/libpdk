@@ -19,6 +19,7 @@
 #include "pdk/global/internal/NumericPrivate.h"
 #include "pdk/kernel/HashFuncs.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/lang/StringBuilder.h"
 #include "pdk/utils/Locale.h"
 #include "pdk/utils/SharedData.h"
 #include "pdk/utils/internal/LocalePrivate.h"
@@ -673,6 +674,10 @@ const LocaleData *LocaleData::c()
    return sg_cdata;
 }
 
+namespace {
+const LocaleData *default_data();
+} // anonymous
+
 static const int sg_localeDataSize = sizeof(sg_localeData) / sizeof(LocaleData) - 1;
 
 PDK_GLOBAL_STATIC_WITH_ARGS(SharedDataPointer<LocalePrivate>, sg_defaultLocalePrivate,
@@ -756,5 +761,105 @@ LocalePrivate *find_locale_private(Locale::Language language, Locale::Script scr
 
 
 } // internal
+
+Locale::Locale(LocalePrivate &dd)
+   : m_implPtr(&dd)
+{}
+
+Locale::Locale(const String &name)
+   : m_implPtr(internal::locale_private_by_name(name))
+{
+}
+
+Locale::Locale()
+   : m_implPtr(*internal::sg_defaultLocalePrivate)
+{
+}
+
+Locale::Locale(Language language, Country country)
+   : m_implPtr(internal::find_locale_private(language, Locale::Script::AnyScript, country))
+{
+}
+
+Locale::Locale(Language language, Script script, Country country)
+   : m_implPtr(internal::find_locale_private(language, script, country))
+{
+}
+
+Locale::Locale(const Locale &other)
+{
+   m_implPtr = other.m_implPtr;
+}
+
+Locale::~Locale()
+{
+}
+
+Locale &Locale::operator=(const Locale &other)
+{
+   m_implPtr = other.m_implPtr;
+   return *this;
+}
+
+bool Locale::operator==(const Locale &other) const
+{
+   return m_implPtr->m_data == other.m_implPtr->m_data && 
+         m_implPtr->m_numberOptions.getUnderData() == other.m_implPtr->m_numberOptions.getUnderData();
+}
+
+bool Locale::operator!=(const Locale &other) const
+{
+   return m_implPtr->m_data != other.m_implPtr->m_data || 
+         m_implPtr->m_numberOptions.getUnderData() != other.m_implPtr->m_numberOptions.getUnderData();
+}
+
+// @TODO review locale hash
+//uint hash(const Locale &key, uint seed) noexcept
+//{
+//    ::pdk::internal::HashCombine chash;
+//    seed = chash(key.m_implPtr->m_data, seed);
+//    seed = chash(key.m_implPtr->m_numberOptions, seed);
+//    return seed;
+//}
+
+void Locale::setNumberOptions(NumberOptions options)
+{
+   m_implPtr->m_numberOptions = options;
+}
+
+Locale::NumberOptions Locale::numberOptions() const
+{
+   return static_cast<NumberOptions>(m_implPtr->m_numberOptions);
+}
+
+String Locale::quoteString(const String &str, QuotationStyle style) const
+{
+   return quoteString(StringRef(&str), style);
+}
+
+
+String Locale::quoteString(const StringRef &str, QuotationStyle style) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res;
+      if (style == Locale::QuotationStyle::AlternateQuotation) {
+         res = internal::system_locale()->query(internal::SystemLocale::QueryType::StringToAlternateQuotation, std::any(str));
+      }
+      if (!res.has_value() || style == Locale::QuotationStyle::StandardQuotation) {
+         res = internal::system_locale()->query(internal::SystemLocale::QueryType::StringToStandardQuotation, std::any(str));
+      }
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   if (style == Locale::QuotationStyle::StandardQuotation) {
+      return Character(m_implPtr->m_data->m_quotationStart) % str % Character(m_implPtr->m_data->m_quotationEnd);
+   } else {
+      return Character(m_implPtr->m_data->m_alternateQuotationStart) % str % Character(m_implPtr->m_data->m_alternateQuotationEnd);
+   }
+}
+
 } // utils
 } // pdk
