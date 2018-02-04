@@ -255,11 +255,11 @@ public:
       return float(d);
    }
    
-   double stringToDouble(const Character *begin, int len, bool *ok,
+   double stringToDouble(StringView str, bool *ok,
                          Locale::NumberOptions numberOptions) const;
-   pdk::pint64 stringToLongLong(const Character *begin, int len, int base, bool *ok,
+   pdk::pint64 stringToLongLong(StringView str, int base, bool *ok,
                                 Locale::NumberOptions numberOptions) const;
-   pdk::puint64 stringToUnsLongLong(const Character *begin, int len, int base, bool *ok,
+   pdk::puint64 stringToUnsLongLong(StringView str, int base, bool *ok,
                                     Locale::NumberOptions numberOptions) const;
    
    // these functions are used in IntValidator (Gui)
@@ -465,7 +465,7 @@ public:
    
    static void updateSystemPrivate();
    
-   String dateTimeToString(const String &format, const DateTime &datetime,
+   String dateTimeToString(StringView format, const DateTime &datetime,
                            const Date &dateOnly, const Time &timeOnly,
                            const Locale *q) const;
    

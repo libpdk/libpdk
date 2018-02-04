@@ -1,7 +1,7 @@
 // @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// IMPLIED WARRANTIEstr, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 // IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
 // INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
@@ -19,6 +19,7 @@
 #include "pdk/global/internal/NumericPrivate.h"
 #include "pdk/kernel/HashFuncs.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/lang/StringView.h"
 #include "pdk/base/lang/StringBuilder.h"
 #include "pdk/utils/Locale.h"
 #include "pdk/utils/SharedData.h"
@@ -45,7 +46,10 @@ namespace pdk {
 namespace utils {
 
 using pdk::lang::Latin1String;
+using pdk::lang::Latin1Character;
+using pdk::lang::StringView;
 using pdk::utils::SharedDataPointer;
+using internal::LocaleData;
 
 namespace internal {
 
@@ -818,7 +822,7 @@ bool Locale::operator!=(const Locale &other) const
 //{
 //    ::pdk::internal::HashCombine chash;
 //    seed = chash(key.m_implPtr->m_data, seed);
-//    seed = chash(key.m_implPtr->m_numberOptions, seed);
+//    seed = chash(key.m_implPtr->m_numberOptionstr, seed);
 //    return seed;
 //}
 
@@ -859,6 +863,843 @@ String Locale::quoteString(const StringRef &str, QuotationStyle style) const
    } else {
       return Character(m_implPtr->m_data->m_alternateQuotationStart) % str % Character(m_implPtr->m_data->m_alternateQuotationEnd);
    }
+}
+
+String Locale::createSeparatedList(const StringList &list) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res;
+      res = internal::system_locale()->query(internal::SystemLocale::QueryType::ListToSeparatedString, std::any(list));
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   const int size = list.size();
+   if (size == 1) {
+      return list.at(0);
+   } else if (size == 2) {
+      String format = internal::get_locale_data(internal::sg_listPatternPartData + m_implPtr->m_data->m_listPatternPartTwoIdx, 
+                                                m_implPtr->m_data->m_listPatternPartTwoSize);
+      return format.arg(list.at(0), list.at(1));
+   } else if (size > 2) {
+      String formatStart = internal::get_locale_data(internal::sg_listPatternPartData + m_implPtr->m_data->m_listPatternPartStartIdx,
+                                                     m_implPtr->m_data->m_listPatternPartStartSize);
+      String formatMid = internal::get_locale_data(internal::sg_listPatternPartData + m_implPtr->m_data->m_listPatternPartMidIdx, 
+                                                   m_implPtr->m_data->m_listPatternPartMidSize);
+      String formatEnd = internal::get_locale_data(internal::sg_listPatternPartData + m_implPtr->m_data->m_listPatternPartEndIdx, 
+                                                   m_implPtr->m_data->m_listPatternPartEndSize);
+      String result = formatStart.arg(list.at(0), list.at(1));
+      for (int i = 2; i < size - 1; ++i)
+         result = formatMid.arg(result, list.at(i));
+      result = formatEnd.arg(result, list.at(size - 1));
+      return result;
+   }
+   
+   return String();
+}
+
+void Locale::setDefault(const Locale &locale)
+{
+   internal::sg_defaultData = locale.m_implPtr->m_data;
+   internal::sg_defaultNumberOptions = locale.numberOptions();
+   if (internal::sg_defaultLocalePrivate.exists()) {
+      // update the cached private
+      *internal::sg_defaultLocalePrivate = locale.m_implPtr;
+   }
+}
+
+Locale::Language Locale::getLanguage() const
+{
+   return Language(m_implPtr->languageId());
+}
+
+Locale::Script Locale::getScript() const
+{
+   return Script(m_implPtr->m_data->m_scriptId);
+}
+
+Locale::Country Locale::getCountry() const
+{
+   return Country(m_implPtr->countryId());
+}
+
+String Locale::getName() const
+{
+   Language l = getLanguage();
+   if (l == Language::C) {
+      return m_implPtr->languageCode();
+   }
+   Country c = getCountry();
+   if (c == Country::AnyCountry) {
+      return m_implPtr->languageCode();
+   }
+   return m_implPtr->languageCode() + Latin1Character('_') + m_implPtr->countryCode();
+}
+
+namespace {
+
+pdk::plonglong to_integral_helper(const LocaleData *d, StringView str, bool *ok,
+                                  Locale::NumberOptions mode, pdk::plonglong)
+{
+   return d->stringToLongLong(str, 10, ok, mode);
+}
+
+pdk::pulonglong to_integral_helper(const LocaleData *d, StringView str, bool *ok,
+                                   Locale::NumberOptions mode, pdk::pulonglong)
+{
+   return d->stringToUnsLongLong(str, 10, ok, mode);
+}
+
+template <typename T> static inline
+T to_integral_helper(const LocalePrivate *d, StringView str, bool *ok)
+{
+   using Int64 = typename std::conditional<std::is_unsigned<T>::value, pdk::pulonglong, pdk::plonglong>::type;
+   // we select the right overload by the last, unused parameter
+   Int64 val = to_integral_helper(d->m_data, str, ok, d->m_numberOptions, Int64());
+   if (T(val) != val) {
+      if (ok) {
+         *ok = false;
+      }
+      val = 0;
+   }
+   return T(val);
+}
+
+} // anonymous namespace
+
+String Locale::getBcp47Name() const
+{
+   return String::fromLatin1(m_implPtr->bcp47Name());
+}
+
+String Locale::languageToString(Language language)
+{
+   if (uint(language) > uint(Locale::Language::LastLanguage)) {
+      return Latin1String("Unknown");
+   }
+   return Latin1String(internal::sg_languageNameList + 
+                       internal::sg_languageNameIndex[pdk::as_integer<Locale::Language>(language)]);
+}
+
+String Locale::countryToString(Country country)
+{
+   if (uint(country) > uint(Locale::Country::LastCountry)) {
+      return Latin1String("Unknown");
+   }
+   return Latin1String(internal::sg_countryNameList + 
+                       internal::sg_countryNameIndex[pdk::as_integer<Locale::Country>(country)]);
+}
+
+String Locale::scriptToString(Locale::Script script)
+{
+   if (uint(script) > uint(Locale::Script::LastScript)) {
+      return Latin1String("Unknown");
+   }
+   return Latin1String(internal::sg_scriptNameList + 
+                       internal::sg_scriptNameIndex[pdk::as_integer<Locale::Script>(script)]);
+}
+
+#if PDK_STRINGVIEW_LEVEL < 2
+
+short Locale::toShort(const String &str, bool *ok) const
+{
+   return to_integral_helper<short>(m_implPtr, str, ok);
+}
+
+ushort Locale::toUShort(const String &str, bool *ok) const
+{
+   return to_integral_helper<ushort>(m_implPtr, str, ok);
+}
+
+int Locale::toInt(const String &str, bool *ok) const
+{
+   return to_integral_helper<int>(m_implPtr, str, ok);
+}
+
+uint Locale::toUInt(const String &str, bool *ok) const
+{
+   return to_integral_helper<uint>(m_implPtr, str, ok);
+}
+
+pdk::plonglong Locale::toLongLong(const String &str, bool *ok) const
+{
+   return to_integral_helper<pdk::plonglong>(m_implPtr, str, ok);
+}
+
+pdk::pulonglong Locale::toULongLong(const String &str, bool *ok) const
+{
+   return to_integral_helper<pdk::pulonglong>(m_implPtr, str, ok);
+}
+
+float Locale::toFloat(const String &str, bool *ok) const
+{
+   return LocaleData::convertDoubleToFloat(toDouble(str, ok), ok);
+}
+
+double Locale::toDouble(const String &str, bool *ok) const
+{
+   return m_implPtr->m_data->stringToDouble(str, ok, m_implPtr->m_numberOptions);
+}
+
+short Locale::toShort(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<short>(m_implPtr, str, ok);
+}
+
+ushort Locale::toUShort(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<ushort>(m_implPtr, str, ok);
+}
+
+int Locale::toInt(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<int>(m_implPtr, str, ok);
+}
+
+uint Locale::toUInt(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<uint>(m_implPtr, str, ok);
+}
+
+pdk::plonglong Locale::toLongLong(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<pdk::plonglong>(m_implPtr, str, ok);
+}
+
+pdk::pulonglong Locale::toULongLong(const StringRef &str, bool *ok) const
+{
+   return to_integral_helper<pdk::pulonglong>(m_implPtr, str, ok);
+}
+
+float Locale::toFloat(const StringRef &str, bool *ok) const
+{
+   return LocaleData::convertDoubleToFloat(toDouble(str, ok), ok);
+}
+
+double Locale::toDouble(const StringRef &str, bool *ok) const
+{
+   return m_implPtr->m_data->stringToDouble(str, ok, m_implPtr->m_numberOptions);
+}
+#endif // QT_STRINGVIEW_LEVEL < 2
+
+short Locale::toShort(StringView str, bool *ok) const
+{
+   return to_integral_helper<short>(m_implPtr, str, ok);
+}
+
+ushort Locale::toUShort(StringView str, bool *ok) const
+{
+   return to_integral_helper<ushort>(m_implPtr, str, ok);
+}
+
+int Locale::toInt(StringView str, bool *ok) const
+{
+   return to_integral_helper<int>(m_implPtr, str, ok);
+}
+
+uint Locale::toUInt(StringView str, bool *ok) const
+{
+   return to_integral_helper<uint>(m_implPtr, str, ok);
+}
+
+pdk::plonglong Locale::toLongLong(StringView str, bool *ok) const
+{
+   return to_integral_helper<pdk::plonglong>(m_implPtr, str, ok);
+}
+
+pdk::pulonglong Locale::toULongLong(StringView str, bool *ok) const
+{
+   return to_integral_helper<pdk::pulonglong>(m_implPtr, str, ok);
+}
+
+float Locale::toFloat(StringView str, bool *ok) const
+{
+   return LocaleData::convertDoubleToFloat(toDouble(str, ok), ok);
+}
+
+double Locale::toDouble(StringView str, bool *ok) const
+{
+   return m_implPtr->m_data->stringToDouble(str, ok, m_implPtr->m_numberOptions);
+}
+
+String Locale::toString(pdk::plonglong i) const
+{
+   unsigned flags = pdk::as_integer<LocaleData::Flags>
+         (m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
+          ? LocaleData::Flags::NoFlags
+          : LocaleData::Flags::ThousandsGroup);
+   
+   return m_implPtr->m_data->longLongToString(i, -1, 10, -1, flags);
+}
+
+String Locale::toString(pdk::pulonglong i) const
+{
+   int flags = pdk::as_integer<LocaleData::Flags>
+         (m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
+          ? LocaleData::Flags::NoFlags
+          : LocaleData::Flags::ThousandsGroup);
+   
+   return m_implPtr->m_data->unsLongLongToString(i, -1, 10, -1, flags);
+}
+
+#if PDK_STRINGVIEW_LEVEL < 2
+
+String Locale::toString(const Date &date, const String &format) const
+{
+   return m_implPtr->dateTimeToString(format, DateTime(), date, Time(), this);
+}
+
+#endif
+
+String Locale::toString(const Date &date, StringView format) const
+{
+   return m_implPtr->dateTimeToString(format, DateTime(), date, Time(), this);
+}
+
+String Locale::toString(const Date &date, FormatType format) const
+{
+   if (!date.isValid()) {
+      return String();
+   }
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DateToStringLong 
+                                                      : internal::SystemLocale::QueryType::DateToStringShort,
+                                                      date);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   String formatStr = dateFormat(format);
+   return toString(date, formatStr);
+}
+
+namespace {
+
+bool time_format_containsAP(StringView format)
+{
+   int i = 0;
+   while (static_cast<StringView::size_type>(i) < format.size()) {
+      if (format.at(i).unicode() == '\'') {
+         internal::read_escaped_format_string(format, &i);
+         continue;
+      }
+      if (format.at(i).toLower().unicode() == 'a') {
+         return true;
+      }
+      ++i;
+   }
+   return false;
+}
+
+} // anonymous namespace
+
+#if PDK_STRINGVIEW_LEVEL < 2
+
+String Locale::toString(const Time &time, const String &format) const
+{
+   return m_implPtr->dateTimeToString(format, DateTime(), Date(), time, this);
+}
+
+#endif
+
+String Locale::toString(const Time &time, StringView format) const
+{
+   return m_implPtr->dateTimeToString(format, DateTime(), Date(), time, this);
+}
+
+#if QT_STRINGVIEW_LEVEL < 2
+
+String Locale::toString(const DateTime &dateTime, const String &format) const
+{
+   return m_implPtr->dateTimeToString(format, dateTime, Date(), Time(), this);
+}
+
+#endif
+
+String Locale::toString(const DateTime &dateTime, StringView format) const
+{
+   return m_implPtr->dateTimeToString(format, dateTime, Date(), Time(), this);
+}
+
+String Locale::toString(const DateTime &dateTime, FormatType format) const
+{
+   if (!dateTime.isValid()) {
+      return String();
+   }
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DateTimeToStringLong
+                                                      : internal::SystemLocale::QueryType::DateTimeToStringShort,
+                                                      dateTime);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   
+   const String formatStr = dateTimeFormat(format);
+   return toString(dateTime, formatStr);
+}
+
+String Locale::toString(const Time &time, FormatType format) const
+{
+   if (!time.isValid())
+      return String();
+   
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::TimeToStringLong 
+                                                      : internal::SystemLocale::QueryType::TimeToStringShort,
+                                                      time);
+      if (res.has_value()) {
+         std::any_cast<String>(res);
+      }
+   }
+#endif
+   
+   String format_str = timeFormat(format);
+   return toString(time, format_str);
+}
+
+String Locale::dateFormat(FormatType format) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DateFormatLong 
+                                                      : internal::SystemLocale::QueryType::DateFormatShort,
+                                                      std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (format) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_longDateFormatIdx;
+      size = m_implPtr->m_data->m_longDateFormatSize;
+      break;
+   default:
+      idx = m_implPtr->m_data->m_shortDateFormatIdx;
+      size = m_implPtr->m_data->m_shortDateFormatSize;
+      break;
+   }
+   return internal::get_locale_data(internal::sg_dateFormatData + idx, size);
+}
+
+String Locale::timeFormat(FormatType format) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::TimeFormatLong 
+                                                      : internal::SystemLocale::QueryType::TimeFormatShort,
+                                                      std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (format) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_longTimeFormatIdx;
+      size = m_implPtr->m_data->m_longTimeFormatSize;
+      break;
+   default:
+      idx = m_implPtr->m_data->m_shortTimeFormatIdx;
+      size = m_implPtr->m_data->m_shortTimeFormatSize;
+      break;
+   }
+   return internal::get_locale_data(internal::sg_timeFormatData + idx, size);
+}
+
+String Locale::dateTimeFormat(FormatType format) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(format == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DateTimeFormatLong
+                                                      : internal::SystemLocale::QueryType::DateTimeFormatShort,
+                                                      std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   return dateFormat(format) + Latin1Character(' ') + timeFormat(format);
+}
+
+#ifndef PDK_NO_DATESTRING
+Time Locale::toTime(const String &string, FormatType format) const
+{
+   return toTime(string, timeFormat(format));
+}
+
+Date Locale::toDate(const String &string, FormatType format) const
+{
+   return toDate(string, dateFormat(format));
+}
+
+DateTime Locale::toDateTime(const String &string, FormatType format) const
+{
+   return toDateTime(string, dateTimeFormat(format));
+}
+
+Time Locale::toTime(const String &string, const String &format) const
+{
+   Time time;
+#if PDK_CONFIG(DATETIME_PARSER)
+   //    DateTimeParser dt(Variant::Time, DateTimeParser::FromString);
+   //    dt.setDefaultLocale(*this);
+   //    if (dt.parseFormat(format))
+   //        dt.fromString(string, 0, &time);
+#else
+   PDK_UNUSED(string);
+   PDK_UNUSED(format);
+#endif
+   return time;
+}
+
+Date Locale::toDate(const String &string, const String &format) const
+{
+   Date date;
+#if PDK_CONFIG(DATETIME_PARSER)
+   //    DateTimeParser dt(Variant::Date, DateTimeParser::FromString);
+   //    dt.setDefaultLocale(*this);
+   //    if (dt.parseFormat(format))
+   //        dt.fromString(string, &date, 0);
+#else
+   PDK_UNUSED(string);
+   PDK_UNUSED(format);
+#endif
+   return date;
+}
+
+DateTime Locale::toDateTime(const String &string, const String &format) const
+{
+#if PDK_CONFIG(DATETIME_PARSER)
+   //    Time time;
+   //    Date date;
+   
+   //    DateTimeParser dt(QVariant::DateTime, DateTimeParser::FromString);
+   //    dt.setDefaultLocale(*this);
+   //    if (dt.parseFormat(format) && dt.fromString(string, &date, &time))
+   //        return DateTime(date, time);
+#else
+   PDK_UNUSED(string);
+   PDK_UNUSED(format);
+#endif
+   return DateTime(Date(), Time(-1, -1, -1));
+}
+
+#endif
+
+Character Locale::decimalPoint() const
+{
+   return m_implPtr->decimal();
+}
+
+Character Locale::groupSeparator() const
+{
+   return m_implPtr->group();
+}
+
+Character Locale::percent() const
+{
+   return m_implPtr->percent();
+}
+
+Character Locale::zeroDigit() const
+{
+   return m_implPtr->zero();
+}
+
+Character Locale::negativeSign() const
+{
+   return m_implPtr->minus();
+}
+
+Character Locale::positiveSign() const
+{
+   return m_implPtr->plus();
+}
+
+Character Locale::exponential() const
+{
+   return m_implPtr->exponential();
+}
+
+namespace {
+
+bool pdk_is_upper(char c)
+{
+   return c >= 'A' && c <= 'Z';
+}
+
+char pdk_to_lower(char c)
+{
+   if (c >= 'A' && c <= 'Z') {
+      return c - 'A' + 'a';
+   } else {
+      return c;
+   }
+}
+
+} // anonymous namespace
+
+String Locale::toString(double i, char f, int prec) const
+{
+   LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
+   uint flags = 0;
+   if (pdk_is_upper(f)) {
+      flags = pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::CapitalEorX);
+   }
+   f = pdk_to_lower(f);
+   
+   switch (f) {
+   case 'f':
+      form = LocaleData::DoubleForm::DFDecimal;
+      break;
+   case 'e':
+      form = LocaleData::DoubleForm::DFExponent;
+      break;
+   case 'g':
+      form = LocaleData::DoubleForm::DFSignificantDigits;
+      break;
+   default:
+      break;
+   }
+   if (!(m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator)) {
+      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ThousandsGroup);
+   }
+   if (!(m_implPtr->m_numberOptions & NumberOption::OmitLeadingZeroInExponent)) {
+      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadExponent);
+   }
+   if (m_implPtr->m_numberOptions & NumberOption::IncludeTrailingZeroesAfterDot) {
+      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AddTrailingZeroes);
+   }
+   return m_implPtr->m_data->doubleToString(i, prec, form, -1, flags);
+}
+
+Locale Locale::system()
+{
+   return Locale(*LocalePrivate::create(internal::system_data()));
+}
+
+std::list<Locale> Locale::matchingLocales(Language language,
+                                          Script script,
+                                          Country country)
+{
+   if (pdk::as_integer<Language>(language) > pdk::as_integer<Language>(Language::LastLanguage) || 
+       pdk::as_integer<Script>(script) >  pdk::as_integer<Script>(Script::LastScript) ||
+       pdk::as_integer<Country>(country) > pdk::as_integer<Country>(Country::LastCountry)) {
+      return std::list<Locale>();
+   }
+   
+   if (language == Language::C) {
+      std::list<Locale> ret;
+      ret.emplace_back(Language::C);
+      return ret;
+   }
+   std::list<Locale> result;
+   if (language == Language::AnyLanguage && 
+       script == Script::AnyScript && 
+       country == Country::AnyCountry) {
+      result.resize(internal::sg_localeDataSize);
+   }
+   
+   const LocaleData *data = internal::sg_localeData + internal::sg_localeIndex[pdk::as_integer<Language>(language)];
+   while ( (data != internal::sg_localeData + internal::sg_localeDataSize)
+           && (language == Language::AnyLanguage || data->m_languageId == pdk::as_integer<Language>(language))) {
+      if ((script == Script::AnyScript || data->m_scriptId == pdk::as_integer<Script>(script))
+          && (country == Country::AnyCountry || data->m_countryId == pdk::as_integer<Country>(country))) {
+         result.push_back(Locale(*(data->m_languageId == pdk::as_integer<Language>(Language::C) 
+                                   ? internal::c_private()
+                                   : LocalePrivate::create(data))));
+      }
+      ++data;
+   }
+   return result;
+}
+
+String Locale::monthName(int month, FormatType type) const
+{
+   if (month < 1 || month > 12)
+      return String();
+   
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(type == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::MonthNameLong
+                                                      : internal::SystemLocale::QueryType::MonthNameShort,
+                                                      month);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (type) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_longMonthNamesIdx;
+      size = m_implPtr->m_data->m_longMonthNamesSize;
+      break;
+   case FormatType::ShortFormat:
+      idx = m_implPtr->m_data->m_shortMonthNamesIdx;
+      size = m_implPtr->m_data->m_shortMonthNamesSize;
+      break;
+   case FormatType::NarrowFormat:
+      idx = m_implPtr->m_data->m_narrowMonthNamesIdx;
+      size = m_implPtr->m_data->m_narrowMonthNamesSize;
+      break;
+   }
+   return internal::get_locale_list_data(internal::sg_monthsData + idx, size, month - 1);
+}
+
+String Locale::standaloneMonthName(int month, FormatType type) const
+{
+   if (month < 1 || month > 12) {
+      return String();
+   }
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(type == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::StandaloneMonthNameLong 
+                                                      : internal::SystemLocale::QueryType::StandaloneMonthNameShort,
+                                                      month);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (type) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_standaloneLongMonthNamesIdx;
+      size = m_implPtr->m_data->m_standaloneLongMonthNamesSize;
+      break;
+   case FormatType::ShortFormat:
+      idx = m_implPtr->m_data->m_standaloneShortMonthNamesIdx;
+      size = m_implPtr->m_data->m_standaloneShortMonthNamesSize;
+      break;
+   case FormatType::NarrowFormat:
+      idx = m_implPtr->m_data->m_standaloneNarrowMonthNamesIdx;
+      size = m_implPtr->m_data->m_standaloneNarrowMonthNamesSize;
+      break;
+   }
+   String name = internal::get_locale_list_data(internal::sg_monthsData + idx, size, month - 1);
+   if (name.isEmpty()) {
+      return monthName(month, type);
+   }
+   return name;
+}
+
+String Locale::dayName(int day, FormatType type) const
+{
+   if (day < 1 || day > 7) {
+      return String();
+   }
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(type == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DayNameLong 
+                                                      : internal::SystemLocale::QueryType::DayNameShort,
+                                                      day);
+      if (res.has_value()) {
+         std::any_cast<String>(res);
+      }
+   }
+#endif
+   if (day == 7)
+      day = 0;
+   
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (type) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_longDayNamesIdx;
+      size = m_implPtr->m_data->m_longDayNamesSize;
+      break;
+   case FormatType::ShortFormat:
+      idx = m_implPtr->m_data->m_shortDayNamesIdx;
+      size = m_implPtr->m_data->m_shortDayNamesSize;
+      break;
+   case FormatType::NarrowFormat:
+      idx = m_implPtr->m_data->m_narrowDayNamesIdx;
+      size = m_implPtr->m_data->m_narrowDayNamesSize;
+      break;
+   }
+   return internal::get_locale_list_data(internal::sg_daysData + idx, size, day);
+}
+
+String Locale::standaloneDayName(int day, FormatType type) const
+{
+   if (day < 1 || day > 7) {
+      return String();
+   }
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(type == FormatType::LongFormat
+                                                      ? internal::SystemLocale::QueryType::DayNameLong
+                                                      : internal::SystemLocale::QueryType::DayNameShort,
+                                                      day);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   if (day == 7) {
+      day = 0;
+   }
+   pdk::puint32 idx, size;
+   switch (type) {
+   case FormatType::LongFormat:
+      idx = m_implPtr->m_data->m_standaloneLongDayNamesIdx;
+      size = m_implPtr->m_data->m_standaloneLongDayNamesSize;
+      break;
+   case FormatType::ShortFormat:
+      idx = m_implPtr->m_data->m_standaloneShortDayNamesIdx;
+      size = m_implPtr->m_data->m_standaloneShortDayNamesSize;
+      break;
+   case FormatType::NarrowFormat:
+      idx = m_implPtr->m_data->m_standaloneNarrowDayNamesIdx;
+      size = m_implPtr->m_data->m_standaloneNarrowDayNamesSize;
+      break;
+   }
+   String name = internal::get_locale_list_data(internal::sg_daysData + idx, size, day);
+   if (name.isEmpty()) {
+      return dayName(day == 0 ? 7 : day, type);
+   }
+   return name;
+}
+
+pdk::DayOfWeek Locale::firstDayOfWeek() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(internal::SystemLocale::QueryType::FirstDayOfWeek, std::any());
+      if (res.has_value()) {
+         return static_cast<pdk::DayOfWeek>(std::any_cast<uint>(res));
+      }
+   }
+#endif
+   return static_cast<pdk::DayOfWeek>(m_implPtr->m_data->m_firstDayOfWeek);
 }
 
 } // utils

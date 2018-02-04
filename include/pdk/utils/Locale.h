@@ -25,6 +25,7 @@ namespace pdk {
 // forward declare class with namespace
 namespace lang {
 class StringRef;
+class StringView;
 class Character;
 } // lang
 
@@ -51,8 +52,10 @@ namespace utils {
 namespace internal {
 class LocalePrivate;
 } // internal
+
 using pdk::lang::String;
 using pdk::lang::StringRef;
+using pdk::lang::StringView;
 using pdk::lang::Character;
 using pdk::time::Date;
 using pdk::time::DateTime;
@@ -897,7 +900,9 @@ public:
       OmitGroupSeparator = 0x01,
       RejectGroupSeparator = 0x02,
       OmitLeadingZeroInExponent = 0x04,
-      RejectLeadingZeroInExponent = 0x08
+      RejectLeadingZeroInExponent = 0x08,
+      IncludeTrailingZeroesAfterDot = 0x10,
+      RejectTrailingZeroesAfterDot = 0x20
    };
    
    PDK_DECLARE_FLAGS(NumberOptions, NumberOption);
@@ -914,6 +919,18 @@ public:
       CurrencyDisplayName
    };
    
+   enum DataSizeFormat {
+      // Single-bit values, for internal use.
+      DataSizeBase1000 = 1, // use factors of 1000 instead of IEC's 1024;
+      DataSizeSIQuantifiers = 2, // use SI quantifiers instead of IEC ones.
+      
+      // Flags values for use in API:
+      DataSizeIecFormat = 0, // base 1024, KiB, MiB, GiB, ...
+      DataSizeTraditionalFormat = DataSizeSIQuantifiers, // base 1024, kB, MB, GB, ...
+      DataSizeSIFormat = DataSizeBase1000 | DataSizeSIQuantifiers // base 1000, kB, MB, GB, ...
+   };
+   
+   PDK_DECLARE_FLAGS(DataSizeFormats, DataSizeFormat);
    Locale();
    Locale(const String &name);
    Locale(Language language, Country country = Country::AnyCountry);
@@ -942,23 +959,34 @@ public:
    String getNativeLanguageName() const;
    String getNativeCountryName() const;
    
-   short toShort(const String &s, bool *ok = nullptr) const;
-   ushort toUShort(const String &s, bool *ok = nullptr) const;
-   int toInt(const String &s, bool *ok = nullptr) const;
-   uint toUInt(const String &s, bool *ok = nullptr) const;
-   plonglong toLongLong(const String &s, bool *ok = nullptr) const;
-   pulonglong toULongLong(const String &s, bool *ok = nullptr) const;
-   float toFloat(const String &s, bool *ok = nullptr) const;
-   double toDouble(const String &s, bool *ok = nullptr) const;
+#if PDK_STRINGVIEW_LEVEL < 2
+   short toShort(const String &str, bool *ok = nullptr) const;
+   ushort toUShort(const String &str, bool *ok = nullptr) const;
+   int toInt(const String &str, bool *ok = nullptr) const;
+   uint toUInt(const String &str, bool *ok = nullptr) const;
+   plonglong toLongLong(const String &str, bool *ok = nullptr) const;
+   pulonglong toULongLong(const String &str, bool *ok = nullptr) const;
+   float toFloat(const String &str, bool *ok = nullptr) const;
+   double toDouble(const String &str, bool *ok = nullptr) const;
    
-   short toShort(const StringRef &s, bool *ok = nullptr) const;
-   ushort toUShort(const StringRef &s, bool *ok = nullptr) const;
-   int toInt(const StringRef &s, bool *ok = nullptr) const;
-   uint toUInt(const StringRef &s, bool *ok = nullptr) const;
-   plonglong toLongLong(const StringRef &s, bool *ok = nullptr) const;
-   pulonglong toULongLong(const StringRef &s, bool *ok = nullptr) const;
-   float toFloat(const StringRef &s, bool *ok = nullptr) const;
-   double toDouble(const StringRef &s, bool *ok = nullptr) const;
+   short toShort(const StringRef &str, bool *ok = nullptr) const;
+   ushort toUShort(const StringRef &str, bool *ok = nullptr) const;
+   int toInt(const StringRef &str, bool *ok = nullptr) const;
+   uint toUInt(const StringRef &str, bool *ok = nullptr) const;
+   plonglong toLongLong(const StringRef &str, bool *ok = nullptr) const;
+   pulonglong toULongLong(const StringRef &str, bool *ok = nullptr) const;
+   float toFloat(const StringRef &str, bool *ok = nullptr) const;
+   double toDouble(const StringRef &str, bool *ok = nullptr) const;
+#endif
+   
+   short toShort(StringView str, bool *ok = nullptr) const;
+   ushort toUShort(StringView str, bool *ok = nullptr) const;
+   int toInt(StringView str, bool *ok = nullptr) const;
+   uint toUInt(StringView str, bool *ok = nullptr) const;
+   plonglong toLongLong(StringView str, bool *ok = nullptr) const;
+   pulonglong toULongLong(StringView str, bool *ok = nullptr) const;
+   float toFloat(StringView str, bool *ok = nullptr) const;
+   double toDouble(StringView str, bool *ok = nullptr) const;
    
    String toString(plonglong i) const;
    String toString(pulonglong i) const;
@@ -968,12 +996,18 @@ public:
    inline String toString(uint i) const;
    String toString(double i, char f = 'g', int prec = 6) const;
    inline String toString(float i, char f = 'g', int prec = 6) const;
+   
+#if QT_STRINGVIEW_LEVEL < 2
    String toString(const Date &date, const String &formatStr) const;
-   String toString(const Date &date, FormatType format = FormatType::LongFormat) const;
    String toString(const Time &time, const String &formatStr) const;
+   String toString(const DateTime &dateTime, const String &format) const;
+#endif
+   String toString(const Date &date, StringView formatStr) const;
+   String toString(const Time &time, StringView formatStr) const;
+   String toString(const DateTime &dateTime, StringView format) const;
+   String toString(const Date &date, FormatType format = FormatType::LongFormat) const;
    String toString(const Time &time, FormatType format = FormatType::LongFormat) const;
    String toString(const DateTime &dateTime, FormatType format = FormatType::LongFormat) const;
-   String toString(const DateTime &dateTime, const String &format) const;
    
    String dateFormat(FormatType format = FormatType::LongFormat) const;
    String timeFormat(FormatType format = FormatType::LongFormat) const;
@@ -1025,6 +1059,8 @@ public:
    {
       return toCurrencyString(double(i), symbol, precision);
    }
+   
+   String formattedDataSize(pdk::pint64 bytes, int precision = 2, DataSizeFormats format = DataSizeIecFormat);
    
    StringList uiLanguages() const;
    
@@ -1118,6 +1154,6 @@ inline String Locale::toCurrencyString(uint i, const String &symbol) const
 } // utils
 } // pdk
 
-//PDK_DECLARE_SHARED(pdk::utils::Locale)
+PDK_DECLARE_SHARED(pdk::utils::Locale)
 
 #endif // PDK_UTILS_LOCALE_H
