@@ -1791,6 +1791,58 @@ pdk::LayoutDirection Locale::textDirection() const
    return pdk::LayoutDirection::LeftToRight;
 }
 
+String Locale::toUpper(const String &str) const
+{
+#if PDK_CONFIG(ICU)
+   bool ok = true;
+   String result = internal::Icu::toUpper(m_implPtr->bcp47Name('_'), str, &ok);
+   if (ok) {
+      return result;
+   }
+   // else fall through and use Qt's toUpper
+#endif
+   return str.toUpper();
+}
+
+String Locale::toLower(const String &str) const
+{
+#if PDK_CONFIG(ICU)
+   bool ok = true;
+   const String result = internal::Icu::toLower(m_implPtr->bcp47Name('_'), str, &ok);
+   if (ok) {
+      return result;
+   }
+   // else fall through and use Qt's toUpper
+#endif
+   return str.toLower();
+}
+
+String Locale::amText() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::AMText, std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   return internal::get_locale_data(internal::sg_amData + m_implPtr->m_data->m_amIdx, m_implPtr->m_data->m_amSize);
+}
+
+String Locale::pmText() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::PMText, std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   return internal::get_locale_data(internal::sg_pmData + m_implPtr->m_data->m_pmIdx, m_implPtr->m_data->m_pmSize);
+}
+
 
 } // utils
 } // pdk
