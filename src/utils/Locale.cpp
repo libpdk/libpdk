@@ -18,6 +18,7 @@
 #include "pdk/global/GlobalStatic.h"
 #include "pdk/global/internal/NumericPrivate.h"
 #include "pdk/kernel/HashFuncs.h"
+#include "pdk/kernel/Algorithms.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringView.h"
 #include "pdk/base/lang/StringBuilder.h"
@@ -49,8 +50,11 @@ using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
 using pdk::lang::StringView;
 using pdk::utils::SharedDataPointer;
+using pdk::ds::VarLengthArray;
+using pdk::ds::ByteArray;
 using internal::LocaleData;
 using internal::SystemLocale;
+using internal::LocaleId;
 
 namespace internal {
 
@@ -1843,6 +1847,1125 @@ String Locale::pmText() const
    return internal::get_locale_data(internal::sg_pmData + m_implPtr->m_data->m_pmIdx, m_implPtr->m_data->m_pmSize);
 }
 
+namespace internal {
+
+String LocalePrivate::dateTimeToString(StringView format, const DateTime &datetime,
+                                       const Date &dateOnly, const Time &timeOnly,
+                                       const Locale *q) const
+{
+   Date date;
+   Time time;
+   bool formatDate = false;
+   bool formatTime = false;
+   if (datetime.isValid()) {
+      date = datetime.getDate();
+      time = datetime.getTime();
+      formatDate = true;
+      formatTime = true;
+   } else if (dateOnly.isValid()) {
+      date = dateOnly;
+      formatDate = true;
+   } else if (timeOnly.isValid()) {
+      time = timeOnly;
+      formatTime = true;
+   } else {
+      return String();
+   }
+   
+   String result;
+   
+   int i = 0;
+   while (static_cast<StringView::size_type>(i) < format.size()) {
+      if (format.at(i).unicode() == '\'') {
+         result.append(internal::read_escaped_format_string(format, &i));
+         continue;
+      }
+      
+      const Character c = format.at(i);
+      int repeat = internal::repeat_count(format.mid(i));
+      bool used = false;
+      if (formatDate) {
+         switch (c.unicode()) {
+         case 'y':
+            used = true;
+            if (repeat >= 4) {
+               repeat = 4;
+            } else if (repeat >= 2) {
+               repeat = 2;
+            }
+            switch (repeat) {
+            case 4: {
+               const int yr = date.getYear();
+               const int len = (yr < 0) ? 5 : 4;
+               result.append(m_data->longLongToString(yr, -1, 10, len,
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            }
+            case 2:
+               result.append(m_data->longLongToString(date.getYear() % 100, -1, 10, 2,
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            default:
+               repeat = 1;
+               result.append(c);
+               break;
+            }
+            break;
+            
+         case 'M':
+            used = true;
+            repeat = std::min(repeat, 4);
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(date.getMonth()));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(date.getMonth(), -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            case 3:
+               result.append(q->monthName(date.getMonth(), Locale::FormatType::ShortFormat));
+               break;
+            case 4:
+               result.append(q->monthName(date.getMonth(), Locale::FormatType::LongFormat));
+               break;
+            }
+            break;
+            
+         case 'd':
+            used = true;
+            repeat = std::min(repeat, 4);
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(date.getDay()));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(date.getDay(), -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            case 3:
+               result.append(q->dayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat));
+               break;
+            case 4:
+               result.append(q->dayName(date.getDayOfWeek(), Locale::FormatType::LongFormat));
+               break;
+            }
+            break;
+            
+         default:
+            break;
+         }
+      }
+      if (!used && formatTime) {
+         switch (c.unicode()) {
+         case 'h': {
+            used = true;
+            repeat = std::min(repeat, 2);
+            int hour = time.getHour();
+            if (time_format_containsAP(format)) {
+               if (hour > 12) {
+                  hour -= 12;
+               } else if (hour == 0) {
+                  hour = 12;
+               }
+            }
+            
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(hour));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(hour, -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            }
+            break;
+         }
+         case 'H':
+            used = true;
+            repeat = std::min(repeat, 2);
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(time.getHour()));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(time.getHour(), -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            }
+            break;
+            
+         case 'm':
+            used = true;
+            repeat = std::min(repeat, 2);
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(time.getMinute()));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(time.getMinute(), -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            }
+            break;
+            
+         case 's':
+            used = true;
+            repeat = std::min(repeat, 2);
+            switch (repeat) {
+            case 1:
+               result.append(m_data->longLongToString(time.getSecond()));
+               break;
+            case 2:
+               result.append(m_data->longLongToString(time.getSecond(), -1, 10, 2, 
+                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+               break;
+            }
+            break;
+            
+         case 'a':
+            used = true;
+            if (static_cast<StringView::size_type>(i + 1) < format.size() && format.at(i + 1).unicode() == 'p') {
+               repeat = 2;
+            } else {
+               repeat = 1;
+            }
+            result.append(time.getHour() < 12 ? q->amText().toLower() : q->pmText().toLower());
+            break;
+            
+         case 'A':
+            used = true;
+            if (static_cast<StringView::size_type>(i + 1) < format.size() && format.at(i + 1).unicode() == 'P') {
+               repeat = 2;
+            } else {
+               repeat = 1;
+            }
+            result.append(time.getHour() < 12 ? q->amText().toUpper() : q->pmText().toUpper());
+            break;
+            
+         case 'z':
+            used = true;
+            if (repeat >= 3) {
+               repeat = 3;
+            } else {
+               repeat = 1;
+            }
+            
+            // note: the millisecond component is treated like the decimal part of the seconds
+            // so ms == 2 is always printed as "002", but ms == 200 can be either "2" or "200"
+            result.append(m_data->longLongToString(time.getMsec(), -1, 10, 3, 
+                                                   pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+            if (repeat == 1) {
+               if (result.endsWith(zero())) {
+                  result.chop(1);
+               }
+               if (result.endsWith(zero())) {
+                  result.chop(1);
+               }
+            }
+            
+            break;
+            
+         case 't':
+            used = true;
+            repeat = 1;
+            // If we have a DateTime use the time spec otherwise use the current system tzname
+            if (formatDate) {
+               result.append(datetime.timeZoneAbbreviation());
+            } else {
+               result.append(DateTime::getCurrentDateTime().timeZoneAbbreviation());
+            }
+            break;
+            
+         default:
+            break;
+         }
+      }
+      if (!used) {
+         result.append(String(repeat, c));
+      }
+      i += repeat;
+   }
+   
+   return result;
+}
+
+} // internal
+
+String LocaleData::doubleToString(double d, int precision, DoubleForm form,
+                                  int width, unsigned flags) const
+{
+   return doubleToString(m_zero, m_plus, m_minus, m_exponential, m_group, m_decimal,
+                         d, precision, form, width, flags);
+}
+
+String LocaleData::doubleToString(const Character _zero, const Character plus, const Character minus,
+                                  const Character exponential, const Character group, const Character decimal,
+                                  double d, int precision, DoubleForm form, int width, unsigned flags)
+{
+   if (precision != Locale::FloatingPointShortest && precision < 0)
+      precision = 6;
+   if (width < 0)
+      width = 0;
+   
+   bool negative = false;
+   String num_str;
+   
+   int decpt;
+   int bufSize = 1;
+   if (precision == Locale::FloatingPointShortest)
+      bufSize += DoubleMaxSignificant;
+   else if (form == DoubleForm::DFDecimal) {// optimize for numbers between -512k and 512k
+      bufSize += ((d > (1 << 19) || d < -(1 << 19)) ? DoubleMaxDigitsBeforeDecimal : 6) +
+            precision;  
+   } else {// Add extra digit due to different interpretations of precision. Also, "nan" has to fit.
+      bufSize += std::max(2, precision) + 1;  
+   }
+   VarLengthArray<char> buf(bufSize);
+   int length;
+   internal::double_to_ascii(d, form, precision, buf.getRawData(), bufSize, negative, length, decpt);
+   if (pdk::strncmp(buf.getRawData(), "inf", 3) == 0 || pdk::strncmp(buf.getRawData(), "nan", 3) == 0) {
+      num_str = String::fromLatin1(buf.getRawData(), length);
+   } else { // Handle normal numbers
+      String digits = String::fromLatin1(buf.getRawData(), length);
+      
+      if (_zero.unicode() != '0') {
+         ushort z = _zero.unicode() - '0';
+         for (int i = 0; i < digits.length(); ++i)
+            reinterpret_cast<ushort *>(digits.getRawData())[i] += z;
+      }
+      
+      bool always_show_decpt = (flags & pdk::as_integer<Flags>(Flags::ForcePoint));
+      switch (form) {
+      case DoubleForm::DFExponent: {
+         num_str = internal::exponent_form(_zero, decimal, exponential, group, plus, minus,
+                                           digits, decpt, precision, internal::PrecisionMode::PMDecimalDigits,
+                                           always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ZeroPadExponent));
+         break;
+      }
+      case DoubleForm::DFDecimal: {
+         num_str = internal::decimal_form(_zero, decimal, group,
+                                          digits, decpt, precision, internal::PrecisionMode::PMDecimalDigits,
+                                          always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ThousandsGroup));
+         break;
+      }
+      case DoubleForm::DFSignificantDigits: {
+         internal::PrecisionMode mode = (flags & pdk::as_integer<Flags>(Flags::AddTrailingZeroes)) ?
+                  internal::PrecisionMode::PMSignificantDigits : internal::PrecisionMode::PMChopTrailingZeros;
+         
+         int cutoff = precision < 0 ? 6 : precision;
+         // Find out which representation is shorter
+         if (precision == Locale::FloatingPointShortest && decpt > 0) {
+            cutoff = digits.length() + 4; // 'e', '+'/'-', one digit exponent
+            if (decpt <= 10) {
+               ++cutoff;
+            } else {
+               cutoff += decpt > 100 ? 2 : 1;
+            }
+            if (!always_show_decpt && digits.length() > decpt) {
+               ++cutoff; // decpt shown in exponent form, but not in decimal form
+            }
+         }
+         
+         if (decpt != digits.length() && (decpt <= -4 || decpt > cutoff)) {
+            num_str = internal::exponent_form(_zero, decimal, exponential, group, plus, minus,
+                                              digits, decpt, precision, mode,
+                                              always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ZeroPadExponent));
+         } else {
+            num_str = internal::decimal_form(_zero, decimal, group,
+                                             digits, decpt, precision, mode,
+                                             always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ThousandsGroup));
+         }
+         break;
+      }
+      }
+      
+      if (internal::is_zero(d)) {
+         negative = false;
+      }
+      // pad with zeros. LeftAdjusted overrides this flag). Also, we don't
+      // pad special numbers
+      if (flags & pdk::as_integer<Flags>(Flags::ZeroPadded) && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))) {
+         int num_pad_chars = width - num_str.length();
+         // leave space for the sign
+         if (negative
+             || flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)
+             || flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+            --num_pad_chars;
+         }
+         for (int i = 0; i < num_pad_chars; ++i) {
+            num_str.prepend(_zero);
+         }  
+      }
+   }
+   
+   // add sign
+   if (negative) {
+      num_str.prepend(minus);
+   } else if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+      num_str.prepend(plus);
+   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+      num_str.prepend(Latin1Character(' '));
+   }
+   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+      num_str = std::move(num_str).toUpper();
+   }
+   return num_str;
+}
+
+String LocaleData::longLongToString(pdk::plonglong l, int precision,
+                                    int base, int width,
+                                    unsigned flags) const
+{
+   return longLongToString(m_zero, m_group, m_plus, m_minus,
+                           l, precision, base, width, flags);
+}
+
+String LocaleData::longLongToString(const Character zero, const Character group,
+                                    const Character plus, const Character minus,
+                                    pdk::plonglong l, int precision,
+                                    int base, int width,
+                                    unsigned flags)
+{
+   bool precision_not_specified = false;
+   if (precision == -1) {
+      precision_not_specified = true;
+      precision = 1;
+   }
+   
+   bool negative = l < 0;
+   if (base != 10) {
+      // these are not supported by sprintf for octal and hex
+      flags &= ~pdk::as_integer<Flags>(Flags::AlwaysShowSign);
+      flags &= ~pdk::as_integer<Flags>(Flags::BlankBeforePositive);
+      negative = false; // neither are negative numbers
+   }
+   
+   String num_str;
+   if (base == 10) {
+      num_str = internal::pdk_lltoa(l, base, zero);
+   } else {
+      num_str = internal::pdk_ulltoa(l, base, zero);
+   }
+   uint cnt_thousand_sep = 0;
+   if (flags & pdk::as_integer<Flags>(Flags::ThousandsGroup) && base == 10) {
+      for (int i = num_str.length() - 3; i > 0; i -= 3) {
+         num_str.insert(i, group);
+         ++cnt_thousand_sep;
+      }
+   }
+   
+   for (int i = num_str.length()/* - cnt_thousand_sep*/; i < precision; ++i) {
+      num_str.prepend(base == 10 ? zero : Character::fromLatin1('0'));
+   }
+   
+   if ((flags & pdk::as_integer<Flags>(Flags::ShowBase))
+       && base == 8
+       && (num_str.isEmpty() || num_str[0].unicode() != Latin1Character('0'))) {
+      num_str.prepend(Latin1Character('0'));
+   }
+   
+   
+   // LeftAdjusted overrides this flag ZeroPadded. sprintf only padds
+   // when precision is not specified in the format string
+   bool zero_padded = flags & pdk::as_integer<Flags>(Flags::ZeroPadded)
+         && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))
+         && precision_not_specified;
+   
+   if (zero_padded) {
+      int num_pad_chars = width - num_str.length();
+      
+      // leave space for the sign
+      if (negative
+          || flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)
+          || flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+         --num_pad_chars;
+      }
+      
+      
+      // leave space for optional '0x' in hex form
+      if (base == 16 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+         num_pad_chars -= 2;
+      } else if (base == 2 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+         // leave space for optional '0b' in binary form
+         num_pad_chars -= 2;
+      }
+      for (int i = 0; i < num_pad_chars; ++i) {
+         num_str.prepend(base == 10 ? zero : Character::fromLatin1('0'));
+      }   
+   }
+   
+   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+      num_str = std::move(num_str).toUpper();
+   }
+   
+   if (base == 16 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0X" : "0x"));
+   }
+   
+   if (base == 2 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0B" : "0b"));
+   }
+   
+   // add sign
+   if (negative) {
+      num_str.prepend(minus);
+   } else if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+      num_str.prepend(plus);
+   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+      num_str.prepend(Latin1Character(' '));
+   }
+   return num_str;
+}
+
+String LocaleData::unsLongLongToString(pdk::pulonglong l, int precision,
+                                       int base, int width,
+                                       unsigned flags) const
+{
+   return unsLongLongToString(m_zero, m_group, m_plus,
+                              l, precision, base, width, flags);
+}
+
+String LocaleData::unsLongLongToString(const Character zero, const Character group,
+                                       const Character plus,
+                                       pdk::pulonglong l, int precision,
+                                       int base, int width,
+                                       unsigned flags)
+{
+   const Character resultZero = base == 10 ? zero : Character(Latin1Character('0'));
+   String num_str = l ? internal::pdk_ulltoa(l, base, zero) : String(resultZero);
+   
+   bool precision_not_specified = false;
+   if (precision == -1) {
+      if (flags == pdk::as_integer<Flags>(Flags::NoFlags)) {
+         return num_str; // fast-path: nothing below applies, so we're done.
+      }
+      precision_not_specified = true;
+      precision = 1;
+   }
+   
+   uint cnt_thousand_sep = 0;
+   if (flags & pdk::as_integer<Flags>(Flags::ThousandsGroup) && base == 10) {
+      for (int i = num_str.length() - 3; i > 0; i -=3) {
+         num_str.insert(i, group);
+         ++cnt_thousand_sep;
+      }
+   }
+   
+   const int zeroPadding = precision - num_str.length()/* + cnt_thousand_sep*/;
+   if (zeroPadding > 0)
+      num_str.prepend(String(zeroPadding, resultZero));
+   
+   if ((flags & pdk::as_integer<Flags>(Flags::ShowBase))
+       && base == 8
+       && (num_str.isEmpty() || num_str.at(0).unicode() != Latin1Character('0'))) {
+      num_str.prepend(Latin1Character('0'));
+   }
+   // LeftAdjusted overrides this flag ZeroPadded. sprintf only padds
+   // when precision is not specified in the format string
+   bool zero_padded = flags & pdk::as_integer<Flags>(Flags::ZeroPadded)
+         && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))
+         && precision_not_specified;
+   
+   if (zero_padded) {
+      int num_pad_chars = width - num_str.length();
+      
+      // leave space for optional '0x' in hex form
+      if (base == 16 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+         num_pad_chars -= 2;
+      } else if (base == 2 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+         // leave space for optional '0b' in binary form
+         num_pad_chars -= 2;
+      }
+      if (num_pad_chars > 0) {
+         num_str.prepend(String(num_pad_chars, resultZero));
+      }
+   }
+   
+   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+      num_str = std::move(num_str).toUpper();
+   }
+   if (base == 16 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0X" : "0x"));
+   } else if (base == 2 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0B" : "0b"));
+   }
+   // add sign
+   if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+      num_str.prepend(plus);
+   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+      num_str.prepend(Latin1Character(' '));
+   }
+   return num_str;
+}
+
+/*
+    Converts a number in locale to its representation in the C locale.
+    Only has to guarantee that a string that is a correct representation of
+    a number will be converted. If junk is passed in, junk will be passed
+    out and the error will be detected during the actual conversion to a
+    number. We can't detect junk here, since we don't even know the base
+    of the number.
+*/
+bool LocaleData::numberToCLocale(StringView s, Locale::NumberOptions number_options,
+                                 CharBuff *result) const
+{
+   const Character *uc = s.data();
+   auto l = s.size();
+   StringView::size_type idx = 0;
+   // Skip whitespace
+   while (idx < l && uc[idx].isSpace()) {
+      ++idx;
+   }   
+   if (idx == l) {
+      return false;
+   }
+   // Check trailing whitespace
+   for (; idx < l; --l) {
+      if (!uc[l - 1].isSpace()) {
+         break;
+      }
+   }
+   
+   int group_cnt = 0; // counts number of group chars
+   int decpt_idx = -1;
+   int last_separator_idx = -1;
+   int start_of_digits_idx = -1;
+   int exponent_idx = -1;
+   
+   while (idx < l) {
+      const Character in = uc[idx];
+      char out = digitToCLocale(in);
+      if (out == 0) {
+         if (in == m_list) {
+            out = ';';
+         } else if (in == m_percent) {
+            out = '%';
+         } else if (in.unicode() >= 'A' && in.unicode() <= 'Z') {
+            // for handling base-x numbers
+            out = in.toLower().toLatin1();
+         } else if (in.unicode() >= 'a' && in.unicode() <= 'z') {
+            out = in.toLatin1();
+         } else {
+            break;
+         }
+      } else if (out == '.') {
+         // Fail if more than one decimal point or point after e
+         if (decpt_idx != -1 || exponent_idx != -1) {
+            return false;
+         }
+         decpt_idx = idx;
+      } else if (out == 'e' || out == 'E') {
+         exponent_idx = idx;
+      }
+      if (number_options & Locale::NumberOption::RejectLeadingZeroInExponent) {
+         if (exponent_idx != -1 && out == '0' && idx < l - 1) {
+            // After the exponent there can only be '+', '-' or digits.
+            // If we find a '0' directly after some non-digit, then that is a leading zero.
+            if (result->last() < '0' || result->last() > '9')
+               return false;
+         }
+      }
+      
+      if (number_options & Locale::NumberOption::RejectTrailingZeroesAfterDot) {
+         // If we've seen a decimal point and the last character after the exponent is 0, then
+         // that is a trailing zero.
+         if (decpt_idx >= 0 && 
+             idx == static_cast<StringView::size_type>(exponent_idx) && 
+             result->last() == '0') {
+            return false;
+         }
+      }
+      
+      if (!(number_options & Locale::NumberOption::RejectGroupSeparator)) {
+         if (start_of_digits_idx == -1 && out >= '0' && out <= '9') {
+            start_of_digits_idx = idx;
+         } else if (out == ',') {
+            // Don't allow group chars after the decimal point or exponent
+            if (decpt_idx != -1 || exponent_idx != -1) {
+               return false;
+            }
+            // check distance from the last separator or from the beginning of the digits
+            // ### FIXME: Some locales allow other groupings! See https://en.wikipedia.org/wiki/Thousands_separator
+            if (last_separator_idx != -1 && idx - last_separator_idx != 4) {
+               return false;
+            }
+            
+            if (last_separator_idx == -1 && (start_of_digits_idx == -1 || idx - start_of_digits_idx > 3)) {
+               return false;
+            }
+            
+            last_separator_idx = idx;
+            ++group_cnt;
+            
+            // don't add the group separator
+            ++idx;
+            continue;
+         } else if (out == '.' || out == 'e' || out == 'E') {
+            // check distance from the last separator
+            // ### FIXME: Some locales allow other groupings! See https://en.wikipedia.org/wiki/Thousands_separator
+            if (last_separator_idx != -1 && idx - last_separator_idx != 4) {
+               return false;
+            }
+            // stop processing separators
+            last_separator_idx = -1;
+         }
+      }
+      
+      result->append(out);
+      ++idx;
+   }
+   
+   if (!(number_options & Locale::NumberOption::RejectGroupSeparator)) {
+      // group separator post-processing
+      // did we end in a separator?
+      if (static_cast<StringView::size_type>(last_separator_idx + 1) == idx) {
+         return false;
+      }
+      
+      // were there enough digits since the last separator?
+      if (last_separator_idx != -1 && idx - last_separator_idx != 4) {
+         return false;
+      }
+      
+   }
+   
+   if (number_options & Locale::NumberOption::RejectTrailingZeroesAfterDot) {
+      // In decimal form, the last character can be a trailing zero if we've seen a decpt.
+      if (decpt_idx != -1 && exponent_idx == -1 && result->last() == '0') {
+         return false;
+      }
+      
+   }
+   
+   result->append('\0');
+   return idx == l;
+}
+
+bool LocaleData::validateChars(StringView str, NumberMode numMode, ByteArray *buff,
+                               int decDigits, Locale::NumberOptions number_options) const
+{
+   buff->clear();
+   buff->reserve(str.length());
+   
+   const bool scientific = numMode == NumberMode::DoubleScientificMode;
+   bool lastWasE = false;
+   bool lastWasDigit = false;
+   int eCnt = 0;
+   int decPointCnt = 0;
+   bool dec = false;
+   int decDigitCnt = 0;
+   
+   for (pdk::sizetype i = 0; i < str.size(); ++i) {
+      char c = digitToCLocale(str.at(i));
+      
+      if (c >= '0' && c <= '9') {
+         if (numMode != NumberMode::IntegerMode) {
+            // If a double has too many digits after decpt, it shall be Invalid.
+            if (dec && decDigits != -1 && decDigits < ++decDigitCnt) {
+               return false;
+            }
+         }
+         
+         // The only non-digit character after the 'e' can be '+' or '-'.
+         // If a zero is directly after that, then the exponent is zero-padded.
+         if ((number_options & Locale::NumberOption::RejectLeadingZeroInExponent) && c == '0' && eCnt > 0 &&
+             !lastWasDigit) {
+            return false;
+         }
+         lastWasDigit = true;
+      } else {
+         switch (c) {
+         case '.':
+            if (numMode == NumberMode::IntegerMode) {
+               // If an integer has a decimal point, it shall be Invalid.
+               return false;
+            } else {
+               // If a double has more than one decimal point, it shall be Invalid.
+               if (++decPointCnt > 1) {
+                  return false;
+               }
+#if 0
+               // If a double with no decimal digits has a decimal point, it shall be
+               // Invalid.
+               if (decDigits == 0)
+                  return false;
+#endif                  // On second thoughts, it shall be Valid.
+               
+               dec = true;
+            }
+            break;
+            
+         case '+':
+         case '-':
+            if (scientific) {
+               // If a scientific has a sign that's not at the beginning or after
+               // an 'e', it shall be Invalid.
+               if (i != 0 && !lastWasE)
+                  return false;
+            } else {
+               // If a non-scientific has a sign that's not at the beginning,
+               // it shall be Invalid.
+               if (i != 0)
+                  return false;
+            }
+            break;
+            
+         case ',':
+            //it can only be placed after a digit which is before the decimal point
+            if ((number_options & Locale::NumberOption::RejectGroupSeparator) || !lastWasDigit ||
+                decPointCnt > 0)
+               return false;
+            break;
+            
+         case 'e':
+            if (scientific) {
+               // If a scientific has more than one 'e', it shall be Invalid.
+               if (++eCnt > 1)
+                  return false;
+               dec = false;
+            } else {
+               // If a non-scientific has an 'e', it shall be Invalid.
+               return false;
+            }
+            break;
+            
+         default:
+            // If it's not a valid digit, it shall be Invalid.
+            return false;
+         }
+         lastWasDigit = false;
+      }
+      
+      lastWasE = c == 'e';
+      if (c != ',')
+         buff->append(c);
+   }
+   
+   return true;
+}
+
+double LocaleData::stringToDouble(StringView str, bool *ok,
+                                  Locale::NumberOptions number_options) const
+{
+   CharBuff buff;
+   if (!numberToCLocale(str, number_options, &buff)) {
+      if (ok != 0)
+         *ok = false;
+      return 0.0;
+   }
+   int processed = 0;
+   bool nonNullOk = false;
+   double d = internal::ascii_to_double(buff.getConstRawData(), buff.length() - 1, nonNullOk, processed);
+   if (ok) {
+      *ok = nonNullOk;
+   }
+   return d;
+}
+
+pdk::plonglong LocaleData::stringToLongLong(StringView str, int base, bool *ok,
+                                            Locale::NumberOptions number_options) const
+{
+   CharBuff buff;
+   if (!numberToCLocale(str, number_options, &buff)) {
+      if (ok != 0) {
+         *ok = false;
+      }
+      return 0;
+   }
+   
+   return bytearrayToLongLong(buff.getConstRawData(), base, ok);
+}
+
+pdk::pulonglong LocaleData::stringToUnsLongLong(StringView str, int base, bool *ok,
+                                                Locale::NumberOptions number_options) const
+{
+   CharBuff buff;
+   if (!numberToCLocale(str, number_options, &buff)) {
+      if (ok != 0) {
+         *ok = false;
+      }
+      return 0;
+   }
+   
+   return bytearrayToUnsLongLong(buff.getConstRawData(), base, ok);
+}
+
+double LocaleData::bytearrayToDouble(const char *num, bool *ok)
+{
+   bool nonNullOk = false;
+   int len = static_cast<int>(pdk::strlen(num));
+   PDK_ASSERT(len >= 0);
+   int processed = 0;
+   double d = internal::ascii_to_double(num, len, nonNullOk, processed);
+   if (ok) {
+      *ok = nonNullOk;
+   } 
+   return d;
+}
+
+pdk::plonglong LocaleData::bytearrayToLongLong(const char *num, int base, bool *ok)
+{
+   bool _ok;
+   const char *endptr;
+   
+   if (*num == '\0') {
+      if (ok != 0)
+         *ok = false;
+      return 0;
+   }
+   
+   pdk::plonglong l = internal::pdk_strtoll(num, &endptr, base, &_ok);
+   
+   if (!_ok) {
+      if (ok != 0) {
+         *ok = false;
+      }
+      return 0;
+   }
+   
+   if (*endptr != '\0') {
+      // we stopped at a non-digit character after converting some digits
+      if (ok != 0) {
+         *ok = false;
+      }
+      return 0;
+   }
+   
+   if (ok != 0) {
+      *ok = true;
+   }
+   return l;
+}
+
+pdk::pulonglong LocaleData::bytearrayToUnsLongLong(const char *num, int base, bool *ok)
+{
+   bool _ok;
+   const char *endptr;
+   pdk::pulonglong l = internal::pdk_strtoull(num, &endptr, base, &_ok);
+   
+   if (!_ok || *endptr != '\0') {
+      if (ok != 0) {
+         *ok = false;
+      }
+      return 0;
+   }
+   
+   if (ok != 0) {
+      *ok = true;
+   }
+   return l;
+}
+
+String Locale::currencySymbol(Locale::CurrencySymbolFormat format) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::CurrencySymbol, format);
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   pdk::puint32 idx;
+   pdk::puint32 size;
+   switch (format) {
+   case CurrencySymbol:
+      idx = m_implPtr->m_data->m_currencySymbolIdx;
+      size = m_implPtr->m_data->m_currencySymbolSize;
+      return internal::get_locale_data(internal::sg_currencySymbolData + idx, size);
+   case CurrencyDisplayName:
+      idx = m_implPtr->m_data->m_currencyDisplayNameIdx;
+      size = m_implPtr->m_data->m_currencyDisplayNameSize;
+      return internal::get_locale_list_data(internal::sg_currencyDisplayNameData + idx, size, 0);
+   case CurrencyIsoCode: {
+      int len = 0;
+      const LocaleData *data = m_implPtr->m_data;
+      for (; len < 3; ++len) {
+         if (!data->m_currencyIsoCode[len]) {
+            break;
+         }
+      }
+      return len ? String::fromLatin1(data->m_currencyIsoCode, len) : String();
+   }
+   }
+   return String();
+}
+
+String Locale::toCurrencyString(pdk::plonglong value, const String &symbol) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      SystemLocale::CurrencyToStringArgument arg(value, symbol);
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::CurrencyToString, std::any(arg));
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   const LocalePrivate *d = m_implPtr;
+   pdk::puint8 idx = d->m_data->m_currencyFormatIdx;
+   pdk::puint8 size = d->m_data->m_currencyFormatSize;
+   if (d->m_data->m_currencyNegativeFormatSize && value < 0) {
+      idx = d->m_data->m_currencyNegativeFormatIdx;
+      size = d->m_data->m_currencyNegativeFormatSize;
+      value = -value;
+   }
+   String str = toString(value);
+   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   if (sym.isEmpty()) {
+      sym = currencySymbol(Locale::CurrencyIsoCode);
+   }
+   String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
+   return format.arg(str, sym);
+}
+
+String Locale::toCurrencyString(pdk::pulonglong value, const String &symbol) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      SystemLocale::CurrencyToStringArgument arg(value, symbol);
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::CurrencyToString, std::any(arg));
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   const LocaleData *data = m_implPtr->m_data;
+   pdk::puint8 idx = data->m_currencyFormatIdx;
+   pdk::puint8 size = data->m_currencyFormatSize;
+   String str = toString(value);
+   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   if (sym.isEmpty()) {
+      sym = currencySymbol(Locale::CurrencyIsoCode);
+   }
+   String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
+   return format.arg(str, sym);
+}
+
+String Locale::toCurrencyString(double value, const String &symbol, int precision) const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      SystemLocale::CurrencyToStringArgument arg(value, symbol);
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::CurrencyToString, std::any(arg));
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   const LocaleData *data = m_implPtr->m_data;
+   pdk::puint8 idx = data->m_currencyFormatIdx;
+   pdk::puint8 size = data->m_currencyFormatSize;
+   if (data->m_currencyNegativeFormatSize && value < 0) {
+      idx = data->m_currencyNegativeFormatIdx;
+      size = data->m_currencyNegativeFormatSize;
+      value = -value;
+   }
+   String str = toString(value, 'f', precision == -1 ? m_implPtr->m_data->m_currencyDigits : precision);
+   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   if (sym.isEmpty()) {
+      sym = currencySymbol(Locale::CurrencyIsoCode);
+   }
+   String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
+   return format.arg(str, sym);
+}
+
+String Locale::formattedDataSize(pdk::pint64 bytes, int precision, DataSizeFormats format)
+{
+   int power, base = 1000;
+   if (!bytes) {
+      power = 0;
+   } else if (format & DataSizeBase1000) {
+      power = int(std::log10(std::abs(bytes)) / 3);
+   } else { // Compute log2(bytes) / 10:
+      power = int((63 - pdk::count_leading_zero_bits(pdk::puint64(std::abs(bytes)))) / 10);
+      base = 1024;
+   }
+   // Only go to doubles if we'll be using a quantifier:
+   const String number = power
+         ? toString(bytes / std::pow(double(base), power), 'f', std::min(precision, 3 * power))
+         : toString(bytes);
+   
+   // We don't support sizes in units larger than exbibytes because
+   // the number of bytes would not fit into qint64.
+   PDK_ASSERT(power <= 6 && power >= 0);
+   String unit;
+   if (power > 0) {
+      pdk::puint16 index, size;
+      if (format & DataSizeSIQuantifiers) {
+         index = m_implPtr->m_data->m_byteSiQuantifiedIdx;
+         size = m_implPtr->m_data->m_byteSiQuantifiedSize;
+      } else {
+         index = m_implPtr->m_data->m_byteIecQuantifiedIdx;
+         size = m_implPtr->m_data->m_byteIecQuantifiedSize;
+      }
+      unit = internal::get_locale_list_data(internal::sg_byteUnitData + index, size, power - 1);
+   } else {
+      unit = internal::get_locale_data(internal::sg_byteUnitData + m_implPtr->m_data->m_byteIdx, m_implPtr->m_data->m_byteSize);
+   }
+   return number + Latin1Character(' ') + unit;
+}
+
+StringList Locale::uiLanguages() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::UILanguages, std::any());
+      if (res.has_value()) {
+         StringList result = std::any_cast<StringList>(res);
+         if (!result.empty()) {
+            return result;
+         }
+      }
+   }
+#endif
+   LocaleId id = LocaleId::fromIds(m_implPtr->m_data->m_languageId, m_implPtr->m_data->m_scriptId, 
+                                   m_implPtr->m_data->m_countryId);
+   const LocaleId max = id.withLikelySubtagsAdded();
+   const LocaleId min = max.withLikelySubtagsRemoved();
+   
+   StringList uiLanguages;
+   uiLanguages.push_back(String::fromLatin1(min.name()));
+   if (id.m_scriptId) {
+      id.m_scriptId = 0;
+      if (id != min && id.withLikelySubtagsAdded() == max) {
+         uiLanguages.push_back(String::fromLatin1(id.name()));
+      }
+   }
+   if (max != min && max != id) {
+      uiLanguages.push_back(String::fromLatin1(max.name()));
+   }
+   return uiLanguages;
+}
+
+String Locale::getNativeLanguageName() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::NativeLanguageName, std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   return internal::get_locale_data(internal::sg_endonymsData + m_implPtr->m_data->m_languageEndonymIdx,
+                                    m_implPtr->m_data->m_languageEndonymSize);
+}
+
+String Locale::getNativeCountryName() const
+{
+#ifndef PDK_NO_SYSTEMLOCALE
+   if (m_implPtr->m_data == internal::system_data()) {
+      std::any res = internal::system_locale()->query(SystemLocale::QueryType::NativeCountryName, std::any());
+      if (res.has_value()) {
+         return std::any_cast<String>(res);
+      }
+   }
+#endif
+   return internal::get_locale_data(internal::sg_endonymsData + m_implPtr->m_data->m_countryEndonymIdx, 
+                                    m_implPtr->m_data->m_countryEndonymSize);
+}
 
 } // utils
 } // pdk

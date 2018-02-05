@@ -40,13 +40,14 @@ namespace internal {
 #   define NEEDS_VOLATILE
 #endif
 
-enum TrailingJunkMode {
+enum class TrailingJunkMode 
+{
    TrailingJunkProhibited,
    TrailingJunkAllowed
 };
 
 double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
-                       TrailingJunkMode trailingJunkMode = TrailingJunkProhibited);
+                       TrailingJunkMode trailingJunkMode = TrailingJunkMode::TrailingJunkProhibited);
 void double_to_ascii(double d, LocaleData::DoubleForm form, int precision, char *buf, int bufSize,
                      bool &sign, int &length, int &decpt);
 
@@ -54,23 +55,23 @@ String pdk_ulltoa(pdk::pulonglong l, int base, const Character _zero);
 String pdk_lltoa(pdk::plonglong l, int base, const Character zero);
 PDK_CORE_EXPORT String pdk_dtoa(double d, int *decpt, int *sign);
 
-enum PrecisionMode {
+enum class PrecisionMode {
    PMDecimalDigits =             0x01,
    PMSignificantDigits =   0x02,
    PMChopTrailingZeros =   0x03
 };
 
 String &decimal_form(Character zero, Character decimal, Character group,
-                    String &digits, int decpt, int precision,
-                    PrecisionMode pm,
-                    bool always_show_decpt,
-                    bool thousands_group);
-String &exponent_form(Character zero, Character decimal, Character exponential,
-                     Character group, Character plus, Character minus,
                      String &digits, int decpt, int precision,
                      PrecisionMode pm,
                      bool always_show_decpt,
-                     bool leading_zero_in_exponent);
+                     bool thousands_group);
+String &exponent_form(Character zero, Character decimal, Character exponential,
+                      Character group, Character plus, Character minus,
+                      String &digits, int decpt, int precision,
+                      PrecisionMode pm,
+                      bool always_show_decpt,
+                      bool leading_zero_in_exponent);
 
 inline bool is_zero(double d)
 {

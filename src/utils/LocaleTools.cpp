@@ -271,7 +271,7 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    if (pdk_double_sscanf(num, PDK_CLOCALE, "%lf%n", &d, &processed) < 1) {
       processed = 0;
    }
-   if ((trailingJunkMode == TrailingJunkProhibited && processed != numLen) || std::isnan(d)) {
+   if ((trailingJunkMode == TrailingJunkMode::TrailingJunkProhibited && processed != numLen) || std::isnan(d)) {
       // Implementation defined nan symbol or garbage found. We don't accept it.
       processed = 0;
       ok = false;
@@ -294,7 +294,7 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
       return d;
    }
    // Otherwise we would have gotten NaN or sorted it out above.
-   PDK_ASSERT(trailingJunkMode == TrailingJunkAllowed || processed == numLen);
+   PDK_ASSERT(trailingJunkMode == TrailingJunkMode::TrailingJunkAllowed || processed == numLen);
    
    // Check if underflow has occurred.
    if (is_zero(d)) {
@@ -407,12 +407,12 @@ String &decimal_form(Character zero, Character decimal, Character group,
          digits.append(zero);
       }
    }
-   if (pm == PMDecimalDigits) {
+   if (pm == PrecisionMode::PMDecimalDigits) {
       uint decimal_digits = digits.length() - decpt;
       for (int i = decimal_digits; i < precision; ++i)
          digits.append(zero);
    }
-   else if (pm == PMSignificantDigits) {
+   else if (pm == PrecisionMode::PMSignificantDigits) {
       for (int i = digits.length(); i < precision; ++i) {
          digits.append(zero);
       }
@@ -443,12 +443,12 @@ String &exponent_form(Character zero, Character decimal, Character exponential,
 {
    int exp = decpt - 1;
    
-   if (pm == PMDecimalDigits) {
+   if (pm == PrecisionMode::PMDecimalDigits) {
       for (int i = digits.length(); i < precision + 1; ++i) {
          digits.append(zero);
       }
    }
-   else if (pm == PMSignificantDigits) {
+   else if (pm == PrecisionMode::PMSignificantDigits) {
       for (int i = digits.length(); i < precision; ++i)
          digits.append(zero);
    }
@@ -477,7 +477,7 @@ double pdk_strntod(const char *s00, int len, const char **se, bool *ok)
 {
    int processed = 0;
    bool nonNullOk = false;
-   double d = ascii_to_double(s00, len, nonNullOk, processed, TrailingJunkAllowed);
+   double d = ascii_to_double(s00, len, nonNullOk, processed, TrailingJunkMode::TrailingJunkAllowed);
    if (se) {
       *se = s00 + processed;
    }

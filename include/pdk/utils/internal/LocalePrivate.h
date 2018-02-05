@@ -173,7 +173,7 @@ public:
    // Same as std::numeric_limits<double>::max_exponent10 + 1
    static const int DoubleMaxDigitsBeforeDecimal = 309;
    
-   enum class DoubleForm 
+   enum class DoubleForm : uint
    {
       DFExponent = 0,
       DFDecimal,
@@ -181,7 +181,7 @@ public:
       _DFMax = DFSignificantDigits
    };
    
-   enum class Flags
+   enum class Flags : uint
    {
       NoFlags             = 0,
       AddTrailingZeroes   = 0x01,
@@ -263,17 +263,17 @@ public:
                                     Locale::NumberOptions numberOptions) const;
    
    // these functions are used in IntValidator (Gui)
-   PDK_CORE_EXPORT static double bytearrayToDouble(const char *num, bool *ok, bool *overflow = 0);
-   PDK_CORE_EXPORT static pdk::pint64 bytearrayToLongLong(const char *num, int base, bool *ok, bool *overflow = 0);
-   PDK_CORE_EXPORT static pdk::puint64 bytearrayToUnsLongLong(const char *num, int base, bool *ok);
+   static double bytearrayToDouble(const char *num, bool *ok);
+   PDK_CORE_EXPORT static pdk::pint64 bytearrayToLongLong(const char *num, int base, bool *ok);
+   static pdk::puint64 bytearrayToUnsLongLong(const char *num, int base, bool *ok);
    
-   bool numberToCLocale(const Character *str, int len, Locale::NumberOptions number_options,
+   bool numberToCLocale(StringView str, Locale::NumberOptions number_options,
                         CharBuff *result) const;
    inline char digitToCLocale(Character c) const;
    
    // this function is used in QIntValidator (QtGui)
    PDK_CORE_EXPORT bool validateChars(
-         const String &str, NumberMode numMode, ByteArray *buff, int decDigits = -1,
+         StringView str, NumberMode numMode, ByteArray *buff, int decDigits = -1,
          Locale::NumberOptions numberOptions = Locale::NumberOption::DefaultNumberOptions) const;
    
 public:
@@ -338,6 +338,12 @@ public:
    pdk::puint16 m_amSize;
    pdk::puint16 m_pmIdx;
    pdk::puint16 m_pmSize;
+   pdk::puint16 m_byteIdx;
+   pdk::puint16 m_byteSize;
+   pdk::puint16 m_byteSiQuantifiedIdx;
+   pdk::puint16 m_byteSiQuantifiedSize;
+   pdk::puint16 m_byteIecQuantifiedIdx;
+   pdk::puint16 m_byteIecQuantifiedSize;
    char    m_currencyIsoCode[3];
    pdk::puint16 m_currencySymbolIdx;
    pdk::puint16 m_currencySymbolSize;
