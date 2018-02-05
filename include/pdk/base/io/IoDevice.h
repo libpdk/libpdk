@@ -60,7 +60,7 @@ public:
    explicit IoDevice(Object *parent);
    virtual ~IoDevice();
    OpenModes getOpenMode() const;
-   void setTextModeEnable(bool enabled);
+   void setTextModeEnabled(bool enabled);
    bool isTextModeEnabled() const;
    
    bool isOpen() const;

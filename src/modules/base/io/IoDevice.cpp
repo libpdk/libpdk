@@ -426,7 +426,7 @@ void IoDevice::setOpenMode(OpenModes openMode)
    implPtr->setWriteChannelCount(isWritable() ? std::max(implPtr->m_writeChannelCount, 1) : 0);
 }
 
-void IoDevice::setTextModeEnable(bool enabled)
+void IoDevice::setTextModeEnabled(bool enabled)
 {
    PDK_D(IoDevice);
    if (!isOpen()) {

@@ -19,12 +19,16 @@
 #include "pdk/global/Global.h"
 #include "pdk/base/io/TextStream.h"
 #include "pdk/kernel/Object.h"
+#include "pdk/base/lang/String.h"
+#include "pdk/base/text/codecs/TextCodec.h"
 
 namespace pdk {
 namespace io {
 namespace internal {
 
 using pdk::kernel::Object;
+using pdk::text::codecs::TextCodec;
+using pdk::lang::String;
 
 class DeviceClosedNotifier : public Object
 {
@@ -44,7 +48,7 @@ public:
 public:
    inline void flushStream()
    {
-      stream->flush();
+      m_stream->flush();
    }
    
 private:
@@ -76,12 +80,16 @@ public:
    IoDevice *m_device;
    DeviceClosedNotifier m_deviceClosedNotifier;
    // string
-   std::string *m_string;
+   String *m_string;
    int m_stringOffset;
    IoDevice::OpenMode m_stringOpenMode;
+   TextCodec *m_codec;
+   TextCodec::ConverterState m_readConverterState;
+   TextCodec::ConverterState m_writeConverterState;
+   TextCodec::ConverterState *m_readConverterSavedState;
    
-   std::string m_writeBuffer;
-   std::string m_readBuffer;
+   String m_writeBuffer;
+   String m_readBuffer;
    int m_readBufferOffset;
    int m_readConverterSavedStateOffset; //the offset between readBufferStartDevicePos and that start of the buffer
    pdk::pint64 m_readBufferStartDevicePos;
@@ -91,10 +99,11 @@ public:
    // status
    TextStream::Status m_status;
    Locale m_locale;
-   TextStream *apiPtr;
+   TextStream *m_apiPtr;
    
    int m_lastTokenSize;
    bool m_deleteDevice;
+   bool m_autoDetectUnicode;
    
    // i/o
    enum class TokenDelimiter {
@@ -103,7 +112,7 @@ public:
       EndOfLine
    };
    
-   std::string read(int maxLength);
+   String read(int maxLength);
    bool scan(const Character **ptr, int *tokenLength,
              int maxLength, TokenDelimiter delimiter);
    inline const Character *readPtr() const;
@@ -124,7 +133,7 @@ public:
    NumberParsingStatus getNumber(pulonglong *l);
    bool getReal(double *f);
    
-   inline void write(const std::string &data) 
+   inline void write(const String &data) 
    {
       write(data.begin(), data.length());
    }
@@ -133,9 +142,9 @@ public:
    void write(const Character *data, int len);
    void write(Latin1String data);
    void writePadding(int len);
-   inline void putString(const std::string &ch, bool number = false)
+   inline void putString(const String &ch, bool number = false)
    {
-      putString(ch.c_str(), ch.length(), number);
+      putString(ch.getRawData(), ch.length(), number);
    }
    void putString(const Character *data, int len, bool number = false);
    void putString(Latin1String data, bool number = false);

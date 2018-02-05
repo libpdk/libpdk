@@ -44,7 +44,7 @@ class TextStreamPrivate;
 using pdk::ds::ByteArray;
 using pdk::lang::Character;
 using pdk::lang::Latin1String;
-using pdk::kernel::Locale;
+using pdk::utils::Locale;
 
 using internal::TextStreamPrivate;
 class PDK_CORE_EXPORT TextStream
