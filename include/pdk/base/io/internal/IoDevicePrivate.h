@@ -35,6 +35,7 @@ namespace internal {
 
 using pdk::kernel::internal::ObjectPrivate;
 using pdk::ds::internal::RingBuffer;
+using pdk::io::IoDevice;
 
 PDK_CORE_EXPORT int substract_from_timeout(int timeout, int elapsed);
 
@@ -238,8 +239,13 @@ public:
    void setReadChannelCount(int count);
    void setWriteChannelCount(int count);
    
+   pdk::pint64 read(char *data, pdk::pint64 maxSize, bool peeking = false);
+   
    virtual pdk::pint64 peek(char *data, pdk::pint64 maxSize);
    virtual ByteArray peek(pdk::pint64 maxSize);
+   
+   pdk::pint64 skipByReading(pdk::pint64 maxSize);
+   virtual pdk::pint64 skip(pdk::pint64 maxSize);
 public:
    IoDevice::OpenModes m_openMode;
    std::string m_errorString;

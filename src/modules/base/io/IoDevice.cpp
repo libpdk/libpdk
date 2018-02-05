@@ -190,51 +190,192 @@ bool IoDevicePrivate::putCharHelper(char c)
    return getApiPtr()->write(&c, 1) == 1;
 }
 
-pdk::pint64 IoDevicePrivate::peek(char *data, pdk::pint64 maxLength)
+pdk::pint64 IoDevicePrivate::read(char *data, pdk::pint64 maxLength, bool peeking)
 {
    PDK_Q(IoDevice);
-   if (m_transactionStarted) {
-      const pdk::pint64 savedTransactionPos = m_transactionPos;
-      const pdk::pint64 savedPos = m_pos;
-      
-      pdk::pint64 readBytes = apiPtr->read(data, maxLength);
-      
-      // Restore initial position
-      if (isSequential()) {
-         m_transactionPos = savedTransactionPos;
-      } else {
-         seekBuffer(savedPos);
+   
+   const bool buffered = (m_openMode & IoDevice::Unbuffered) == 0;
+   const bool sequential = isSequential();
+   const bool keepDataInBuffer = sequential
+         ? peeking || m_transactionStarted
+         : peeking && buffered;
+   const pdk::pint64 savedPos = m_pos;
+   pdk::pint64 readSoFar = 0;
+   bool madeBufferReadsOnly = true;
+   bool deviceAtEof = false;
+   char *readPtr = data;
+   pdk::pint64 bufferPos = (sequential && m_transactionStarted) ? m_transactionPos : PDK_INT64_C(0);
+   while(true) {
+      // Try reading from the buffer.
+      pdk::pint64 bufferReadChunkSize = keepDataInBuffer
+            ? m_buffer.peek(data, maxLength, bufferPos)
+            : m_buffer.read(data, maxLength);
+      if (bufferReadChunkSize > 0) {
+         bufferPos += bufferReadChunkSize;
+         if (!sequential) {
+            m_pos += bufferReadChunkSize;
+         }
+#if defined PDK_IODEVICE_DEBUG
+         printf("%p \treading %lld bytes from buffer into position %lld\n", q,
+                bufferReadChunkSize, readSoFar);
+#endif
+         readSoFar += bufferReadChunkSize;
+         data += bufferReadChunkSize;
+         maxLength -= bufferReadChunkSize;
       }
-      return readBytes;
+      
+      if (maxLength > 0 && !deviceAtEof) {
+         pdk::pint64 readFromDevice = 0;
+         // Make sure the device is positioned correctly.
+         if (sequential || m_pos == m_devicePos || apiPtr->seek(m_pos)) {
+            madeBufferReadsOnly = false; // fix readData attempt
+            if ((!buffered || maxLength >= m_readBufferChunkSize) && !keepDataInBuffer) {
+               // Read big chunk directly to output buffer
+               readFromDevice = apiPtr->readData(data, maxLength);
+               deviceAtEof = (readFromDevice != maxLength);
+#if defined PDK_IODEVICE_DEBUG
+               printf("%p \treading %lld bytes from device (total %lld)\n", q,
+                      readFromDevice, readSoFar);
+#endif
+               if (readFromDevice > 0) {
+                  readSoFar += readFromDevice;
+                  data += readFromDevice;
+                  maxLength -= readFromDevice;
+                  if (!sequential) {
+                     m_pos += readFromDevice;
+                     m_devicePos += readFromDevice;
+                  }
+               }
+            } else {
+               // Do not read more than maxLength on unbuffered devices
+               const pdk::pint64 bytesToBuffer = (buffered || m_readBufferChunkSize < maxLength)
+                     ? pdk::pint64(m_readBufferChunkSize)
+                     : maxLength;
+               // Try to fill pdk::io::IoDevice buffer by single read
+               readFromDevice = apiPtr->readData(m_buffer.reserve(bytesToBuffer), bytesToBuffer);
+               deviceAtEof = (readFromDevice != bytesToBuffer);
+               m_buffer.chop(bytesToBuffer - std::max(PDK_INT64_C(0), readFromDevice));
+               if (readFromDevice > 0) {
+                  if (!sequential) {
+                     m_devicePos += readFromDevice;
+                  }
+#if defined PDK_IODEVICE_DEBUG
+                  printf("%p \treading %lld from device into buffer\n", q,
+                         readFromDevice);
+#endif
+                  continue;
+               }
+            }
+         } else {
+            readFromDevice = -1;
+         }
+         
+         if (readFromDevice < 0 && readSoFar == 0) {
+            // error and we haven't read anything: return immediately
+            return static_cast<pdk::pint64>(-1);
+         }
+      }
+      
+      if ((m_openMode & IoDevice::Text) && readPtr < data) {
+         const char *endPtr = data;
+         
+         // optimization to avoid initial self-assignment
+         while (*readPtr != '\r') {
+            if (++readPtr == endPtr) {
+               break;
+            }
+         }
+         char *writePtr = readPtr;
+         while (readPtr < endPtr) {
+            char ch = *readPtr++;
+            if (ch != '\r') {
+               *writePtr++ = ch;
+            } else {
+               --readSoFar;
+               --data;
+               ++maxLength;
+            }
+         }
+         
+         // Make sure we get more data if there is room for more. This
+         // is very important for when someone seeks to the start of a
+         // '\r\n' and reads one character - they should get the '\n'.
+         readPtr = data;
+         continue;
+      }
+      
+      break;
    }
    
-   apiPtr->startTransaction();
-   pdk::pint64 readBytes = apiPtr->read(data, maxLength);
-   apiPtr->rollbackTransaction();
+   // Restore positions after reading
+   if (keepDataInBuffer) {
+      if (peeking) {
+         m_pos = savedPos; // does nothing on sequential devices
+      } else {
+         m_transactionPos = bufferPos;
+      }
+   } else if (peeking) {
+      seekBuffer(savedPos); // unbuffered random-access device
+   }
    
-   return readBytes;
+   if (madeBufferReadsOnly && isBufferEmpty()) {
+      apiPtr->readData(data, 0);
+   }
+   return readSoFar;
+}
+
+
+pdk::pint64 IoDevicePrivate::peek(char *data, pdk::pint64 maxLength)
+{
+   return read(data, maxLength, true);
 }
 
 ByteArray IoDevicePrivate::peek(pdk::pint64 maxLength)
 {
-   PDK_Q(IoDevice);
-   
-   if (m_transactionStarted) {
-      const pdk::pint64 savedTransactionPos = m_transactionPos;
-      const pdk::pint64 savedPos = m_pos;
-      ByteArray result = apiPtr->read(maxLength);
-      // Restore initial position
-      if (isSequential()) {
-         m_transactionPos = savedTransactionPos;
+   ByteArray result(maxLength, pdk::Uninitialized);
+   const pdk::pint64 readBytes = read(result.getRawData(), maxLength, true);
+   if (readBytes < maxLength) {
+      if (readBytes <= 0) {
+         result.clear();
       } else {
-         seekBuffer(savedPos);
+         result.resize(readBytes);
       }
-      return result;
    }
-   apiPtr->startTransaction();
-   ByteArray result = apiPtr->read(maxLength);
-   apiPtr->rollbackTransaction();
    return result;
+}
+
+pdk::pint64 IoDevicePrivate::skipByReading(pdk::pint64 maxLength)
+{
+   pdk::pint64 readSoFar = 0;
+   do {
+      char dummy[4096];
+      const pdk::pint64 readBytes = std::min<pdk::pint64>(maxLength, sizeof(dummy));
+      const pdk::pint64 readResult = read(dummy, readBytes);
+      
+      // Do not try again, if we got less data.
+      if (readResult != readBytes) {
+         if (readSoFar == 0) {
+            return readResult;
+         }
+         if (readResult == -1) {
+            return readSoFar;
+         }
+         return readSoFar + readResult;
+      }
+      
+      readSoFar += readResult;
+      maxLength -= readResult;
+   } while (maxLength > 0);
+   
+   return readSoFar;
+}
+
+pdk::pint64 IoDevicePrivate::skip(pdk::pint64 maxLength)
+{
+   // Base implementation discards the data by reading into the dummy buffer.
+   // It's slow, but this works for all types of devices. Subclasses can
+   // reimplement this function to improve on that.
+   return skipByReading(maxLength);
 }
 
 } // internal
@@ -440,7 +581,7 @@ bool IoDevice::atEnd() const
 {
    PDK_D(const IoDevice);
    const bool result = (implPtr->m_openMode.getUnderData() == OpenMode::NotOpen || (implPtr->isBufferEmpty()
-                                                                     && bytesAvailable() == 0));
+                                                                                    && bytesAvailable() == 0));
 #if defined PDK_IODEVICE_DEBUG
    printf("%p pdk::io::IoDevice::atEnd() returns %s, implPtr->m_openMode == %d, implPtr->m_pos == %lld\n", this,
           result ? "true" : "false", int(implPtr->m_openMode), implPtr->m_pos);
@@ -473,146 +614,50 @@ pdk::pint64 IoDevice::bytesToWrite() const
 pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
 {
    PDK_D(IoDevice);
+   
 #if defined PDK_IODEVICE_DEBUG
-   printf("%p pdk::io::IoDevice::read(%p, %lld), implPtr->m_pos = %lld, implPtr->m_buffer.size() = %lld\n",
-          this, data, maxLength, implPtr->m_pos, implPtr->m_buffer.size());
+   printf("%p pdk::io::IoDevice::read(%p, %lld), m_implPtr->m_pos = %lld, m_implPtr->m_buffer.size() = %lld\n",
+          this, data, maxLength, m_implPtr->m_pos, m_implPtr->m_buffer.size());
 #endif
-   const bool sequential = implPtr->isSequential();
-   const bool keepDataInBuffer = sequential && implPtr->m_transactionStarted;
-   // Short circuit for getChar()
-   if (maxLength == 1 && !keepDataInBuffer) {
+   const bool sequential = m_implPtr->isSequential();
+   
+   // Short-cut for getChar(), unless we need to keep the data in the buffer.
+   if (maxLength == 1 && !(sequential && m_implPtr->m_transactionStarted)) {
       int chint;
-      while ((chint = implPtr->m_buffer.getChar()) != -1) {
+      while ((chint = m_implPtr->m_buffer.getChar()) != -1) {
          if (!sequential) {
-            ++implPtr->m_pos;
+            ++m_implPtr->m_pos;
          }
          char c = char(uchar(chint));
-         if (c == '\r' && (implPtr->m_openMode & OpenMode::Text)) {
+         if (c == '\r' && (m_implPtr->m_openMode & Text)) {
             continue;
          }
+         
          *data = c;
 #if defined PDK_IODEVICE_DEBUG
          printf("%p \tread 0x%hhx (%c) returning 1 (shortcut)\n", this,
                 int(c), isprint(c) ? c : '?');
 #endif
-         if (implPtr->m_buffer.isEmpty()) {
+         if (m_implPtr->m_buffer.isEmpty()) {
             readData(data, 0);
          }
          return static_cast<pdk::pint64>(1);
       }
    }
+   
    CHECK_MAXLEN(read, static_cast<pdk::pint64>(-1));
-   pdk::pint64 readSoFar = 0;
-   bool madeBufferReadsOnly = true;
-   bool deviceAtEof = false;
-   char *readPtr = data;
-   while (true) {
-      pdk::pint64 bufferReadChunkSize = keepDataInBuffer
-            ? implPtr->m_buffer.peek(data, maxLength, implPtr->m_transactionPos)
-            : implPtr->m_buffer.read(data, maxLength);
-      if (bufferReadChunkSize > 0) {
-         if (keepDataInBuffer) {
-            implPtr->m_transactionPos += bufferReadChunkSize;
-         } else if (!sequential) {
-            implPtr->m_pos += bufferReadChunkSize;
-         }
-         readSoFar += bufferReadChunkSize;
-         data += bufferReadChunkSize;
-         maxLength -= bufferReadChunkSize;
-#if defined PDK_IODEVICE_DEBUG
-         printf("%p \treading %lld bytes from buffer into position %lld\n", this,
-                bufferReadChunkSize, readSoFar - bufferReadChunkSize);
+   CHECK_READABLE(read, static_cast<pdk::pint64>(-1));
+   
+   const pdk::pint64 readBytes = m_implPtr->read(data, maxLength);
+   
+#if defined QIODEVICE_DEBUG
+   printf("%p \treturning %lld, d->pos == %lld, d->buffer.size() == %lld\n", this,
+          readBytes, d->pos, d->buffer.size());
+   if (readBytes > 0)
+      debugBinaryString(data - readBytes, readBytes);
 #endif
-      } else {
-         CHECK_READABLE(read, static_cast<pdk::pint64>(-1));
-      }
-      if (maxLength > 0 && !deviceAtEof) {
-         pdk::pint64 readFromDevice = 0;
-         // Make sure the device is positioned correctly.
-         if (sequential || implPtr->m_pos == implPtr->m_devicePos || seek(implPtr->m_pos)) {
-            madeBufferReadsOnly = false; // fix readData attempt
-            if ((maxLength >= implPtr->m_readBufferChunkSize || (implPtr->m_openMode & OpenMode::Unbuffered))
-                && !keepDataInBuffer) {
-               // Read big chunk directly to output buffer
-               readFromDevice = readData(data, maxLength);
-               deviceAtEof = (readFromDevice != maxLength);
-#if defined PDK_IODEVICE_DEBUG
-               printf("%p \treading %lld bytes from device (total %lld)\n", this,
-                      readFromDevice, readSoFar);
-#endif
-               if (readFromDevice > 0) {
-                  readSoFar += readFromDevice;
-                  data += readFromDevice;
-                  maxLength -= readFromDevice;
-                  if (!sequential) {
-                     implPtr->m_pos += readFromDevice;
-                     implPtr->m_devicePos += readFromDevice;
-                  }
-               }
-            } else {
-               // Do not read more than maxLength on unbuffered devices
-               const pdk::pint64 bytesToBuffer = (implPtr->m_openMode & OpenMode::Unbuffered)
-                     ? std::min(maxLength, static_cast<pdk::pint64>(implPtr->m_readBufferChunkSize))
-                     : static_cast<pdk::pint64>(implPtr->m_readBufferChunkSize);
-               // Try to fill pdk::io::IDevice buffer by single read
-               readFromDevice = readData(implPtr->m_buffer.reserve(bytesToBuffer), bytesToBuffer);
-               deviceAtEof = (readFromDevice != bytesToBuffer);
-               implPtr->m_buffer.chop(bytesToBuffer - std::max(PDK_INT64_C(0), readFromDevice));
-               if (readFromDevice > 0) {
-                  if (!sequential) {
-                     implPtr->m_devicePos += readFromDevice;
-#if defined PDK_IODEVICE_DEBUG
-                     printf("%p \treading %lld from device into buffer\n", this,
-                            readFromDevice);
-                     
-#endif
-                  }
-                  continue;
-               }
-            }
-         } else {
-            readFromDevice = -1;
-         }
-         if (readFromDevice < 0 && readSoFar == 0) {
-            // error and we haven't read anything: return immediately
-            return static_cast<pdk::pint64>(-1);
-         }
-      }
-      if ((implPtr->m_openMode & OpenMode::Text) && readPtr < data) {
-         const char *endPtr = data;
-         // optimization to avoid initial self-assignment
-         while (*readPtr != '\r') {
-            if (++readPtr == endPtr)
-               break;
-         }
-         char *writePtr = readPtr;
-         while (readPtr < endPtr) {
-            char ch = *readPtr++;
-            if (ch != '\r') {
-               *writePtr++ = ch;
-            } else {
-               --readSoFar;
-               --data;
-               ++maxLength;
-            }
-         }
-         // Make sure we get more data if there is room for more. This
-         // is very important for when someone seeks to the start of a
-         // '\r\n' and reads one character - they should get the '\n'.
-         readPtr = data;
-         continue;
-      }
-      break;
-   }
-#if defined PDK_IODEVICE_DEBUG
-   printf("%p \treturning %lld, implPtr->m_pos == %lld, impl->m_buffer.size() == %lld\n", this,
-          readSoFar, impl->m_pos, implPtr->m_buffer.size());
-   debug_binary_string(data - readSoFar, readSoFar);
-#endif
-   if (madeBufferReadsOnly && implPtr->isBufferEmpty()) {
-      readData(data, 0);
-   }
-   return readSoFar;
+   
+   return readBytes;
 }
 
 ByteArray IoDevice::read(pint64 maxLength)
@@ -1024,18 +1069,88 @@ bool IoDevice::getChar(char *c)
 
 pdk::pint64 IoDevice::peek(char *data, pdk::pint64 maxLength)
 {
-   return getImplPtr()->peek(data, maxLength);
+   PDK_D(IoDevice);
+   CHECK_MAXLEN(peek, static_cast<pdk::pint64>(-1));
+   CHECK_READABLE(peek, static_cast<pdk::pint64>(-1));
+   return implPtr->peek(data, maxLength);
 }
 
 ByteArray IoDevice::peek(pdk::pint64 maxLength)
 {
-   return getImplPtr()->peek(maxLength);
+   PDK_D(IoDevice);
+   CHECK_MAXLEN(peek, ByteArray());
+   CHECK_MAXBYTEARRAYSIZE(peek);
+   CHECK_READABLE(peek, ByteArray());
+   return implPtr->peek(maxLength);
 }
 
-bool IoDevice::waitForReadyRead(int msecs)
+pdk::pint64 IoDevice::skip(pdk::pint64 maxLength)
 {
-   PDK_UNUSED(msecs);
-   return false;
+   PDK_D(IoDevice);
+   CHECK_MAXLEN(skip, static_cast<pdk::pint64>(-1));
+   CHECK_READABLE(skip, static_cast<pdk::pint64>(-1));
+   
+   const bool sequential = implPtr->isSequential();
+   
+#if defined PDK_IODEVICE_DEBUG
+   printf("%p pdk::io::IoDevice::skip(%lld), implPtr->m_pos = %lld, implPtr->m_buffer.size() = %lld\n",
+          this, maxLength, implPtr->m_pos, implPtr->m_buffer.size());
+#endif
+   
+   if ((sequential && implPtr->m_transactionStarted) || (implPtr->m_openMode & IoDevice::Text) != 0) {
+      return implPtr->skipByReading(maxLength);
+   }
+   
+   // First, skip over any data in the internal buffer.
+   pdk::pint64 skippedSoFar = 0;
+   if (!implPtr->m_buffer.isEmpty()) {
+      skippedSoFar = implPtr->m_buffer.skip(maxLength);
+#if defined PDK_IODEVICE_DEBUG
+      printf("%p \tskipping %lld bytes in buffer\n", this, skippedSoFar);
+#endif
+      if (!sequential) {
+         implPtr->m_pos += skippedSoFar;
+      }
+         
+      if (implPtr->m_buffer.isEmpty()) {
+         readData(nullptr, 0);
+      }
+      if (skippedSoFar == maxLength) {
+         return skippedSoFar;
+      }
+      
+      maxLength -= skippedSoFar;
+   }
+   
+   // Try to seek on random-access device. At this point,
+   // the internal read buffer is empty.
+   if (!sequential) {
+      const pdk::pint64 bytesToSkip = std::min(getSize() - implPtr->m_pos, maxLength);
+      
+      // If the size is unknown or file position is at the end,
+      // fall back to reading below.
+      if (bytesToSkip > 0) {
+         if (!seek(implPtr->m_pos + bytesToSkip)) {
+            return skippedSoFar ? skippedSoFar : PDK_INT64_C(-1);
+         }
+         if (bytesToSkip == maxLength) {
+            return skippedSoFar + bytesToSkip;
+         }
+         skippedSoFar += bytesToSkip;
+         maxLength -= bytesToSkip;
+      }
+   }
+   
+   const pdk::pint64 skipResult = implPtr->skip(maxLength);
+   if (skippedSoFar == 0) {
+      return skipResult;
+   }
+
+   if (skipResult == -1) {
+      return skippedSoFar;
+   }
+
+   return skippedSoFar + skipResult;
 }
 
 bool IoDevice::waitForBytesWritten(int msecs)

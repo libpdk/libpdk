@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/Object.h"
 #include "pdk/base/ds/ByteArray.h"
+#include "pdk/utils/ScopedPointer.h"
 #include <string>
 
 #ifdef open
@@ -107,6 +108,7 @@ public:
    
    pdk::pint64 peek(char *data, pdk::pint64 maxLength);
    ByteArray peek(pdk::pint64 maxLength);
+   pdk::pint64 skip(pdk::pint64 maxSize);
    
    virtual bool waitForReadyRead(int msecs);
    virtual bool waitForBytesWritten(int msecs);
@@ -132,6 +134,7 @@ protected:
    void setErrorString(const std::string &errorString);
    
 private:
+   pdk::utils::ScopedPointer<IoDevicePrivate> m_implPtr;
    PDK_DECLARE_PRIVATE(IoDevice);
    PDK_DISABLE_COPY(IoDevice);
 };
