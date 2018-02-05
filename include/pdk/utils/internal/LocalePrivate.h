@@ -111,6 +111,8 @@ private:
    friend class SystemLocaleSingleton;
 };
 
+
+
 #endif
 
 #if PDK_CONFIG(ICU)
@@ -529,5 +531,8 @@ inline LocalePrivate *SharedDataPointer<internal::LocalePrivate>::clone()
 
 } // utils
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::utils::internal::SystemLocale::QueryType, PDK_PRIMITIVE_TYPE);
+PDK_DECLARE_TYPEINFO(pdk::utils::internal::SystemLocale::CurrencyToStringArgument, PDK_MOVABLE_TYPE);
 
 #endif // PDK_UTILS_INTERNAL_LOCALE_PRIVATE_H

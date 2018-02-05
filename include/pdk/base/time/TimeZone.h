@@ -22,7 +22,7 @@
 
 #include <vector>
 
-PDK_REQUIRE_CONFIG(TIME_ZONE);
+PDK_REQUIRE_CONFIG(TIMEZONE);
 
 namespace pdk {
 
@@ -48,14 +48,14 @@ using pdk::ds::ByteArray;
 class PDK_CORE_EXPORT TimeZone
 {
 public:
-   enum class TimeType
+   enum class TimeType : uint
    {
       StandardTime = 0,
       DaylightTime = 1,
       GenericTime = 2
    };
    
-   enum class NameType 
+   enum class NameType : uint
    {
       DefaultName = 0,
       LongName = 1,
@@ -92,7 +92,7 @@ public:
    
    void swap(TimeZone &other) noexcept
    {
-      d.swap(other.d);
+      m_imptr.swap(other.m_imptr);
    }
    
    bool operator==(const TimeZone &other) const;
@@ -105,10 +105,10 @@ public:
    String comment() const;
    
    String displayName(const DateTime &atDateTime,
-                      TimeZone::NameType nameType = TimeZone::DefaultName,
+                      TimeZone::NameType nameType = NameType::DefaultName,
                       const Locale &locale = Locale()) const;
    String displayName(TimeZone::TimeType timeType,
-                      TimeZone::NameType nameType = TimeZone::DefaultName,
+                      TimeZone::NameType nameType = NameType::DefaultName,
                       const Locale &locale = Locale()) const;
    String abbreviation(const DateTime &atDateTime) const;
    
@@ -152,9 +152,9 @@ private:
    pdk::utils::SharedDataPointer<TimeZonePrivate> m_imptr;
 };
 
-PDK_DECLARE_SHARED(TimeZone)
-
 } // time
 } // pdk
+
+PDK_DECLARE_SHARED(pdk::time::TimeZone)
 
 #endif // PDK_M_BASE_TIME_TIMEZONE_H

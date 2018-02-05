@@ -139,7 +139,7 @@ public:
       return toTimeSpec(pdk::TimeSpec::UTC);
    }
    DateTime toOffsetFromUtc(int offsetSeconds) const;
-#ifdef PDK_CONFIG_TIMEZONE
+#ifdef PDK_CONFIG(TIMEZONE)
    DateTime toTimeZone(const TimeZone &toZone) const;
 #endif
    
@@ -176,7 +176,7 @@ public:
    static DateTime fromMSecsSinceEpoch(pdk::pint64 msecs, pdk::TimeSpec spec = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
    static DateTime fromSecsSinceEpoch(pdk::pint64 secs, pdk::TimeSpec spe = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
    
-#ifdef PDK_CONFIG_TIMEZONE
+#ifdef PDK_CONFIG(TIMEZONE)
    static DateTime fromMSecsSinceEpoch(pdk::pint64 msecs, const TimeZone &timeZone);
    static DateTime fromSecsSinceEpoch(pdk::pint64 secs, const TimeZone &timeZone);
 #endif
