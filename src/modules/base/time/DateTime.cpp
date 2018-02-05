@@ -16,4 +16,24 @@
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/time/internal/DateTimePrivate.h"
 
+#if PDK_CONFIG(DATETIME_PARSER)
+#include "pdk/base/time/internal/DateTimeParserPrivate.h"
+#endif
 
+#include "pdk/utils/Locale.h"
+#include "pdk/base/time/Date.h"
+#include "pdk/base/time/Time.h"
+#include "pdk/base/time/DateTime.h"
+#if PDK_CONFIG(TIMEZONE)
+#include "pdk/base/time/internal/TimeZonePrivate.h"
+#endif
+
+#ifndef PDK_OS_WIN
+#include <locale.h>
+#endif
+
+#include <cmath>
+#include <time.h>
+#ifdef PDK_OS_WIN
+#  include "pdk/global/Windows.h"
+#endif

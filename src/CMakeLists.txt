@@ -3,6 +3,8 @@
 set(MODULE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/base)
 set(KERNEL_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 
+set(PDK_HAS_FEATURE_TIMEZONE TRUE)
+
 pdk_collect_files(
    TYPE_SOURCE
    DIR pal
@@ -121,6 +123,16 @@ pdk_collect_files(
    TYPE_SOURCE
    DIR modules/base/time
    OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
+
+if (PDK_HAS_FEATURE_TIMEZONE)
+   if (APPLE)
+      list(APPEND PDK_BASE_MODULE_SOURCES
+         ${MODULE_BASE_DIR}/time/_platform/TimeZonePrivateMac.mm)
+   elseif (UNIX)
+      list(APPEND PDK_BASE_MODULE_SOURCES
+         ${MODULE_BASE_DIR}/time/_platform/TimeZonePrivateUnix.mm)
+   endif()
+endif()
 
 pdk_collect_files(
    TYPE_SOURCE
