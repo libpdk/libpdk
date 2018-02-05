@@ -19,7 +19,7 @@
 #include "pdk/base/io/IoDevice.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
-#include "pdk/kernel/Locale.h"
+#include "pdk/utils/Locale.h"
 #include "pdk/utils/ScopedPointer.h"
 #include <string>
 #include <cstdio>

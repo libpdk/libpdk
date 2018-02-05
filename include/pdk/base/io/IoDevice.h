@@ -132,9 +132,10 @@ protected:
    virtual pdk::pint64 writeData(const char *data, pdk::pint64 length) = 0;
    void setOpenMode(OpenModes openMode);
    void setErrorString(const std::string &errorString);
+   pdk::utils::ScopedPointer<IoDevicePrivate> m_implPtr;
    
 private:
-   pdk::utils::ScopedPointer<IoDevicePrivate> m_implPtr;
+   
    PDK_DECLARE_PRIVATE(IoDevice);
    PDK_DISABLE_COPY(IoDevice);
 };
