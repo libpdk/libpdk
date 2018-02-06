@@ -152,6 +152,8 @@ private:
    }
 };
 
+using FileInfoList = std::list<FileInfo>;
+
 #ifndef PDK_NO_DEBUG_STREAM
 PDK_CORE_EXPORT Debug operator<<(Debug, const FileInfo &);
 #endif
