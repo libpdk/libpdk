@@ -326,6 +326,13 @@ static inline T *get_ptr_helper(const std::unique_ptr<T> &p)
 #define PDK_D(Class) Class##Private * const implPtr = getImplPtr()
 #define PDK_Q(Class) Class * const apiPtr = getApiPtr()
 
+#define PDK_TR_NOOP(x) x
+#define PDK_TR_NOOP_UTF8(x) x
+#define PDK_TRANSLATE_NOOP(scope, x) x
+#define PDK_TRANSLATE_NOOP_UTF8(scope, x) x
+#define PDK_TRANSLATE_NOOP3(scope, x, comment) {x, comment}
+#define PDK_TRANSLATE_NOOP3_UTF8(scope, x, comment) {x, comment}
+
 //#ifndef PDK_CC_MSVC
 //PDK_NORETURN
 //#endif
