@@ -16,19 +16,46 @@
 #ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_ENGINE_ITERATOR_PRIVATE_H
 #define PDK_M_BASE_IO_FS_INTERNAL_FILE_ENGINE_ITERATOR_PRIVATE_H
 
-#include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
+#ifndef PDK_NO_FILESYSTEMITERATOR
 
+#include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
+#include "pdk/base/io/fs/internal/FileSystemIteratorPrivate.h"
+#include "pdk/base/io/fs/Dir.h"
 
 namespace pdk {
 namespace io {
 namespace fs {
 namespace internal {
 
+// forward declare class
+class FileEngineIteratorPrivate;
+class FileEngineIteratorPlatformSpecificData;
 
+class FileEngineIterator : public AbstractFileEngineIterator
+{
+public:
+    FileEngineIterator(Dir::Filters filters, const StringList &filterNames);
+    ~FileEngineIterator();
+
+    String next() override;
+    bool hasNext() const override;
+
+    String currentFileName() const override;
+    FileInfo currentFileInfo() const override;
+
+private:
+    void advance() const;
+    mutable pdk::utils::ScopedPointer<FileSystemIterator> m_nativeIterator;
+    mutable FileInfo m_currentInfo;
+    mutable FileInfo m_nextInfo;
+    mutable bool m_done;
+};
 
 } // internal
 } // fs
 } // io
 } // pdk
+
+#endif // PDK_NO_FILESYSTEMITERATOR
 
 #endif // PDK_M_BASE_IO_FS_INTERNAL_FILE_ENGINE_ITERATOR_PRIVATE_H

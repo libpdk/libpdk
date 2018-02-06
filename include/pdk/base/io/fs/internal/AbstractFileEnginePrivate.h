@@ -42,6 +42,7 @@ namespace fs {
 
 // forward declare class
 class AbstractFileEngineIterator;
+class DirIterator;
 
 namespace internal {
 // forward  declare class
@@ -198,11 +199,71 @@ protected:
    AbstractFileEngine();
    AbstractFileEngine(AbstractFileEnginePrivate &);
    
-   pdk::utils::ScopedPointer<AbstractFileEnginePrivate> d_ptr;
+   pdk::utils::ScopedPointer<AbstractFileEnginePrivate> m_implPtr;
 private:
    PDK_DECLARE_PRIVATE(AbstractFileEngine);
    PDK_DISABLE_COPY(AbstractFileEngine);
 };
+
+PDK_DECLARE_OPERATORS_FOR_FLAGS(AbstractFileEngine::FileFlags)
+
+class PDK_CORE_EXPORT AbstractFileEngineHandler
+{
+   public:
+   AbstractFileEngineHandler();
+   virtual ~AbstractFileEngineHandler();
+   virtual AbstractFileEngine *create(const String &fileName) const = 0;
+};
+
+class AbstractFileEngineIteratorPrivate;
+class PDK_CORE_EXPORT AbstractFileEngineIterator
+{
+public:
+   AbstractFileEngineIterator(Dir::Filters filters, const StringList &nameFilters);
+   virtual ~AbstractFileEngineIterator();
+   
+   virtual String next() = 0;
+   virtual bool hasNext() const = 0;
+   
+   String path() const;
+   StringList nameFilters() const;
+   Dir::Filters filters() const;
+   
+   virtual String currentFileName() const = 0;
+   virtual FileInfo currentFileInfo() const;
+   String currentFilePath() const;
+   
+protected:
+   enum EntryInfoType
+   {
+   };
+   virtual std::any entryInfo(EntryInfoType type) const;
+   
+private:
+   PDK_DISABLE_COPY(AbstractFileEngineIterator);
+   friend class DirIterator;
+   friend class DirIteratorPrivate;
+   void setPath(const String &path);
+   pdk::utils::ScopedPointer<AbstractFileEngineIteratorPrivate> m_implPtr;
+};
+
+class AbstractFileEnginePrivate
+{
+public:
+   inline AbstractFileEnginePrivate()
+      : fileError(File::FileError::UnspecifiedError)
+   {
+   }
+   inline virtual ~AbstractFileEnginePrivate() { }
+   
+   File::FileError m_fileError;
+   String m_errorString;
+   
+   AbstractFileEngine *m_apiPtr;
+   PDK_DECLARE_PUBLIC(AbstractFileEngine);
+};
+
+AbstractFileEngine *pdk_custom_file_engine_handler_create(const String &path);
 
 
 } // internal
