@@ -16,12 +16,121 @@
 #ifndef PDK_M_BASE_IO_FS_INTERNAL_FILESYSTEM_ENGINE_PRIVATE_H
 #define PDK_M_BASE_IO_FS_INTERNAL_FILESYSTEM_ENGINE_PRIVATE_H
 
+#include "pdk/base/io/fs/File.h"
+#include "pdk/base/io/fs/internal/FileSystemEntryPrivate.h"
+#include "pdk/base/io/fs/internal/FileSystemMetaDataPrivate.h"
+
 namespace pdk {
+
+// forward declare class with namespace
+namespace kernel {
+class SystemError;
+} // kernel
+
+// forward declare class with namespace
+namespace time {
+class DateTime;
+} // time
+
 namespace io {
 namespace fs {
 namespace internal {
 
+using pdk::kernel::SystemError;
+using pdk::time::DateTime;
 
+class FileSystemEngine
+{
+public:
+   static bool isCaseSensitive()
+   {
+#ifndef PDK_OS_WIN
+      return true;
+#else
+      return false;
+#endif
+   }
+   
+   static FileSystemEntry getLinkTarget(const FileSystemEntry &link, FileSystemMetaData &data);
+   static FileSystemEntry canonicalName(const FileSystemEntry &entry, FileSystemMetaData &data);
+   static FileSystemEntry absoluteName(const FileSystemEntry &entry);
+   static ByteArray id(const FileSystemEntry &entry);
+   static String resolveUserName(const FileSystemEntry &entry, FileSystemMetaData &data);
+   static String resolveGroupName(const FileSystemEntry &entry, FileSystemMetaData &data);
+   
+#if defined(PDK_OS_UNIX)
+   static String resolveUserName(uint userId);
+   static String resolveGroupName(uint groupId);
+#endif
+   
+#if defined(PDK_OS_DARWIN)
+   static String bundleName(const FileSystemEntry &entry);
+#else
+   static String bundleName(const FileSystemEntry &entry)
+   {
+      PDK_UNUSED(entry) return String();
+   }
+#endif
+   
+   static bool fillMetaData(const FileSystemEntry &entry, FileSystemMetaData &data,
+                            FileSystemMetaData::MetaDataFlags what);
+#if defined(PDK_OS_UNIX)
+   static bool cloneFile(int srcfd, int dstfd, const FileSystemMetaData &knownData);
+   static bool fillMetaData(int fd, FileSystemMetaData &data); // what = PosixStatFlags
+   static ByteArray id(int fd);
+   static bool setFileTime(int fd, const DateTime &newDate,
+                           AbstractFileEngine::FileTime whatTime, SystemError &error);
+   static bool setPermissions(int fd, File::Permissions permissions, SystemError &error,
+                              FileSystemMetaData *data = nullptr);
+#endif
+#if defined(PDK_OS_WIN)
+   
+   static bool uncListSharesOnServer(const String &server, StringList *list); //Used also by QFSFileEngineIterator::hasNext()
+   static bool fillMetaData(int fd, FileSystemMetaData &data,
+                            FileSystemMetaData::MetaDataFlags what);
+   static bool fillMetaData(HANDLE fHandle, FileSystemMetaData &data,
+                            FileSystemMetaData::MetaDataFlags what);
+   static bool fillPermissions(const FileSystemEntry &entry, FileSystemMetaData &data,
+                               FileSystemMetaData::MetaDataFlags what);
+   static ByteArray id(HANDLE fHandle);
+   static bool setFileTime(HANDLE fHandle, const DateTime &newDate,
+                           AbstractFileEngine::FileTime whatTime, SystemError &error);
+   static String owner(const FileSystemEntry &entry, AbstractFileEngine::FileOwner own);
+   static String nativeAbsoluteFilePath(const String &path);
+#endif
+   //homePath, rootPath and tempPath shall return clean paths
+   static String getHomePath();
+   static String getRootPath();
+   static String getTempPath();
+   
+   static bool createDirectory(const FileSystemEntry &entry, bool createParents);
+   static bool removeDirectory(const FileSystemEntry &entry, bool removeEmptyParents);
+   
+   static bool createLink(const FileSystemEntry &source, const FileSystemEntry &target, SystemError &error);
+   
+   static bool copyFile(const FileSystemEntry &source, const FileSystemEntry &target, SystemError &error);
+   static bool renameFile(const FileSystemEntry &source, const FileSystemEntry &target, SystemError &error);
+   static bool renameOverwriteFile(const FileSystemEntry &source, const FileSystemEntry &target, SystemError &error);
+   static bool removeFile(const FileSystemEntry &entry, SystemError &error);
+   
+   static bool setPermissions(const FileSystemEntry &entry, File::Permissions permissions, SystemError &error,
+                              FileSystemMetaData *data = nullptr);
+   
+   // unused, therefore not implemented
+   static bool setFileTime(const FileSystemEntry &entry, const DateTime &newDate,
+                           AbstractFileEngine::FileTime whatTime, SystemError &error);
+   
+   static bool setCurrentPath(const FileSystemEntry &entry);
+   static FileSystemEntry getCurrentPath();
+   
+   static AbstractFileEngine *resolveEntryAndCreateLegacyEngine(FileSystemEntry &entry,
+                                                                FileSystemMetaData &data);
+private:
+   static String slowCanonicalized(const String &path);
+#if defined(PDK_OS_WIN)
+   static void clearWinStatData(FileSystemMetaData &data);
+#endif
+};
 
 } // internal
 } // fs
