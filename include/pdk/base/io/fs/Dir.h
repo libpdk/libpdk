@@ -16,6 +16,7 @@
 #ifndef PDK_M_BASE_IO_FS_DIR_H
 #define PDK_M_BASE_IO_FS_DIR_H
 
+#include "pdk/base/lang/String.h"
 
 
 #endif // PDK_M_BASE_IO_FS_DIR_H
