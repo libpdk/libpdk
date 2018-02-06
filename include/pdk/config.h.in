@@ -23,6 +23,10 @@
 #define PDK_FEATURE_TIMEZONE 1
 #define PDK_FEATURE_LINKAT 1  // template file private
 // review the code https://github.com/google/double-conversion
+
+#define PDK_FEATURE_getentropy -1
+#define PDK_FEATURE_getauxval -1
+
 #define PDK_NO_DOUBLECONVERSION
 
 #define PDK_NO_DEBUG_STREAM

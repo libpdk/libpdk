@@ -1,4 +1,4 @@
-// @copyright 2017-2018 zzu_softboy <zzusoftboy@gmail.com>
+// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -11,24 +11,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/11/10.
+// Created by softboy on 2018/02/07.
 
-#ifndef PDK_CONFIG_H
-#define PDK_CONFIG_H
-
-#define PDK_FEATURE_ICU -1
-#define PDK_FEATURE_TEXT_CODEC 1
-#define PDK_FEATURE_ICONV -1
-#define PDK_FEATURE_DATETIME_PARSER -1
-#define PDK_FEATURE_TIMEZONE 1
-#define PDK_FEATURE_LINKAT 1  // template file private
-// review the code https://github.com/google/double-conversion
-
-#define PDK_FEATURE_getentropy -1
-#define PDK_FEATURE_getauxval -1
-
-#define PDK_NO_DOUBLECONVERSION
-
-#define PDK_NO_DEBUG_STREAM
-
-#endif // PDK_CONFIG_H
+#include "pdk/global/Random.h"
+#include <errno.h>
