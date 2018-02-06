@@ -16,6 +16,22 @@
 #ifndef PDK_M_BASE_IO_FS_FILE_H
 #define PDK_M_BASE_IO_FS_FILE_H
 
+#include "pdk/base/io/fs/FileDevice.h"
+#include "pdk/base/lang/String.h"
+#include <cstdio>
 
+#ifdef open
+#error pdk/base/io/fs/File.h must be included before any header file that defines open
+#endif
+
+namespace pdk {
+namespace io {
+namespace fs {
+
+
+
+} // fs
+} // io
+} // pdk
 
 #endif // PDK_M_BASE_IO_FS_FILE_H
