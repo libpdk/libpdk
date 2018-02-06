@@ -20,6 +20,7 @@
 #include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/Dir.h"
 #include "pdk/utils/ScopedPointer.h"
+#include <any>
 
 #ifdef open
 #error pdk/io/fs/AbstractFileEnginePrivate.h must be included before any header file that defines open
@@ -131,10 +132,10 @@ public:
    virtual bool caseSensitive() const;
    virtual bool isRelativePath() const;
    virtual StringList entryList(Dir::Filters filters, const StringList &filterNames) const;
-   virtual FileFlags fileFlags(FileFlags type=FileInfoAll) const;
+   virtual FileFlags fileFlags(FileFlags type = FileFlag::FileInfoAll) const;
    virtual bool setPermissions(uint perms);
    virtual ByteArray id() const;
-   virtual String fileName(FileName file=DefaultName) const;
+   virtual String fileName(FileName file = FileName::DefaultName) const;
    virtual uint ownerId(FileOwner) const;
    virtual String owner(FileOwner) const;
    virtual bool setFileTime(const DateTime &newDate, FileTime time);
@@ -251,7 +252,7 @@ class AbstractFileEnginePrivate
 {
 public:
    inline AbstractFileEnginePrivate()
-      : fileError(File::FileError::UnspecifiedError)
+      : m_fileError(File::FileError::UnspecifiedError)
    {
    }
    inline virtual ~AbstractFileEnginePrivate() { }

@@ -93,7 +93,8 @@ public:
    Dir(const Dir &);
    Dir(const String &path = String());
    Dir(const String &path, const String &nameFilter,
-       SortFlags sort = SortFlags(SortFlag::Name | SortFlag::IgnoreCase), Filters filter = Filter::AllEntries);
+       SortFlags sort = SortFlags(pdk::as_integer<SortFlag>(SortFlag::Name) | pdk::as_integer<SortFlag>(SortFlag::IgnoreCase)), 
+       Filters filter = Filter::AllEntries);
    ~Dir();
    
    Dir &operator=(const Dir &);
@@ -106,7 +107,7 @@ public:
    
    void swap(Dir &other) noexcept
    {
-      std::swap(d_ptr, other.d_ptr);
+      std::swap(m_implPtr, other.m_implPtr);
    }
    
    void setPath(const String &path);
@@ -140,13 +141,14 @@ public:
    void setSorting(SortFlags sort);
    
    uint count() const;
-   bool isEmpty(Filters filters = Filters(AllEntries | NoDotAndDotDot)) const;
+   bool isEmpty(Filters filters = Filters(pdk::as_integer<Filter>(Filter::AllEntries) | 
+                                          pdk::as_integer<Filter>(Filter::NoDotAndDotDot))) const;
    
    String operator[](int) const;
    
    static StringList nameFiltersFromString(const String &nameFilter);
    
-   StringList entryList(Filters filters = NoFilter, SortFlags sort = SortFlag::NoSort) const;
+   StringList entryList(Filters filters = Filter::NoFilter, SortFlags sort = SortFlag::NoSort) const;
    StringList entryList(const StringList &nameFilters, Filters filters = Filter::NoFilter,
                         SortFlags sort = SortFlag::NoSort) const;
    
@@ -245,10 +247,10 @@ protected:
 private:
    friend class DirIterator;
    // Q_DECLARE_PRIVATE equivalent for shared data pointers
-   DirPrivate* d_func();
-   inline const DirPrivate* d_func() const
+   DirPrivate* getImplPtr();
+   inline const DirPrivate* getImplPtr() const
    {
-      return d_ptr.constData();
+      return m_implPtr.constData();
    }
    
 };

@@ -70,7 +70,7 @@ public:
    static TemporaryFile *createNativeFile(File &file);
    
 protected:
-   bool open(OpenMode flags) override;
+   bool open(OpenModes flags) override;
    
 private:
    friend class File;

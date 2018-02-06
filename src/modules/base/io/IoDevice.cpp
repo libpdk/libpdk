@@ -1111,7 +1111,7 @@ pdk::pint64 IoDevice::skip(pdk::pint64 maxLength)
       if (!sequential) {
          implPtr->m_pos += skippedSoFar;
       }
-         
+      
       if (implPtr->m_buffer.isEmpty()) {
          readData(nullptr, 0);
       }
@@ -1145,11 +1145,11 @@ pdk::pint64 IoDevice::skip(pdk::pint64 maxLength)
    if (skippedSoFar == 0) {
       return skipResult;
    }
-
+   
    if (skipResult == -1) {
       return skippedSoFar;
    }
-
+   
    return skippedSoFar + skipResult;
 }
 
@@ -1159,21 +1159,16 @@ bool IoDevice::waitForBytesWritten(int msecs)
    return false;
 }
 
-void IoDevice::setErrorString(const std::string &str)
+void IoDevice::setErrorString(const String &str)
 {
    getImplPtr()->m_errorString = str;
 }
 
-std::string IoDevice::getErrorString() const
+String IoDevice::getErrorString() const
 {
    PDK_D(const IoDevice);
-   if (implPtr->m_errorString.empty()) {
-      //#ifdef PDK_NO_QOBJECT
-      //        return Latin1String(QT_TRANSLATE_NOOP(QIODevice, "Unknown error"));
-      //#else
-      //        return tr("Unknown error");
-      //#endif
-      return std::string("Unknown error");
+   if (implPtr->m_errorString.isEmpty()) {
+      return tr("Unknown error");
    }
    return implPtr->m_errorString;
 }

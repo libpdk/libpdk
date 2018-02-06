@@ -47,12 +47,12 @@ class PDK_UNITTEST_EXPORT FileSystemMetaData
 {
 public:
    FileSystemMetaData()
-      : knownFlagsMask(0),
+      : m_knownFlagsMask(0),
         m_size(-1)
    {
    }
    
-   enum class MetaDataFlag
+   enum class MetaDataFlag : uint
    {
       // Permissions, overlaps with File::Permissions
       OtherReadPermission = 0x00000004,   OtherWritePermission = 0x00000002,  OtherExecutePermission = 0x00000001,
@@ -146,70 +146,70 @@ public:
    
    bool hasFlags(MetaDataFlags flags) const
    {
-      return ((knownFlagsMask & flags) == flags);
+      return ((m_knownFlagsMask & flags) == flags);
    }
    
    MetaDataFlags missingFlags(MetaDataFlags flags)
    {
-      return flags & ~knownFlagsMask;
+      return flags & ~m_knownFlagsMask;
    }
    
    void clear()
    {
-      knownFlagsMask = 0;
+      m_knownFlagsMask = 0;
    }
    
-   void clearFlags(MetaDataFlags flags = AllMetaDataFlags)
+   void clearFlags(MetaDataFlags flags = MetaDataFlag::AllMetaDataFlags)
    {
-      knownFlagsMask &= ~flags;
+      m_knownFlagsMask &= ~flags;
    }
    
    bool exists() const
    {
-      return (entryFlags & ExistsAttribute);
+      return (m_entryFlags & MetaDataFlag::ExistsAttribute);
    }
    
    bool isLink() const
    {
-      return  (entryFlags & LinkType);
+      return  (m_entryFlags & MetaDataFlag::LinkType);
    }
    
    bool isFile() const
    {
-      return (entryFlags & FileType);
+      return (m_entryFlags & MetaDataFlag::FileType);
    }
    
    bool isDirectory() const
    {
-      return (entryFlags & DirectoryType);
+      return (m_entryFlags & MetaDataFlag::DirectoryType);
    }
    
    bool isBundle() const;
    bool isAlias() const;
    bool isLegacyLink() const
    {
-      return (entryFlags & LegacyLinkType);
+      return (m_entryFlags & MetaDataFlag::LegacyLinkType);
    }
    
    bool isSequential() const
    {
-      return (entryFlags & SequentialType);
+      return (m_entryFlags & MetaDataFlag::SequentialType);
    }
    
    bool isHidden() const
    {
-      return (entryFlags & HiddenAttribute);
+      return (m_entryFlags & MetaDataFlag::HiddenAttribute);
    }
    
    bool wasDeleted() const
    {
-      return (entryFlags & WasDeletedAttribute);
+      return (m_entryFlags & MetaDataFlag::WasDeletedAttribute);
    }
    
 #if defined(PDK_OS_WIN)
    bool isLnkFile() const
    {
-      return (entryFlags & WinLnkType);
+      return (m_entryFlags & MetaDataFlag::WinLnkType);
    }
 #else
    bool isLnkFile() const
@@ -225,7 +225,7 @@ public:
    
    File::Permissions permissions() const
    {
-      return File::Permissions(Permissions & entryFlags);
+      return File::Permissions((m_entryFlags & MetaDataFlag::Permissions).getUnderData());
    }
    
    DateTime getAccessTime() const;
@@ -240,8 +240,8 @@ public:
    
 #ifdef PDK_OS_UNIX
    void fillFromStatxBuf(const struct statx &statBuffer);
-   void fillFromStatBuf(const QT_STATBUF &statBuffer);
-   void fillFromDirEnt(const QT_DIRENT &statBuffer);
+   void fillFromStatBuf(const PDK_STATBUF &statBuffer);
+   void fillFromDirEnt(const PDK_DIRENT &statBuffer);
 #endif
    
 #if defined(PDK_OS_WIN)
@@ -282,12 +282,12 @@ PDK_DECLARE_OPERATORS_FOR_FLAGS(FileSystemMetaData::MetaDataFlags)
 #if defined(PDK_OS_DARWIN)
 inline bool FileSystemMetaData::isBundle() const
 {
-   return (entryFlags & BundleType);
+   return (m_entryFlags & MetaDataFlag::BundleType);
 }
 
 inline bool FileSystemMetaData::isAlias() const
 {
-   return (entryFlags & AliasType);
+   return (m_entryFlags & MetaDataFlag::AliasType);
 }
 
 #else
@@ -306,40 +306,38 @@ inline bool FileSystemMetaData::isAlias() const
 inline DateTime FileSystemMetaData::fileTime(AbstractFileEngine::FileTime time) const
 {
    switch (time) {
-   case AbstractFileEngine::ModificationTime:
-      return modificationTime();
+   case AbstractFileEngine::FileTime::ModificationTime:
+      return getModificationTime();
       
-   case AbstractFileEngine::AccessTime:
-      return accessTime();
+   case AbstractFileEngine::FileTime::AccessTime:
+      return getAccessTime();
       
-   case AbstractFileEngine::BirthTime:
-      return birthTime();
+   case AbstractFileEngine::FileTime::BirthTime:
+      return getBirthTime();
       
-   case AbstractFileEngine::MetadataChangeTime:
-      return metadataChangeTime();
+   case AbstractFileEngine::FileTime::MetadataChangeTime:
+      return getMetadataChangeTime();
    }
-   
-   return DateTime();
 }
 #endif
 
 #if defined(PDK_OS_UNIX)
-inline DateTime FileSystemMetaData::birthTime() const
+inline DateTime FileSystemMetaData::getBirthTime() const
 {
    return m_birthTime ? DateTime::fromMSecsSinceEpoch(m_birthTime) : DateTime();
 }
 
-inline DateTime FileSystemMetaData::metadataChangeTime() const
+inline DateTime FileSystemMetaData::getMetadataChangeTime() const
 {
    return m_metadataChangeTime ? DateTime::fromMSecsSinceEpoch(m_metadataChangeTime) : DateTime();
 }
 
-inline DateTime FileSystemMetaData::modificationTime() const
+inline DateTime FileSystemMetaData::getModificationTime() const
 {
    return m_modificationTime ? DateTime::fromMSecsSinceEpoch(m_modificationTime) : DateTime();
 }
 
-inline DateTime FileSystemMetaData::accessTime() const
+inline DateTime FileSystemMetaData::getAccessTime() const
 {
    return m_accessTime ? DateTime::fromMSecsSinceEpoch(m_accessTime) : DateTime();
 }

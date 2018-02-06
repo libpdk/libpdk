@@ -55,7 +55,7 @@ public:
    bool setSize(pdk::pint64 size) override;
    bool caseSensitive() const override;
    bool isRelativePath() const override;
-   StringList entryList(QDir::Filters filters, const StringList &filterNames) const override;
+   StringList entryList(Dir::Filters filters, const StringList &filterNames) const override;
    FileFlags fileFlags(FileFlags type) const override;
    bool setPermissions(uint perms) override;
    ByteArray id() const override;
@@ -176,7 +176,7 @@ public:
 #if defined(PDK_OS_WIN)
    bool doStat(FileSystemMetaData::MetaDataFlags flags) const;
 #else
-   bool doStat(FileSystemMetaData::MetaDataFlags flags = FileSystemMetaData::PosixStatFlags) const;
+   bool doStat(FileSystemMetaData::MetaDataFlags flags = FileSystemMetaData::MetaDataFlag::PosixStatFlags) const;
 #endif
    bool isSymlink() const;
    

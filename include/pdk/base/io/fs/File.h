@@ -35,6 +35,7 @@ class FilePrivate;
 } // internal
 
 using pdk::lang::String;
+using internal::FilePrivate;
 
 class PDK_CORE_EXPORT File : public FileDevice
 {
@@ -103,7 +104,7 @@ public:
    bool copy(const String &newName);
    static bool copy(const String &fileName, const String &newName);
    
-   bool open(OpenMode flags) override;
+   bool open(OpenModes flags) override;
    bool open(FILE *f, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
    bool open(int fd, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
    
@@ -122,6 +123,7 @@ protected:
    
 private:
    friend class TemporaryFile;
+   friend class FilePrivate;
    PDK_DISABLE_COPY(File);
 };
 

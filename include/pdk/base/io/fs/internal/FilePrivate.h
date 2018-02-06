@@ -28,11 +28,11 @@ class TemporaryFile;
 
 namespace internal {
 
+using pdk::io::fs::File;
+
 class FilePrivate : public FileDevicePrivate
 {
    PDK_DECLARE_PUBLIC(File);
-   friend class TemporaryFile;
-   
 protected:
    FilePrivate();
    ~FilePrivate();
@@ -43,6 +43,7 @@ protected:
    AbstractFileEngine *getEngine() const override;
    
    String m_fileName;
+   friend class TemporaryFile;
 };
 
 } // internal

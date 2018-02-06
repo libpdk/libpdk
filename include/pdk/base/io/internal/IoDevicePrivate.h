@@ -248,7 +248,7 @@ public:
    virtual pdk::pint64 skip(pdk::pint64 maxSize);
 public:
    IoDevice::OpenModes m_openMode;
-   std::string m_errorString;
+   String m_errorString;
    std::vector<RingBuffer> m_readBuffers;
    std::vector<RingBuffer> m_writeBuffers;
    RingBufferRef m_buffer;

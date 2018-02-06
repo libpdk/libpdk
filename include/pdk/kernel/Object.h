@@ -18,6 +18,7 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/utils/ScopedPointer.h"
+#include "pdk/base/lang/String.h"
 #include <list>
 
 namespace pdk {
@@ -37,6 +38,7 @@ namespace kernel {
 using ObjectList = std::list<Object *>;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
+using pdk::lang::String;
 class Object;
 class Event;
 class TimerEvent;
@@ -70,7 +72,10 @@ class Object
 public:
    explicit Object(Object *parent = nullptr);
    virtual ~Object();
-   
+   static String tr(const char *sourceText, const char * = nullptr, int = -1)
+   {
+      return String::fromUtf8(sourceText);
+   }
    std::string getObjectName() const;
    void setObjectName(const std::string &name);
    

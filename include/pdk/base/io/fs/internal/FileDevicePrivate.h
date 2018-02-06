@@ -29,12 +29,11 @@ class String;
 namespace io {
 namespace fs {
 
-//forward declare class
-class AbstractFileEngine;
-class FSFileEngine;
-
 namespace internal {
 
+//forward declare class
+class AbstractFileEngine;
+class FileEngine;
 using pdk::io::internal::IoDevicePrivate;
 using pdk::lang::String;
 

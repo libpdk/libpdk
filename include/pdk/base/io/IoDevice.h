@@ -28,6 +28,11 @@
 
 namespace pdk {
 
+// forward declare class with namespace
+namespace lang {
+class String;
+} // lang
+
 namespace ds {
 class ByteArray;
 } // ds
@@ -40,6 +45,7 @@ class IoDevicePrivate;
 using pdk::kernel::Object;
 using pdk::ds::ByteArray;
 using internal::IoDevicePrivate;
+using pdk::lang::String;
 
 class PDK_CORE_EXPORT IoDevice : public Object
 {
@@ -117,7 +123,7 @@ public:
    bool putChar(char c);
    bool getChar(char *c);
    
-   std::string getErrorString() const;
+   String getErrorString() const;
    // SIGNALS:
    // void readyRead();
    // void channelReadyRead(int channel);
@@ -131,7 +137,7 @@ protected:
    virtual pdk::pint64 readLineData(char *data, pdk::pint64 maxLength);
    virtual pdk::pint64 writeData(const char *data, pdk::pint64 length) = 0;
    void setOpenMode(OpenModes openMode);
-   void setErrorString(const std::string &errorString);
+   void setErrorString(const String &errorString);
    pdk::utils::ScopedPointer<IoDevicePrivate> m_implPtr;
    
 private:

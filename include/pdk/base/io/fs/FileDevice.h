@@ -36,6 +36,7 @@ class FileDevicePrivate;
 
 using pdk::time::DateTime;
 using internal::FileDevicePrivate;
+using pdk::lang::String;
 
 class PDK_CORE_EXPORT FileDevice : public IoDevice
 {
@@ -126,7 +127,6 @@ protected:
    FileDevice();
    explicit FileDevice(Object *parent);
    FileDevice(FileDevicePrivate &dd, Object *parent = nullptr);
-#endif
    
    pdk::pint64 readData(char *data, pdk::pint64 maxlen) override;
    pdk::pint64 writeData(const char *data, pdk::pint64 len) override;
