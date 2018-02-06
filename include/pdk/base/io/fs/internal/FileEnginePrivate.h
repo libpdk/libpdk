@@ -36,8 +36,8 @@ public:
    explicit FileEngine(const String &file);
    ~FileEngine();
    
-   bool open(IoDevice::OpenMode openMode) override;
-   bool open(IoDevice::OpenMode flags, FILE *fh);
+   bool open(IoDevice::OpenModes openMode) override;
+   bool open(IoDevice::OpenModes flags, FILE *fh);
    bool close() override;
    bool flush() override;
    bool syncToDisk() override;

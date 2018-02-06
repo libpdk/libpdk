@@ -97,7 +97,7 @@ public:
    bool isReallyOpen() const;
    void setFileName(const String &file) override;
    
-   bool open(IoDevice::OpenMode flags) override;
+   bool open(IoDevice::OpenModes flags) override;
    bool remove() override;
    bool rename(const String &newName) override;
    bool renameOverwrite(const String &newName) override;

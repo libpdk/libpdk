@@ -23,8 +23,10 @@
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/io/fs/internal/FileSystemEnginePrivate.h"
 #include "pdk/base/io/internal/IoDevicePrivate.h"
+#include "pdk/base/lang/String.h"
 #include "pdk/kernel/internal/SystemErrorPrivate.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/SystemErrorPrivate.h"
 
 namespace pdk {
 namespace io {
@@ -33,6 +35,9 @@ namespace fs {
 using internal::AbstractFileEngine;
 using internal::FileSystemEngine;
 using internal::FileSystemEntry;
+using internal::TemporaryFileName;
+using pdk::kernel::internal::SystemError;
+using pdk::lang::Latin1String;
 
 namespace internal {
 
@@ -166,7 +171,7 @@ bool File::remove()
          unsetError();
          return true;
       }
-      implPtr->setError(FileError::RemoveError, implPtr->m_fileEngine->errorString());
+      implPtr->setError(FileError::RemoveError, implPtr->m_fileEngine->getErrorString());
    }
    return false;
 }
@@ -192,7 +197,7 @@ bool File::rename(const String &newName)
       implPtr->setError(FileError::RenameError, tr("Source file does not exist."));
       return false;
    }
-
+   
    // If the file exists and it is a case-changing rename ("foo" -> "Foo"),
    // compare Ids to make sure it really is a different file.
    // Note: this does not take file engines into account.
@@ -207,42 +212,41 @@ bool File::rename(const String &newName)
          implPtr->setError(FileError::RenameError, tr("Destination file exists"));
          return false;
       }
-
+      
 #ifdef PDK_OS_LINUX
       // rename() on Linux simply does nothing when renaming "foo" to "Foo" on a case-insensitive
       // FS, such as FAT32. Move the file away and rename in 2 steps to work around.
-      TemporaryFileName tfn(d->fileName);
-      FileSystemEntry src(d->fileName);
-      QSystemError error;
+      TemporaryFileName tfn(implPtr->m_fileName);
+      FileSystemEntry src(implPtr->m_fileName);
+      SystemError error;
       for (int attempt = 0; attempt < 16; ++attempt) {
          FileSystemEntry tmp(tfn.generateNext(), FileSystemEntry::FromNativePath());
-
          // rename to temporary name
-         if (!FileSystemEngine::renameFile(src, tmp, error))
+         if (!FileSystemEngine::renameFile(src, tmp, error)) {
             continue;
-
+         }
          // rename to final name
          if (FileSystemEngine::renameFile(tmp, FileSystemEntry(newName), error)) {
-            d->fileEngine->setFileName(newName);
-            d->fileName = newName;
+            implPtr->m_fileEngine->setFileName(newName);
+            implPtr->m_fileName = newName;
             return true;
          }
-
+         
          // We need to restore the original file.
-         QSystemError error2;
-         if (FileSystemEngine::renameFile(tmp, src, error2))
+         SystemError error2;
+         if (FileSystemEngine::renameFile(tmp, src, error2)) {
             break;      // report the original error, below
-
+         }
          // report both errors
-         d->setError(File::RenameError,
-                     tr("Error while renaming: %1").arg(error.toString())
-                     + QLatin1Char('\n')
-                     + tr("Unable to restore from %1: %2").
-                     arg(QDir::toNativeSeparators(tmp.filePath()), error2.toString()));
+         implPtr->setError(FileError::RenameError,
+                           tr("Error while renaming: %1").arg(error.toString())
+                           + Latin1Character('\n')
+                           + tr("Unable to restore from %1: %2").
+                           arg(Dir::toNativeSeparators(tmp.getFilePath()), error2.toString()));
          return false;
       }
-      d->setError(File::RenameError,
-                  tr("Error while renaming: %1").arg(error.toString()));
+      implPtr->setError(FileError::RenameError,
+                        tr("Error while renaming: %1").arg(error.toString()));
       return false;
 #endif // PDK_OS_LINUX
    }
@@ -256,12 +260,12 @@ bool File::rename(const String &newName)
          implPtr->m_fileName = newName;
          return true;
       }
-
+      
       if (isSequential()) {
          implPtr->setError(FileError::RenameError, tr("Will not rename sequential file using block copy"));
          return false;
       }
-
+      
       File out(newName);
       if (open(IoDevice::ReadOnly)) {
          if (out.open(IoDevice::WriteOnly | IoDevice::Truncate)) {
@@ -303,260 +307,263 @@ bool File::rename(const String &newName)
    return false;
 }
 
-//bool
-//File::rename(const String &oldName, const String &newName)
-//{
-//   return File(oldName).rename(newName);
-//}
+bool File::rename(const String &oldName, const String &newName)
+{
+   return File(oldName).rename(newName);
+}
 
-//bool
-//File::link(const String &linkName)
-//{
-//   PDK_D(File);
-//   if (fileName().isEmpty()) {
-//      qWarning("File::link: Empty or null file name");
-//      return false;
-//   }
-//   FileInfo fi(linkName);
-//   if (d->engine()->link(fi.absoluteFilePath())) {
-//      unsetError();
-//      return true;
-//   }
-//   d->setError(File::RenameError, d->fileEngine->errorString());
-//   return false;
-//}
+bool File::link(const String &linkName)
+{
+   PDK_D(File);
+   if (fileName().isEmpty()) {
+      // qWarning("File::link: Empty or null file name");
+      return false;
+   }
+   FileInfo fi(linkName);
+   if (implPtr->getEngine()->link(fi.getAbsoluteFilePath())) {
+      unsetError();
+      return true;
+   }
+   implPtr->setError(FileError::RenameError, implPtr->m_fileEngine->getErrorString());
+   return false;
+}
 
-//bool
-//File::link(const String &fileName, const String &linkName)
-//{
-//   return File(fileName).link(linkName);
-//}
+bool File::link(const String &fileName, const String &linkName)
+{
+   return File(fileName).link(linkName);
+}
 
-//bool
-//File::copy(const String &newName)
-//{
-//   PDK_D(File);
-//   if (fileName().isEmpty()) {
-//      qWarning("File::copy: Empty or null file name");
-//      return false;
-//   }
-//   if (File::exists(newName)) {
-//      // ### Race condition. If a file is moved in after this, it /will/ be
-//      // overwritten. On Unix, the proper solution is to use hardlinks:
-//      // return ::link(old, new) && ::remove(old); See also rename().
-//      d->setError(File::CopyError, tr("Destination file exists"));
-//      return false;
-//   }
-//   unsetError();
-//   close();
-//   if(error() == File::NoError) {
-//      if (d->engine()->copy(newName)) {
-//         unsetError();
-//         return true;
-//      } else {
-//         bool error = false;
-//         if(!open(File::ReadOnly)) {
-//            error = true;
-//            d->setError(File::CopyError, tr("Cannot open %1 for input").arg(d->fileName));
-//         } else {
-//            String fileTemplate = QLatin1String("%1/qt_temp.XXXXXX");
-//#ifdef QT_NO_TEMPORARYFILE
-//            File out(fileTemplate.arg(FileInfo(newName).path()));
-//            if (!out.open(QIODevice::ReadWrite))
-//               error = true;
-//#else
-//            QTemporaryFile out(fileTemplate.arg(FileInfo(newName).path()));
-//            if (!out.open()) {
-//               out.setFileTemplate(fileTemplate.arg(QDir::tempPath()));
-//               if (!out.open())
-//                  error = true;
-//            }
-//#endif
-//            if (error) {
-//               out.close();
-//               close();
-//               d->setError(File::CopyError, tr("Cannot open for output"));
-//            } else {
-//               if (!d->engine()->cloneTo(out.d_func()->engine())) {
-//                  char block[4096];
-//                  qint64 totalRead = 0;
-//                  while (!atEnd()) {
-//                     qint64 in = read(block, sizeof(block));
-//                     if (in <= 0)
-//                        break;
-//                     totalRead += in;
-//                     if (in != out.write(block, in)) {
-//                        close();
-//                        d->setError(File::CopyError, tr("Failure to write block"));
-//                        error = true;
-//                        break;
-//                     }
-//                  }
+bool File::copy(const String &newName)
+{
+   PDK_D(File);
+   if (fileName().isEmpty()) {
+      // qWarning("File::copy: Empty or null file name");
+      return false;
+   }
+   if (File::exists(newName)) {
+      // ### Race condition. If a file is moved in after this, it /will/ be
+      // overwritten. On Unix, the proper solution is to use hardlinks:
+      // return ::link(old, new) && ::remove(old); See also rename().
+      implPtr->setError(FileError::CopyError, tr("Destination file exists"));
+      return false;
+   }
+   unsetError();
+   close();
+   if(error() == FileError::NoError) {
+      if (implPtr->getEngine()->copy(newName)) {
+         unsetError();
+         return true;
+      } else {
+         bool error = false;
+         if(!open(File::ReadOnly)) {
+            error = true;
+            implPtr->setError(FileError::CopyError, tr("Cannot open %1 for input").arg(implPtr->m_fileName));
+         } else {
+            String fileTemplate = Latin1String("%1/qt_temp.XXXXXX");
+#ifdef PDK_NO_TEMPORARYFILE
+            File out(fileTemplate.arg(FileInfo(newName).getPath()));
+            if (!out.open(IoDevice::ReadWrite)) {
+               error = true;
+            }
+#else
+            TemporaryFile out(fileTemplate.arg(FileInfo(newName).getPath()));
+            if (!out.open()) {
+               out.setFileTemplate(fileTemplate.arg(Dir::getTempPath()));
+               if (!out.open()) {
+                  error = true;
+               }
+            }
+#endif
+            if (error) {
+               out.close();
+               close();
+               implPtr->setError(FileError::CopyError, tr("Cannot open for output"));
+            } else {
+               if (!implPtr->getEngine()->cloneTo(out.getImplPtr()->getEngine())) {
+                  char block[4096];
+                  pdk::pint64 totalRead = 0;
+                  while (!atEnd()) {
+                     pdk::pint64 in = read(block, sizeof(block));
+                     if (in <= 0) {
+                        break;
+                     }  
+                     totalRead += in;
+                     if (in != out.write(block, in)) {
+                        close();
+                        implPtr->setError(FileError::CopyError, tr("Failure to write block"));
+                        error = true;
+                        break;
+                     }
+                  }
+                  
+                  if (totalRead != getSize()) {
+                     // Unable to read from the source. The error string is
+                     // already set from read().
+                     error = true;
+                  }
+               }
+               if (!error && !out.rename(newName)) {
+                  error = true;
+                  close();
+                  implPtr->setError(FileError::CopyError, tr("Cannot create %1 for output").arg(newName));
+               }
+#ifdef PDK_NO_TEMPORARYFILE
+               if (error) {
+                  out.remove();
+               }  
+#else
+               if (!error) {
+                  out.setAutoRemove(false);
+               } 
+#endif
+            }
+         }
+         if(!error) {
+            File::setPermissions(newName, permissions());
+            close();
+            unsetError();
+            return true;
+         }
+      }
+   }
+   return false;
+}
 
-//                  if (totalRead != size()) {
-//                     // Unable to read from the source. The error string is
-//                     // already set from read().
-//                     error = true;
-//                  }
-//               }
-//               if (!error && !out.rename(newName)) {
-//                  error = true;
-//                  close();
-//                  d->setError(File::CopyError, tr("Cannot create %1 for output").arg(newName));
-//               }
-//#ifdef QT_NO_TEMPORARYFILE
-//               if (error)
-//                  out.remove();
-//#else
-//               if (!error)
-//                  out.setAutoRemove(false);
-//#endif
-//            }
-//         }
-//         if(!error) {
-//            File::setPermissions(newName, permissions());
-//            close();
-//            unsetError();
-//            return true;
-//         }
-//      }
-//   }
-//   return false;
-//}
+bool File::copy(const String &fileName, const String &newName)
+{
+   return File(fileName).copy(newName);
+}
 
-//bool
-//File::copy(const String &fileName, const String &newName)
-//{
-//   return File(fileName).copy(newName);
-//}
+bool File::open(OpenModes mode)
+{
+   PDK_D(File);
+   if (isOpen()) {
+      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      return false;
+   }
+   if (mode & Append) {
+      mode |= WriteOnly;
+   }
+   unsetError();
+   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+      // qWarning("QIODevice::open: File access not specified");
+      return false;
+   }
+   
+   // IoDevice provides the buffering, so there's no need to request it from the file engine.
+   if (implPtr->getEngine()->open(mode | IoDevice::Unbuffered)) {
+      IoDevice::open(mode);
+      if (mode & Append) {
+         seek(getSize());
+      }
+      return true;
+   }
+   FileError err = implPtr->m_fileEngine->getError();
+   if(err == FileError::UnspecifiedError) {
+      err = FileError::OpenError;
+   }
+   
+   implPtr->setError(err, implPtr->m_fileEngine->getErrorString());
+   return false;
+}
 
-//bool File::open(OpenMode mode)
-//{
-//   PDK_D(File);
-//   if (isOpen()) {
-//      qWarning("File::open: File (%s) already open", qPrintable(fileName()));
-//      return false;
-//   }
-//   if (mode & Append)
-//      mode |= WriteOnly;
+bool File::open(FILE *fh, OpenModes mode, FileHandleFlags handleFlags)
+{
+   PDK_D(File);
+   if (isOpen()) {
+      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      return false;
+   }
+   if (mode & Append) {
+      mode |= WriteOnly;
+   }
+   
+   unsetError();
+   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+      // qWarning("File::open: File access not specified");
+      return false;
+   }
+   
+   // IoDevice provides the buffering, so request unbuffered file engines
+   if (implPtr->openExternalFile(mode | Unbuffered, fh, handleFlags)) {
+      IoDevice::open(mode);
+      if (!(mode & Append) && !isSequential()) {
+         pdk::pint64 pos = (pdk::pint64)PDK_FTELL(fh);
+         if (pos != -1) {
+            // Skip redundant checks in FileDevice::seek().
+            IoDevice::seek(pos);
+         }
+      }
+      return true;
+   }
+   return false;
+}
 
-//   unsetError();
-//   if ((mode & (ReadOnly | WriteOnly)) == 0) {
-//      qWarning("QIODevice::open: File access not specified");
-//      return false;
-//   }
+bool File::open(int fd, OpenModes mode, FileHandleFlags handleFlags)
+{
+   PDK_D(File);
+   if (isOpen()) {
+      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      return false;
+   }
+   if (mode & Append) {
+      mode |= WriteOnly;
+   }
+   unsetError();
+   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+      // qWarning("File::open: File access not specified");
+      return false;
+   }
+   
+   // QIODevice provides the buffering, so request unbuffered file engines
+   if (implPtr->openExternalFile(mode | Unbuffered, fd, handleFlags)) {
+      IoDevice::open(mode);
+      if (!(mode & Append) && !isSequential()) {
+         pdk::pint64 pos = (pdk::pint64)PDK_LSEEK(fd, PDK_OFF_T(0), SEEK_CUR);
+         if (pos != -1) {
+            // Skip redundant checks in FileDevice::seek().
+            IoDevice::seek(pos);
+         }
+      }
+      return true;
+   }
+   return false;
+}
 
-//   // QIODevice provides the buffering, so there's no need to request it from the file engine.
-//   if (d->engine()->open(mode | QIODevice::Unbuffered)) {
-//      QIODevice::open(mode);
-//      if (mode & Append)
-//         seek(size());
-//      return true;
-//   }
-//   File::FileError err = d->fileEngine->error();
-//   if(err == File::UnspecifiedError)
-//      err = File::OpenError;
-//   d->setError(err, d->fileEngine->errorString());
-//   return false;
-//}
+bool File::resize(pdk::pint64 sz)
+{
+   return FileDevice::resize(sz); // for now
+}
 
-//bool File::open(FILE *fh, OpenMode mode, FileHandleFlags handleFlags)
-//{
-//   PDK_D(File);
-//   if (isOpen()) {
-//      qWarning("File::open: File (%s) already open", qPrintable(fileName()));
-//      return false;
-//   }
-//   if (mode & Append)
-//      mode |= WriteOnly;
-//   unsetError();
-//   if ((mode & (ReadOnly | WriteOnly)) == 0) {
-//      qWarning("File::open: File access not specified");
-//      return false;
-//   }
+bool File::resize(const String &fileName, pdk::pint64 sz)
+{
+   return File(fileName).resize(sz);
+}
 
-//   // QIODevice provides the buffering, so request unbuffered file engines
-//   if (d->openExternalFile(mode | Unbuffered, fh, handleFlags)) {
-//      QIODevice::open(mode);
-//      if (!(mode & Append) && !isSequential()) {
-//         qint64 pos = (qint64)QT_FTELL(fh);
-//         if (pos != -1) {
-//            // Skip redundant checks in FileDevice::seek().
-//            QIODevice::seek(pos);
-//         }
-//      }
-//      return true;
-//   }
-//   return false;
-//}
+File::Permissions File::permissions() const
+{
+   return FileDevice::permissions(); // for now
+}
 
-//bool File::open(int fd, OpenMode mode, FileHandleFlags handleFlags)
-//{
-//   PDK_D(File);
-//   if (isOpen()) {
-//      qWarning("File::open: File (%s) already open", qPrintable(fileName()));
-//      return false;
-//   }
-//   if (mode & Append)
-//      mode |= WriteOnly;
-//   unsetError();
-//   if ((mode & (ReadOnly | WriteOnly)) == 0) {
-//      qWarning("File::open: File access not specified");
-//      return false;
-//   }
+File::Permissions File::permissions(const String &fileName)
+{
+   return File(fileName).permissions();
+}
 
-//   // QIODevice provides the buffering, so request unbuffered file engines
-//   if (d->openExternalFile(mode | Unbuffered, fd, handleFlags)) {
-//      QIODevice::open(mode);
-//      if (!(mode & Append) && !isSequential()) {
-//         qint64 pos = (qint64)QT_LSEEK(fd, QT_OFF_T(0), SEEK_CUR);
-//         if (pos != -1) {
-//            // Skip redundant checks in FileDevice::seek().
-//            QIODevice::seek(pos);
-//         }
-//      }
-//      return true;
-//   }
-//   return false;
-//}
+bool File::setPermissions(Permissions permissions)
+{
+   return FileDevice::setPermissions(permissions); // for now
+}
 
-//bool File::resize(qint64 sz)
-//{
-//   return FileDevice::resize(sz); // for now
-//}
+bool File::setPermissions(const String &fileName, Permissions permissions)
+{
+   return File(fileName).setPermissions(permissions);
+}
 
-//bool
-//File::resize(const String &fileName, qint64 sz)
-//{
-//   return File(fileName).resize(sz);
-//}
-
-//File::Permissions File::permissions() const
-//{
-//   return FileDevice::permissions(); // for now
-//}
-
-//File::Permissions
-//File::permissions(const String &fileName)
-//{
-//   return File(fileName).permissions();
-//}
-
-//bool File::setPermissions(Permissions permissions)
-//{
-//   return FileDevice::setPermissions(permissions); // for now
-//}
-
-//bool
-//File::setPermissions(const String &fileName, Permissions permissions)
-//{
-//   return File(fileName).setPermissions(permissions);
-//}
-
-//qint64 File::size() const
-//{
-//   return FileDevice::size(); // for now
-//}
+pdk::pint64 File::getSize() const
+{
+   return FileDevice::getSize(); // for now
+}
 
 } // fs
 } // io

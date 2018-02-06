@@ -113,7 +113,7 @@ public:
    
    virtual ~AbstractFileEngine();
    
-   virtual bool open(IoDevice::OpenMode openMode);
+   virtual bool open(IoDevice::OpenModes openMode);
    virtual bool close();
    virtual bool flush();
    virtual bool syncToDisk();
@@ -155,8 +155,8 @@ public:
    virtual pdk::pint64 readLine(char *data, pdk::pint64 maxlen);
    virtual pdk::pint64 write(const char *data, pdk::pint64 len);
    
-   File::FileError error() const;
-   String errorString() const;
+   File::FileError getError() const;
+   String getErrorString() const;
    
    enum Extension {
       AtEndExtension,

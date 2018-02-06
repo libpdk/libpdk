@@ -24,7 +24,9 @@ namespace pdk {
 
 // forward declare class with namespace
 namespace kernel {
+namespace internal {
 class SystemError;
+} // internal
 } // kernel
 
 // forward declare class with namespace
@@ -36,7 +38,7 @@ namespace io {
 namespace fs {
 namespace internal {
 
-using pdk::kernel::SystemError;
+using pdk::kernel::internal::SystemError;
 using pdk::time::DateTime;
 
 class FileSystemEngine

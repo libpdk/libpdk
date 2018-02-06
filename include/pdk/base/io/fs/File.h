@@ -106,8 +106,8 @@ public:
    static bool copy(const String &fileName, const String &newName);
    
    bool open(OpenModes flags) override;
-   bool open(FILE *f, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
-   bool open(int fd, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
+   bool open(FILE *f, OpenModes ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
+   bool open(int fd, OpenModes ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
    
    pdk::pint64 getSize() const override;
    
