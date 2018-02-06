@@ -32,11 +32,15 @@ class Character;
 // forward declare class with namespace
 namespace ds {
 class StringList;
+class ByteArray;
 } // ds
 
 // forward declare class with namespace
 namespace io {
 class TextStream;
+namespace internal {
+class TextStreamPrivate;
+} // internal
 } // io
 
 // forward declare class with namespace
@@ -61,7 +65,9 @@ using pdk::time::Date;
 using pdk::time::DateTime;
 using pdk::time::Time;
 using pdk::io::TextStream;
+using pdk::io::internal::TextStreamPrivate;
 using pdk::ds::StringList;
+using pdk::ds::ByteArray;
 
 class Locale;
 
@@ -997,7 +1003,7 @@ public:
    String toString(double i, char f = 'g', int prec = 6) const;
    inline String toString(float i, char f = 'g', int prec = 6) const;
    
-#if QT_STRINGVIEW_LEVEL < 2
+#if PDK_STRINGVIEW_LEVEL < 2
    String toString(const Date &date, const String &formatStr) const;
    String toString(const Time &time, const String &formatStr) const;
    String toString(const DateTime &dateTime, const String &format) const;
@@ -1099,6 +1105,11 @@ public:
 private:
    Locale(LocalePrivate &dd);
    friend class LocalePrivate;
+   friend class String;
+   friend class StringRef;
+   friend class ByteArray;
+   friend class TextStream;
+   friend class TextStreamPrivate;
    friend PDK_CORE_EXPORT uint hash(const Locale &key, uint seed) noexcept;
    
    SharedDataPointer<LocalePrivate> m_implPtr;

@@ -18,7 +18,6 @@
 
 #include "pdk/base/io/IoDevice.h"
 #include "pdk/base/lang/Character.h"
-#include "pdk/base/lang/String.h"
 #include "pdk/utils/Locale.h"
 #include "pdk/utils/ScopedPointer.h"
 #include <string>
@@ -35,6 +34,20 @@ namespace ds {
 class ByteArray;
 } // ds
 
+// forward declare class with namespace
+namespace text {
+namespace codecs {
+class TextCodec;
+} // codecs
+} // text
+
+// forward declare class with namespace
+namespace lang {
+class String;
+class Latin1String;
+class StringRef;
+} // lang
+
 namespace io {
 
 namespace internal {
@@ -44,7 +57,10 @@ class TextStreamPrivate;
 using pdk::ds::ByteArray;
 using pdk::lang::Character;
 using pdk::lang::Latin1String;
+using pdk::lang::String;
+using pdk::lang::StringRef;
 using pdk::utils::Locale;
+using pdk::text::codecs::TextCodec;
 
 using internal::TextStreamPrivate;
 class PDK_CORE_EXPORT TextStream
@@ -87,10 +103,20 @@ public:
    TextStream();
    explicit TextStream(IoDevice *device);
    explicit TextStream(FILE *fileHandle, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
-   explicit TextStream(std::string *string, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
+   explicit TextStream(String *string, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
    explicit TextStream(ByteArray *array, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
    explicit TextStream(const ByteArray &array, IoDevice::OpenMode openMode = IoDevice::ReadOnly);
    virtual ~TextStream();
+   
+#ifndef PDK_NO_TEXTCODEC
+    void setCodec(TextCodec *codec);
+    void setCodec(const char *codecName);
+    TextCodec *getCodec() const;
+    void setAutoDetectUnicode(bool enabled);
+    bool autoDetectUnicode() const;
+    void setGenerateByteOrderMark(bool generate);
+    bool generateByteOrderMark() const;
+#endif
    
    void setLocale(const Locale &locale);
    Locale getLocale() const;
@@ -98,8 +124,8 @@ public:
    void setDevice(IoDevice *device);
    IoDevice *getDevice() const;
    
-   void setString(std::string *string, IoDevice::OpenMode openMode = IoDevice::ReadOnly);
-   std::string *getString() const;
+   void setString(String *string, IoDevice::OpenMode openMode = IoDevice::ReadOnly);
+   String *getString() const;
    
    Status getStatus() const;
    void setStatus(Status status);
@@ -112,10 +138,10 @@ public:
    pdk::pint64 getPosition() const;
    
    void skipWhiteSpace();
-   std::string readLine(pdk::pint64 maxLength = 0);
-   bool readLineInto(std::string *line, pdk::pint64 maxLength = 0);
-   std::string readAll();
-   std::string read(pdk::pint64 maxLength);
+   String readLine(pdk::pint64 maxLength = 0);
+   bool readLineInto(String *line, pdk::pint64 maxLength = 0);
+   String readAll();
+   String read(pdk::pint64 maxLength);
    
    void setFieldAlignment(FieldAlignment alignment);
    FieldAlignment getFieldAlignment() const;
@@ -150,7 +176,7 @@ public:
    TextStream &operator>>(pulonglong &i);
    TextStream &operator>>(float &f);
    TextStream &operator>>(double &f);
-   TextStream &operator>>(std::string &s);
+   TextStream &operator>>(String &s);
    TextStream &operator>>(ByteArray &array);
    TextStream &operator>>(char *c);
    
@@ -166,8 +192,9 @@ public:
    TextStream &operator<<(pulonglong i);
    TextStream &operator<<(float f);
    TextStream &operator<<(double f);
-   TextStream &operator<<(const std::string &s);
+   TextStream &operator<<(const String &s);
    TextStream &operator<<(Latin1String s);
+   TextStream &operator<<(const StringRef &s);
    TextStream &operator<<(const ByteArray &array);
    TextStream &operator<<(const char *c);
    TextStream &operator<<(const void *ptr);
@@ -186,34 +213,34 @@ using PDKSMFC = void (TextStream::*)(Character); // manipulator w/QChar argument
 class PDK_CORE_EXPORT TextStreamManipulator
 {
 public:
-    constexpr TextStreamManipulator(PDKSMFI m, int a) noexcept
-       : m_mf(m),
-         m_mc(nullptr),
-         m_arg(a),
-         m_ch()
-    {}
-    
-    constexpr TextStreamManipulator(PDKSMFC m, Character c) noexcept 
-       : m_mf(nullptr), 
-         m_mc(m),
-         m_arg(-1),
-         m_ch(c)
-    {}
-    
-    void exec(TextStream &s)
-    {
-       if (m_mf) {
-          (s.*m_mf)(m_arg);
-       } else {
-          (s.*m_mc)(m_ch);
-       }
-    }
-
+   constexpr TextStreamManipulator(PDKSMFI m, int a) noexcept
+      : m_mf(m),
+        m_mc(nullptr),
+        m_arg(a),
+        m_ch()
+   {}
+   
+   constexpr TextStreamManipulator(PDKSMFC m, Character c) noexcept 
+      : m_mf(nullptr), 
+        m_mc(m),
+        m_arg(-1),
+        m_ch(c)
+   {}
+   
+   void exec(TextStream &s)
+   {
+      if (m_mf) {
+         (s.*m_mf)(m_arg);
+      } else {
+         (s.*m_mc)(m_ch);
+      }
+   }
+   
 private:
-    PDKSMFI m_mf;                                        // TextStream member function
-    PDKSMFC m_mc;                                        // TextStream member function
-    int m_arg;                                         // member function argument
-    Character m_ch;
+   PDKSMFI m_mf;                                        // TextStream member function
+   PDKSMFC m_mc;                                        // TextStream member function
+   int m_arg;                                         // member function argument
+   Character m_ch;
 };
 
 inline TextStream &operator>>(TextStream &s, TextStreamFunc func)
@@ -266,20 +293,20 @@ PDK_CORE_EXPORT TextStream &ws(TextStream &s);
 
 inline TextStreamManipulator set_field_width(int width)
 {
-    PDKSMFI func = &TextStream::setFieldWidth;
-    return TextStreamManipulator(func,width);
+   PDKSMFI func = &TextStream::setFieldWidth;
+   return TextStreamManipulator(func,width);
 }
 
 inline TextStreamManipulator set_pad_char(Character ch)
 {
-    PDKSMFC func = &TextStream::setPadChar;
-    return TextStreamManipulator(func, ch);
+   PDKSMFC func = &TextStream::setPadChar;
+   return TextStreamManipulator(func, ch);
 }
 
 inline TextStreamManipulator set_real_number_precision(int precision)
 {
-    PDKSMFI func = &TextStream::setRealNumberPrecision;
-    return TextStreamManipulator(func, precision);
+   PDKSMFI func = &TextStream::setRealNumberPrecision;
+   return TextStreamManipulator(func, precision);
 }
 
 } // io

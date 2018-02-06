@@ -106,7 +106,8 @@ public:
    bool m_autoDetectUnicode;
    
    // i/o
-   enum class TokenDelimiter {
+   enum class TokenDelimiter
+   {
       Space,
       NotSpace,
       EndOfLine
@@ -122,7 +123,8 @@ public:
    void restoreToSavedConverterState();
    
    // Return value type for getNumber()
-   enum class NumberParsingStatus {
+   enum class NumberParsingStatus 
+   {
       npsOk,
       npsMissingDigit,
       npsInvalidPrefix
