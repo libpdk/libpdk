@@ -107,8 +107,8 @@ public:
    static String longFileName(const String &path);
 #endif
    
-   FileSystemEntry fileEntry;
-   IoDevice::OpenMode openMode;
+   FileSystemEntry m_fileEntry;
+   IoDevice::OpenMode m_openMode;
    
    bool nativeOpen(IoDevice::OpenMode openMode);
    bool openFh(IoDevice::OpenMode flags, FILE *fh);
@@ -144,7 +144,7 @@ public:
    
    mutable FileSystemMetaData m_metaData;
    
-   FILE *fh;
+   FILE *m_fh;
    
 #ifdef PDK_OS_WIN
    HANDLE fileHandle;

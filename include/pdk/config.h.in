@@ -21,7 +21,7 @@
 #define PDK_FEATURE_ICONV -1
 #define PDK_FEATURE_DATETIME_PARSER -1
 #define PDK_FEATURE_TIMEZONE 1
-
+#define PDK_FEATURE_LINKAT -1 // template file private
 // review the code https://github.com/google/double-conversion
 #define PDK_NO_DOUBLECONVERSION
 

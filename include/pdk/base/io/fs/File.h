@@ -28,9 +28,10 @@ namespace pdk {
 namespace io {
 namespace fs {
 
+class TemporaryFile;
+
 // forward declare class with namespace
 namespace internal {
-class TemporaryFile;
 class FilePrivate;
 } // internal
 
