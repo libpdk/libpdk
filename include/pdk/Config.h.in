@@ -25,4 +25,6 @@
 // review the code https://github.com/google/double-conversion
 #define PDK_NO_DOUBLECONVERSION
 
+#define PDK_NO_DEBUG_STREAM
+
 #endif // PDK_CONFIG_H
