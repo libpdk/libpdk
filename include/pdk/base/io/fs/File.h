@@ -28,7 +28,102 @@ namespace pdk {
 namespace io {
 namespace fs {
 
+// forward declare class with namespace
+namespace internal {
+class TemporaryFile;
+class FilePrivate;
+} // internal
 
+using pdk::lang::String;
+
+class PDK_CORE_EXPORT File : public FileDevice
+{
+   PDK_DECLARE_PRIVATE(File);
+   
+public:
+   File();
+   File(const String &name);
+   explicit File(Object *parent);
+   File(const String &name, Object *parent);
+   ~File();
+   
+   String fileName() const override;
+   void setFileName(const String &name);
+   
+#if defined(PDK_OS_DARWIN)
+   // Mac always expects filenames in UTF-8... and decomposed...
+   static inline ByteArray encodeName(const String &fileName)
+   {
+      return fileName.normalized(String::NormalizationForm::Form_D).toUtf8();
+   }
+   static String decodeName(const ByteArray &localFileName)
+   {
+      // note: duplicated in qglobal.cpp (qEnvironmentVariable)
+      return String::fromUtf8(localFileName).normalized(String::NormalizationForm::Form_C);
+   }
+#else
+   static inline ByteArray encodeName(const String &fileName)
+   {
+      return fileName.toLocal8Bit();
+   }
+   static String decodeName(const ByteArray &localFileName)
+   {
+      return String::fromLocal8Bit(localFileName);
+   }
+#endif
+   inline static String decodeName(const char *localFileName)
+   {
+      return decodeName(ByteArray(localFileName));
+   }
+   
+   bool exists() const;
+   static bool exists(const String &fileName);
+   
+   String readLink() const;
+   static String readLink(const String &fileName);
+   inline String symLinkTarget() const
+   {
+      return readLink();
+   }
+   
+   inline static String symLinkTarget(const String &fileName) 
+   {
+      return readLink(fileName);
+   }
+   
+   bool remove();
+   static bool remove(const String &fileName);
+   
+   bool rename(const String &newName);
+   static bool rename(const String &oldName, const String &newName);
+   
+   bool link(const String &newName);
+   static bool link(const String &oldname, const String &newName);
+   
+   bool copy(const String &newName);
+   static bool copy(const String &fileName, const String &newName);
+   
+   bool open(OpenMode flags) override;
+   bool open(FILE *f, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
+   bool open(int fd, OpenMode ioFlags, FileHandleFlags handleFlags = FileHandleFlag::DontCloseHandle);
+   
+   pdk::pint64 getSize() const override;
+   
+   bool resize(pdk::pint64 sz) override;
+   static bool resize(const String &filename, pdk::pint64 sz);
+   
+   Permissions permissions() const override;
+   static Permissions permissions(const String &filename);
+   bool setPermissions(Permissions permissionSpec) override;
+   static bool setPermissions(const String &filename, Permissions permissionSpec);
+   
+protected:
+   File(FilePrivate &dd, Object *parent = nullptr);
+   
+private:
+   friend class TemporaryFile;
+   PDK_DISABLE_COPY(File);
+};
 
 } // fs
 } // io

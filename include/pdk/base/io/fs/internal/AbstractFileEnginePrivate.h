@@ -40,7 +40,7 @@ class StringList;
 namespace io {
 namespace fs {
 
-// forward  declare class
+// forward declare class
 class AbstractFileEngineIterator;
 
 namespace internal {
