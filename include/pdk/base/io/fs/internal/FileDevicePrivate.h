@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/02/06.
 
-#ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_H
-#define PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_H
+#ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_PRIVATE_H
+#define PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_PRIVATE_H
 
 #include "pdk/base/io/internal/IoDevicePrivate.h"
 #include "pdk/base/io/fs/FileDevice.h"
@@ -82,4 +82,4 @@ inline bool FileDevicePrivate::ensureFlushed() const
 } // io
 } // pdk
 
-#endif // PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_H
+#endif // PDK_M_BASE_IO_FS_INTERNAL_FILE_DEVICE_PRIVATE_H
