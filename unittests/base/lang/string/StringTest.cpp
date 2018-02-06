@@ -16,6 +16,7 @@
 #include "gtest/gtest.h"
 #include "pdk/utils/internal/LocaleToolsPrivate.h"
 #include "pdk/base/io/DataStream.h"
+#include "pdk/base/io/fs/FileDevice.h"
 //#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
 //#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
 //#include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"
