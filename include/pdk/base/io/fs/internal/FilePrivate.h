@@ -16,12 +16,34 @@
 #ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_PRIVATE_H
 #define PDK_M_BASE_IO_FS_INTERNAL_FILE_PRIVATE_H
 
+#include "pdk/base/io/fs/File.h"
+#include "pdk/base/io/fs/internal/FileDevicePrivate.h"
+
 namespace pdk {
 namespace io {
 namespace fs {
+
+// forward declare class
+class TemporaryFile;
+
 namespace internal {
 
-
+class FilePrivate : public FileDevicePrivate
+{
+   PDK_DECLARE_PUBLIC(File);
+   friend class TemporaryFile;
+   
+protected:
+   FilePrivate();
+   ~FilePrivate();
+   
+   bool openExternalFile(int flags, int fd, File::FileHandleFlags handleFlags);
+   bool openExternalFile(int flags, FILE *fh, File::FileHandleFlags handleFlags);
+   
+   AbstractFileEngine *getEngine() const override;
+   
+   String m_fileName;
+};
 
 } // internal
 } // fs
