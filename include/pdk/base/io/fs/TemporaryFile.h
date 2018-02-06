@@ -33,6 +33,50 @@ class TemporaryFilePrivate;
 class LockFilePrivate;
 } // internal
 
+using internal::TemporaryFilePrivate;
+using internal::LockFilePrivate;
+
+class PDK_CORE_EXPORT TemporaryFile : public File
+{
+   PDK_DECLARE_PRIVATE(TemporaryFile);
+public:
+   TemporaryFile();
+   explicit TemporaryFile(const String &templateName);
+   explicit TemporaryFile(Object *parent);
+   TemporaryFile(const String &templateName, Object *parent);
+   ~TemporaryFile();
+   
+   bool autoRemove() const;
+   void setAutoRemove(bool b);
+   
+   // ### Hides open(flags)
+   bool open()
+   {
+      return open(IoDevice::ReadWrite);
+   }
+   
+   String fileName() const override;
+   String fileTemplate() const;
+   void setFileTemplate(const String &name);
+   
+   // Hides File::rename
+   bool rename(const String &newName);
+   
+   inline static TemporaryFile *createNativeFile(const String &fileName)
+   {
+      File file(fileName);
+      return createNativeFile(file);
+   }
+   static TemporaryFile *createNativeFile(File &file);
+   
+protected:
+   bool open(OpenMode flags) override;
+   
+private:
+   friend class File;
+   friend class LockFilePrivate;
+   PDK_DISABLE_COPY(TemporaryFile);
+};
 
 
 } // fs
