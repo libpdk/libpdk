@@ -13,9 +13,8 @@
 //
 // Created by softboy on 2018/02/06.
 
-
-#ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_PRIVATE_H
-#define PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_PRIVATE_H
+#ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_ENTRY_PRIVATE_H
+#define PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_ENTRY_PRIVATE_H
 
 #include "pdk/global/Global.h"
 #include "pdk/base/lang/String.h"
@@ -115,4 +114,4 @@ private:
 } // io
 } // pdk
 
-#endif // PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_PRIVATE_H
+#endif // PDK_M_BASE_IO_FS_INTERNAL_FILE_SYSTEM_ENTRY_PRIVATE_H
