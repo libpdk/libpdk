@@ -16,6 +16,9 @@
 #ifndef PDK_M_BASE_IO_FS_INTERNAL_FILE_ENGINE_ITERATOR_PRIVATE_H
 #define PDK_M_BASE_IO_FS_INTERNAL_FILE_ENGINE_ITERATOR_PRIVATE_H
 
+#include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
+
+
 namespace pdk {
 namespace io {
 namespace fs {
