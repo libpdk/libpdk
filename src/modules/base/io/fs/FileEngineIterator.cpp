@@ -14,17 +14,71 @@
 // Created by softboy on 2018/02/07.
 
 #include "pdk/base/io/fs/internal/FileEngineIteratorPrivate.h"
-#include "pdk/base/io/fs/internal/FileInfoPrivate.h
-#include <any>
+#include "pdk/base/io/fs/internal/FileSystemIteratorPrivate.h"
+#include "pdk/base/io/fs/internal/FileInfoPrivate.h"
+
+#ifndef PDK_NO_FILESYSTEMITERATOR
 
 namespace pdk {
 namespace io {
 namespace fs {
 namespace internal {
 
+FileEngineIterator::FileEngineIterator(Dir::Filters filters, const StringList &filterNames)
+   : AbstractFileEngineIterator(filters, filterNames),
+     m_done(false)
+{
+}
 
+FileEngineIterator::~FileEngineIterator()
+{
+}
+
+bool FileEngineIterator::hasNext() const
+{
+   if (!m_done && !m_nativeIterator) {
+      m_nativeIterator.reset(new FileSystemIterator(FileSystemEntry(path()),
+                                                  filters(), nameFilters()));
+      advance();
+   }
+   return !m_done;
+}
+
+String FileEngineIterator::next()
+{
+   if (!hasNext()) {
+      return String();
+   }
+   advance();
+   return currentFilePath();
+}
+
+void FileEngineIterator::advance() const
+{
+   m_currentInfo = m_nextInfo;
+   FileSystemEntry entry;
+   FileSystemMetaData data;
+   if (m_nativeIterator->advance(entry, data)) {
+      m_nextInfo = FileInfo(new FileInfoPrivate(entry, data));
+   } else {
+      m_done = true;
+      m_nativeIterator.reset();
+   }
+}
+
+String FileEngineIterator::currentFileName() const
+{
+   return m_currentInfo.getFileName();
+}
+
+FileInfo FileEngineIterator::currentFileInfo() const
+{
+   return m_currentInfo;
+}
 
 } // internal
 } // fs
 } // io
 } // pdk
+
+#endif // PDK_NO_FILESYSTEMITERATOR

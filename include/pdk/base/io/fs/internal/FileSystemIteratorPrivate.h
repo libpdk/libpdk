@@ -40,7 +40,8 @@ class FileSystemIterator
 public:
    FileSystemIterator(const FileSystemEntry &entry, Dir::Filters filters,
                       const StringList &nameFilters, DirIterator::IteratorFlags flags
-                      = DirIterator::FollowSymlinks | DirIterator::Subdirectories);
+                      = DirIterator::IteratorFlags(pdk::as_integer<DirIterator::IteratorFlag>(DirIterator::IteratorFlag::FollowSymlinks) | 
+                        pdk::as_integer<DirIterator::IteratorFlag>(DirIterator::IteratorFlag::Subdirectories)));
    ~FileSystemIterator();
    
    bool advance(FileSystemEntry &fileEntry, FileSystemMetaData &metaData);

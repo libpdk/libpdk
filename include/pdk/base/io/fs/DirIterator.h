@@ -51,7 +51,7 @@ public:
                IteratorFlags flags = IteratorFlag::NoIteratorFlags);
    DirIterator(const String &path,
                const StringList &nameFilters,
-               Dir::Filters filters = Dir::NoFilter,
+               Dir::Filters filters = Dir::Filter::NoFilter,
                IteratorFlags flags = IteratorFlag::NoIteratorFlags);
    
    ~DirIterator();

@@ -120,14 +120,13 @@ public:
       m_fileFlags = 0;
       m_cachedFlags = 0;
       if (m_fileEngine) {
-         (void)m_fileEngine->m_fileFlags(AbstractFileEngine::FileFlag::Refresh);
+         (void)m_fileEngine->fileFlags(AbstractFileEngine::FileFlag::Refresh);
       }
-      
    }
    inline void clear() {
       m_metaData.clear();
       clearFlags();
-      for (int i = AbstractFileEngine::FileName::NFileNames - 1 ; i >= 0 ; --i) {
+      for (int i = pdk::as_integer<AbstractFileEngine::FileName>(AbstractFileEngine::FileName::NFileNames) - 1 ; i >= 0 ; --i) {
          m_fileNames[i].clear();
       }
       m_fileOwners[1].clear();
@@ -144,7 +143,7 @@ public:
    
    pdk::utils::ScopedPointer<AbstractFileEngine> const m_fileEngine;
    
-   mutable String m_fileNames[AbstractFileEngine::FileName::NFileNames];
+   mutable String m_fileNames[pdk::as_integer<AbstractFileEngine::FileName>(AbstractFileEngine::FileName::NFileNames)];
    mutable String m_fileOwners[2];  // AbstractFileEngine::FileName::FileOwner: OwnerUser and OwnerGroup
    mutable DateTime m_fileTimes[4]; // AbstractFileEngine::FileName::FileTime: BirthTime, MetadataChangeTime, ModificationTime, AccessTime
    
