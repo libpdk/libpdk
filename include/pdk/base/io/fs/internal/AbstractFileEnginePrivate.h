@@ -42,12 +42,12 @@ namespace io {
 namespace fs {
 
 // forward declare class
-class AbstractFileEngineIterator;
 class DirIterator;
 
 namespace internal {
 // forward  declare class
 class AbstractFileEnginePrivate;
+class AbstractFileEngineIterator;
 using pdk::lang::String;
 using pdk::ds::StringList;
 
@@ -147,7 +147,7 @@ public:
    uchar *map(pdk::pint64 offset, pdk::pint64 size, File::MemoryMapFlags flags);
    bool unmap(uchar *ptr);
    
-   typedef AbstractFileEngineIterator Iterator;
+   using Iterator = AbstractFileEngineIterator;
    virtual Iterator *beginEntryList(Dir::Filters filters, const StringList &filterNames);
    virtual Iterator *endEntryList();
    

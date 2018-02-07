@@ -102,10 +102,10 @@ public:
 public:
    TextStream();
    explicit TextStream(IoDevice *device);
-   explicit TextStream(FILE *fileHandle, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
-   explicit TextStream(String *string, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
-   explicit TextStream(ByteArray *array, IoDevice::OpenMode openMode = IoDevice::ReadWrite);
-   explicit TextStream(const ByteArray &array, IoDevice::OpenMode openMode = IoDevice::ReadOnly);
+   explicit TextStream(FILE *fileHandle, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(String *string, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(ByteArray *array, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(const ByteArray &array, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadOnly);
    virtual ~TextStream();
    
 #ifndef PDK_NO_TEXTCODEC
@@ -124,7 +124,7 @@ public:
    void setDevice(IoDevice *device);
    IoDevice *getDevice() const;
    
-   void setString(String *string, IoDevice::OpenMode openMode = IoDevice::ReadOnly);
+   void setString(String *string, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadOnly);
    String *getString() const;
    
    Status getStatus() const;

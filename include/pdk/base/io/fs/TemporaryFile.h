@@ -52,7 +52,7 @@ public:
    // ### Hides open(flags)
    bool open()
    {
-      return open(IoDevice::ReadWrite);
+      return open(OpenMode::ReadWrite);
    }
    
    String fileName() const override;

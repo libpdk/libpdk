@@ -50,7 +50,7 @@ using pdk::lang::String;
 class PDK_CORE_EXPORT IoDevice : public Object
 {
 public:
-   enum OpenMode
+   enum class OpenMode
    {
       NotOpen = 0x0000,
       ReadOnly = 0x0001,

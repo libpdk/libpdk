@@ -120,6 +120,52 @@ public:
       : m_data(initializerListHelper(flags.begin(), flags.end()))
    {}
    
+   constexpr inline bool operator ==(int mask) noexcept
+   {
+      return const_cast<Flags &>(*this).operator ==(mask);
+   }
+   
+   constexpr inline bool operator ==(uint mask) noexcept
+   {
+      return const_cast<Flags &>(*this).operator ==(mask);
+   }
+   
+   constexpr inline bool operator ==(EnumType mask) noexcept
+   {
+      return const_cast<Flags &>(*this).operator ==(mask);
+   }
+   
+   constexpr inline bool operator ==(Flags mask) noexcept
+   {
+      return const_cast<Flags &>(*this).operator ==(mask);
+   }
+   
+   constexpr inline bool operator ==(int mask) const noexcept
+   {
+      if (std::is_same<int, UnderType>::value) {
+         return m_data == mask;
+      }
+      return m_data == static_cast<UnderType>(mask);
+   }
+   
+   constexpr inline bool operator ==(uint mask) const noexcept
+   {
+      if (std::is_same<uint, UnderType>::value) {
+         return m_data == mask;
+      }
+      return m_data == static_cast<UnderType>(mask);
+   }
+   
+   constexpr inline bool operator ==(EnumType mask) const noexcept
+   {
+      return m_data == static_cast<UnderType>(mask);
+   }
+   
+   constexpr inline bool operator ==(Flags mask) const noexcept
+   {
+      return m_data == mask.m_data;
+   }
+   
    constexpr inline Flags& operator &=(int mask) noexcept
    {
       m_data &= mask;
@@ -132,13 +178,13 @@ public:
       return *this;
    }
    
-   constexpr inline Flags& operator &=(Enum mask) noexcept
+   constexpr inline Flags& operator &=(EnumType mask) noexcept
    {
       m_data &= UnderType(mask);
       return *this;
    }
    
-   constexpr inline Flags& operator |=(Enum mask) noexcept
+   constexpr inline Flags& operator |=(EnumType mask) noexcept
    {
       m_data |= UnderType(mask);
       return *this;
@@ -150,7 +196,7 @@ public:
       return *this;
    }
    
-   constexpr inline Flags& operator ^=(Enum mask) noexcept
+   constexpr inline Flags& operator ^=(EnumType mask) noexcept
    {
       m_data ^= UnderType(mask);
       return *this;

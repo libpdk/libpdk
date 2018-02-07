@@ -179,7 +179,7 @@ void TextStreamPrivate::reset()
    m_deleteDevice = false;
    m_string = nullptr;
    m_stringOffset = 0;
-   m_stringOpenMode = IoDevice::NotOpen;
+   m_stringOpenMode = IoDevice::OpenMode::NotOpen;
    m_readBufferOffset = 0;
    m_readBufferStartDevicePos = 0;
    m_lastTokenSize = 0;

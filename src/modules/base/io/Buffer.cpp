@@ -144,20 +144,20 @@ bool Buffer::open(OpenModes flags)
 {
    PDK_D(Buffer);
    
-   if ((flags & (Append | Truncate)) != 0) {
-      flags |= WriteOnly;
+   if ((flags & (OpenMode::Append | OpenMode::Truncate)) != 0) {
+      flags |= OpenMode::WriteOnly;
    }
       
-   if ((flags & (ReadOnly | WriteOnly)) == 0) {
+   if ((flags & (OpenMode::ReadOnly | OpenMode::WriteOnly)) == 0) {
       // qWarning("Buffer::open: Buffer access not specified");
       return false;
    }
    
-   if ((flags & Truncate) == Truncate) {
+   if ((flags & OpenMode::Truncate).getUnderData() == pdk::as_integer<OpenMode>(OpenMode::Truncate)) {
       implPtr->m_buf->resize(0);
    }
 
-   return IoDevice::open(flags | IoDevice::Unbuffered);
+   return IoDevice::open(flags | IoDevice::OpenMode::Unbuffered);
 }
 
 void Buffer::close()

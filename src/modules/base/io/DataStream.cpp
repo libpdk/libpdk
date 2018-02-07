@@ -112,7 +112,7 @@ DataStream::DataStream(const ByteArray &a)
    //   buf->blockSignals(true);
    //#endif
    buf->setData(a);
-   buf->open(IoDevice::ReadOnly);
+   buf->open(IoDevice::OpenMode::ReadOnly);
    m_device = buf;
    m_ownDevice = true;
    m_byteorder = ByteOrder::BigEndian;

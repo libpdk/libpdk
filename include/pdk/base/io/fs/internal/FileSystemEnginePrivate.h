@@ -87,7 +87,7 @@ public:
 #endif
 #if defined(PDK_OS_WIN)
    
-   static bool uncListSharesOnServer(const String &server, StringList *list); //Used also by QFSFileEngineIterator::hasNext()
+   static bool uncListSharesOnServer(const String &server, StringList *list); //Used also by FileEngineIterator::hasNext()
    static bool fillMetaData(int fd, FileSystemMetaData &data,
                             FileSystemMetaData::MetaDataFlags what);
    static bool fillMetaData(HANDLE fHandle, FileSystemMetaData &data,

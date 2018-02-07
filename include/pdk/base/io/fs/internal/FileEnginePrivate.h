@@ -84,9 +84,9 @@ public:
    bool supportsExtension(Extension extension) const override;
    
    //FS only!!
-   bool open(IoDevice::OpenMode flags, int fd);
-   bool open(IoDevice::OpenMode flags, int fd, File::FileHandleFlags handleFlags);
-   bool open(IoDevice::OpenMode flags, FILE *fh, File::FileHandleFlags handleFlags);
+   bool open(IoDevice::OpenModes flags, int fd);
+   bool open(IoDevice::OpenModes flags, int fd, File::FileHandleFlags handleFlags);
+   bool open(IoDevice::OpenModes flags, FILE *fh, File::FileHandleFlags handleFlags);
    static bool setCurrentPath(const String &path);
    static String getCurrentPath(const String &path = String());
    static String getHomePath();
@@ -108,11 +108,11 @@ public:
 #endif
    
    FileSystemEntry m_fileEntry;
-   IoDevice::OpenMode m_openMode;
+   IoDevice::OpenModes m_openMode;
    
-   bool nativeOpen(IoDevice::OpenMode openMode);
-   bool openFh(IoDevice::OpenMode flags, FILE *fh);
-   bool openFd(IoDevice::OpenMode flags, int fd);
+   bool nativeOpen(IoDevice::OpenModes openMode);
+   bool openFh(IoDevice::OpenModes flags, FILE *fh);
+   bool openFd(IoDevice::OpenModes flags, int fd);
    bool nativeClose();
    bool closeFdFh();
    bool nativeFlush();
@@ -147,8 +147,8 @@ public:
    FILE *m_fh;
    
 #ifdef PDK_OS_WIN
-   HANDLE fileHandle;
-   HANDLE mapHandle;
+   HANDLE m_fileHandle;
+   HANDLE m_mapHandle;
    std::map<uchar *, DWORD /* offset % AllocationGranularity */> m_maps;
    
    mutable int m_cachedFd;

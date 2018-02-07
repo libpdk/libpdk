@@ -267,8 +267,8 @@ bool File::rename(const String &newName)
       }
       
       File out(newName);
-      if (open(IoDevice::ReadOnly)) {
-         if (out.open(IoDevice::WriteOnly | IoDevice::Truncate)) {
+      if (open(IoDevice::OpenMode::ReadOnly)) {
+         if (out.open(IoDevice::OpenMode::WriteOnly | IoDevice::OpenMode::Truncate)) {
             bool error = false;
             char block[4096];
             pdk::pint64 bytes;
@@ -355,7 +355,7 @@ bool File::copy(const String &newName)
          return true;
       } else {
          bool error = false;
-         if(!open(File::ReadOnly)) {
+         if(!open(File::OpenMode::ReadOnly)) {
             error = true;
             implPtr->setError(FileError::CopyError, tr("Cannot open %1 for input").arg(implPtr->m_fileName));
          } else {
@@ -441,19 +441,20 @@ bool File::open(OpenModes mode)
       // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
-   if (mode & Append) {
-      mode |= WriteOnly;
+   if (mode & OpenMode::Append) {
+      mode |= OpenMode::WriteOnly;
    }
    unsetError();
-   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+   if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
+                pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
       // qWarning("QIODevice::open: File access not specified");
       return false;
    }
    
    // IoDevice provides the buffering, so there's no need to request it from the file engine.
-   if (implPtr->getEngine()->open(mode | IoDevice::Unbuffered)) {
+   if (implPtr->getEngine()->open(mode | IoDevice::OpenMode::Unbuffered)) {
       IoDevice::open(mode);
-      if (mode & Append) {
+      if (mode & OpenMode::Append) {
          seek(getSize());
       }
       return true;
@@ -474,20 +475,21 @@ bool File::open(FILE *fh, OpenModes mode, FileHandleFlags handleFlags)
       // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
-   if (mode & Append) {
-      mode |= WriteOnly;
+   if (mode & OpenMode::Append) {
+      mode |= OpenMode::WriteOnly;
    }
    
    unsetError();
-   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+   if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
+                pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
       // qWarning("File::open: File access not specified");
       return false;
    }
    
    // IoDevice provides the buffering, so request unbuffered file engines
-   if (implPtr->openExternalFile(mode | Unbuffered, fh, handleFlags)) {
+   if (implPtr->openExternalFile(mode | OpenMode::Unbuffered, fh, handleFlags)) {
       IoDevice::open(mode);
-      if (!(mode & Append) && !isSequential()) {
+      if (!(mode & OpenMode::Append) && !isSequential()) {
          pdk::pint64 pos = (pdk::pint64)PDK_FTELL(fh);
          if (pos != -1) {
             // Skip redundant checks in FileDevice::seek().
@@ -506,19 +508,20 @@ bool File::open(int fd, OpenModes mode, FileHandleFlags handleFlags)
       // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
-   if (mode & Append) {
-      mode |= WriteOnly;
+   if (mode & OpenMode::Append) {
+      mode |= OpenMode::WriteOnly;
    }
    unsetError();
-   if ((mode & (ReadOnly | WriteOnly)) == 0) {
+   if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
+                pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
       // qWarning("File::open: File access not specified");
       return false;
    }
    
-   // QIODevice provides the buffering, so request unbuffered file engines
-   if (implPtr->openExternalFile(mode | Unbuffered, fd, handleFlags)) {
+   // IoDevice provides the buffering, so request unbuffered file engines
+   if (implPtr->openExternalFile(mode | OpenMode::Unbuffered, fd, handleFlags)) {
       IoDevice::open(mode);
-      if (!(mode & Append) && !isSequential()) {
+      if (!(mode & OpenMode::Append) && !isSequential()) {
          pdk::pint64 pos = (pdk::pint64)PDK_LSEEK(fd, PDK_OFF_T(0), SEEK_CUR);
          if (pos != -1) {
             // Skip redundant checks in FileDevice::seek().

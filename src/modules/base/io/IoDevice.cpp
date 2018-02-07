@@ -194,7 +194,7 @@ pdk::pint64 IoDevicePrivate::read(char *data, pdk::pint64 maxLength, bool peekin
 {
    PDK_Q(IoDevice);
    
-   const bool buffered = (m_openMode & IoDevice::Unbuffered) == 0;
+   const bool buffered = (m_openMode & IoDevice::OpenMode::Unbuffered) == 0;
    const bool sequential = isSequential();
    const bool keepDataInBuffer = sequential
          ? peeking || m_transactionStarted
@@ -276,7 +276,7 @@ pdk::pint64 IoDevicePrivate::read(char *data, pdk::pint64 maxLength, bool peekin
          }
       }
       
-      if ((m_openMode & IoDevice::Text) && readPtr < data) {
+      if ((m_openMode & IoDevice::OpenMode::Text) && readPtr < data) {
          const char *endPtr = data;
          
          // optimization to avoid initial self-assignment
@@ -436,7 +436,7 @@ void IoDevice::setTextModeEnabled(bool enabled)
    if (enabled) {
       implPtr->m_openMode |= OpenMode::Text;
    } else {
-      implPtr->m_openMode &= ~OpenMode::Text;
+      implPtr->m_openMode &= ~pdk::as_integer<OpenMode>(OpenMode::Text);
    }
 }
 
@@ -447,7 +447,7 @@ bool IoDevice::isTextModeEnabled() const
 
 bool IoDevice::isOpen() const
 {
-   return getImplPtr()->m_openMode.getUnderData() != OpenMode::NotOpen;
+   return getImplPtr()->m_openMode.getUnderData() != pdk::as_integer<OpenMode>(OpenMode::NotOpen);
 }
 
 bool IoDevice::isReadable() const
@@ -580,8 +580,8 @@ bool IoDevice::seek(pint64 pos)
 bool IoDevice::atEnd() const
 {
    PDK_D(const IoDevice);
-   const bool result = (implPtr->m_openMode.getUnderData() == OpenMode::NotOpen || (implPtr->isBufferEmpty()
-                                                                                    && bytesAvailable() == 0));
+   const bool result = (implPtr->m_openMode == OpenMode::NotOpen || (implPtr->isBufferEmpty()
+                                                                     && bytesAvailable() == 0));
 #if defined PDK_IODEVICE_DEBUG
    printf("%p pdk::io::IoDevice::atEnd() returns %s, implPtr->m_openMode == %d, implPtr->m_pos == %lld\n", this,
           result ? "true" : "false", int(implPtr->m_openMode), implPtr->m_pos);
@@ -629,7 +629,7 @@ pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
             ++m_implPtr->m_pos;
          }
          char c = char(uchar(chint));
-         if (c == '\r' && (m_implPtr->m_openMode & Text)) {
+         if (c == '\r' && (m_implPtr->m_openMode & OpenMode::Text)) {
             continue;
          }
          
@@ -650,7 +650,7 @@ pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
    
    const pdk::pint64 readBytes = m_implPtr->read(data, maxLength);
    
-#if defined QIODEVICE_DEBUG
+#if defined PDK_IODEVICE_DEBUG
    printf("%p \treturning %lld, d->pos == %lld, d->buffer.size() == %lld\n", this,
           readBytes, d->pos, d->buffer.size());
    if (readBytes > 0)
@@ -671,7 +671,7 @@ ByteArray IoDevice::read(pint64 maxLength)
    // Try to prevent the data from being copied, if we have a chunk
    // with the same size in the read buffer.
    if (maxLength == implPtr->m_buffer.nextDataBlockSize() && !implPtr->m_transactionStarted
-       && (implPtr->m_openMode & (IoDevice::ReadOnly | IoDevice::Text)) == IoDevice::ReadOnly) {
+       && (implPtr->m_openMode & (OpenMode::ReadOnly | OpenMode::Text)) == OpenMode::ReadOnly) {
       result = implPtr->m_buffer.read();
       if (!implPtr->isSequential()) {
          implPtr->m_pos += maxLength;
@@ -1097,7 +1097,7 @@ pdk::pint64 IoDevice::skip(pdk::pint64 maxLength)
           this, maxLength, implPtr->m_pos, implPtr->m_buffer.size());
 #endif
    
-   if ((sequential && implPtr->m_transactionStarted) || (implPtr->m_openMode & IoDevice::Text) != 0) {
+   if ((sequential && implPtr->m_transactionStarted) || (implPtr->m_openMode & OpenMode::Text) != 0) {
       return implPtr->skipByReading(maxLength);
    }
    
