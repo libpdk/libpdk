@@ -80,6 +80,8 @@ int SystemError::getError() const
    return m_errorCode;
 }
 
+String pdk_error_string(int code);
+
 } // internal
 } // kernel
 } // pdk

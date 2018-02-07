@@ -40,10 +40,17 @@ pdk_collect_files(
    DIR modules/base/ds
    OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
 
+set(IO_DIR ${MODULE_BASE_DIR}/io)
 pdk_collect_files(
    TYPE_SOURCE
-   DIR modules/base/io
+   DIR ${IO_DIR}
    OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
+
+if (WIN32)
+elseif(UNIX)
+list(APPEND PDK_BASE_SOURCES
+   ${IO_DIR}/fs/_platform/FileEngineUnix.cpp)
+endif()
 
 pdk_collect_files(
    TYPE_SOURCE

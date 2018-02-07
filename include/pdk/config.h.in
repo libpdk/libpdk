@@ -26,6 +26,7 @@
 
 #define PDK_FEATURE_getentropy -1
 #define PDK_FEATURE_getauxval -1
+#define PDK_FEATURE_translation -1
 
 #define PDK_NO_DOUBLECONVERSION
 

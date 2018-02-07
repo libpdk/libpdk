@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 
 #if defined(PDK_USE_XOPEN_LFS_EXTENSIONS) && defined(PDK_LARGEFILE_SUPPORT)
+
 #define PDK_STATBUF              struct stat64
 #define PDK_FPOS_T               fpos64_t
 #define PDK_OFF_T                off64_t
@@ -46,7 +47,9 @@
 #define PDK_FSETPOS              ::fsetpos64
 
 #define PDK_MMAP                 ::mmap64
-#else // !defined (PDK_USE_XOPEN_LFS_EXTENSIONS) || !defined(PDK_LARGEFILE_SUPPORT)
+
+#else // !defined(PDK_USE_XOPEN_LFS_EXTENSIONS) || !defined(PDK_LARGEFILE_SUPPORT)
+
 #include "../c89/PlatformDefs.h"
 
 #define PDK_STATBUF              struct stat
@@ -73,7 +76,7 @@
 #define PDK_FTELL                ::ftello
 #endif
 
-#define PDK_MMAP    
+#define PDK_MMAP                 ::mmap
 
 #endif // !defined (PDK_USE_XOPEN_LFS_EXTENSIONS) || !defined(PDK_LARGEFILE_SUPPORT)
 
