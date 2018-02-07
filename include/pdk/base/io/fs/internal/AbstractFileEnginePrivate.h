@@ -117,8 +117,8 @@ public:
    virtual bool close();
    virtual bool flush();
    virtual bool syncToDisk();
-   virtual pdk::pint64 size() const;
-   virtual pdk::pint64 pos() const;
+   virtual pdk::pint64 getSize() const;
+   virtual pdk::pint64 getPosition() const;
    virtual bool seek(pdk::pint64 pos);
    virtual bool isSequential() const;
    virtual bool remove();
@@ -226,13 +226,13 @@ public:
    virtual String next() = 0;
    virtual bool hasNext() const = 0;
    
-   String path() const;
-   StringList nameFilters() const;
-   Dir::Filters filters() const;
+   String getPath() const;
+   StringList getNameFilters() const;
+   Dir::Filters getFilters() const;
    
-   virtual String currentFileName() const = 0;
-   virtual FileInfo currentFileInfo() const;
-   String currentFilePath() const;
+   virtual String getCurrentFileName() const = 0;
+   virtual FileInfo getCurrentFileInfo() const;
+   String getCurrentFilePath() const;
    
 protected:
    enum EntryInfoType
@@ -265,7 +265,6 @@ public:
 };
 
 AbstractFileEngine *pdk_custom_file_engine_handler_create(const String &path);
-
 
 } // internal
 } // fs

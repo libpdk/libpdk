@@ -369,7 +369,7 @@ bool FileEnginePrivate::flushFh()
    return true;
 }
 
-pdk::pint64 FileEngine::size() const
+pdk::pint64 FileEngine::getSize() const
 {
    PDK_D(const FileEngine);
    return implPtr->nativeSize();
@@ -407,7 +407,7 @@ pdk::pint64 FileEnginePrivate::sizeFdFh() const
 }
 #endif
 
-pdk::pint64 FileEngine::pos() const
+pdk::pint64 FileEngine::getPosition() const
 {
    PDK_D(const FileEngine);
    return implPtr->getNativePos();

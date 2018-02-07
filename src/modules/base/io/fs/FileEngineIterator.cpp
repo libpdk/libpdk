@@ -37,8 +37,8 @@ FileEngineIterator::~FileEngineIterator()
 bool FileEngineIterator::hasNext() const
 {
    if (!m_done && !m_nativeIterator) {
-      m_nativeIterator.reset(new FileSystemIterator(FileSystemEntry(path()),
-                                                  filters(), nameFilters()));
+      m_nativeIterator.reset(new FileSystemIterator(FileSystemEntry(getPath()),
+                                                  getFilters(), getNameFilters()));
       advance();
    }
    return !m_done;
@@ -50,7 +50,7 @@ String FileEngineIterator::next()
       return String();
    }
    advance();
-   return currentFilePath();
+   return getCurrentFilePath();
 }
 
 void FileEngineIterator::advance() const
@@ -66,12 +66,12 @@ void FileEngineIterator::advance() const
    }
 }
 
-String FileEngineIterator::currentFileName() const
+String FileEngineIterator::getCurrentFileName() const
 {
    return m_currentInfo.getFileName();
 }
 
-FileInfo FileEngineIterator::currentFileInfo() const
+FileInfo FileEngineIterator::getCurrentFileInfo() const
 {
    return m_currentInfo;
 }

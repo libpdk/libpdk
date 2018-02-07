@@ -40,8 +40,8 @@ public:
     String next() override;
     bool hasNext() const override;
 
-    String currentFileName() const override;
-    FileInfo currentFileInfo() const override;
+    String getCurrentFileName() const override;
+    FileInfo getCurrentFileInfo() const override;
 
 private:
     void advance() const;

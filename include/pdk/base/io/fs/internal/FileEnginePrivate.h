@@ -41,8 +41,8 @@ public:
    bool close() override;
    bool flush() override;
    bool syncToDisk() override;
-   pdk::pint64 size() const override;
-   pdk::pint64 pos() const override;
+   pdk::pint64 getSize() const override;
+   pdk::pint64 getPosition() const override;
    bool seek(pdk::pint64) override;
    bool isSequential() const override;
    bool remove() override;
