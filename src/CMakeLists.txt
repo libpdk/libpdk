@@ -49,7 +49,9 @@ pdk_collect_files(
 if (WIN32)
 elseif(UNIX)
 list(APPEND PDK_BASE_SOURCES
-   ${IO_DIR}/fs/_platform/FileEngineUnix.cpp)
+   ${IO_DIR}/fs/_platform/FileEngineUnix.cpp
+   ${IO_DIR}/fs/_platform/FileSystemEngineUnix.cpp
+   ${IO_DIR}/fs/_platform/FileSystemiteratorUnix.cpp)
 endif()
 
 pdk_collect_files(
