@@ -49,7 +49,7 @@ public:
    File(const String &name, Object *parent);
    ~File();
    
-   String fileName() const override;
+   String getFileName() const override;
    void setFileName(const String &name);
    
 #if defined(PDK_OS_DARWIN)

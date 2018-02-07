@@ -122,7 +122,7 @@ File::~File()
 {
 }
 
-String File::fileName() const
+String File::getFileName() const
 {
    PDK_D(const File);
    return implPtr->getEngine()->fileName(AbstractFileEngine::FileName::DefaultName);
@@ -166,7 +166,7 @@ bool File::remove()
    }
    unsetError();
    close();
-   if(error() == FileError::NoError) {
+   if(getError() == FileError::NoError) {
       if (implPtr->getEngine()->remove()) {
          unsetError();
          return true;
@@ -185,7 +185,7 @@ bool File::rename(const String &newName)
 {
    PDK_D(File);
    // if this is a QTemporaryFile, the virtual fileName() call here may do something
-   if (fileName().isEmpty()) {
+   if (getFileName().isEmpty()) {
       // qWarning("File::rename: Empty or null file name");
       return false;
    }
@@ -252,7 +252,7 @@ bool File::rename(const String &newName)
    }
    unsetError();
    close();
-   if(error() == FileError::NoError) {
+   if(getError() == FileError::NoError) {
       if (changingCase ? implPtr->getEngine()->renameOverwrite(newName) : implPtr->getEngine()->rename(newName)) {
          unsetError();
          // engine was able to handle the new name so we just reset it
@@ -315,7 +315,7 @@ bool File::rename(const String &oldName, const String &newName)
 bool File::link(const String &linkName)
 {
    PDK_D(File);
-   if (fileName().isEmpty()) {
+   if (getFileName().isEmpty()) {
       // qWarning("File::link: Empty or null file name");
       return false;
    }
@@ -336,7 +336,7 @@ bool File::link(const String &fileName, const String &linkName)
 bool File::copy(const String &newName)
 {
    PDK_D(File);
-   if (fileName().isEmpty()) {
+   if (getFileName().isEmpty()) {
       // qWarning("File::copy: Empty or null file name");
       return false;
    }
@@ -349,7 +349,7 @@ bool File::copy(const String &newName)
    }
    unsetError();
    close();
-   if(error() == FileError::NoError) {
+   if(getError() == FileError::NoError) {
       if (implPtr->getEngine()->copy(newName)) {
          unsetError();
          return true;

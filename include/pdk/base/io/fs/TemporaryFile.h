@@ -55,8 +55,8 @@ public:
       return open(OpenMode::ReadWrite);
    }
    
-   String fileName() const override;
-   String fileTemplate() const;
+   String getFileName() const override;
+   String getFileTemplate() const;
    void setFileTemplate(const String &name);
    
    // Hides File::rename

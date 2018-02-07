@@ -36,6 +36,7 @@ class AbstractFileEngine;
 class FileEngine;
 using pdk::io::internal::IoDevicePrivate;
 using pdk::lang::String;
+using pdk::io::fs::FileDevice;
 
 class FileDevicePrivate : public IoDevicePrivate
 {

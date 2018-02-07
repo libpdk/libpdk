@@ -88,15 +88,15 @@ public:
    
    ~FileDevice();
    
-   FileError error() const;
+   FileError getError() const;
    void unsetError();
    
    virtual void close() override;
    
    bool isSequential() const override;
    
-   int handle() const;
-   virtual String fileName() const;
+   int getHandle() const;
+   virtual String getFileName() const;
    
    pdk::pint64 getPosition() const override;
    bool seek(pdk::pint64 offset) override;
