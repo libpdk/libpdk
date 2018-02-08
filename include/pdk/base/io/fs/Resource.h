@@ -61,9 +61,6 @@ public:
     const uchar *getData() const;
     DateTime lastModified() const;
 
-    static void addSearchPath(const String &path);
-    static StringList getSearchPaths();
-
     static bool registerResource(const String &rccFilename, const String &resourceRoot = String());
     static bool unregisterResource(const String &rccFilename, const String &resourceRoot = String());
 
@@ -79,7 +76,7 @@ protected:
        return !isDir();
     }
     
-    StringList children() const;
+    StringList getChildren() const;
 
 protected:
     pdk::utils::ScopedPointer<ResourcePrivate> m_implPtr;

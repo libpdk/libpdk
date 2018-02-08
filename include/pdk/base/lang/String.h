@@ -2122,6 +2122,107 @@ inline bool operator >=(Latin1String lhs, Character rhs) noexcept
    return !(rhs > lhs);
 }
 
+inline bool operator==(StringView lhs, StringView rhs) noexcept
+{}
+
+inline bool operator!=(StringView lhs, StringView rhs) noexcept
+{}
+
+inline bool operator< (StringView lhs, StringView rhs) noexcept 
+{}
+
+inline bool operator<=(StringView lhs, StringView rhs) noexcept
+{}
+
+inline bool operator> (StringView lhs, StringView rhs) noexcept
+{}
+
+inline bool operator>=(StringView lhs, StringView rhs) noexcept
+{}
+
+// StringView <> Char
+inline bool operator==(StringView lhs, Character rhs) noexcept
+{
+   return lhs == StringView(&rhs, 1);
+}
+inline bool operator!=(StringView lhs, Character rhs) noexcept
+{
+   return lhs != StringView(&rhs, 1);
+}
+
+inline bool operator< (StringView lhs, Character rhs) noexcept
+{ 
+   return lhs <  StringView(&rhs, 1);
+}
+
+inline bool operator<=(StringView lhs, Character rhs) noexcept
+{ 
+   return lhs <= StringView(&rhs, 1);
+}
+
+inline bool operator> (StringView lhs, Character rhs) noexcept
+{ 
+   return lhs >  StringView(&rhs, 1);
+}
+
+inline bool operator>=(StringView lhs, Character rhs) noexcept 
+{ 
+   return lhs >= StringView(&rhs, 1);
+}
+
+inline bool operator==(Character lhs, StringView rhs) noexcept
+{
+   return StringView(&lhs, 1) == rhs;
+}
+
+inline bool operator!=(Character lhs, StringView rhs) noexcept 
+{
+   return StringView(&lhs, 1) != rhs;
+}
+
+inline bool operator< (Character lhs, StringView rhs) noexcept
+{
+   return StringView(&lhs, 1) <  rhs;
+}
+
+inline bool operator<=(Character lhs, StringView rhs) noexcept
+{}
+
+inline bool operator> (Character lhs, StringView rhs) noexcept 
+{}
+
+inline bool operator>=(Character lhs, StringView rhs) noexcept 
+{}
+
+// StringView <> Latin1String
+inline bool operator==(StringView lhs, Latin1String rhs) noexcept
+{}
+inline bool operator!=(StringView lhs, Latin1String rhs) noexcept
+{}
+inline bool operator< (StringView lhs, Latin1String rhs) noexcept 
+{
+   
+}
+inline bool operator<=(StringView lhs, Latin1String rhs) noexcept 
+{}
+inline bool operator> (StringView lhs, Latin1String rhs) noexcept 
+{}
+inline bool operator>=(StringView lhs, Latin1String rhs) noexcept 
+{}
+
+inline bool operator==(Latin1String lhs, StringView rhs) noexcept 
+{}
+inline bool operator!=(Latin1String lhs, StringView rhs) noexcept
+{}
+inline bool operator< (Latin1String lhs, StringView rhs) noexcept 
+{}
+inline bool operator<=(Latin1String lhs, StringView rhs) noexcept 
+{}
+inline bool operator> (Latin1String lhs, StringView rhs) noexcept
+{}
+inline bool operator>=(Latin1String lhs, StringView rhs) noexcept
+{}
+
 inline bool StringRef::contains(const String &str, CaseSensitivity cs) const
 {
    return indexOf(str, 0, cs) != -1;

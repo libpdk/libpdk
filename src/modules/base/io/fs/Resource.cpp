@@ -147,7 +147,7 @@ public:
       return getFlags(node) & pdk::as_integer<Flags>(Flags::Compressed);
    }
    
-   const uchar *data(int node, pdk::pint64 *size) const;
+   const uchar *getData(int node, pdk::pint64 *size) const;
    DateTime lastModified(int node) const;
    StringList children(int node) const;
    virtual String mappingRoot() const
@@ -180,7 +180,9 @@ public:
    }
    
 protected:
-   inline void setSource(int version, const uchar *tree, const uchar *name, const uchar *data) {
+   inline void setSource(int version, const uchar *tree, 
+                         const uchar *name, const uchar *data)
+   {
       m_tree = tree;
       m_names = name;
       m_payloads = data;
@@ -293,7 +295,7 @@ bool ResourcePrivate::load(const String &file)
          if(m_related.empty()) {
             m_container = res->isContainer(node);
             if(!m_container) {
-               m_data = res->data(node, &m_size);
+               m_data = res->getData(node, &m_size);
                m_compressed = res->isCompressed(node);
             } else {
                m_data = nullptr;
@@ -334,7 +336,7 @@ void ResourcePrivate::ensureInitialized() const
    }
    StringRef path(&m_fileName);
    if(path.startsWith(Latin1Character(':'))) {
-       path = path.substring(1);
+      path = path.substring(1);
    }
    if(path.startsWith(Latin1Character('/'))) {
       that->load(path.toString());
@@ -363,7 +365,7 @@ void ResourcePrivate::ensureChildren() const
    if(path.startsWith(Latin1Character(':'))) {
       path = path.substring(1);
    }
-      
+   
    std::set<String> kids;
    String cleaned = clean_path(path);
    for(ResourceList::size_type i = 0; i < m_related.size(); ++i) {
@@ -392,7 +394,364 @@ void ResourcePrivate::ensureChildren() const
    }
 }
 
+inline uint ResourceRoot::hash(int node) const
+{
+   if(!node) {
+      //root 
+      return 0;
+   }
+   const int offset = findOffset(node);
+   pdk::pint32 nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+   nameOffset += 2; //jump past name length
+   return pdk::pdk_from_big_endian<pdk::puint32>(m_names + nameOffset);
+}
+
+inline String ResourceRoot::getName(int node) const
+{
+   if(!node) {
+      // root
+      return String();
+   }
+   const int offset = findOffset(node);
+   String ret;
+   pdk::pint32 nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+   const pdk::pint16 nameLength = pdk::pdk_from_big_endian<pdk::pint16>(m_names + nameOffset);
+   nameOffset += 2;
+   nameOffset += 4; //jump past hash
+   
+   ret.resize(nameLength);
+   Character *strData = ret.getRawData();
+   for(int i = 0; i < nameLength * 2; i += 2) {
+      Character c(m_names[nameOffset + i + 1], m_names[nameOffset + i]);
+      *strData = c;
+      ++strData;
+   }
+   return ret;
+}
+
+int ResourceRoot::findNode(const String &path, const Locale &locale) const
+{
+   String ppath = path;
+   {
+      String root = mappingRoot();
+      if(!root.isEmpty()) {
+         if(root == ppath) {
+            ppath = Latin1Character('/');
+         } else {
+            if(!root.endsWith(Latin1Character('/'))) {
+               root += Latin1Character('/');
+            }
+            if(ppath.size() >= root.size() && path.startsWith(root)) {
+               ppath = path.substring(root.length() - 1);
+            }
+            if(path.isEmpty()) {
+               ppath = Latin1Character('/');
+            }
+         }
+      }
+   }
+#ifdef DEBUG_RESOURCE_MATCH
+   qDebug() << "!!!!" << "START" << path << locale.getCountry() << locale.getLanguage();
+#endif
+   
+   if(path == Latin1String("/"))
+      return 0;
+   
+   //the root node is always first
+   pdk::pint32 childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + 6);
+   pdk::pint32 child       = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + 10);
+   
+   //now iterate up the tree
+   int node = -1;
+   
+   StringSplitter splitter(path);
+   while (childCount && splitter.hasNext()) {
+      StringView segment = splitter.next();
+      
+#ifdef DEBUG_RESOURCE_MATCH
+      qDebug() << "  CHILDREN" << segment;
+      for(int j = 0; j < childCount; ++j) {
+         qDebug() << "   " << child+j << " :: " << getName(child+j);
+      }
+#endif
+      const uint h = pdk_internal_hash(segment);
+      
+      //do the binary search for the hash
+      int l = 0, r = childCount - 1;
+      int subNode = (l + r + 1) / 2;
+      while(r != l) {
+         const uint subNodeHash = hash(child + subNode);
+         if(h == subNodeHash) {
+            break;
+         } else if(h < subNodeHash) {
+            r = subNode - 1;
+         } else {
+            l = subNode;
+         } 
+         subNode = (l + r + 1) / 2;
+      }
+      subNode += child;
+      
+      //now do the "harder" compares
+      bool found = false;
+      if(hash(subNode) == h) {
+         while(subNode > child && hash(subNode-1) == h) //backup for collisions
+            --subNode;
+         for(; subNode < child+ childCount && hash(subNode) == h; ++subNode) { //here we go...
+            if(getName(subNode) == segment) {
+               found = true;
+               int offset = findOffset(subNode);
+#ifdef DEBUG_RESOURCE_MATCH
+               qDebug() << "  TRY" << subNode << name(subNode) << offset;
+#endif
+               offset += 4;  //jump past name
+               
+               const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+               offset += 2;
+               
+               if(!splitter.hasNext()) {
+                  if(!(flags & pdk::as_integer<Flags>(Flags::Directory))) {
+                     const pdk::pint16 country = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+                     offset += 2;
+                     const pdk::pint16 language = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+                     offset += 2;
+#ifdef DEBUG_RESOURCE_MATCH
+                     qDebug() << "    " << "LOCALE" << country << language;
+#endif
+                     if(country == static_cast<pdk::pint16>(locale.getCountry()) && 
+                           language == static_cast<pdk::pint16>(locale.getLanguage())) {
+#ifdef DEBUG_RESOURCE_MATCH
+                        qDebug() << "!!!!" << "FINISHED" << __LINE__ << subNode;
+#endif
+                        return subNode;
+                     } else if((country == static_cast<pdk::pint16>(Locale::Country::AnyCountry) && 
+                                language == static_cast<pdk::pint16>(locale.getLanguage())) ||
+                               (country == static_cast<pdk::pint16>(Locale::Country::AnyCountry) && 
+                                language == static_cast<pdk::pint16>(Locale::Language::C) && node == -1)) {
+                        node = subNode;
+                     }
+                     continue;
+                  } else {
+#ifdef DEBUG_RESOURCE_MATCH
+                     qDebug() << "!!!!" << "FINISHED" << __LINE__ << subNode;
+#endif
+                     
+                     return subNode;
+                  }
+               }
+               
+               if(!(flags & pdk::as_integer<Flags>(Flags::Directory))) {
+                  return -1;
+               }
+               
+               
+               childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+               offset += 4;
+               child = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+               break;
+            }
+         }
+      }
+      if(!found) {
+         break;
+      }
+      
+   }
+#ifdef DEBUG_RESOURCE_MATCH
+   qDebug() << "!!!!" << "FINISHED" << __LINE__ << node;
+#endif
+   return node;
+}
+
+short ResourceRoot::getFlags(int node) const
+{
+   if(node == -1)
+      return 0;
+   const int offset = findOffset(node) + 4; //jump past name
+   return pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+}
+
+const uchar *ResourceRoot::getData(int node, pdk::pint64 *size) const
+{
+   if(node == -1) {
+      *size = 0;
+      return 0;
+   }
+   int offset = findOffset(node) + 4; //jump past name
+   
+   const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+   offset += 2;
+   
+   offset += 4; //jump past locale
+   
+   if(!(flags & pdk::as_integer<Flags>(Flags::Directory))) {
+      const pdk::pint32 dataOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+      const pdk::puint32 dataLength = pdk::pdk_from_big_endian<pdk::puint32>(m_payloads + dataOffset);
+      const uchar *ret = m_payloads + dataLength + 4;
+      *size = dataLength;
+      return ret;
+   }
+   *size = 0;
+   return 0;
+}
+
+DateTime ResourceRoot::lastModified(int node) const
+{
+   if (node == -1 || m_version < 0x02) {
+      return DateTime();      
+   }
+      
+   const int offset = findOffset(node) + 14;
+   
+   const pdk::puint64 timeStamp = pdk::pdk_from_big_endian<pdk::puint64>(m_tree + offset);
+   if (timeStamp == 0) {
+      return DateTime();
+   }
+   return DateTime::fromMSecsSinceEpoch(timeStamp);
+}
+
+StringList ResourceRoot::children(int node) const
+{
+   if(node == -1)
+      return StringList();
+   int offset = findOffset(node) + 4; //jump past name
+   
+   const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+   offset += 2;
+   
+   StringList ret;
+   if(flags & pdk::as_integer<Flags>(Flags::Directory)) {
+      const pdk::pint32 childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+      offset += 4;
+      const pdk::pint32 childOff = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+      ret.resize(childCount);
+      for(int i = childOff; i < childOff + childCount; ++i) {
+         ret.push_back(getName(i));
+      }
+   }
+   return ret;
+}
+bool ResourceRoot::mappingRootSubdir(const String &path, String *match) const
+{
+   const String root = mappingRoot();
+   if (root.isEmpty())
+      return false;
+   
+   StringSplitter rootIt(root);
+   StringSplitter pathIt(path);
+   while (rootIt.hasNext()) {
+      if (pathIt.hasNext()) {
+         if (rootIt.next() != pathIt.next()) // mismatch
+            return false;
+      } else {
+         // end of path, but not of root:
+         if (match)
+            *match = rootIt.next().toString();
+         return true;
+      }
+   }
+   // end of root
+   return !pathIt.hasNext();
+}
+
 } // internal
+
+using internal::ResourcePrivate;
+
+Resource::Resource(const String &file, const Locale &locale)
+   : m_implPtr(new ResourcePrivate(this))
+{
+   PDK_D(Resource);
+   implPtr->m_fileName = file;
+   implPtr->m_locale = locale;
+}
+
+Resource::~Resource()
+{
+}
+
+void Resource::setLocale(const Locale &locale)
+{
+   PDK_D(Resource);
+   implPtr->clear();
+   implPtr->m_locale = locale;
+}
+
+Locale Resource::getLocale() const
+{
+   PDK_D(const Resource);
+   return implPtr->m_locale;
+}
+
+void Resource::setFileName(const String &file)
+{
+   PDK_D(Resource);
+   implPtr->clear();
+   implPtr->m_fileName = file;
+}
+
+String Resource::getFileName() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_fileName;
+}
+
+String Resource::getAbsoluteFilePath() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_absoluteFilePath;
+}
+
+bool Resource::isValid() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return !implPtr->m_related.empty();
+}
+
+bool Resource::isCompressed() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_compressed;
+}
+
+pdk::pint64 Resource::getSize() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_size;
+}
+
+const uchar *Resource::getData() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_data;
+}
+
+DateTime Resource::lastModified() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_lastModified;
+}
+
+bool Resource::isDir() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureInitialized();
+   return implPtr->m_container;
+}
+
+StringList Resource::getChildren() const
+{
+   PDK_D(const Resource);
+   implPtr->ensureChildren();
+   return implPtr->m_children;
+}
 
 } // fs
 } // io

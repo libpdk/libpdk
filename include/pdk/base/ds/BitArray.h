@@ -20,6 +20,13 @@
 #include "pdk/global/TypeInfo.h"
 
 namespace pdk {
+
+namespace ds {
+class BitArray;
+} // ds
+
+PDK_CORE_EXPORT uint pdk_hash(const ds::BitArray &key, uint seed) noexcept;
+
 namespace ds {
 
 class BitRef;
@@ -130,7 +137,7 @@ public:
       return m_data.getDataPtr();
    }
 private:
-   friend PDK_CORE_EXPORT uint hash(const BitArray &key, uint seed) noexcept;
+   friend uint pdk::pdk_hash(const BitArray &key, uint seed) noexcept;
    
 private:
    ByteArray m_data;

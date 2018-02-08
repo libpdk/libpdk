@@ -32,94 +32,112 @@ namespace pdk {
 // forward declare class with namespace
 namespace ds {
 class ByteArray;
+class BitArray;
 } // ds
+
+// forward declare class with namespace
+namespace lang {
+class String;
+class StringRef;
+class Latin1String;
+class StringView;
+} // lang
 
 PDK_CORE_EXPORT int retrieve_global_hash_seed();
 PDK_CORE_EXPORT void set_global_hash_seed(int newSeed);
 
 PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint hash_bits(const void *p, size_t length, uint seed = 0) noexcept;
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(char key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(char key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(uchar key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(uchar key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(signed char key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(signed char key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(short key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(short key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(ushort key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(ushort key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(int key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(int key, uint seed = 0) noexcept
 {
    return static_cast<uint>(key) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(uint key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(uint key, uint seed = 0) noexcept
 {
    return key ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(ulong key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(ulong key, uint seed = 0) noexcept
 {
    return (sizeof(ulong) > sizeof(uint))
          ? (static_cast<uint>(((key >> (8 * sizeof(uint) - 1)) ^ key) & (~0U)) ^ seed)
          : (static_cast<uint>(key & (~0U)) ^ seed);
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(long key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(long key, uint seed = 0) noexcept
 {
-   return hash(static_cast<ulong>(key), seed);
+   return pdk_hash(static_cast<ulong>(key), seed);
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(puint64 key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(puint64 key, uint seed = 0) noexcept
 {
    return static_cast<uint>(((key >> (8 * sizeof(uint) - 1)) ^ key) & (~0U)) ^ seed;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(pint64 key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(pint64 key, uint seed = 0) noexcept
 {
-   return hash(static_cast<puint64>(key), seed);;
+   return pdk_hash(static_cast<puint64>(key), seed);;
 }
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(float key, uint seed = 0) noexcept;
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(double key, uint seed = 0) noexcept;
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(float key, uint seed = 0) noexcept;
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(double key, uint seed = 0) noexcept;
 
 #ifndef PDK_OS_DARWIN
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(long double key, uint seed = 0) noexcept;
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(long double key, uint seed = 0) noexcept;
 #endif
 
-PDK_DECL_CONST_FUNCTION constexpr inline uint hash(lang::Character key, uint seed = 0) noexcept
+PDK_DECL_CONST_FUNCTION constexpr inline uint pdk_hash(lang::Character key, uint seed = 0) noexcept
 {
-   return hash(key.unicode(), seed);;
+   return pdk_hash(key.unicode(), seed);;
 }
 
-PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint hash(const ds::ByteArray &key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(const ds::ByteArray &key, uint seed = 0) noexcept;
+
+#if PDK_STRINGVIEW_LEVEL < 2
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(const lang::String &key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(const lang::StringRef &key, uint seed = 0) noexcept;
+#endif
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(lang::StringView key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(const ds::BitArray &key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_hash(lang::Latin1String key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT PDK_DECL_PURE_FUNCTION uint pdk_internal_hash(lang::StringView key, uint chained = 0) noexcept;
 
 template <typename T>
-inline uint hash(const T *key, uint seed = 0) noexcept
+inline uint pdk_hash(const T *key, uint seed = 0) noexcept
 {
-   return hash(reinterpret_cast<pdk::uintptr>(key), seed);
+   return pdk_hash(reinterpret_cast<pdk::uintptr>(key), seed);
 }
 
 template <typename T>
-inline uint hash(const T &key, uint seed) noexcept(noexcept(hash(key)))
+inline uint pdk_hash(const T &key, uint seed) noexcept(noexcept(pdk_hash(key)))
 {
-   return hash(key) ^ seed;
+   return pdk_hash(key) ^ seed;
 }
 
 namespace internal {
@@ -131,7 +149,7 @@ struct HashCombine
    // combiner taken from N3876 / boost::hash_combine
    constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(hash(value)))
    {
-      return seed ^ (hash(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+      return seed ^ (pdk_hash(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
    }
 };
 
@@ -146,7 +164,7 @@ struct HashCombineCommutative
    template <typename T>
    constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(hash(value)))
    {
-      return hash(value) + seed;
+      return pdk_hash(value) + seed;
    }
 };
 
@@ -166,12 +184,12 @@ inline uint hash_range_commutative(InputIterator first, InputIterator last, uint
 }
 
 template <typename T1, typename T2>
-inline uint hash(const std::pair<T1, T2> &key, uint seed = 0)
-noexcept(noexcept(hash(key.first, seed)) && noexcept(hash(key.first, seed)))
+inline uint pdk_hash(const std::pair<T1, T2> &key, uint seed = 0)
+noexcept(noexcept(pdk_hash(key.first, seed)) && noexcept(pdk_hash(key.first, seed)))
 {
-   internal::HashCombine hash;
-   seed = hash(seed, key.first);
-   seed = hash(seed, key.second);
+   internal::HashCombine pdk_hash;
+   seed = pdk_hash(seed, key.first);
+   seed = pdk_hash(seed, key.second);
    return seed;
 }
 

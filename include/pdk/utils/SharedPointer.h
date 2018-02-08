@@ -1055,9 +1055,9 @@ inline bool operator<(T *lhs, const SharedPointer<X> &rhs)
 }
 
 template <typename T>
-inline uint hash(const SharedPointer<T> &ptr, uint seed = 0)
+inline uint pdk_hash(const SharedPointer<T> &ptr, uint seed = 0)
 {
-   return pdk::hash(ptr.getData(), seed);
+   return pdk::pdk_hash(ptr.getData(), seed);
 }
 
 } // utils
