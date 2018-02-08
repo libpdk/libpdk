@@ -18,6 +18,7 @@
 
 #include "pdk/base/io/fs/File.h"
 #include "pdk/utils/SharedData.h"
+#include "pdk/base/io/Debug.h"
 
 namespace pdk {
 

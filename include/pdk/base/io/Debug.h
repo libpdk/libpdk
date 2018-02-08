@@ -21,6 +21,8 @@
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringView.h"
 #include "pdk/global/Flags.h"
+#include "pdk/kernel/internal/CoreMacPrivate.h"
+#include "pdk/global/Logging.h"
 
 #include <vector>
 #include <list>
@@ -41,6 +43,7 @@ using pdk::lang::Latin1String;
 using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::lang::StringView;
+using pdk::MessageLogContext;
 
 class PDK_CORE_EXPORT Debug
 {
@@ -55,7 +58,7 @@ class PDK_CORE_EXPORT Debug
       Stream(IoDevice *device)
          : m_ts(device),
            m_ref(1), 
-           m_type(QtDebugMsg),
+           m_type(pdk::MsgType::DebugMsg),
            m_space(true),
            m_messageOutput(false),
            m_flags(DefaultVerbosity << VerbosityShift)
@@ -71,7 +74,7 @@ class PDK_CORE_EXPORT Debug
       {}
       
       Stream(pdk::MsgType t)
-         : m_ts(&buffer, IoDevice::OpenMode::WriteOnly),
+         : m_ts(&m_buffer, IoDevice::OpenMode::WriteOnly),
            m_ref(1),
            m_type(t),
            m_space(true),
@@ -95,29 +98,29 @@ class PDK_CORE_EXPORT Debug
       // ### Qt 6: unify with space, introduce own version member
       bool testFlag(FormatFlag flag) const
       {
-         return (m_context.version > 1) ? (m_flags & flag) : false;
+         return (m_context.m_version > 1) ? (m_flags & flag) : false;
       }
       
       void setFlag(FormatFlag flag) 
       {
-         if (m_context.version > 1) {
+         if (m_context.m_version > 1) {
             m_flags |= flag;
          }
       }
       void unsetFlag(FormatFlag flag)
       {
-         if (context.version > 1) {
+         if (m_context.m_version > 1) {
             m_flags &= ~flag;
          }
       }
       
       int verbosity() const
       {
-         return m_context.version > 1 ? (m_flags >> VerbosityShift) & VerbosityMask : int(Stream::DefaultVerbosity);
+         return m_context.m_version > 1 ? (m_flags >> VerbosityShift) & VerbosityMask : int(Stream::DefaultVerbosity);
       }
       void setVerbosity(int v)
       {
-         if (context.version > 1) {
+         if (m_context.m_version > 1) {
             m_flags &= ~(VerbosityMask << VerbosityShift);
             m_flags |= (v & VerbosityMask) << VerbosityShift;
          }
@@ -179,7 +182,7 @@ public:
    inline Debug &maybeSpace()
    {
       if (m_stream->m_space) {
-         stream->m_ts << ' ';
+         m_stream->m_ts << ' ';
       }
       return *this;
    }
@@ -217,7 +220,7 @@ public:
    }
    inline Debug &maybeQuote(char c = '"') 
    { 
-      if (!(stream->testFlag(Stream::NoQuotes))) {
+      if (!(m_stream->testFlag(Stream::NoQuotes))) {
          m_stream->m_ts << c; 
       }
       return *this; 
@@ -336,7 +339,7 @@ public:
    }
    inline Debug &operator<<(Latin1String t) 
    {
-      putByteArray(t.latin1(), t.size(), ContainsLatin1);
+      putByteArray(t.latin1(), t.size(), Latin1Content::ContainsLatin1);
       return maybeSpace(); 
    }
    
@@ -368,6 +371,17 @@ public:
       m_stream->m_ts << m;
       return *this;
    }
+};
+
+class DebugStateSaverPrivate;
+class PDK_CORE_EXPORT DebugStateSaver
+{
+public:
+   DebugStateSaver(Debug &dbg);
+   ~DebugStateSaver();
+private:
+   PDK_DISABLE_COPY(DebugStateSaver);
+   pdk::utils::ScopedPointer<DebugStateSaverPrivate> m_implPtr;
 };
 
 class NoDebug
@@ -452,13 +466,6 @@ inline Debug print_sequential_container(Debug debug, const char *which, const Se
 
 } // namespace internal
 
-template <class T>
-inline Debug operator<<(Debug debug, const QList<T> &list)
-{
-   return internal::print_sequentialContainer(debug, "" /*for historical reasons*/, list);
-}
-
-
 template <typename T, typename Alloc>
 inline Debug operator<<(Debug debug, const std::vector<T, Alloc> &vec)
 {
@@ -492,32 +499,26 @@ inline Debug operator<<(Debug debug, const std::pair<T1, T2> &pair)
    return debug.maybeSpace();
 }
 
-template <typename T>
-inline Debug operator<<(Debug debug, const QSet<T> &set)
-{
-   return internal::print_sequential_container(debug, "QSet", set);
-}
-
 template <typename Key, typename Compare, typename Alloc>
 inline Debug operator<<(Debug debug, const std::set<Key, Compare, Alloc> &set)
 {
    return internal::print_sequential_container(debug, "std::set", set);
 }
 
-template <class T>
-inline Debug operator<<(Debug debug, const QContiguousCache<T> &cache)
-{
-   const bool oldSetting = debug.autoInsertSpaces();
-   debug.nospace() << "QContiguousCache(";
-   for (int i = cache.firstIndex(); i <= cache.lastIndex(); ++i) {
-      debug << cache[i];
-      if (i != cache.lastIndex())
-         debug << ", ";
-   }
-   debug << ')';
-   debug.setAutoInsertSpaces(oldSetting);
-   return debug.maybeSpace();
-}
+//template <class T>
+//inline Debug operator<<(Debug debug, const QContiguousCache<T> &cache)
+//{
+//   const bool oldSetting = debug.autoInsertSpaces();
+//   debug.nospace() << "QContiguousCache(";
+//   for (int i = cache.firstIndex(); i <= cache.lastIndex(); ++i) {
+//      debug << cache[i];
+//      if (i != cache.lastIndex())
+//         debug << ", ";
+//   }
+//   debug << ')';
+//   debug.setAutoInsertSpaces(oldSetting);
+//   return debug.maybeSpace();
+//}
 
 template <class T>
 inline Debug operator<<(Debug debug, const std::shared_ptr<T> &ptr)
@@ -551,7 +552,6 @@ void pdk_meta_enum_flag_debug_operator(Debug &debug, size_t sizeofT, Int value)
 
 template <class T>
 inline Debug pdk_meta_enum_flag_debug_operator_helper(Debug debug, const pdk::Flags<T> &flags)
-#endif
 {
    pdk_meta_enum_flag_debug_operator(debug, sizeof(T), typename pdk::Flags<T>::UnderType(flags));
    return debug;
@@ -564,66 +564,7 @@ inline Debug operator<<(Debug debug, const pdk::Flags<T> &flags)
    // operator<< the compiler would try to instantiate QFlags<T> for the std::enable_if
    return pdk_meta_enum_flag_debug_operator_helper(debug, flags);
 }
-
-#ifdef PDK_OS_MAC
-
-// We provide Debug stream operators for commonly used Core Foundation
-// and Core Graphics types, as well as NSObject. Additional CF/CG types
-// may be added by the user, using PDK_DECLARE_Debug_OPERATOR_FOR_CF_TYPE.
-
-#define PDK_FOR_EACH_CORE_FOUNDATION_TYPE(F) \
-   F(CFArray); \
-   F(CFURL); \
-   F(CFData); \
-   F(CFNumber); \
-   F(CFDictionary); \
-   F(CFLocale); \
-   F(CFDate); \
-   F(CFBoolean); \
-   F(CFTimeZone); \
-   
-#define PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(F) \
-   F(CFError); \
-   F(CFBundle); \
-   
-#define PDK_DEBUG_FORWARD_DECLARE_CF_TYPE(type) PDK_FORWARD_DECLARE_CF_TYPE(type);
-#define PDK_DEBUG_FORWARD_DECLARE_MUTABLE_CF_TYPE(type) PDK_FORWARD_DECLARE_MUTABLE_CF_TYPE(type);
-
-} // io
-} // pdk
-
-PDK_FORWARD_DECLARE_CF_TYPE(CFString);
-PDK_FORWARD_DECLARE_OBJC_CLASS(NSObject);
-PDK_FOR_EACH_CORE_FOUNDATION_TYPE(PDK_DEBUG_FORWARD_DECLARE_CF_TYPE)
-PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(PDK_DEBUG_FORWARD_DECLARE_MUTABLE_CF_TYPE)
-
-namespace pdk {
-namespace io {
-
-#define PDK_FORWARD_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE(CFType) \
-    PDK_CORE_EXPORT Debug operator<<(Debug, CFType##Ref);
-
-#define PDK_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE(CFType) \
-    Debug operator<<(Debug debug, CFType##Ref ref) \
-    { \
-        if (!ref) \
-            return debug << PDK_STRINGIFY(CFType) "Ref(0x0)"; \
-        if (CFStringRef description = CFCopyDescription(ref)) { \
-            DebugStateSaver saver(debug); \
-            debug.noquote() << description; \
-            CFRelease(description); \
-        } \
-        return debug; \
-    }
-
-PDK_CORE_EXPORT Debug operator<<(Debug, const NSObject *);
-PDK_CORE_EXPORT Debug operator<<(Debug, CFStringRef);
-
-PDK_FOR_EACH_CORE_FOUNDATION_TYPE(PDK_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE)
-PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(PDK_FORWARD_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE)
-
-#endif // PDK_OS_MAC
-
+         
 } // io
 } // pdk
 

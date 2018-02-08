@@ -31,6 +31,5 @@
 
 #define PDK_NO_DOUBLECONVERSION
 
-#define PDK_NO_DEBUG_STREAM
 
 #endif // PDK_CONFIG_H
