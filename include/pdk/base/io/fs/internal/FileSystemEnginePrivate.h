@@ -54,9 +54,9 @@ public:
    }
    
    static FileSystemEntry getLinkTarget(const FileSystemEntry &link, FileSystemMetaData &data);
-   static FileSystemEntry canonicalName(const FileSystemEntry &entry, FileSystemMetaData &data);
-   static FileSystemEntry absoluteName(const FileSystemEntry &entry);
-   static ByteArray id(const FileSystemEntry &entry);
+   static FileSystemEntry getCanonicalName(const FileSystemEntry &entry, FileSystemMetaData &data);
+   static FileSystemEntry getAbsoluteName(const FileSystemEntry &entry);
+   static ByteArray getId(const FileSystemEntry &entry);
    static String resolveUserName(const FileSystemEntry &entry, FileSystemMetaData &data);
    static String resolveGroupName(const FileSystemEntry &entry, FileSystemMetaData &data);
    
@@ -64,22 +64,12 @@ public:
    static String resolveUserName(uint userId);
    static String resolveGroupName(uint groupId);
 #endif
-   
-#if defined(PDK_OS_DARWIN)
-   static String bundleName(const FileSystemEntry &entry);
-#else
-   static String bundleName(const FileSystemEntry &entry)
-   {
-      PDK_UNUSED(entry) return String();
-   }
-#endif
-   
    static bool fillMetaData(const FileSystemEntry &entry, FileSystemMetaData &data,
                             FileSystemMetaData::MetaDataFlags what);
 #if defined(PDK_OS_UNIX)
    static bool cloneFile(int srcfd, int dstfd, const FileSystemMetaData &knownData);
    static bool fillMetaData(int fd, FileSystemMetaData &data); // what = PosixStatFlags
-   static ByteArray id(int fd);
+   static ByteArray getId(int fd);
    static bool setFileTime(int fd, const DateTime &newDate,
                            AbstractFileEngine::FileTime whatTime, SystemError &error);
    static bool setPermissions(int fd, File::Permissions permissions, SystemError &error,

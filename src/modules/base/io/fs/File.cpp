@@ -202,11 +202,11 @@ bool File::rename(const String &newName)
    // compare Ids to make sure it really is a different file.
    // Note: this does not take file engines into account.
    bool changingCase = false;
-   ByteArray targetId = FileSystemEngine::id(FileSystemEntry(newName));
+   ByteArray targetId = FileSystemEngine::getId(FileSystemEntry(newName));
    if (!targetId.isNull()) {
       ByteArray fileId = implPtr->m_fileEngine ?
                implPtr->m_fileEngine->getId() :
-               FileSystemEngine::id(FileSystemEntry(implPtr->m_fileName));
+               FileSystemEngine::getId(FileSystemEntry(implPtr->m_fileName));
       changingCase = (fileId == targetId && implPtr->m_fileName.compare(newName, pdk::CaseSensitivity::Sensitive) == 0);
       if (!changingCase) {
          implPtr->setError(FileError::RenameError, tr("Destination file exists"));

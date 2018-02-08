@@ -462,28 +462,29 @@ ByteArray FileEngine::getId() const
 {
    PDK_D(const FileEngine);
    if (implPtr->m_fd != -1) {
-      return FileSystemEngine::id(implPtr->m_fd);
+      return FileSystemEngine::getId(implPtr->m_fd);
    }
-   return FileSystemEngine::id(implPtr->m_fileEntry);
+   return FileSystemEngine::getId(implPtr->m_fileEntry);
 }
 
 String FileEngine::getFileName(FileName file) const
 {
    PDK_D(const FileEngine);
-   if (file == FileName::BundleName) {
-      return FileSystemEngine::bundleName(implPtr->m_fileEntry);
-   } else if (file == FileName::BaseName) {
+//   if (file == FileName::BundleName) {
+//      return FileSystemEngine::bundleName(implPtr->m_fileEntry);
+//   } else
+   if (file == FileName::BaseName) {
       return implPtr->m_fileEntry.getFileName();
    } else if (file == FileName::PathName) {
       return implPtr->m_fileEntry.getPath();
    } else if (file == FileName::AbsoluteName || file == FileName::AbsolutePathName) {
-      FileSystemEntry entry(FileSystemEngine::absoluteName(implPtr->m_fileEntry));
+      FileSystemEntry entry(FileSystemEngine::getAbsoluteName(implPtr->m_fileEntry));
       if (file == FileName::AbsolutePathName) {
          return entry.getPath();
       }
       return entry.getFilePath();
    } else if (file == FileName::CanonicalName || file == FileName::CanonicalPathName) {
-      FileSystemEntry entry(FileSystemEngine::canonicalName(implPtr->m_fileEntry, implPtr->m_metaData));
+      FileSystemEntry entry(FileSystemEngine::getCanonicalName(implPtr->m_fileEntry, implPtr->m_metaData));
       if (file == FileName::CanonicalPathName) {
          return entry.getPath();
       }

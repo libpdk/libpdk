@@ -26,6 +26,34 @@
 namespace pdk {
 namespace kernel {
 
+ByteArray pdk_readlink(const char *path)
+{
+#ifndef PATH_MAX
+   // suitably large value that won't consume too much memory
+#  define PATH_MAX  1024*1024
+#endif
+   
+   ByteArray buf(256, pdk::Uninitialized);
+   
+   ssize_t len = ::readlink(path, buf.getRawData(), buf.size());
+   while (len == buf.size()) {
+      // readlink(2) will fill our buffer and not necessarily terminate with NUL;
+      if (buf.size() >= PATH_MAX) {
+         errno = ENAMETOOLONG;
+         return ByteArray();
+      }
+      
+      // double the size and try again
+      buf.resize(buf.size() * 2);
+      len = ::readlink(path, buf.getRawData(), buf.size());
+   }
+   if (len == -1) {
+      return ByteArray();
+   }
+   buf.resize(len);
+   return buf;
+}
+
 #ifdef PDK_CONFIG_POLL_POLLTS
 #define ppoll pollts
 #endif

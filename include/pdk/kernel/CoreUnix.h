@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/Atomic.h"
+#include "pdk/base/ds/ByteArray.h"
 
 #ifndef PDK_OS_UNIX
 # error "pdk/kernel/CoreUnix.h included on a non-Unix system"
@@ -67,6 +68,8 @@ struct sockaddr;
 
 namespace pdk {
 namespace kernel {
+
+using pdk::ds::ByteArray;
 
 // Internal operator functions for timespecs
 inline timespec &normalized_timespec(timespec &t)
@@ -320,6 +323,7 @@ inline pid_t safe_waitpid(pid_t pid, int *status, int options)
 // in pdk/kernel/ElapsedtimerMac.cpp or pdk/kernel/TimestampUnix.cpp
 timespec get_time() noexcept;
 void nanosleep(timespec amount);
+ByteArray pdk_readlink(const char *path);
 
 PDK_CORE_EXPORT int safe_poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts);
 

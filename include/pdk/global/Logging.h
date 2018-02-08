@@ -26,8 +26,14 @@ class Debug;
 class NoDebug;
 } // io
 
+// forward declare class with namespace
+namespace lang {
+class String;
+} // lang
+
 using io::Debug;
 using io::NoDebug;
+using lang::String;
 
 class MessageLogContext
 {
@@ -162,6 +168,20 @@ private:
 #  undef warning_stream
 #  define warning_stream PDK_NO_QDEBUG_MACRO
 #endif
+
+PDK_CORE_EXPORT void message_output(pdk::MsgType, const MessageLogContext &context,
+                                    const String &message);
+
+PDK_CORE_EXPORT void errno_warning(int code, const char *msg, ...);
+PDK_CORE_EXPORT void errno_warning(const char *msg, ...);
+
+typedef void (*PdkMessageHandler)(pdk::MsgType, const MessageLogContext&, const String &);
+PDK_CORE_EXPORT PdkMessageHandler install_message_handler(PdkMessageHandler);
+
+PDK_CORE_EXPORT void set_message_pattern(const String &messagePattern);
+PDK_CORE_EXPORT String format_log_message(pdk::MsgType type, const MessageLogContext &context,
+                                          const String &buf);
+
 
 } // pdk
 

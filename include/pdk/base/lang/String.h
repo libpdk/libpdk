@@ -393,6 +393,13 @@ public:
       return m_data->m_size;
    }
    
+#if defined(PDK_OS_DARWIN)
+    static String fromCFString(CFStringRef string);
+    CFStringRef toCFString() const PDK_DECL_CF_RETURNS_RETAINED;
+    static String fromNSString(const NSString *string);
+    NSString *toNSString() const PDK_DECL_CF_RETURNS_RETAINED;
+#endif
+   
    inline bool isNull() const
    {
       return m_data == Data::getSharedNull();
