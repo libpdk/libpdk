@@ -13,12 +13,74 @@
 //
 // Created by softboy on 2018/02/07.
 
+#include "pdk/global/PlatformDefs.h"
 #include "pdk/base/io/fs/internal/FileSystemEnginePrivate.h"
-#include "pdk/base/io/fs/Dir.h"
-#include "pdk/base/lang/StringBuilder.h"
-#include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
+#include "pdk/base/io/fs/File.h"
+#include "pdk/kernel/CoreUnix.h"
+#include "pdk/base/ds/VarLengthArray.h"
 
-// @TODO include resource header
+#include <pwd.h>
+#include <cstdlib> // for realpath()
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cstdio>
+#include <cerrno>
+
+#if PDK_HAS_INCLUDE(<paths.h>)
+# include <paths.h>
+#endif
+#ifndef _PATH_TMP           // from <paths.h>
+# define _PATH_TMP          "/tmp"
+#endif
+
+#if defined(PDK_OS_MAC)
+# include "pdk/kernel/internal/CoreMacPrivate.h"
+# include <CoreFoundation/CFBundle.h>
+#endif
+
+#ifdef PDK_OS_OSX
+#include <CoreServices/CoreServices.h>
+#endif
+
+#if defined(PDK_OS_DARWIN)
+# include <copyfile.h>
+// We cannot include <Foundation/Foundation.h> (it's an Objective-C header), but
+// we need these declarations:
+PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
+extern "C" NSString *NSTemporaryDirectory();
+#endif
+
+#if defined(PDK_OS_LINUX)
+#  include <sys/ioctl.h>
+#  include <sys/syscall.h>
+#  include <sys/sendfile.h>
+#  include <linux/fs.h>
+
+// in case linux/fs.h is too old and doesn't define it:
+#ifndef FICLONE
+#  define FICLONE       _IOW(0x94, 9, int)
+#endif
+#  if !PDK_CONFIG(renameat2) && defined(SYS_renameat2)
+namespace {
+int renameat2(int oldfd, const char *oldpath, int newfd, const char *newpath, unsigned flags)
+{ 
+   return syscall(SYS_renameat2, oldfd, oldpath, newfd, newpath, flags);
+}
+}
+#  endif
+
+#  if !PDK_CONFIG(statx) && defined(SYS_statx) && PDK_HAS_INCLUDE(<linux/stat.h>)
+#    include <linux/stat.h>
+namespace 
+{
+int statx(int dirfd, const char *pathname, int flag, unsigned mask, struct statx *statxbuf)
+{
+   return syscall(SYS_statx, dirfd, pathname, flag, mask, statxbuf); 
+}
+}
+#  endif
+#endif
 
 namespace pdk {
 namespace io {

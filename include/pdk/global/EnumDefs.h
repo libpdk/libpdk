@@ -85,6 +85,16 @@ enum class LayoutDirection
    LayoutDirectionAuto
 };
 
+enum class MsgType
+{
+   DebugMsg,
+   WarningMsg,
+   CriticalMsg,
+   FatalMsg,
+   InfoMsg,
+   SystemMsg = CriticalMsg
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H
