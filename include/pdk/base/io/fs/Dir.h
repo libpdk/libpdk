@@ -132,7 +132,7 @@ public:
    bool cd(const String &dirName);
    bool cdUp();
    
-   StringList nameFilters() const;
+   StringList getNameFilters() const;
    void setNameFilters(const StringList &nameFilters);
    
    Filters getFilter() const;

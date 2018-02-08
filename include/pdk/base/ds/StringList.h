@@ -28,12 +28,17 @@ using pdk::lang::String;
 class StringList : public std::list<String>
 {
 public:
-   const_reference at(size_type idx) const noexcept
+   inline const_reference at(size_type idx) const noexcept
    {
       PDK_ASSERT((idx >= 0 && idx < size()));
       auto iter = cbegin();
       std::advance(iter, idx);
       return *iter;
+   }
+   
+   inline bool contains(const_reference value) const
+   {
+      return std::find(begin(), end(), value) != end();
    }
 };
 

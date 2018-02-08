@@ -122,22 +122,22 @@ public:
    
    constexpr inline bool operator ==(int mask) noexcept
    {
-      return const_cast<Flags &>(*this).operator ==(mask);
+      return const_cast<const Flags &>(*this).operator ==(mask);
    }
    
    constexpr inline bool operator ==(uint mask) noexcept
    {
-      return const_cast<Flags &>(*this).operator ==(mask);
+      return const_cast<const Flags &>(*this).operator ==(mask);
    }
    
    constexpr inline bool operator ==(EnumType mask) noexcept
    {
-      return const_cast<Flags &>(*this).operator ==(mask);
+      return const_cast<const Flags &>(*this).operator ==(mask);
    }
    
    constexpr inline bool operator ==(Flags mask) noexcept
    {
-      return const_cast<Flags &>(*this).operator ==(mask);
+      return const_cast<const Flags &>(*this).operator ==(mask);
    }
    
    constexpr inline bool operator ==(int mask) const noexcept
@@ -164,6 +164,46 @@ public:
    constexpr inline bool operator ==(Flags mask) const noexcept
    {
       return m_data == mask.m_data;
+   }
+   
+   constexpr inline bool operator !=(int mask) noexcept
+   {
+      return const_cast<const Flags &>(*this).operator !=(mask);
+   }
+   
+   constexpr inline bool operator !=(uint mask) noexcept
+   {
+      return const_cast<const Flags &>(*this).operator !=(mask);
+   }
+   
+   constexpr inline bool operator !=(EnumType mask) noexcept
+   {
+      return const_cast<const Flags &>(*this).operator !=(mask);
+   }
+   
+   constexpr inline bool operator !=(Flags mask) noexcept
+   {
+      return const_cast<const Flags &>(*this).operator !=(mask);
+   }
+   
+   constexpr inline bool operator !=(int mask) const noexcept
+   {
+      return !operator ==(mask);
+   }
+   
+   constexpr inline bool operator !=(uint mask) const noexcept
+   {
+      return !operator ==(mask);
+   }
+   
+   constexpr inline bool operator !=(EnumType mask) const noexcept
+   {
+      return !operator ==(mask);
+   }
+   
+   constexpr inline bool operator !=(Flags mask) const noexcept
+   {
+      return !operator ==(mask);
    }
    
    constexpr inline Flags& operator &=(int mask) noexcept
