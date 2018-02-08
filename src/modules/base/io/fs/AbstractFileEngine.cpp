@@ -245,10 +245,10 @@ bool AbstractFileEngine::isRelativePath() const
    return false;
 }
 
-StringList AbstractFileEngine::entryList(Dir::Filters filters, const StringList &filterNames) const
+StringList AbstractFileEngine::getEntryList(Dir::Filters filters, const StringList &filterNames) const
 {
    StringList ret;
-   DirIterator iter(fileName(), filterNames, filters);
+   DirIterator iter(getFileName(), filterNames, filters);
    while (iter.hasNext()) {
       iter.next();
       ret.push_back(iter.getFileName());
@@ -256,7 +256,7 @@ StringList AbstractFileEngine::entryList(Dir::Filters filters, const StringList 
    return ret;
 }
 
-AbstractFileEngine::FileFlags AbstractFileEngine::fileFlags(FileFlags type) const
+AbstractFileEngine::FileFlags AbstractFileEngine::getFileFlags(FileFlags type) const
 {
    PDK_UNUSED(type);
    return 0;
@@ -268,24 +268,24 @@ bool AbstractFileEngine::setPermissions(uint perms)
    return false;
 }
 
-ByteArray AbstractFileEngine::id() const
+ByteArray AbstractFileEngine::getId() const
 {
    return ByteArray();
 }
 
-String AbstractFileEngine::fileName(FileName file) const
+String AbstractFileEngine::getFileName(FileName file) const
 {
    PDK_UNUSED(file);
    return String();
 }
 
-uint AbstractFileEngine::ownerId(FileOwner owner) const
+uint AbstractFileEngine::getOwnerId(FileOwner owner) const
 {
    PDK_UNUSED(owner);
    return 0;
 }
 
-String AbstractFileEngine::owner(FileOwner owner) const
+String AbstractFileEngine::getOwner(FileOwner owner) const
 {
    PDK_UNUSED(owner);
    return String();
@@ -298,7 +298,7 @@ bool AbstractFileEngine::setFileTime(const DateTime &newDate, FileTime time)
    return false;
 }
 
-DateTime AbstractFileEngine::fileTime(FileTime time) const
+DateTime AbstractFileEngine::getFileTime(FileTime time) const
 {
    PDK_UNUSED(time);
    return DateTime();
@@ -309,7 +309,7 @@ void AbstractFileEngine::setFileName(const String &file)
    PDK_UNUSED(file);
 }
 
-int AbstractFileEngine::handle() const
+int AbstractFileEngine::getHandle() const
 {
    return -1;
 }

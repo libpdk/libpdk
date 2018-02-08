@@ -120,7 +120,7 @@ public:
       m_fileFlags = 0;
       m_cachedFlags = 0;
       if (m_fileEngine) {
-         (void)m_fileEngine->fileFlags(AbstractFileEngine::FileFlag::Refresh);
+         (void)m_fileEngine->getFileFlags(AbstractFileEngine::FileFlag::Refresh);
       }
    }
    inline void clear() {

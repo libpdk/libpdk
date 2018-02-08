@@ -55,17 +55,17 @@ public:
    bool setSize(pdk::pint64 size) override;
    bool caseSensitive() const override;
    bool isRelativePath() const override;
-   StringList entryList(Dir::Filters filters, const StringList &filterNames) const override;
-   FileFlags fileFlags(FileFlags type) const override;
+   StringList getEntryList(Dir::Filters filters, const StringList &filterNames) const override;
+   FileFlags getFileFlags(FileFlags type) const override;
    bool setPermissions(uint perms) override;
-   ByteArray id() const override;
-   String fileName(FileName file) const override;
-   uint ownerId(FileOwner) const override;
-   String owner(FileOwner) const override;
+   ByteArray getId() const override;
+   String getFileName(FileName file) const override;
+   uint getOwnerId(FileOwner) const override;
+   String getOwner(FileOwner) const override;
    bool setFileTime(const DateTime &newDate, FileTime time) override;
-   DateTime fileTime(FileTime time) const override;
+   DateTime getFileTime(FileTime time) const override;
    void setFileName(const String &file) override;
-   int handle() const override;
+   int getHandle() const override;
    
 #ifndef PDK_NO_FILESYSTEMITERATOR
    Iterator *beginEntryList(Dir::Filters filters, const StringList &filterNames) override;

@@ -379,7 +379,7 @@ bool FileEnginePrivate::isSymlink() const
    return m_metaData.isLink();
 }
 
-AbstractFileEngine::FileFlags FileEngine::fileFlags(FileFlags type) const
+AbstractFileEngine::FileFlags FileEngine::getFileFlags(FileFlags type) const
 {
    PDK_D(const FileEngine);
    
@@ -458,7 +458,7 @@ AbstractFileEngine::FileFlags FileEngine::fileFlags(FileFlags type) const
    return ret;
 }
 
-ByteArray FileEngine::id() const
+ByteArray FileEngine::getId() const
 {
    PDK_D(const FileEngine);
    if (implPtr->m_fd != -1) {
@@ -467,7 +467,7 @@ ByteArray FileEngine::id() const
    return FileSystemEngine::id(implPtr->m_fileEntry);
 }
 
-String FileEngine::fileName(FileName file) const
+String FileEngine::getFileName(FileName file) const
 {
    PDK_D(const FileEngine);
    if (file == FileName::BundleName) {
@@ -505,22 +505,22 @@ bool FileEngine::isRelativePath() const
          ? implPtr->m_fileEntry.getFilePath().at(0) != Latin1Character('/') : true;
 }
 
-uint FileEngine::ownerId(FileOwner own) const
+uint FileEngine::getOwnerId(FileOwner own) const
 {
    PDK_D(const FileEngine);
    static const uint nobodyID = (uint) -2;
    if (implPtr->doStat(FileSystemMetaData::MetaDataFlag::OwnerIds)) {
-      return implPtr->m_metaData.ownerId(own);
+      return implPtr->m_metaData.getOwnerId(own);
    }
    return nobodyID;
 }
 
-String FileEngine::owner(FileOwner own) const
+String FileEngine::getOwner(FileOwner own) const
 {
    if (own == FileOwner::OwnerUser) {
-      return FileSystemEngine::resolveUserName(ownerId(own));
+      return FileSystemEngine::resolveUserName(getOwnerId(own));
    }
-   return FileSystemEngine::resolveGroupName(ownerId(own));
+   return FileSystemEngine::resolveGroupName(getOwnerId(own));
 }
 
 bool FileEngine::setPermissions(uint perms)
@@ -688,11 +688,11 @@ bool FileEnginePrivate::unmap(uchar *ptr)
 bool FileEngine::cloneTo(AbstractFileEngine *target)
 {
    PDK_D(FileEngine);
-   if ((target->fileFlags(FileFlag::LocalDiskFlag) & FileFlag::LocalDiskFlag) == 0) {
+   if ((target->getFileFlags(FileFlag::LocalDiskFlag) & FileFlag::LocalDiskFlag) == 0) {
       return false;
    }
    int srcfd = implPtr->getNativeHandle();
-   int dstfd = target->handle();
+   int dstfd = target->getHandle();
    return FileSystemEngine::cloneFile(srcfd, dstfd, implPtr->m_metaData);
 }
 

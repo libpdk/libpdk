@@ -233,10 +233,10 @@ public:
    DateTime getMetadataChangeTime() const;
    DateTime getModificationTime() const;
    
-   DateTime fileTime(AbstractFileEngine::FileTime time) const;
-   uint userId() const;
-   uint groupId() const;
-   uint ownerId(AbstractFileEngine::FileOwner owner) const;
+   DateTime getFileTime(AbstractFileEngine::FileTime time) const;
+   uint getUserId() const;
+   uint getGroupId() const;
+   uint getOwnerId(AbstractFileEngine::FileOwner owner) const;
    
 #ifdef PDK_OS_UNIX
    void fillFromStatxBuf(const struct statx &statBuffer);
@@ -303,7 +303,7 @@ inline bool FileSystemMetaData::isAlias() const
 #endif
 
 #if defined(PDK_OS_UNIX) || defined (PDK_OS_WIN)
-inline DateTime FileSystemMetaData::fileTime(AbstractFileEngine::FileTime time) const
+inline DateTime FileSystemMetaData::getFileTime(AbstractFileEngine::FileTime time) const
 {
    switch (time) {
    case AbstractFileEngine::FileTime::ModificationTime:
@@ -342,43 +342,43 @@ inline DateTime FileSystemMetaData::getAccessTime() const
    return m_accessTime ? DateTime::fromMSecsSinceEpoch(m_accessTime) : DateTime();
 }
 
-inline uint FileSystemMetaData::userId() const
+inline uint FileSystemMetaData::getUserId() const
 {
    return m_userId;
 }
 
-inline uint FileSystemMetaData::groupId() const
+inline uint FileSystemMetaData::getGroupId() const
 {
    return m_groupId;
 }
 
-inline uint FileSystemMetaData::ownerId(AbstractFileEngine::FileOwner owner) const
+inline uint FileSystemMetaData::getOwnerId(AbstractFileEngine::FileOwner owner) const
 {
    if (owner == AbstractFileEngine::FileOwner::OwnerUser) {
-      return userId();
+      return getUserId();
    } else {
-      return groupId();
+      return getGroupId();
    }
 }
 #endif
 
 #if defined(PDK_OS_WIN)
-inline uint FileSystemMetaData::userId() const
+inline uint FileSystemMetaData::getUserId() const
 {
    return (uint) -2;
 }
 
-inline uint FileSystemMetaData::groupId() const
+inline uint FileSystemMetaData::getGroupId() const
 {
    return (uint) -2;
 }
 
-inline uint FileSystemMetaData::ownerId(AbstractFileEngine::FileOwner owner) const
+inline uint FileSystemMetaData::getOwnerId(AbstractFileEngine::FileOwner owner) const
 {
    if (owner == AbstractFileEngine::FileOwner::OwnerUser) {
-      return userId();
+      return getUserId();
    } else {
-      return groupId();
+      return getGroupId();
    }
 }
 

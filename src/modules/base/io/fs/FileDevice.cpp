@@ -110,7 +110,7 @@ int FileDevice::getHandle() const
    if (!isOpen() || !implPtr->m_fileEngine) {
       return -1;
    }
-   return implPtr->m_fileEngine->handle();
+   return implPtr->m_fileEngine->getHandle();
 }
 
 String FileDevice::getFileName() const
@@ -413,7 +413,7 @@ bool FileDevice::resize(pdk::pint64 sz)
 File::Permissions FileDevice::permissions() const
 {
    PDK_D(const FileDevice);
-   AbstractFileEngine::FileFlags perms = implPtr->getEngine()->fileFlags(AbstractFileEngine::FileFlag::PermsMask) & 
+   AbstractFileEngine::FileFlags perms = implPtr->getEngine()->getFileFlags(AbstractFileEngine::FileFlag::PermsMask) & 
          AbstractFileEngine::FileFlag::PermsMask;
    return File::Permissions((int)perms); //ewww
 }
@@ -473,7 +473,7 @@ DateTime FileDevice::fileTime(FileDevice::FileTime time) const
 {
    PDK_D(const FileDevice);
    if (implPtr->getEngine()) {
-      return implPtr->getEngine()->fileTime(FileDeviceTimeToAbstractFileEngineTime(time));
+      return implPtr->getEngine()->getFileTime(FileDeviceTimeToAbstractFileEngineTime(time));
    }
    return DateTime();
 }

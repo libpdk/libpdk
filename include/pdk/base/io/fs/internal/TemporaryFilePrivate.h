@@ -102,7 +102,7 @@ public:
    bool rename(const String &newName) override;
    bool renameOverwrite(const String &newName) override;
    bool close() override;
-   String fileName(FileName file) const override;
+   String getFileName(FileName file) const override;
    
    enum MaterializationMode { Overwrite, DontOverwrite, NameIsTemplate };
    bool materializeUnnamedFile(const String &newName, MaterializationMode mode);

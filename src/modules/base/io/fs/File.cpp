@@ -125,7 +125,7 @@ File::~File()
 String File::getFileName() const
 {
    PDK_D(const File);
-   return implPtr->getEngine()->fileName(AbstractFileEngine::FileName::DefaultName);
+   return implPtr->getEngine()->getFileName(AbstractFileEngine::FileName::DefaultName);
 }
 
 void File::setFileName(const String &name)
@@ -147,7 +147,7 @@ bool File::exists() const
 {
    PDK_D(const File);
    // 0x1000000 = AbstractFileEngine::Refresh, forcing an update
-   return (implPtr->getEngine()->fileFlags(AbstractFileEngine::FileFlag::FlagsMask
+   return (implPtr->getEngine()->getFileFlags(AbstractFileEngine::FileFlag::FlagsMask
                                            | AbstractFileEngine::FileFlag::Refresh) & AbstractFileEngine::FileFlag::ExistsFlag);
 }
 
@@ -205,7 +205,7 @@ bool File::rename(const String &newName)
    ByteArray targetId = FileSystemEngine::id(FileSystemEntry(newName));
    if (!targetId.isNull()) {
       ByteArray fileId = implPtr->m_fileEngine ?
-               implPtr->m_fileEngine->id() :
+               implPtr->m_fileEngine->getId() :
                FileSystemEngine::id(FileSystemEntry(implPtr->m_fileName));
       changingCase = (fileId == targetId && implPtr->m_fileName.compare(newName, pdk::CaseSensitivity::Sensitive) == 0);
       if (!changingCase) {

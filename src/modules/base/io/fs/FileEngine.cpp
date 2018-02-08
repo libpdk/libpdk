@@ -428,7 +428,7 @@ bool FileEngine::seek(pdk::pint64 pos)
    return implPtr->nativeSeek(pos);
 }
 
-DateTime FileEngine::fileTime(FileTime time) const
+DateTime FileEngine::getFileTime(FileTime time) const
 {
    PDK_D(const FileEngine);
    
@@ -438,7 +438,7 @@ DateTime FileEngine::fileTime(FileTime time) const
    }
    
    if (implPtr->doStat(FileSystemMetaData::MetaDataFlag::Times)) {
-      return implPtr->m_metaData.fileTime(time);
+      return implPtr->m_metaData.getFileTime(time);
    }
    return DateTime();
 }
@@ -479,7 +479,7 @@ bool FileEnginePrivate::seekFdFh(pdk::pint64 pos)
    return true;
 }
 
-int FileEngine::handle() const
+int FileEngine::getHandle() const
 {
    PDK_D(const FileEngine);
    return implPtr->getNativeHandle();
@@ -687,9 +687,9 @@ AbstractFileEngine::Iterator *FileEngine::endEntryList()
 
 #endif // PDK_NO_FILESYSTEMITERATOR
 
-StringList FileEngine::entryList(Dir::Filters filters, const StringList &filterNames) const
+StringList FileEngine::getEntryList(Dir::Filters filters, const StringList &filterNames) const
 {
-   return AbstractFileEngine::entryList(filters, filterNames);
+   return AbstractFileEngine::getEntryList(filters, filterNames);
 }
 
 bool FileEngine::isSequential() const
