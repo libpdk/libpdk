@@ -37,7 +37,7 @@ public:
    
    virtual void setFileName(const String &file) override;
    
-   virtual bool open(IoDevice::OpenMode flags) override ;
+   virtual bool open(IoDevice::OpenModes flags) override ;
    virtual bool close() override;
    virtual bool flush() override;
    virtual pdk::pint64 getSize() const override;
@@ -61,20 +61,20 @@ public:
    
    virtual bool setSize(pdk::pint64 size) override;
    
-   virtual StringList entryList(Dir::Filters filters, const StringList &filterNames) const override;
+   virtual StringList getEntryList(Dir::Filters filters, const StringList &filterNames) const override;
    
    virtual bool caseSensitive() const override;
    
-   virtual FileFlags fileFlags(FileFlags type) const override;
+   virtual FileFlags getFileFlags(FileFlags type) const override;
    
    virtual bool setPermissions(uint perms) override;
    
-   virtual String fileName(QAbstractFileEngine::FileName file) const override;
+   virtual String getFileName(AbstractFileEngine::FileName file) const override;
    
-   virtual uint ownerId(FileOwner) const override;
-   virtual String owner(FileOwner) const override;
+   virtual uint getOwnerId(FileOwner) const override;
+   virtual String getOwner(FileOwner) const override;
    
-   virtual DateTime fileTime(FileTime time) const override;
+   virtual DateTime getFileTime(FileTime time) const override;
    
    virtual Iterator *beginEntryList(Dir::Filters filters, const StringList &filterNames) override;
    virtual Iterator *endEntryList() override;

@@ -20,6 +20,7 @@
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/ds/StringList.h"
+#include "pdk/base/io/fs/internal/ResourcePrivate.h"
 #include <set>
 
 namespace pdk {
@@ -73,7 +74,7 @@ bool pdk_resolve_entry_and_create_legacy_engine_recursive(FileSystemEntry &entry
       }
       if (ch == Latin1Character(':')) {
          if (prefixSeparator == 0) {
-            engine = new QResourceFileEngine(filePath);
+            engine = new ResourceFileEngine(filePath);
             return pdk_check_entry(engine, resolvingEntry);
          }
          

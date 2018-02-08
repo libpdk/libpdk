@@ -17,6 +17,7 @@
 //#include "pdk/utils/internal/LocaleToolsPrivate.h"
 //#include "pdk/base/io/DataStream.h"
 #include "pdk/base/io/fs/internal/FileEnginePrivate.h"
+#include "pdk/base/io/fs/Resource.h"
 //#include "pdk/global/Random.h"
 //#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
 //#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
