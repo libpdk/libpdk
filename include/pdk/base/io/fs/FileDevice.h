@@ -42,7 +42,7 @@ class PDK_CORE_EXPORT FileDevice : public IoDevice
 {
    PDK_DECLARE_PRIVATE(FileDevice);
 public:
-   enum class FileError
+   enum class FileError : uint
    {
       NoError = 0,
       ReadError = 1,
@@ -69,7 +69,7 @@ public:
       FileModificationTime
    };
    
-   enum class Permission
+   enum class Permission : uint
    {
       ReadOwner = 0x4000, WriteOwner = 0x2000, ExeOwner = 0x1000,
       ReadUser  = 0x0400, WriteUser  = 0x0200, ExeUser  = 0x0100,
@@ -79,7 +79,7 @@ public:
    
    PDK_DECLARE_FLAGS(Permissions, Permission);
    
-   enum class FileHandleFlag
+   enum class FileHandleFlag : uint
    {
       AutoCloseHandle = 0x0001,
       DontCloseHandle = 0

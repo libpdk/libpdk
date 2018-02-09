@@ -134,7 +134,7 @@ String FileSystemEngine::slowCanonicalized(const String &path)
       if (nonSymlinks.find(prefix) == nonSymlinks.end()) {
          fi.setFile(prefix);
          if (fi.isSymLink()) {
-            String target = fi.symLinkTarget();
+            String target = fi.getSymLinkTarget();
             if (separatorPos != -1) {
                if (fi.isDir() && !target.endsWith(slash)) {
                   target.append(slash);

@@ -113,13 +113,8 @@ public:
    bool isDir() const;
    bool isSymLink() const;
    bool isRoot() const;
-   bool isBundle() const;
    
-   String readLink() const;
-   inline String symLinkTarget() const 
-   {
-      return readLink();
-   }
+   String getSymLinkTarget() const;
    
    String getOwner() const;
    uint getOwnerId() const;

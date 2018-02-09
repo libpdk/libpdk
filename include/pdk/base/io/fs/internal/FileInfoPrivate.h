@@ -35,10 +35,10 @@ using pdk::utils::SharedData;
 class FileInfoPrivate : public SharedData
 {
 public:
-   enum
+   enum class CacheFlag : uint
    {
       // note: m_cachedFlags is only 30-bits wide
-      Cachedm_fileFlags         = 0x01,
+      CachedFileFlags         = 0x01,
       CachedLinkTypeFlag      = 0x02,
       CachedBundleTypeFlag    = 0x04,
       CachedSize              = 0x08,

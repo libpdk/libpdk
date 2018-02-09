@@ -278,6 +278,11 @@ public:
       return Flags(Flag(m_data ^ UnderType(mask)));
    }
    
+   constexpr inline Flags operator&(Flags mask) const noexcept
+   {
+      return Flags(Flag(m_data & mask.m_data));
+   }
+   
    constexpr inline Flags operator&(int mask) const noexcept
    {
       return Flags(Flag(m_data & mask));
