@@ -248,7 +248,7 @@ void Thread::setPriority(Priority priority)
    PDK_D(Thread);
    std::scoped_lock locker(implPtr->m_mutex);
    if (!implPtr->m_running) {
-      // qWarning("Thread::setPriority: Cannot set priority, thread is not running");
+      // warning_stream("Thread::setPriority: Cannot set priority, thread is not running");
       return;
    }
    implPtr->setPriority(priority);
@@ -277,13 +277,13 @@ void Thread::setEventDispatcher(AbstractEventDispatcher *eventDispatcher)
 {
    PDK_D(Thread);
    if (implPtr->m_data->hasEventDispatcher()) {
-      // qWarning("Thread::setEventDispatcher: An event dispatcher has already been created for this thread");
+      // warning_stream("Thread::setEventDispatcher: An event dispatcher has already been created for this thread");
    } else {
       eventDispatcher->moveToThread(this);
       if (eventDispatcher->getThread() == this) {
          implPtr->m_data->m_eventDispatcher = eventDispatcher;
       } else {
-         // qWarning("Thread::setEventDispatcher: Could not move event dispatcher to target thread");
+         // warning_stream("Thread::setEventDispatcher: Could not move event dispatcher to target thread");
       }
    }
 }
@@ -306,7 +306,7 @@ void Thread::requestInterruption()
       return;
    }
    if (this == CoreApplicationPrivate::sm_theMainThread) {
-      // qWarning("Thread::requestInterruption has no effect on the main thread");
+      // warning_stream("Thread::requestInterruption has no effect on the main thread");
       return;
    }
    implPtr->m_interruptionRequested = true;

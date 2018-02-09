@@ -37,7 +37,7 @@ static const int PDK_TEXTSTREAM_BUFFERSIZE = 16384;
 
 //#define CHECK_VALID_STREAM(x) do { \
 //    if (!implPtr->string && !implPtr->device) { \
-//        qWarning("TextStream: No device"); \
+//        warning_stream("TextStream: No device"); \
 //        return x; \
 //    } } while (0)
 
@@ -1287,7 +1287,7 @@ pdk::pint64 TextStream::getPosition() const
    if (implPtr->m_string) {
       return implPtr->m_stringOffset;
    }
-   //qWarning("TextStream::pos: no device");
+   //warning_stream("TextStream::pos: no device");
    return pdk::pint64(-1);
 }
 
@@ -1424,7 +1424,7 @@ void TextStream::setRealNumberPrecision(int precision)
 {
    PDK_D(TextStream);
    if (precision < 0) {
-      // qWarning("TextStream::setRealNumberPrecision: Invalid precision (%d)", precision);
+      // warning_stream("TextStream::setRealNumberPrecision: Invalid precision (%d)", precision);
       implPtr->m_params.m_realNumberPrecision = 6;
       return;
    }
@@ -1486,7 +1486,7 @@ bool TextStream::readLineInto(String *line, pdk::pint64 maxlen)
    PDK_D(TextStream);
    // keep in sync with CHECK_VALID_STREAM
    if (!implPtr->m_string && !implPtr->m_device) {
-      // qWarning("TextStream: No device");
+      // warning_stream("TextStream: No device");
       if (line && !line->isNull()) {
          line->resize(0);
       }

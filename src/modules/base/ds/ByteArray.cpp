@@ -46,7 +46,7 @@ char *pdk_ulltoa2(char *p, pdk::pulonglong n, int base)
 {
 #if defined(PDK_CHECK_RANGE)
     if (base < 2 || base > 36) {
-        // qWarning("ByteArray::setNum: Invalid base %d", base);
+        // warning_stream("ByteArray::setNum: Invalid base %d", base);
         base = 10;
     }
 #endif

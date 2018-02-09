@@ -71,7 +71,7 @@ void **ThreadStorageData::get() const
 {
    internal::ThreadData *data = internal::ThreadData::current();
    if (!data) {
-      // qWarning("ThreadStorage::get: ThreadStorage can only be used with threads started with Thread");
+      // warning_stream("ThreadStorage::get: ThreadStorage can only be used with threads started with Thread");
       return 0;
    }
    std::vector<void *> &tls = data->m_tls;
@@ -92,7 +92,7 @@ void **ThreadStorageData::set(void *p)
 {
    internal::ThreadData *data = internal::ThreadData::current();
    if (!data) {
-      // qWarning("ThreadStorage::set: ThreadStorage can only be used with threads started with Thread");
+      // warning_stream("ThreadStorage::set: ThreadStorage can only be used with threads started with Thread");
       return 0;
    }
    std::vector<void *> &tls = data->m_tls;
@@ -150,7 +150,7 @@ void ThreadStorageData::finish(void **p)
       
       if (!destructor) {
          if (Thread::getCurrentThread()) {
-            //                qWarning("QThreadStorage: Thread %p exited after QThreadStorage %d destroyed",
+            //                warning_stream("QThreadStorage: Thread %p exited after QThreadStorage %d destroyed",
             //                         QThread::currentThread(), i);
             continue;
          }

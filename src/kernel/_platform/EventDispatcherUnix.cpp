@@ -192,7 +192,7 @@ int ThreadPipe::check(const pollfd &pfd)
 #endif
       if (!m_wakeUps.testAndSetRelease(1, 0)) {
          // hopefully, this is dead code
-         // qWarning("ThreadPipe: internal error, wakeUps.testAndSetRelease(1, 0) failed!");
+         // warning_stream("ThreadPipe: internal error, wakeUps.testAndSetRelease(1, 0) failed!");
       }
    }
    return readyRead;
@@ -252,7 +252,7 @@ void EventDispatcherUNIXPrivate::markPendingSocketNotifiers()
             continue;
          }
          if (pfd.revents & POLLNVAL) {
-//            qWarning("SocketNotifier: Invalid socket %d with type %s, disabling...",
+//            warning_stream("SocketNotifier: Invalid socket %d with type %s, disabling...",
 //                     it.key(), socketType(n.type));
             notifier->setEnabled(false);
          }
@@ -298,10 +298,10 @@ void EventDispatcherUNIX::registerTimer(int timerId, int interval, pdk::TimerTyp
 {
 #ifndef PDK_NO_DEBUG
    if (timerId < 1 || interval < 0 || !object) {
-      //qWarning("EventDispatcherUNIX::registerTimer: invalid arguments");
+      //warning_stream("EventDispatcherUNIX::registerTimer: invalid arguments");
       return;
    } else if (object->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
-      //qWarning("EventDispatcherUNIX::registerTimer: timers cannot be started from another thread");
+      //warning_stream("EventDispatcherUNIX::registerTimer: timers cannot be started from another thread");
       return;
    }
 #endif
@@ -313,10 +313,10 @@ bool EventDispatcherUNIX::unregisterTimer(int timerId)
 {
 #ifndef PDK_NO_DEBUG
    if (timerId < 1) {
-      // qWarning("EventDispatcherUNIX::unregisterTimer: invalid argument");
+      // warning_stream("EventDispatcherUNIX::unregisterTimer: invalid argument");
       return false;
    } else if (getThread() != Thread::getCurrentThread()) {
-      // qWarning("EventDispatcherUNIX::unregisterTimer: timers cannot be stopped from another thread");
+      // warning_stream("EventDispatcherUNIX::unregisterTimer: timers cannot be stopped from another thread");
       return false;
    }
 #endif
@@ -328,10 +328,10 @@ bool EventDispatcherUNIX::unregisterTimers(Object *object)
 {
 #ifndef PDK_NO_DEBUG
    if (!object) {
-      // qWarning("QEventDispatcherUNIX::unregisterTimers: invalid argument");
+      // warning_stream("QEventDispatcherUNIX::unregisterTimers: invalid argument");
       return false;
    } else if (object->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
-      // qWarning("EventDispatcherUNIX::unregisterTimers: timers cannot be stopped from another thread");
+      // warning_stream("EventDispatcherUNIX::unregisterTimers: timers cannot be stopped from another thread");
       return false;
    }
 #endif
@@ -343,7 +343,7 @@ std::list<EventDispatcherUNIX::TimerInfo>
 EventDispatcherUNIX::getRegisteredTimers(Object *object) const
 {
    if (!object) {
-      // qWarning("QEventDispatcherUNIX:registeredTimers: invalid argument");
+      // warning_stream("QEventDispatcherUNIX:registeredTimers: invalid argument");
       return std::list<TimerInfo>();
    }
    PDK_D(const EventDispatcherUNIX);
@@ -357,7 +357,7 @@ void EventDispatcherUNIX::registerSocketNotifier(SocketNotifier *notifier)
    SocketNotifier::Type type = notifier->getType();
 #ifndef PDK_NO_DEBUG
    if (notifier->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
-      // qWarning("SocketNotifier: socket notifiers cannot be enabled from another thread");
+      // warning_stream("SocketNotifier: socket notifiers cannot be enabled from another thread");
       return;
    }
 #endif
@@ -365,7 +365,7 @@ void EventDispatcherUNIX::registerSocketNotifier(SocketNotifier *notifier)
    SocketNotifierSetUNIX &snSet = implPtr->m_socketNotifiers[sockfd];
    int typeValue = static_cast<int>(type);
    if (snSet.m_notifiers[typeValue] && snSet.m_notifiers[typeValue] != notifier) {
-//      qWarning("%s: Multiple socket notifiers for same socket %d and type %s",
+//      warning_stream("%s: Multiple socket notifiers for same socket %d and type %s",
 //                       Q_FUNC_INFO, sockfd, socketType(type));
    }
    snSet.m_notifiers[typeValue] = notifier;
@@ -378,7 +378,7 @@ void EventDispatcherUNIX::unregisterSocketNotifier(SocketNotifier *notifier)
    SocketNotifier::Type type = notifier->getType();
 #ifndef PDK_NO_DEBUG
    if (notifier->getThread() != getThread() || getThread() != Thread::getCurrentThread()) {
-//      qWarning("SocketNotifier: socket notifier (fd %d) cannot be disabled from another thread.\n"
+//      warning_stream("SocketNotifier: socket notifier (fd %d) cannot be disabled from another thread.\n"
 //               "(Notifier's thread is %s(%p), event dispatcher's thread is %s(%p), current thread is %s(%p))",
 //               sockfd,
 //               notifier->thread() ? notifier->thread()->metaObject()->className() : "Thread", notifier->thread(),
@@ -403,7 +403,7 @@ void EventDispatcherUNIX::unregisterSocketNotifier(SocketNotifier *notifier)
       return;
    }
    if (snSet.m_notifiers[typeValue] != notifier) {
-//      qWarning("%s: Multiple socket notifiers for same socket %d and type %s",
+//      warning_stream("%s: Multiple socket notifiers for same socket %d and type %s",
 //               Q_FUNC_INFO, sockfd, socketType(type));
       return;
    }
@@ -478,7 +478,7 @@ int EventDispatcherUNIX::remainingTime(int timerId)
 {
 #ifndef PDK_NO_DEBUG
    if (timerId < 1) {
-      // qWarning("EventDispatcherUNIX::remainingTime: invalid argument");
+      // warning_stream("EventDispatcherUNIX::remainingTime: invalid argument");
       return -1;
    }
 #endif

@@ -122,7 +122,7 @@ bool FileDevice::flush()
 {
    PDK_D(FileDevice);
    if (!implPtr->m_fileEngine) {
-      // qWarning("FileDevice::flush: No file engine. Is IODevice open?");
+      // warning_stream("FileDevice::flush: No file engine. Is IODevice open?");
       return false;
    }
    if (!implPtr->m_writeBuffer.isEmpty()) {
@@ -215,7 +215,7 @@ bool FileDevice::seek(pdk::pint64 off)
 {
    PDK_D(FileDevice);
    if (!isOpen()) {
-      // qWarning("FileDevice::seek: IODevice is not open");
+      // warning_stream("FileDevice::seek: IODevice is not open");
       return false;
    }
    if (!implPtr->ensureFlushed()) {
@@ -299,9 +299,9 @@ bool FileDevicePrivate::putCharHelper(char c)
    
    if (!(m_openMode & IoDevice::OpenMode::WriteOnly)) {
       if (m_openMode == IoDevice::OpenMode::NotOpen) {
-         // qWarning("IoDevice::putChar: Closed device");
+         // warning_stream("IoDevice::putChar: Closed device");
       } else {
-         // qWarning("IoDevice::putChar: ReadOnly device");
+         // warning_stream("IoDevice::putChar: ReadOnly device");
       }
       return false;
    }

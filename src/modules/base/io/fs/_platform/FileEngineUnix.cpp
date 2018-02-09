@@ -607,7 +607,7 @@ uchar *FileEnginePrivate::map(pdk::pint64 offset, pdk::pint64 size, File::Memory
    // undefined behavior. Otherwise, let mmap have its say.
    if (doStat(FileSystemMetaData::MetaDataFlag::SizeAttribute)
        && (PDK_OFF_T(size) > m_metaData.getSize() - PDK_OFF_T(offset))) {
-      // qWarning("FileEngine::map: Mapping a file beyond its size is not portable");
+      // warning_stream("FileEngine::map: Mapping a file beyond its size is not portable");
    }
    
    int access = 0;

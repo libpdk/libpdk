@@ -95,7 +95,7 @@ String WindowsLocalCodec::convertToUnicode(const char *chars, int length, Conver
          mblen--;
       } else {
          // Fail.
-         //qWarning("MultiByteToWideChar: Cannot convert multibyte text");
+         //warning_stream("MultiByteToWideChar: Cannot convert multibyte text");
          break;
       }
    }
@@ -200,7 +200,7 @@ ByteArray WindowsLocalCodec::convertFromUnicode(const Character *ch, int uclen, 
       } else {
          // Fail.  Probably can't happen in fact (dwFlags is 0).
 #ifndef QT_NO_DEBUG
-         // Can't use qWarning(), as it'll recurse to handle %ls
+         // Can't use warning_stream(), as it'll recurse to handle %ls
          fprintf(stderr,
                  "WideCharToMultiByte: Cannot convert multibyte text (error %d): %ls\n",
                  r, reinterpret_cast<const wchar_t*>(String(ch, uclen).utf16()));

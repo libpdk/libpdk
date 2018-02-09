@@ -493,7 +493,7 @@ bool split_locale_name(const String &name, String &lang, String &script, String 
          break;
       case NoState:
          // shouldn't happen
-         //qWarning("Locale: This should never happen");
+         //warning_stream("Locale: This should never happen");
          break;
       }
       ++i;

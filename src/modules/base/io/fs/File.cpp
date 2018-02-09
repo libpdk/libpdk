@@ -132,7 +132,7 @@ void File::setFileName(const String &name)
 {
    PDK_D(File);
    if (isOpen()) {
-      //      qWarning("File::setFileName: File (%s) is already opened",
+      //      warning_stream("File::setFileName: File (%s) is already opened",
       //               qPrintable(fileName()));
       close();
    }
@@ -161,7 +161,7 @@ bool File::remove()
    PDK_D(File);
    if (implPtr->m_fileName.isEmpty() &&
        !static_cast<internal::FileEngine *>(implPtr->getEngine())->isUnnamedFile()) {
-      // qWarning("File::remove: Empty or null file name");
+      // warning_stream("File::remove: Empty or null file name");
       return false;
    }
    unsetError();
@@ -186,7 +186,7 @@ bool File::rename(const String &newName)
    PDK_D(File);
    // if this is a QTemporaryFile, the virtual fileName() call here may do something
    if (getFileName().isEmpty()) {
-      // qWarning("File::rename: Empty or null file name");
+      // warning_stream("File::rename: Empty or null file name");
       return false;
    }
    if (implPtr->m_fileName == newName) {
@@ -316,7 +316,7 @@ bool File::link(const String &linkName)
 {
    PDK_D(File);
    if (getFileName().isEmpty()) {
-      // qWarning("File::link: Empty or null file name");
+      // warning_stream("File::link: Empty or null file name");
       return false;
    }
    FileInfo fi(linkName);
@@ -337,7 +337,7 @@ bool File::copy(const String &newName)
 {
    PDK_D(File);
    if (getFileName().isEmpty()) {
-      // qWarning("File::copy: Empty or null file name");
+      // warning_stream("File::copy: Empty or null file name");
       return false;
    }
    if (File::exists(newName)) {
@@ -438,7 +438,7 @@ bool File::open(OpenModes mode)
 {
    PDK_D(File);
    if (isOpen()) {
-      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      // warning_stream("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
    if (mode & OpenMode::Append) {
@@ -447,7 +447,7 @@ bool File::open(OpenModes mode)
    unsetError();
    if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
                 pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
-      // qWarning("QIODevice::open: File access not specified");
+      // warning_stream("QIODevice::open: File access not specified");
       return false;
    }
    
@@ -472,7 +472,7 @@ bool File::open(FILE *fh, OpenModes mode, FileHandleFlags handleFlags)
 {
    PDK_D(File);
    if (isOpen()) {
-      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      // warning_stream("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
    if (mode & OpenMode::Append) {
@@ -482,7 +482,7 @@ bool File::open(FILE *fh, OpenModes mode, FileHandleFlags handleFlags)
    unsetError();
    if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
                 pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
-      // qWarning("File::open: File access not specified");
+      // warning_stream("File::open: File access not specified");
       return false;
    }
    
@@ -505,7 +505,7 @@ bool File::open(int fd, OpenModes mode, FileHandleFlags handleFlags)
 {
    PDK_D(File);
    if (isOpen()) {
-      // qWarning("File::open: File (%s) already open", qPrintable(fileName()));
+      // warning_stream("File::open: File (%s) already open", qPrintable(fileName()));
       return false;
    }
    if (mode & OpenMode::Append) {
@@ -514,7 +514,7 @@ bool File::open(int fd, OpenModes mode, FileHandleFlags handleFlags)
    unsetError();
    if ((mode & (pdk::as_integer<OpenMode>(OpenMode::ReadOnly) | 
                 pdk::as_integer<OpenMode>(OpenMode::WriteOnly))) == 0) {
-      // qWarning("File::open: File access not specified");
+      // warning_stream("File::open: File access not specified");
       return false;
    }
    

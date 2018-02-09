@@ -146,7 +146,7 @@ bool CoreApplicationPrivate::checkInstance(const char *method)
 {
    bool flag = (CoreApplication::sm_self != nullptr);
    if (!flag) {
-      // qWarning("CoreApplication::%s: Please instantiate the CoreApplication object first", method);
+      // warning_stream("CoreApplication::%s: Please instantiate the CoreApplication object first", method);
    }
    return flag;
 }

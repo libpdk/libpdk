@@ -22,6 +22,7 @@
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/base/ds/StringList.h"
 #include "pdk/base/text/codecs/TextCodec.h"
+#include "pdk/base/ds/StringList.h"
 
 #include <map>
 #include <mutex>
@@ -31,7 +32,7 @@ namespace kernel {
 namespace internal {
 
 using pdk::ds::ByteArray;
-//using pdk::ds::StringList;
+using pdk::ds::StringList;
 using pdk::lang::String;
 using pdk::text::codecs::TextCodec;
 using pdk::os::thread::ReadWriteLock;
@@ -43,7 +44,7 @@ struct CoreGlobalData {
     CoreGlobalData();
     ~CoreGlobalData();
 
-//    std::map<String, StringList> m_dirSearchPaths;
+    std::map<String, StringList> m_dirSearchPaths;
     ReadWriteLock m_dirSearchPathsLock;
 
 #if PDK_CONFIG(TEXT_CODEC)

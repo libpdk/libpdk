@@ -304,7 +304,7 @@ bool ResourcePrivate::load(const String &file)
             }
             m_lastModified = res->lastModified(node);
          } else if(res->isContainer(node) != m_container) {
-            //qWarning("ResourceInfo: Resource [%s] has both data and children!", file.toLatin1().constData());
+            //warning_stream("ResourceInfo: Resource [%s] has both data and children!", file.toLatin1().constData());
          }
          res->m_ref.ref();
          m_related.push_back(res);

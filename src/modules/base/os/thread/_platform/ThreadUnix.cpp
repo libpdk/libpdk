@@ -386,7 +386,7 @@ void ThreadPrivate::setPriority(Thread::Priority priority)
    if (pthread_getschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), &schedPolicy, &param) != 0) {
       // failed to get the scheduling policy, don't bother setting
       // the priority
-      // qWarning("Thread::setPriority: Cannot get scheduler parameters");
+      // warning_stream("Thread::setPriority: Cannot get scheduler parameters");
       return;
    }
 #endif
@@ -394,7 +394,7 @@ void ThreadPrivate::setPriority(Thread::Priority priority)
    if (!calculate_unix_priority(priority, &schedPolicy, &calculatedPriority)) {
       // failed to get the scheduling parameters, don't
       // bother setting the priority
-      // qWarning("Thread::setPriority: Cannot determine scheduler priority range");
+      // warning_stream("Thread::setPriority: Cannot determine scheduler priority range");
       return;
    }
    param.sched_priority = calculatedPriority;
@@ -483,14 +483,14 @@ void Thread::start(Priority priority)
       if (pthread_attr_getschedpolicy(&attr, &schedPolicy) != 0) {
          // failed to get the scheduling policy, don't bother
          // setting the priority
-         // qWarning("Thread::start: Cannot determine default scheduler policy");
+         // warning_stream("Thread::start: Cannot determine default scheduler policy");
          break;
       }
       int calculatedPriority;
       if (!calculate_unix_priority(priority, &schedPolicy, &calculatedPriority)) {
          // failed to get the scheduling parameters, don't
          // bother setting the priority
-         // qWarning("Thread::start: Cannot determine scheduler priority range");
+         // warning_stream("Thread::start: Cannot determine scheduler priority range");
          break;
       }
       sched_param sp;
@@ -514,7 +514,7 @@ void Thread::start(Priority priority)
       int code = ENOSYS; // stack size not supported, automatically fail
 #endif // _POSIX_THREAD_ATTR_STACKSIZE
       if (code) {
-//         qWarning("Thread::start: Thread stack size error: %s",
+//         warning_stream("Thread::start: Thread stack size error: %s",
 //                              qPrintable(pdk_error_string(code)));
          // we failed to set the stacksize, and as the documentation states,
          // the thread will fail to run...
@@ -536,7 +536,7 @@ void Thread::start(Priority priority)
    implPtr->m_data->m_threadId = to_pdk_handle_type(threadId);
    pthread_attr_destroy(&attr);
    if (code) {
-      // qWarning("Thread::start: Thread creation error: %s", qPrintable(qt_error_string(code)));
+      // warning_stream("Thread::start: Thread creation error: %s", qPrintable(qt_error_string(code)));
       implPtr->m_running = false;
       implPtr->m_finished = false;
       implPtr->m_data->m_threadId = 0;
@@ -552,7 +552,7 @@ void Thread::terminate()
    }
    int code = pthread_cancel(from_pdk_handle_type<pthread_t>(implPtr->m_data->m_threadId));
    if (code) {
-      //          qWarning("Thread::start: Thread termination error: %s",
+      //          warning_stream("Thread::start: Thread termination error: %s",
       //                   qPrintable(qt_error_string((code))));
    }
 }
@@ -562,7 +562,7 @@ bool Thread::wait(unsigned long time)
    PDK_D(Thread);
    std::unique_lock locker(implPtr->m_mutex);
    if (from_pdk_handle_type<pthread_t>(implPtr->m_data->m_threadId) == pthread_self()) {
-      // qWarning("Thread::wait: Thread tried to wait on itself");
+      // warning_stream("Thread::wait: Thread tried to wait on itself");
       return false;
    }
    if (implPtr->m_finished || !implPtr->m_running) {

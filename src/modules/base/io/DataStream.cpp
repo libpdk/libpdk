@@ -44,7 +44,7 @@ namespace io {
 //#ifndef PDK_NO_DEBUG
 //#define CHECK_STREAM_PRECOND(retVal) \
 //   if (!m_device) { \
-//   //qWarning("DataStream: No device"); \
+//   //warning_stream("DataStream: No device"); \
 //return retVal; \
 //}
 //#else
@@ -66,7 +66,7 @@ namespace io {
 
 //#define CHECK_STREAM_TRANSACTION_PRECOND(retVal) \
 //   if (!implPtr || implPtr->m_transactionDepth == 0) { \
-//   //qWarning("DataStream: No transaction in progress"); \
+//   //warning_stream("DataStream: No transaction in progress"); \
 //      return retVal; \
 //}
 

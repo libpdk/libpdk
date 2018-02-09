@@ -246,7 +246,7 @@ protected:
    
 private:
    friend class DirIterator;
-   // Q_DECLARE_PRIVATE equivalent for shared data pointers
+   // PDK_DECLARE_PRIVATE equivalent for shared data pointers
    DirPrivate* getImplPtr();
    inline const DirPrivate* getImplPtr() const
    {

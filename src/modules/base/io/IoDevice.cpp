@@ -561,7 +561,7 @@ bool IoDevice::seek(pint64 pos)
       return false;
    }
    if (pos < 0) {
-      // qWarning("pdk::io::IoDevice::seek: Invalid pos: %lld", pos);
+      // warning_stream("pdk::io::IoDevice::seek: Invalid pos: %lld", pos);
       return false;
    }
 #if defined PDK_IODEVICE_DEBUG

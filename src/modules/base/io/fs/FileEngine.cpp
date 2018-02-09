@@ -141,7 +141,7 @@ bool FileEngine::open(IoDevice::OpenModes openMode)
    
    PDK_D(FileEngine);
    if (implPtr->m_fileEntry.isEmpty()) {
-      // qWarning("FileEngine::open: No file name specified");
+      // warning_stream("FileEngine::open: No file name specified");
       setError(File::FileError::OpenError, Latin1String("No file name specified"));
       return false;
    }
@@ -471,7 +471,7 @@ bool FileEnginePrivate::seekFdFh(pdk::pint64 pos)
    } else {
       // Unbuffered stdio mode.
       if (PDK_LSEEK(m_fd, PDK_OFF_T(pos), SEEK_SET) == -1) {
-         // qWarning("File::at: Cannot set file position %lld", pos);
+         // warning_stream("File::at: Cannot set file position %lld", pos);
          apiPtr->setError(File::FileError::PositionError, SystemError::getStdString());
          return false;
       }

@@ -141,7 +141,7 @@ void DirIteratorPrivate::pushDirectory(const FileInfo &fileInfo)
                                                         m_filters, m_nameFilters, m_iteratorFlags);
       m_nativeIterators.push(iter);
 #else
-      // qWarning("pdk was built with -no-feature-filesystemiterator: no files/plugins will be found!");
+      // warning_stream("pdk was built with -no-feature-filesystemiterator: no files/plugins will be found!");
 #endif
    }
 }

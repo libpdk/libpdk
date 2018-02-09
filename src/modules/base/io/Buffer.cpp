@@ -101,7 +101,7 @@ void Buffer::setBuffer(ByteArray *byteArray)
 {
    PDK_D(Buffer);
    if (isOpen()) {
-      // qWarning("Buffer::setBuffer: Buffer is open");
+      // warning_stream("Buffer::setBuffer: Buffer is open");
       return;
    }
    if (byteArray) {
@@ -134,7 +134,7 @@ void Buffer::setData(const ByteArray &data)
 {
    PDK_D(Buffer);
    if (isOpen()) {
-      // qWarning("Buffer::setData: Buffer is open");
+      // warning_stream("Buffer::setData: Buffer is open");
       return;
    }
    *implPtr->m_buf = data;
@@ -149,7 +149,7 @@ bool Buffer::open(OpenModes flags)
    }
       
    if ((flags & (OpenMode::ReadOnly | OpenMode::WriteOnly)) == 0) {
-      // qWarning("Buffer::open: Buffer access not specified");
+      // warning_stream("Buffer::open: Buffer access not specified");
       return false;
    }
    
@@ -183,14 +183,14 @@ bool Buffer::seek(pdk::pint64 pos)
       if (seek(implPtr->m_buf->size())) {
          const pdk::pint64 gapSize = pos - implPtr->m_buf->size();
          if (write(ByteArray(gapSize, 0)) != gapSize) {
-            //qWarning("Buffer::seek: Unable to fill gap");
+            //warning_stream("Buffer::seek: Unable to fill gap");
             return false;
          }
       } else {
          return false;
       }
    } else if (pos > implPtr->m_buf->size() || pos < 0) {
-      //qWarning("Buffer::seek: Invalid pos: %d", int(pos));
+      //warning_stream("Buffer::seek: Invalid pos: %d", int(pos));
       return false;
    }
    return IoDevice::seek(pos);
@@ -228,7 +228,7 @@ pdk::pint64 Buffer::writeData(const char *data, pdk::pint64 len)
       int newSize = implPtr->m_buf->size() + extraBytes;
       implPtr->m_buf->resize(newSize);
       if (implPtr->m_buf->size() != newSize) { // could not resize
-         // qWarning("Buffer::writeData: Memory allocation error");
+         // warning_stream("Buffer::writeData: Memory allocation error");
          return -1;
       }
    }
