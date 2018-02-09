@@ -51,7 +51,8 @@ elseif(UNIX)
 list(APPEND PDK_BASE_SOURCES
    ${IO_DIR}/fs/_platform/FileEngineUnix.cpp
    ${IO_DIR}/fs/_platform/FileSystemEngineUnix.cpp
-   ${IO_DIR}/fs/_platform/FileSystemiteratorUnix.cpp)
+   ${IO_DIR}/fs/_platform/FileSystemiteratorUnix.cpp
+   ${IO_DIR}/fs/_platform/LockFileUnix.cpp)
 endif()
 
 pdk_collect_files(

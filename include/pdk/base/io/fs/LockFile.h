@@ -53,7 +53,7 @@ public:
    bool getLockInfo(pdk::pint64 *pid, String *hostname, String *appname) const;
    bool removeStaleLockFile();
    
-   enum class LockError
+   enum class LockError : uint
    {
       NoError = 0,
       LockFailedError = 1,
