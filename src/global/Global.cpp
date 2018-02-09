@@ -18,6 +18,7 @@
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/global/SysInfo.h"
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -54,12 +55,17 @@ void pdk_assert(const char *assertion, const char *file,
    std::string errMsg(assertion);
    errMsg += " is fail";
    std::cerr << errMsg << std::endl;
+   PDK_UNUSED(line);
+   PDK_UNUSED(file);
 }
 
 void pdk_assert_x(const char *where, const char *what, 
                   const char *file, int line) noexcept
 {
    std::cerr << what << std::endl;
+   PDK_UNUSED(where);
+   PDK_UNUSED(file);
+   PDK_UNUSED(line);
 }
 
 static std::mutex sg_envMutex;
@@ -198,45 +204,69 @@ bool env_var_isset(const char *varName) noexcept
 
 bool pdk_putenv(const char *varName, const ByteArray& value)
 {
-    std::lock_guard locker(sg_envMutex);
+   std::lock_guard locker(sg_envMutex);
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-    return _putenv_s(varName, value.constData()) == 0;
+   return _putenv_s(varName, value.constData()) == 0;
 #elif (defined(_POSIX_VERSION) && (_POSIX_VERSION-0) >= 200112L)
-    // POSIX.1-2001 has setenv
-    return setenv(varName, value.getRawData(), true) == 0;
+   // POSIX.1-2001 has setenv
+   return setenv(varName, value.getRawData(), true) == 0;
 #else
-    ByteArray buffer(varName);
-    buffer += '=';
-    buffer += value;
-    char* envVar = qstrdup(buffer.getConstRawData());
-    int result = putenv(envVar);
-    if (result != 0) // error. we have to delete the string.
-        delete[] envVar;
-    return result == 0;
+   ByteArray buffer(varName);
+   buffer += '=';
+   buffer += value;
+   char* envVar = qstrdup(buffer.getConstRawData());
+   int result = putenv(envVar);
+   if (result != 0) // error. we have to delete the string.
+      delete[] envVar;
+   return result == 0;
 #endif
 }
 
 bool pdk_unsetenv(const char *varName)
 {
-    std::lock_guard locker(sg_envMutex);
+   std::lock_guard locker(sg_envMutex);
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-    return _putenv_s(varName, "") == 0;
+   return _putenv_s(varName, "") == 0;
 #elif (defined(_POSIX_VERSION) && (_POSIX_VERSION-0) >= 200112L) || defined(PDK_OS_BSD4)
-    // POSIX.1-2001, BSD and Haiku have unsetenv
-    return unsetenv(varName) == 0;
+   // POSIX.1-2001, BSD and Haiku have unsetenv
+   return unsetenv(varName) == 0;
 #elif defined(PDK_CC_MINGW)
-    // On mingw, putenv("var=") removes "var" from the environment
-    ByteArray buffer(varName);
-    buffer += '=';
-    return putenv(buffer.getConstRawData()) == 0;
+   // On mingw, putenv("var=") removes "var" from the environment
+   ByteArray buffer(varName);
+   buffer += '=';
+   return putenv(buffer.getConstRawData()) == 0;
 #else
-    // Fallback to putenv("var=") which will insert an empty var into the
-    // environment and leak it
-    ByteArray buffer(varName);
-    buffer += '=';
-    char *envVar = qstrdup(buffer.getConstRawData());
-    return putenv(envVar) == 0;
+   // Fallback to putenv("var=") which will insert an empty var into the
+   // environment and leak it
+   ByteArray buffer(varName);
+   buffer += '=';
+   char *envVar = qstrdup(buffer.getConstRawData());
+   return putenv(envVar) == 0;
 #endif
+}
+
+String SysInfo::getMachineHostName()
+{
+#if defined(PDK_OS_LINUX)
+   // gethostname(3) on Linux just calls uname(2), so do it ourselves
+   // and avoid a memcpy
+   struct utsname u;
+   if (uname(&u) == 0) {
+      return String::fromLocal8Bit(u.nodename);
+   }
+#else
+#  ifdef PDK_OS_WIN
+   // Important: pdk Network depends on machineHostName() initializing ws2_32.dll
+   winsockInit();
+#  endif   
+   char hostName[512];
+   if (gethostname(hostName, sizeof(hostName)) == -1) {
+      return String();
+   }
+   hostName[sizeof(hostName) - 1] = '\0';
+   return String::fromLocal8Bit(hostName);
+#endif
+   return String();
 }
 
 } // pdk

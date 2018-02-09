@@ -47,7 +47,7 @@ public:
    void unlock();
    
    void setStaleLockTime(int);
-   int staleLockTime() const;
+   int getStaleLockTime() const;
    
    bool isLocked() const;
    bool getLockInfo(pdk::pint64 *pid, String *hostname, String *appname) const;

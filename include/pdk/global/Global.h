@@ -101,6 +101,23 @@
 */
 #define PDK_UNUSED(x) (void)x
 
+#ifndef pdk_printable
+#  define pdk_printable(string) ::pdk::lang::String(string).toLocal8Bit().getConstRawData()
+#endif
+
+#ifndef pdk_utf8_printable
+#  define pdk_utf8_printable(string) ::pdk::lang::String(string).toUtf8().getConstRawData()
+#endif
+
+/*
+    Wrap String::utf16() with enough casts to allow passing it
+    to String::asprintf("%ls") without warnings.
+*/
+#ifndef pdk_utf16_printable
+#  define pdk_utf16_printable(string) \
+    static_cast<const wchar_t*>(static_cast<const void*>(::pdk::lang::String(string).utf16()))
+#endif
+
 #if !defined(PDK_NO_DEBUG) && !defined(PDK_DEBUG)
 #  define PDK_DEBUG
 #endif

@@ -233,11 +233,6 @@ ByteArray ByteArray::fromBase64(const ByteArray &base64, Base64Options options)
    return temp;
 }
 
-ByteArray ByteArray::fromBase64(const ByteArray &base64)
-{
-   return fromBase64(base64, Base64Option::Base64Encoding);  
-}
-
 ByteArray ByteArray::fromHex(const ByteArray &hexEncoded)
 {
    ByteArray result((hexEncoded.size() + 1) / 2, pdk::Initialization::Uninitialized);
@@ -1204,11 +1199,6 @@ ByteArray ByteArray::toBase64(Base64Options options) const
       temp.truncate(out - temp.getRawData());
    }
    return temp;
-}
-
-ByteArray ByteArray::toBase64() const
-{
-   return toBase64(Base64Option::Base64Encoding);
 }
 
 ByteArray ByteArray::toHex() const

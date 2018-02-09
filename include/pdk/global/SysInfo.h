@@ -67,6 +67,7 @@ public:
 #  endif
    };
 #endif
+   static String getMachineHostName();
 };
    
 } // pdk

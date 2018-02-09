@@ -48,7 +48,7 @@ public:
         m_isLocked(false)
    {
    }
-   LockFile::LockError tryLock_sys();
+   LockFile::LockError tryLockSys();
    bool removeStaleLock();
    ByteArray lockFileContents() const;
    // Returns \c true if the lock belongs to dead PID, or is old.
