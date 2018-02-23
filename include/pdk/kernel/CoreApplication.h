@@ -55,14 +55,14 @@ public:
    ~CoreApplication();
    
    static StringList getArguments();
-   void setOrgDomain(const String &domain);
-   String getOrgDomain();
-   void setOrgName(const String &name);
-   String getOrgName();
-   void setAppName(const String &name);
-   String getAppName();
-   void setAppVersion(const String &version);
-   String getAppVersion();
+   static void setOrgDomain(const String &domain);
+   static String getOrgDomain();
+   static void setOrgName(const String &name);
+   static String getOrgName();
+   static void setAppName(const String &name);
+   static String getAppName();
+   static void setAppVersion(const String &version);
+   static String getAppVersion();
    static void setSetuidAllowed(bool allow);
    static bool isSetuidAllowed();
    static CoreApplication *getInstance()

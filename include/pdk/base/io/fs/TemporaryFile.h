@@ -46,7 +46,7 @@ public:
    TemporaryFile(const String &templateName, Object *parent);
    ~TemporaryFile();
    
-   bool autoRemove() const;
+   bool getAutoRemove() const;
    void setAutoRemove(bool b);
    
    // ### Hides open(flags)

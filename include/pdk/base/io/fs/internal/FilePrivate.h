@@ -29,6 +29,7 @@ class TemporaryFile;
 namespace internal {
 
 using pdk::io::fs::File;
+using pdk::io::fs::TemporaryFile;
 
 class FilePrivate : public FileDevicePrivate
 {
