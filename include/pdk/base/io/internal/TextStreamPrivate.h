@@ -169,5 +169,4 @@ public:
 } // io
 } // pdk
 
-
 #endif // PDK_M_BASE_IO_INTERNAL_TEXTSTREAM_PRIVATE_H
