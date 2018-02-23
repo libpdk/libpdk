@@ -182,7 +182,6 @@ PDK_CORE_EXPORT void set_message_pattern(const String &messagePattern);
 PDK_CORE_EXPORT String format_log_message(pdk::MsgType type, const MessageLogContext &context,
                                           const String &buf);
 
-
 } // pdk
 
 #endif // PDK_GLOBAL_LOGGING_H

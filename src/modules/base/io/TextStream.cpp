@@ -16,6 +16,8 @@
 #include "pdk/base/io/TextStream.h"
 #include "pdk/base/io/internal/TextStreamPrivate.h"
 #include "pdk/base/io/Buffer.h"
+#include "pdk/base/io/Debug.h"
+#include "pdk/base/io/fs/File.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/global/internal/NumericPrivate.h"
 #include "pdk/base/ds/ByteArray.h"
@@ -31,15 +33,10 @@
 static const int PDK_TEXTSTREAM_BUFFERSIZE = 16384;
 #define PDK_VOID
 #define CHECK_VALID_STREAM(x) do { \
-   if (!implPtr->m_string && !implPtr->m_device) { \
+   if (!m_implPtr->m_string && !m_implPtr->m_device) { \
+   warning_stream("TextStream: No device"); \
    return x; \
-   } } while (false)
-
-//#define CHECK_VALID_STREAM(x) do { \
-//    if (!implPtr->string && !implPtr->device) { \
-//        warning_stream("TextStream: No device"); \
-//        return x; \
-//    } } while (0)
+   } } while (0)
 
 // Base implementations of operator>> for ints and reals
 #define IMPLEMENT_STREAM_RIGHT_INT_OPERATOR(type) do { \
@@ -80,6 +77,7 @@ using pdk::io::IoDevice;
 using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::utils::internal::LocaleData;
+using pdk::io::fs::File;
 
 namespace {
 
@@ -249,13 +247,13 @@ bool TextStreamPrivate::fillReadBuffer(pdk::pint64 maxBytes)
       }
    }
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::fillReadBuffer(), using %s codec",
-          codec ? codec->name().constData() : "no");
+   debug_stream("TextStreamPrivate::fillReadBuffer(), using %s codec",
+                codec ? codec->name().constData() : "no");
 #endif
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::fillReadBuffer(), device->read(\"%s\", %d) == %d",
-          pdk_pretty_debug(buf, std::min(32,int(bytesRead)) , int(bytesRead)).getConstRawData(), int(sizeof(buf)), int(bytesRead));
+   debug_stream("TextStreamPrivate::fillReadBuffer(), device->read(\"%s\", %d) == %d",
+                pdk_pretty_debug(buf, std::min(32,int(bytesRead)) , int(bytesRead)).getConstRawData(), int(sizeof(buf)), int(bytesRead));
 #endif
    
    int oldReadBufferSize = m_readBuffer.size();
@@ -296,8 +294,8 @@ bool TextStreamPrivate::fillReadBuffer(pdk::pint64 maxBytes)
    }
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPriv::fillReadBuffer() read %d bytes from device. readBuffer = [%s]", int(bytesRead),
-          pdk_pretty_debug(readBuffer.toLatin1(), readBuffer.size(), readBuffer.size()).getRawData());
+   debug_stream("TextStreamPriv::fillReadBuffer() read %d bytes from device. readBuffer = [%s]", int(bytesRead),
+                pdk_pretty_debug(readBuffer.toLatin1(), readBuffer.size(), readBuffer.size()).getRawData());
 #endif
    return true;
 }
@@ -337,9 +335,9 @@ void TextStreamPrivate::flushWriteBuffer()
    if (!m_codec)
       m_codec = TextCodec::getCodecForLocale();
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::flushWriteBuffer(), using %s codec (%s generating BOM)",
-          m_codec ? m_codec->name().getConstRawData() : "no",
-          !m_codec || (writeConverterState.m_flags & TextCodec::ConversionFlag::IgnoreHeader) ? "not" : "");
+   debug_stream("TextStreamPrivate::flushWriteBuffer(), using %s codec (%s generating BOM)",
+                m_codec ? m_codec->name().getConstRawData() : "no",
+                !m_codec || (writeConverterState.m_flags & TextCodec::ConversionFlag::IgnoreHeader) ? "not" : "");
 #endif
    
    // convert from unicode to raw data
@@ -355,7 +353,7 @@ void TextStreamPrivate::flushWriteBuffer()
    // write raw data to the device
    pdk::pint64 bytesWritten = m_device->write(data);
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::flushWriteBuffer(), m_device->write(\"%s\") == %d",
+   debug_stream("TextStreamPrivate::flushWriteBuffer(), m_device->write(\"%s\") == %d",
           pdk_pretty_debug(data.getConstRawData(), std::min(data.size(),32), data.size()).getConstRawData(), int(bytesWritten));
 #endif
    
@@ -381,7 +379,7 @@ void TextStreamPrivate::flushWriteBuffer()
    //#endif
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::flushWriteBuffer() wrote %d bytes",
+   debug_stream("TextStreamPrivate::flushWriteBuffer() wrote %d bytes",
           int(bytesWritten));
 #endif
    if (!flushed || bytesWritten != pdk::pint64(data.size())) {
@@ -403,7 +401,7 @@ String TextStreamPrivate::read(int maxlen)
    consumeLastToken();
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::read() maxlen = %d, token length = %d", maxlen, ret.length());
+   debug_stream("TextStreamPrivate::read() maxlen = %d, token length = %d", maxlen, ret.length());
 #endif
    return ret;
 }
@@ -461,7 +459,7 @@ bool TextStreamPrivate::scan(const Character **ptr, int *length, int maxlen, Tok
    
    if (totalSize == 0) {
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-      qDebug("TextStreamPrivate::scan() reached the end of input.");
+      debug_stream("TextStreamPrivate::scan() reached the end of input.");
 #endif
       return false;
    }
@@ -494,7 +492,7 @@ bool TextStreamPrivate::scan(const Character **ptr, int *length, int maxlen, Tok
    }  
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::scan(%p, %p, %d, %x) token length = %d, delimiter = %d",
+   debug_stream("TextStreamPrivate::scan(%p, %p, %d, %x) token length = %d, delimiter = %d",
           ptr, length, maxlen, (int)delimiter, totalSize - delimSize, delimSize);
 #endif
    return true;
@@ -520,7 +518,7 @@ inline void TextStreamPrivate::consumeLastToken()
 inline void TextStreamPrivate::consume(int size)
 {
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStreamPrivate::consume(%d)", size);
+   debug_stream("TextStreamPrivate::consume(%d)", size);
 #endif
    if (m_string) {
       m_stringOffset += size;
@@ -1109,7 +1107,7 @@ TextStream::TextStream()
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream()");
+   debug_stream("TextStream::TextStream()");
 #endif
    PDK_D(TextStream);
    implPtr->m_status = Status::Ok;
@@ -1119,7 +1117,7 @@ TextStream::TextStream(IoDevice *device)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream(IoDevice *device == *%p)",
+   debug_stream("TextStream::TextStream(IoDevice *device == *%p)",
           device);
 #endif
    PDK_D(TextStream);
@@ -1132,7 +1130,7 @@ TextStream::TextStream(String *string, IoDevice::OpenMode openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream(String *string == *%p, openMode = %d)",
+   debug_stream("TextStream::TextStream(String *string == *%p, openMode = %d)",
           string, int(openMode));
 #endif
    PDK_D(TextStream);
@@ -1145,7 +1143,7 @@ TextStream::TextStream(ByteArray *array, IoDevice::OpenMode openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream(ByteArray *array == *%p, openMode = %d)",
+   debug_stream("TextStream::TextStream(ByteArray *array == *%p, openMode = %d)",
           array, int(openMode));
 #endif
    PDK_D(TextStream);
@@ -1160,7 +1158,7 @@ TextStream::TextStream(const ByteArray &array, IoDevice::OpenMode openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream(const ByteArray &array == *(%p), openMode = %d)",
+   debug_stream("TextStream::TextStream(const ByteArray &array == *(%p), openMode = %d)",
           &array, int(openMode));
 #endif
    Buffer *buffer = new Buffer;
@@ -1178,23 +1176,23 @@ TextStream::TextStream(FILE *fileHandle, IoDevice::OpenMode openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::TextStream(FILE *fileHandle = %p, openMode = %d)",
+   debug_stream("TextStream::TextStream(FILE *fileHandle = %p, openMode = %d)",
           fileHandle, int(openMode));
 #endif
-   //   File *file = new File;
-   //   file->open(fileHandle, openMode);
-   //   PDK_D(TextStream);
-   //   implPtr->m_device = file;
-   //   implPtr->m_deleteDevice = true;
-   //   implPtr->m_deviceClosedNotifier.setupDevice(this, implPtr->m_device);
-   //   implPtr->status = Status::Ok;
+   File *file = new File;
+   file->open(fileHandle, openMode);
+   PDK_D(TextStream);
+   implPtr->m_device = file;
+   implPtr->m_deleteDevice = true;
+   implPtr->m_deviceClosedNotifier.setupDevice(this, implPtr->m_device);
+   implPtr->m_status = Status::Ok;
 }
 
 TextStream::~TextStream()
 {
    PDK_D(TextStream);
 #if defined (PDK_TEXTSTREAM_DEBUG)
-   qDebug("TextStream::~TextStream()");
+   debug_stream("TextStream::~TextStream()");
 #endif
    if (!implPtr->m_writeBuffer.isEmpty()) {
       implPtr->flushWriteBuffer();
@@ -1287,7 +1285,7 @@ pdk::pint64 TextStream::getPosition() const
    if (implPtr->m_string) {
       return implPtr->m_stringOffset;
    }
-   //warning_stream("TextStream::pos: no device");
+   warning_stream("TextStream::pos: no device");
    return pdk::pint64(-1);
 }
 
@@ -1315,7 +1313,7 @@ void TextStream::setDevice(IoDevice *device)
    implPtr->m_device = device;
    implPtr->resetReadBuffer();
    // @TODO review
-   // implPtr->deviceClosedNotifier.setupDevice(this, implPtr->m_device);
+   implPtr->m_deviceClosedNotifier.setupDevice(this, implPtr->m_device);
 }
 
 IoDevice *TextStream::getDevice() const
@@ -1330,8 +1328,8 @@ void TextStream::setString(String *string, IoDevice::OpenMode openMode)
    flush();
    if (implPtr->m_deleteDevice) {
       // @TODO review
-      // implPtr->deviceClosedNotifier.disconnect();
-      // implPtr->device->blockSignals(true);
+//       implPtr->m_deviceClosedNotifier.disconnect();
+//       implPtr->m_device->blockSignals(true);
       delete implPtr->m_device;
       implPtr->m_deleteDevice = false;
    }
@@ -1424,7 +1422,7 @@ void TextStream::setRealNumberPrecision(int precision)
 {
    PDK_D(TextStream);
    if (precision < 0) {
-      // warning_stream("TextStream::setRealNumberPrecision: Invalid precision (%d)", precision);
+      warning_stream("TextStream::setRealNumberPrecision: Invalid precision (%d)", precision);
       implPtr->m_params.m_realNumberPrecision = 6;
       return;
    }
@@ -1486,7 +1484,7 @@ bool TextStream::readLineInto(String *line, pdk::pint64 maxlen)
    PDK_D(TextStream);
    // keep in sync with CHECK_VALID_STREAM
    if (!implPtr->m_string && !implPtr->m_device) {
-      // warning_stream("TextStream: No device");
+       warning_stream("TextStream: No device");
       if (line && !line->isNull()) {
          line->resize(0);
       }

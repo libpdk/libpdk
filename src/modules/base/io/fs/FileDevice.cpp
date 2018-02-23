@@ -299,9 +299,9 @@ bool FileDevicePrivate::putCharHelper(char c)
    
    if (!(m_openMode & IoDevice::OpenMode::WriteOnly)) {
       if (m_openMode == IoDevice::OpenMode::NotOpen) {
-         // warning_stream("IoDevice::putChar: Closed device");
+         warning_stream("IoDevice::putChar: Closed device");
       } else {
-         // warning_stream("IoDevice::putChar: ReadOnly device");
+         warning_stream("IoDevice::putChar: ReadOnly device");
       }
       return false;
    }

@@ -58,7 +58,7 @@ public:
       {}
       friend class IoDevicePrivate;
    public:
-      // wrap functions from QRingBuffer
+      // wrap functions from RingBuffer
       inline void setChunkSize(int size)
       {
          PDK_ASSERT(m_buf);

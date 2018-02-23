@@ -45,6 +45,13 @@ using pdk::lang::StringRef;
 using pdk::lang::StringView;
 using pdk::MessageLogContext;
 
+namespace internal
+{
+class DebugStateSaverPrivate;
+} // internal
+
+using internal::DebugStateSaverPrivate;
+
 class PDK_CORE_EXPORT Debug
 {
    friend class MessageLogger;
@@ -373,7 +380,6 @@ public:
    }
 };
 
-class DebugStateSaverPrivate;
 class PDK_CORE_EXPORT DebugStateSaver
 {
 public:
@@ -506,10 +512,10 @@ inline Debug operator<<(Debug debug, const std::set<Key, Compare, Alloc> &set)
 }
 
 //template <class T>
-//inline Debug operator<<(Debug debug, const QContiguousCache<T> &cache)
+//inline Debug operator<<(Debug debug, const ContiguousCache<T> &cache)
 //{
 //   const bool oldSetting = debug.autoInsertSpaces();
-//   debug.nospace() << "QContiguousCache(";
+//   debug.nospace() << "ContiguousCache(";
 //   for (int i = cache.firstIndex(); i <= cache.lastIndex(); ++i) {
 //      debug << cache[i];
 //      if (i != cache.lastIndex())

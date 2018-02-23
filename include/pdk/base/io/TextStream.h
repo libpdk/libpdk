@@ -52,6 +52,7 @@ namespace io {
 
 namespace internal {
 class TextStreamPrivate;
+class DebugStateSaverPrivate;
 } // internal
 
 using pdk::ds::ByteArray;
@@ -63,6 +64,7 @@ using pdk::utils::Locale;
 using pdk::text::codecs::TextCodec;
 
 using internal::TextStreamPrivate;
+using internal::DebugStateSaverPrivate;
 class PDK_CORE_EXPORT TextStream
 {
    PDK_DECLARE_PRIVATE(TextStream);
@@ -109,13 +111,13 @@ public:
    virtual ~TextStream();
    
 #ifndef PDK_NO_TEXTCODEC
-    void setCodec(TextCodec *codec);
-    void setCodec(const char *codecName);
-    TextCodec *getCodec() const;
-    void setAutoDetectUnicode(bool enabled);
-    bool autoDetectUnicode() const;
-    void setGenerateByteOrderMark(bool generate);
-    bool generateByteOrderMark() const;
+   void setCodec(TextCodec *codec);
+   void setCodec(const char *codecName);
+   TextCodec *getCodec() const;
+   void setAutoDetectUnicode(bool enabled);
+   bool autoDetectUnicode() const;
+   void setGenerateByteOrderMark(bool generate);
+   bool generateByteOrderMark() const;
 #endif
    
    void setLocale(const Locale &locale);
@@ -202,6 +204,8 @@ public:
 private:
    PDK_DISABLE_COPY(TextStream);
    pdk::utils::ScopedPointer<TextStreamPrivate> m_implPtr;
+   friend class DebugStateSaverPrivate;
+   friend class Debug;
 };
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(TextStream::NumberFlags)
