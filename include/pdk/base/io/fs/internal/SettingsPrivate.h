@@ -13,5 +13,9 @@
 //
 // Created by softboy on 2018/02/23.
 
-#include "pdk/base/io/internal/LoggingRegisteryPrivate.h"
-#include "pdk/base/io/fs/File.h"
+#ifndef PDK_M_BASE_IO_FS_INTERNAL_SETTINGS_PRIVATE_H
+#define PDK_M_BASE_IO_FS_INTERNAL_SETTINGS_PRIVATE_H
+
+
+
+#endif // PDK_M_BASE_IO_FS_INTERNAL_SETTINGS_PRIVATE_H
