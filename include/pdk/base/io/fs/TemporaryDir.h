@@ -54,8 +54,6 @@ private:
    PDK_DISABLE_COPY(TemporaryDir);
 };
 
-
-
 } // fs
 } // io
 } // pdk

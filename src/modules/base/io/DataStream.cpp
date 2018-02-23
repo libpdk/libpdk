@@ -18,6 +18,7 @@
 #include "pdk/base/io/Buffer.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/global/Endian.h"
+#include "pdk/base/io/Debug.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -32,43 +33,27 @@ namespace io {
 #ifndef PDK_NO_DEBUG
 #define CHECK_STREAM_PRECOND(retVal) \
    if (!m_device) { \
-   return retVal; \
-}
+      warning_stream("DataStream: No device"); \
+      return retVal; \
+   }
 #else
 #define CHECK_STREAM_PRECOND(retVal) \
    if (!m_device) { \
-   return retVal; \
-}
+      return retVal; \
+   }
 #endif
-
-//#ifndef PDK_NO_DEBUG
-//#define CHECK_STREAM_PRECOND(retVal) \
-//   if (!m_device) { \
-//   //warning_stream("DataStream: No device"); \
-//return retVal; \
-//}
-//#else
-//#define CHECK_STREAM_PRECOND(retVal) \
-//   if (!m_device) { \
-//   return retVal; \
-//}
-//#endif
 
 #define CHECK_STREAM_WRITE_PRECOND(retVal) \
    CHECK_STREAM_PRECOND(retVal) \
-   if (m_status != Status::Ok) \
-   return retVal;
+   if (m_status != Status::Ok) { \
+      return retVal; \
+   }
 
 #define CHECK_STREAM_TRANSACTION_PRECOND(retVal) \
    if (!m_implPtr || m_implPtr->m_transactionDepth == 0) { \
-   return retVal; \
-}
-
-//#define CHECK_STREAM_TRANSACTION_PRECOND(retVal) \
-//   if (!implPtr || implPtr->m_transactionDepth == 0) { \
-//   //warning_stream("DataStream: No transaction in progress"); \
-//      return retVal; \
-//}
+      warning_stream("DataStream: No transaction in progress"); \
+      return retVal; \
+   }
 
 DataStream::DataStream()
 {

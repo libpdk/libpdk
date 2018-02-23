@@ -32,7 +32,7 @@ using pdk::io::fs::internal::AbstractFileEngine;
 
 namespace internal {
 
-using pdk::kernel::internal::pdk_error_string;
+using pdk::pdk_error_string;
 
 FileDevicePrivate::FileDevicePrivate()
    : m_fileEngine(nullptr),

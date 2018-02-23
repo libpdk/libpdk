@@ -17,6 +17,7 @@
 #include "pdk/base/ds/internal/ByteArrayPrivate.h"
 #include "pdk/base/io/internal/IoDevicePrivate.h"
 #include "pdk/kernel/StringUtils.h"
+#include "pdk/base/io/Debug.h"
 
 #include <algorithm>
 
@@ -66,7 +67,18 @@ namespace {
 
 void check_warn_message(const IoDevice *device, const char *function, const char *what)
 {
-   
+#ifndef PDK_NO_WARNING_OUTPUT
+   Debug d = warning_stream();
+   d.noquote();
+   d.nospace();
+   d << "IoDevice::" << function;
+   PDK_UNUSED(device);
+   d << ": " << what;
+#else
+   PDK_UNUSED(device);
+   PDK_UNUSED(function);
+   PDK_UNUSED(what);
+#endif // PDK_NO_WARNING_OUTPUT
 }
 
 }

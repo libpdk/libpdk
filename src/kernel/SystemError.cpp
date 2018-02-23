@@ -24,12 +24,9 @@
 #  include "pdk/global/Windows.h"
 #endif
 
-namespace pdk {
-namespace kernel {
-namespace internal {
-
 using pdk::lang::Latin1Character;
 using pdk::lang::Latin1String;
+using pdk::lang::String;
 
 namespace
 {
@@ -123,6 +120,10 @@ String standard_library_error_string(int errorCode)
 
 } // anonymous namespace
 
+namespace pdk {
+namespace kernel {
+namespace internal {
+
 String SystemError::getString(ErrorScope errorScope, int errorCode)
 {
    switch(errorScope) {
@@ -145,6 +146,9 @@ String SystemError::getStdString(int errorCode)
    return standard_library_error_string(errorCode == -1 ? errno : errorCode);
 }
 
+} // internal
+} // kernel
+
 #ifdef PDK_OS_WIN
 String SystemError::getWindowsString(int errorCode)
 {
@@ -162,8 +166,6 @@ String pdk_error_string(int code)
 }
 #endif
 
-} // internal
-} // kernel
 } // pdk
 
 

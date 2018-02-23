@@ -118,6 +118,15 @@
     static_cast<const wchar_t*>(static_cast<const void*>(::pdk::lang::String(string).utf16()))
 #endif
 
+namespace pdk { 
+namespace lang {
+class String;
+} // lang
+
+PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
+
+} // pdk
+
 #if !defined(PDK_NO_DEBUG) && !defined(PDK_DEBUG)
 #  define PDK_DEBUG
 #endif

@@ -41,7 +41,7 @@ namespace internal {
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
-using pdk::kernel::internal::pdk_error_string;
+using pdk::pdk_error_string;
 
 namespace {
 
