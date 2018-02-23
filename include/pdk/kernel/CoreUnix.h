@@ -327,6 +327,20 @@ ByteArray pdk_readlink(const char *path);
 
 PDK_CORE_EXPORT int safe_poll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts);
 
+inline bool pdk_have_linux_procfs()
+{
+#ifdef PDK_OS_LINUX
+#  ifdef PDK_LINUX_ALWAYS_HAVE_PROCFS
+   return true;
+#  else
+   static const bool present = (access("/proc/version", F_OK) == 0);
+   return present;
+#  endif
+#else
+   return false;
+#endif
+}
+
 namespace {
 
 inline int poll_msecs(struct pollfd *fds, nfds_t nfds, int timeout)

@@ -78,7 +78,6 @@ private:
    PDK_DISABLE_COPY(TemporaryFile);
 };
 
-
 } // fs
 } // io
 } // pdk
