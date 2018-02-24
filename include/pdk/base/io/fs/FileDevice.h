@@ -86,7 +86,7 @@ public:
    };
    PDK_DECLARE_FLAGS(FileHandleFlags, FileHandleFlag);
    
-   ~FileDevice();
+   virtual ~FileDevice();
    
    FileError getError() const;
    void unsetError();

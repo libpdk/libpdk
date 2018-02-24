@@ -286,7 +286,7 @@ public:
    
    PDK_REQUIRED_RESULT PDK_CORE_EXPORT VersionNumber normalized() const;
    
-   PDK_REQUIRED_RESULT PDK_CORE_EXPORT std::vector<int> segments() const;
+   PDK_REQUIRED_RESULT PDK_CORE_EXPORT std::vector<int> getSegments() const;
    
    PDK_REQUIRED_RESULT inline int segmentAt(int index) const noexcept
    {

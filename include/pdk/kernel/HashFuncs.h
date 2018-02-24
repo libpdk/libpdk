@@ -147,7 +147,7 @@ struct HashCombine
    using result_type = uint;
    template <typename T>
    // combiner taken from N3876 / boost::hash_combine
-   constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(hash(value)))
+   constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(pdk_hash(value)))
    {
       return seed ^ (pdk_hash(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
    }
@@ -162,7 +162,7 @@ struct HashCombineCommutative
    // combiner, too.
    using result_type = uint;
    template <typename T>
-   constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(hash(value)))
+   constexpr result_type operator()(const T &value, uint seed) const noexcept(noexcept(pdk_hash(value)))
    {
       return pdk_hash(value) + seed;
    }
@@ -172,13 +172,13 @@ struct HashCombineCommutative
 
 
 template <typename InputIterator>
-inline uint hash_range(InputIterator first, InputIterator last, uint seed = 0) noexcept(noexcept(hash(*first)))
+inline uint hash_range(InputIterator first, InputIterator last, uint seed = 0) noexcept(noexcept(pdk_hash(*first)))
 {
    return std::accumulate(first, last, seed, internal::HashCombine());
 }
 
 template <typename InputIterator>
-inline uint hash_range_commutative(InputIterator first, InputIterator last, uint seed = 0) noexcept(noexcept(hash(*first)))
+inline uint hash_range_commutative(InputIterator first, InputIterator last, uint seed = 0) noexcept(noexcept(pdk_hash(*first)))
 {
    return std::accumulate(first, last, seed, internal::HashCombineCommutative());
 }

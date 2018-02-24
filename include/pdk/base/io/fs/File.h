@@ -47,7 +47,7 @@ public:
    File(const String &name);
    explicit File(Object *parent);
    File(const String &name, Object *parent);
-   ~File();
+   virtual ~File();
    
    String getFileName() const override;
    void setFileName(const String &name);
