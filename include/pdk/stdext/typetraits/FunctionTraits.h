@@ -176,6 +176,90 @@ struct FunctionTraits :
       public internal::FunctionTraitsHelper<typename std::add_pointer<Function>::type>
 {};
 
+template<typename Func> 
+struct FunctionPointer 
+{ 
+   enum {
+      ArgumentCount = -1, 
+      IsPointerToMemberFunction = false
+   }; 
+};
+
+template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...)>
+{
+   typedef Obj Object;
+   typedef Ret ReturnType;
+   typedef Ret (Obj::*Function) (Args...);
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+
+template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) const>
+{
+   typedef Obj Object;
+   typedef Ret ReturnType;
+   typedef Ret (Obj::*Function) (Args...) const;
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+
+template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...)>
+{
+   typedef Ret ReturnType;
+   typedef Ret (*Function) (Args...);
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = false};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+
+template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) noexcept>
+{
+   typedef Obj Object;
+   typedef Ret ReturnType;
+   typedef Ret (Obj::*Function) (Args...) noexcept;
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) const noexcept>
+{
+   typedef Obj Object;
+   typedef Ret ReturnType;
+   typedef Ret (Obj::*Function) (Args...) const noexcept;
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+
+template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...) noexcept>
+{
+   typedef Ret ReturnType;
+   typedef Ret (*Function) (Args...) noexcept;
+   enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = false};
+   template <size_t index>
+   struct arg
+   {
+      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+   };
+};
+
 } // stdext
 } // pdk
 

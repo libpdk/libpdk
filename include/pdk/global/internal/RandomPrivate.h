@@ -24,7 +24,7 @@ namespace internal {
 
 using pdk::os::thread::BasicAtomicInteger;
 
-enum class RandomGeneratorControl
+enum class RandomGeneratorControl : long
 {
    UseSystemRNG = 1,
    SkipSystemRNG = 2,

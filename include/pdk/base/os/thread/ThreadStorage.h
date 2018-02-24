@@ -78,8 +78,8 @@ inline T &thread_storage_localdata(ThreadStorageData &data, T *)
 template <typename T>
 inline T thread_storage_localdata_const(const ThreadStorageData &data, T *)
 {
-    void **value = data.get();
-    return value ? *(reinterpret_cast<T *>(*value)) : T();
+   void **value = data.get();
+   return value ? *(reinterpret_cast<T *>(*value)) : T();
 }
 
 template <typename T>
@@ -93,6 +93,48 @@ inline void thread_storage_delete_data(void *data, T *)
 {
    delete static_cast<T *>(data);
 }
+
+template <class T>
+class ThreadStorage
+{
+private:
+   ThreadStorageData m_implPtr;
+   
+   PDK_DISABLE_COPY(ThreadStorage);
+   
+   static inline void deleteData(void *x)
+   {
+      thread_storage_delete_data(x, reinterpret_cast<T *>(0));
+   }
+   
+public:
+   inline ThreadStorage() 
+      : m_implPtr(deleteData)
+   {}
+   
+   inline ~ThreadStorage()
+   {}
+   
+   inline bool hasLocalData() const
+   {
+      return m_implPtr.get() != nullptr;
+   }
+   
+   inline T& localData()
+   {
+      return thread_storage_localdata(m_implPtr, reinterpret_cast<T *>(0));
+   }
+   
+   inline T localData() const
+   {
+      return thread_storage_localdata_const(m_implPtr, reinterpret_cast<T *>(0));
+   }
+   
+   inline void setLocalData(T t)
+   {
+      thread_storage_set_localdata(m_implPtr, &t);
+   }
+};
 
 } // thread
 } // os

@@ -48,6 +48,9 @@ PDK_CORE_EXPORT bool env_var_is_empty(const char *varName) noexcept;
 PDK_CORE_EXPORT bool env_var_isset(const char *varName) noexcept;
 PDK_CORE_EXPORT int  env_var_intval(const char *varName, bool *ok = nullptr) noexcept;
 
+PDK_CORE_EXPORT void srand(uint seed);
+PDK_CORE_EXPORT int rand();
+
 } // pdk
 
 #endif // PDK_UTILS_FUNCS_H
