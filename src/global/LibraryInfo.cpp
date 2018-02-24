@@ -11,21 +11,22 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2018/02/23.
+// Created by softboy on 2018/02/24.
 
-#include "pdk/global/PlatformDefs.h"
-#include "pdk/base/io/Debug.h"
-#include "pdk/base/io/fs/Settings.h"
-
-#ifndef PDK_NO_SETTINGS
-
-#include "pdk/base/io/fs/internal/SettingsPrivate.h"
-#include "pdk/utils/Cache.h"
-#include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/Dir.h"
-#include "pdk/base/io/fs/FileInfo.h"
+#include "pdk/base/ds/StringList.h"
+#include "pdk/base/io/fs/File.h"
+#include "pdk/base/io/fs/Settings.h"
 #include "pdk/global/LibraryInfo.h"
-#include "pdk/base/io/fs/TemporaryFile.h"
+#include "pdk/utils/ScopedPointer.h"
+#include "pdk/kernel/CoreApplication.h"
 
-#endif // PDK_NO_SETTINGS
+#ifdef PDK_OS_DARWIN
+#include "pdk/kernel/internal/CoreMacPrivate.h"
+#endif
 
+namespace pdk {
+
+
+
+} // pdk

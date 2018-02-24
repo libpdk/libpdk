@@ -37,6 +37,7 @@ class FileDevicePrivate;
 using pdk::time::DateTime;
 using internal::FileDevicePrivate;
 using pdk::lang::String;
+using pdk::io::IoDevice;
 
 class PDK_CORE_EXPORT FileDevice : public IoDevice
 {

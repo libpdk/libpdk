@@ -29,13 +29,15 @@
 
 namespace pdk {
 namespace io {
+
+// forward declare class
+class IoDevice;
+
 namespace fs {
 
 #ifdef Status // we seem to pick up a macro Status --> int somewhere
 #undef Status
 #endif
-
-class IoDevice;
 
 // forward declare class with namespace
 namespace internal
@@ -49,6 +51,7 @@ using pdk::kernel::Event;
 using pdk::lang::String;
 using pdk::ds::StringList;
 using pdk::text::codecs::TextCodec;
+using pdk::io::IoDevice;
 
 class PDK_CORE_EXPORT Settings : public Object
 {
