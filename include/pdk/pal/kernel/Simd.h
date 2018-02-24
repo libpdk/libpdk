@@ -282,144 +282,144 @@ namespace pdk {
 namespace pal {
 namespace kernel {
 
-enum class CPUFeatures : long
+enum CPUFeatures : long
 {
 #if defined(PDK_PROCESSOR_ARM)
-   NEON = 0,
-   ARM_NEON = NEON,
-   CRC32 = 1,
+   CPUFeaturesNEON = 0,
+   CPUFeaturesARM_NEON = NEON,
+   CPUFeaturesCRC32 = 1,
 #elif defined(PDK_PROCESSOR_MIPS)
-   DSP = 0,
-   DSPR2 = 1,
+   CPUFeaturesDSP = 0,
+   CPUFeaturesDSPR2 = 1,
 #elif defined(PDK_PROCESSOR_X86)
    // The order of the flags is jumbled so it matches most closely the bits in CPUID
    // Out of order:
-   SSE2          = 1,
-   SSE3          = (0 + 0),
-   SSSE3         = (0 + 9),
-   SSE4_1        = (0 + 19),
-   SSE4_2        = (0 + 20),
-   MOVBE         = (0 + 22),
-   POPCNT        = (0 + 23),
-   AES           = (0 + 25),
-   AVX           = (0 + 28),
-   F16C          = (0 + 29),
-   RDRAND        = (0 + 30),
+   CPUFeaturesSSE2          = 1,
+   CPUFeaturesSSE3          = (0 + 0),
+   CPUFeaturesSSSE3         = (0 + 9),
+   CPUFeaturesSSE4_1        = (0 + 19),
+   CPUFeaturesSSE4_2        = (0 + 20),
+   CPUFeaturesMOVBE         = (0 + 22),
+   CPUFeaturesPOPCNT        = (0 + 23),
+   CPUFeaturesAES           = (0 + 25),
+   CPUFeaturesAVX           = (0 + 28),
+   CPUFeaturesF16C          = (0 + 29),
+   CPUFeaturesRDRAND        = (0 + 30),
    // 31 is always zero and we've used it for the SimdInitialized
    
    // in level 7, leaf 0, EBX
-   BMI           = (32 + 3),
-   HLE           = (32 + 4),
-   AVX2          = (32 + 5),
-   BMI2          = (32 + 8),
-   RTM           = (32 + 11),
-   AVX512F       = (32 + 16),
-   AVX512DQ      = (32 + 17),
-   RDSEED        = (32 + 18),
-   AVX512IFMA    = (32 + 21),
-   AVX512PF      = (32 + 26),
-   AVX512ER      = (32 + 27),
-   AVX512CD      = (32 + 28),
-   SHA           = (32 + 29),
-   AVX512BW      = (32 + 30),
-   AVX512VL      = (32 + 31),
+   CPUFeaturesBMI           = (32 + 3),
+   CPUFeaturesHLE           = (32 + 4),
+   CPUFeaturesAVX2          = (32 + 5),
+   CPUFeaturesBMI2          = (32 + 8),
+   CPUFeaturesRTM           = (32 + 11),
+   CPUFeaturesAVX512F       = (32 + 16),
+   CPUFeaturesAVX512DQ      = (32 + 17),
+   CPUFeaturesRDSEED        = (32 + 18),
+   CPUFeaturesAVX512IFMA    = (32 + 21),
+   CPUFeaturesAVX512PF      = (32 + 26),
+   CPUFeaturesAVX512ER      = (32 + 27),
+   CPUFeaturesAVX512CD      = (32 + 28),
+   CPUFeaturesSHA           = (32 + 29),
+   CPUFeaturesAVX512BW      = (32 + 30),
+   CPUFeaturesAVX512VL      = (32 + 31),
    // in level 7, leaf 0, ECX (out of order, for now)
-   AVX512VBMI    = 2,// uses the bit for DTES64
+   CPUFeaturesAVX512VBMI    = 2,// uses the bit for DTES64
 #endif
    // used only to indicate that the CPU detection was initialised
-   SimdInitialized = 0x80000000
+   CPUFeaturesSimdInitialized = 0x80000000
 };
 
 static const puint64 COMPILER_CPU_FEATURE = 0
       #if defined(__SHA__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SHA))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSHA))
       #endif
       #if defined(__AES__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AES))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAES))
       #endif
       #if defined(__RTM__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::RTM))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesRTM))
       #endif
       #if defined(__RDRND__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::RDRAND))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesRDRAND))
       #endif
       #if defined(__RDSEED__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::RDSEED))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesRDSEED))
       #endif
       #if defined(__BMI__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::BMI))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesBMI))
       #endif
       #if defined(__BMI2__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::BMI2))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesBMI2))
       #endif
       #if defined(__F16C__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::F16C))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesF16C))
       #endif
       #if defined(__POPCNT__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::POPCNT))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesPOPCNT))
       #endif
       #if defined(__MOVBE__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::MOVBE))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesMOVBE))
       #endif
       #if defined(__AVX512F__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512F))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512F))
       #endif
       #if defined(__AVX512CD__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512CD))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512CD))
       #endif
       #if defined(__AVX512ER__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512ER))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512ER))
       #endif
       #if defined(__AVX512PF__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512PF))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512PF))
       #endif
       #if defined(__AVX512BW__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512BW))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512BW))
       #endif
       #if defined(__AVX512DQ__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512DQ))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512DQ))
       #endif
       #if defined(__AVX512VL__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512VL))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512VL))
       #endif
       #if defined(__AVX512IFMA__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512IFMA))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512IFMA))
       #endif
       #if defined(__AVX512VBMI__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX512VBMI))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX512VBMI))
       #endif
       #if defined(__AVX2__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX2))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX2))
       #endif
       #if defined(__AVX__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::AVX))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesAVX))
       #endif
       #if defined(__SSE4_2__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SSE4_2))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSSE4_2))
       #endif
       #if defined(__SSE4_1__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SSE4_1))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSSE4_1))
       #endif
       #if defined(__SSSE3__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SSSE3))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSSSE3))
       #endif
       #if defined(__SSE3__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SSE3))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSSE3))
       #endif
       #if defined(__SSE2__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::SSE2))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesSSE2))
       #endif
       #if defined(__ARM_NEON__)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::NEON))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesNEON))
       #endif
       #if defined(__ARM_FEATURE_CRC32)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::CRC32))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesCRC32))
       #endif
       #if defined(__mips_dsp)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::DSP))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesDSP))
       #endif
       #if defined(__mips_dspr2)
-      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeatures::DSPR2))
+      | (PDK_UINT64_C(1) << static_cast<unsigned long long>(CPUFeaturesDSPR2))
       #endif
       ;
 
@@ -451,8 +451,8 @@ inline puint64 cpu_features()
 }
 }
 
-#define CPU_HAS_FEATURE(feature) ((COMPILER_CPU_FEATURE & (PDK_UINT64_C(1) << CPUFeatures::##feature))\
-   || (cpu_features() & (PDK_UINT64_C(1) << CPUFeatures::feature)))
+#define CPU_HAS_FEATURE(feature) ((COMPILER_CPU_FEATURE & (PDK_UINT64_C(1) << CPUFeatures##feature))\
+   || (cpu_features() & (PDK_UINT64_C(1) << CPUFeatures##feature)))
 
 #define ALIGNMENT_PROLOGUE_16BYTES(ptr, i, length) \
    for (; i < static_cast<int>(std::min(static_cast<pdk::uintptr>(length), ((4 - ((reinterpret_cast<pdk::uintptr>(ptr) >> 2) & 0x3)) & 0x3))); ++i)
