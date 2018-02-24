@@ -118,6 +118,8 @@
     static_cast<const wchar_t*>(static_cast<const void*>(::pdk::lang::String(string).utf16()))
 #endif
 
+#define PDK_TERMINATE_ON_EXCEPTION(expr) do { expr; } while (false)
+
 namespace pdk { 
 namespace lang {
 class String;

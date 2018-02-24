@@ -30,6 +30,10 @@
 #define PDK_FEATURE_translation -1
 #define PDK_FEATURE_renameat2 -1
 #define PDK_FEATURE_temporaryfile 1
+#define PDK_FEATURE_slog2 -1
+#define PDK_FEATURE_syslog 1
+#define PDK_FEATURE_journald -1
+#define PDK_FEATURE_datestring -1
 
 #define PDK_NO_DOUBLECONVERSION
 

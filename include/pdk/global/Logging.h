@@ -24,6 +24,7 @@ namespace pdk {
 namespace io {
 class Debug;
 class NoDebug;
+class LoggingCategory;
 } // io
 
 // forward declare class with namespace
@@ -34,6 +35,7 @@ class String;
 using io::Debug;
 using io::NoDebug;
 using lang::String;
+using io::LoggingCategory;
 
 class MessageLogContext
 {
@@ -68,7 +70,7 @@ private:
    friend class Debug;
 };
 
-class LoggingCategory;
+
 
 class PDK_CORE_EXPORT MessageLogger
 {

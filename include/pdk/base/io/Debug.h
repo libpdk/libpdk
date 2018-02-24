@@ -31,6 +31,9 @@
 
 namespace pdk {
 
+// forward declare class
+class MessageLogger;
+
 // forward declare class with namespace
 namespace ds {
 class ByteArray;
@@ -44,6 +47,7 @@ using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::lang::StringView;
 using pdk::MessageLogContext;
+using pdk::MessageLogger;
 
 namespace internal
 {
