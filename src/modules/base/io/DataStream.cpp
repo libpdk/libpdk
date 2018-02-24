@@ -60,7 +60,7 @@ DataStream::DataStream()
    m_device = 0;
    m_ownDevice = false;
    m_byteorder = ByteOrder::BigEndian;
-   m_version = pdk::as_integer<Version>(Version::DefaultCompiledVersion);
+   m_version = Version::DefaultCompiledVersion;
    m_noswap = SysInfo::ByteOrder == SysInfo::BigEndian;
    m_status = Status::Ok;
 }
@@ -70,7 +70,7 @@ DataStream::DataStream(IoDevice *d)
    m_device = d;                                // set device
    m_ownDevice = false;
    m_byteorder = ByteOrder::BigEndian;                        // default byte order
-   m_version = pdk::as_integer<Version>(Version::DefaultCompiledVersion);
+   m_version = Version::DefaultCompiledVersion;
    m_noswap = SysInfo::ByteOrder == SysInfo::BigEndian;
    m_status = Status::Ok;
 }
@@ -85,7 +85,7 @@ DataStream::DataStream(ByteArray *a, IoDevice::OpenMode flags)
    m_device = buf;
    m_ownDevice = true;
    m_byteorder = ByteOrder::BigEndian;
-   m_version = pdk::as_integer<Version>(Version::DefaultCompiledVersion);
+   m_version = Version::DefaultCompiledVersion;
    m_noswap = SysInfo::ByteOrder == SysInfo::BigEndian;
    m_status = Status::Ok;
 }
@@ -101,7 +101,7 @@ DataStream::DataStream(const ByteArray &a)
    m_device = buf;
    m_ownDevice = true;
    m_byteorder = ByteOrder::BigEndian;
-   m_version = pdk::as_integer<Version>(Version::DefaultCompiledVersion);
+   m_version = Version::DefaultCompiledVersion;
    m_noswap = SysInfo::ByteOrder == SysInfo::BigEndian;
    m_status = Status::Ok;
 }
@@ -286,7 +286,7 @@ DataStream &DataStream::operator>>(pdk::pint64 &i)
 {
    i = pdk::pint64(0);
    CHECK_STREAM_PRECOND(*this);
-   if (version() < 6) {
+   if (pdk::as_integer<Version>(version()) < 6) {
       pdk::puint32 i1, i2;
       *this >> i2 >> i1;
       i = ((pdk::puint64)i1 << 32) + i2;

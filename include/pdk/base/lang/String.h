@@ -1351,7 +1351,7 @@ inline bool operator >=(const String &lhs, Character rhs) noexcept
 
 inline bool operator <=(const String &lhs, Character rhs) noexcept
 {
-   return !(rhs < rhs);
+   return !(rhs < lhs);
 }
 
 class PDK_CORE_EXPORT CharacterRef

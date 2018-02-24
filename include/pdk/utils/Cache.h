@@ -205,7 +205,7 @@ inline bool Cache<Key, T>::remove(const Key &key)
    if (typename std::map<Key, Node>::const_iterator(iter) == m_map.cend()) {
       return false;
    } else {
-      unlink(*iter);
+      unlink(iter->second);
       return true;
    }
 }
@@ -217,7 +217,7 @@ inline T *Cache<Key, T>::take(const Key &key)
    if (iter == m_map.end()) {
       return nullptr;
    }
-   Node &node = *iter;
+   Node &node = iter->second;
    T *data = node.m_data;
    node.m_data = nullptr;
    unlink(node);

@@ -226,7 +226,7 @@ public:
    virtual void sync() = 0;
    virtual void flush() = 0;
    virtual bool isWritable() const = 0;
-   virtual String fileName() const = 0;
+   virtual String getFileName() const = 0;
    
    String actualKey(const String &key) const;
    void beginGroupOrArray(const SettingsGroup &group);
@@ -242,12 +242,12 @@ public:
    static void processChild(StringRef key, ChildSpec spec, StringList &result);
    
    // Variant streaming functions
-   static StringList anyListToStringList(const std::list<std::any> &l);
-   static std::any stringListToVariantList(const StringList &l);
+   static StringList anyListToStringList(const std::list<std::any> &list);
+   static std::any stringListToAnyList(const StringList &list);
    
    // parser functions
-   static String variantToString(const std::any &v);
-   static std::any stringToVariant(const String &s);
+   static String anyToString(const std::any &v);
+   static std::any stringToAny(const String &s);
    static void iniEscapedKey(const String &key, ByteArray &result);
    static bool iniUnescapedKey(const ByteArray &key, int from, int to, String &result);
    static void iniEscapedString(const String &str, ByteArray &result, TextCodec *codec);
@@ -290,7 +290,7 @@ public:
    void sync() override;
    void flush() override;
    bool isWritable() const override;
-   String fileName() const override;
+   String getFileName() const override;
    
    bool readIniFile(const ByteArray &data, UnparsedSettingsMap *unparsedIniSections);
    static bool readIniSection(const SettingsKey &section, const ByteArray &data,

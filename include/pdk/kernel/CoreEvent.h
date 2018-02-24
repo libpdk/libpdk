@@ -53,6 +53,8 @@ public:
       ThreadChange,
       SocketActive,
       SocketClose,
+      UpdateRequest = 77,                     // widget should be repainted
+      UpdateLater = 78,                       // request update() later
       User = 1000, // first user event id
       MaxUser = 65535
    };
@@ -132,17 +134,17 @@ protected:
 class PDK_CORE_EXPORT DeferredDeleteEvent : public Event
 {
 public:
-    explicit DeferredDeleteEvent();
+   explicit DeferredDeleteEvent();
    
-    ~DeferredDeleteEvent();
+   ~DeferredDeleteEvent();
    
-    int loopLevel() const
-    {
-       return m_level;
-    }
+   int loopLevel() const
+   {
+      return m_level;
+   }
 private:
-    int m_level;
-    friend class CoreApplication;
+   int m_level;
+   friend class CoreApplication;
 };
 
 } // kernel

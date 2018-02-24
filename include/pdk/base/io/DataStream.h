@@ -94,8 +94,8 @@ public:
    ByteOrder byteOrder() const;
    void setByteOrder(ByteOrder);
    
-   int version() const;
-   void setVersion(int);
+   Version version() const;
+   void setVersion(Version);
    
    DataStream &operator>>(pdk::pint8 &i);
    DataStream &operator>>(pdk::puint8 &i);
@@ -148,7 +148,7 @@ private:
    bool m_ownDevice;
    bool m_noswap;
    ByteOrder m_byteorder;
-   int m_version;
+   Version m_version;
    Status m_status;
    
    int readBlock(char *data, int len);
@@ -284,12 +284,12 @@ inline DataStream::ByteOrder DataStream::byteOrder() const
    return m_byteorder;
 }
 
-inline int DataStream::version() const
+inline DataStream::Version DataStream::version() const
 {
    return m_version;
 }
 
-inline void DataStream::setVersion(int v)
+inline void DataStream::setVersion(DataStream::Version v)
 {
    m_version = v;
 }

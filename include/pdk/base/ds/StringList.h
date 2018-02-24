@@ -18,14 +18,14 @@
 
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringMatcher.h"
-#include <list>
+#include <vector>
 
 namespace pdk {
 namespace ds {
 
 using pdk::lang::String;
 
-class StringList : public std::list<String>
+class StringList : public std::vector<String>
 {
 public:
    inline StringList() noexcept
@@ -36,26 +36,26 @@ public:
       push_back(string);
    }
    
-   inline StringList(const std::list<String> &lits) : std::list<String>(lits)
+   inline StringList(const std::vector<String> &lits) : std::vector<String>(lits)
    {}
    
-   inline StringList(std::list<String> &&list) noexcept 
-      : std::list<String>(std::move(list))
+   inline StringList(std::vector<String> &&list) noexcept 
+      : std::vector<String>(std::move(list))
    {}
    
    inline StringList(std::initializer_list<String> args) 
-      : std::list<String>(args)
+      : std::vector<String>(args)
    {}
    
-   StringList &operator=(const std::list<String> &other)
+   StringList &operator=(const std::vector<String> &other)
    { 
-      std::list<String>::operator=(other);
+      std::vector<String>::operator=(other);
       return *this;
    }
    
-   StringList &operator=(std::list<String> &&other) noexcept
+   StringList &operator=(std::vector<String> &&other) noexcept
    {
-      std::list<String>::operator=(std::move(other));
+      std::vector<String>::operator=(std::move(other));
       return *this;
    }
    
@@ -65,6 +65,20 @@ public:
       auto iter = cbegin();
       std::advance(iter, idx);
       return *iter;
+   }
+   
+   String takeFirst()
+   {
+       String t = std::move(front());
+       erase(begin());
+       return t;
+   }
+
+   String takeLast()
+   {
+      String t = std::move(back());
+      pop_back();
+      return t;
    }
    
    inline bool contains(const_reference value) const
@@ -83,7 +97,7 @@ public:
       return *this;
    }
    
-   inline StringList &operator +=(const std::list<String> &other)
+   inline StringList &operator +=(const std::vector<String> &other)
    {
       const_iterator iter = other.cbegin();
       const_iterator cend = other.cend();
@@ -112,7 +126,7 @@ public:
       return *this;
    }
    
-   inline StringList &operator<<(const std::list<String> &list)
+   inline StringList &operator<<(const std::vector<String> &list)
    { 
       *this += list;
       return *this;
