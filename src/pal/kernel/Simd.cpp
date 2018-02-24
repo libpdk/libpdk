@@ -1,4 +1,4 @@
-// @copyright 2017-2018 zzu_softboy <zzusoftboy@gmail.com>
+// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -11,12 +11,18 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Created by softboy on 2017/11/10.
+// Created by softboy on 2018/02/24.
 
-#ifndef PDK_VERSION_H
-#define PDK_VERSION_H
+#include "pdk/pal/kernel/Simd.h"
 
-#define PDK_VERSION 0x000001
-#define PDK_VERSION_STR "pdk"
+namespace pdk {
+namespace pal {
+namespace kernel {
 
-#endif // PDK_VERSION_H
+void dump_cpu_features()
+{
+}
+
+} // kernel
+} // pal
+} // pdk

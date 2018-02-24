@@ -14,7 +14,7 @@
 // Created by softboy on 2017/01/25.
 
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
-#include "pdk/kernel/EventdispatcherUnix.h"
+#include "pdk/kernel/EventDispatcherUnix.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
