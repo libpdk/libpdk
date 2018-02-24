@@ -15,8 +15,8 @@
 
 #include "pdk/global/Global.h"
 
-#ifndef PDK_GLOBAL_INTERNAL_HOOKS_H
-#define PDK_GLOBAL_INTERNAL_HOOKS_H
+#ifndef PDK_GLOBAL_INTERNAL_HOOKS_PRIVATE_H
+#define PDK_GLOBAL_INTERNAL_HOOKS_PRIVATE_H
 
 namespace pdk {
 
@@ -50,4 +50,4 @@ extern pdk::uintptr PDK_CORE_EXPORT sg_pdkHookData[];
 
 } // pdk
 
-#endif // PDK_GLOBAL_INTERNAL_HOOKS_H
+#endif // PDK_GLOBAL_INTERNAL_HOOKS_PRIVATE_H
