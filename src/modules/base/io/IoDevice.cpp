@@ -17,7 +17,11 @@
 #include "pdk/base/ds/internal/ByteArrayPrivate.h"
 #include "pdk/base/io/internal/IoDevicePrivate.h"
 #include "pdk/kernel/StringUtils.h"
+#include "pdk/base/ds/StringList.h"
+
+#ifndef PDK_NO_DEBUG_STREAM
 #include "pdk/base/io/Debug.h"
+#endif
 
 #include <algorithm>
 
@@ -30,6 +34,10 @@ namespace io {
 
 using pdk::ds::internal::MAX_BYTE_ARRAY_SIZE;
 using internal::IoDevicePrivate;
+using pdk::io::Debug;
+using pdk::ds::StringList;
+using pdk::lang::Latin1String;
+using pdk::lang::Latin1Character;
 
 #ifdef PDK_IODEVICE_DEBUG
 void debug_binary_string(const ByteArray &input)
@@ -1165,6 +1173,12 @@ pdk::pint64 IoDevice::skip(pdk::pint64 maxLength)
    return skippedSoFar + skipResult;
 }
 
+bool IoDevice::waitForReadyRead(int msecs)
+{
+   PDK_UNUSED(msecs);
+   return false;
+}
+
 bool IoDevice::waitForBytesWritten(int msecs)
 {
    PDK_UNUSED(msecs);
@@ -1185,6 +1199,50 @@ String IoDevice::getErrorString() const
    return implPtr->m_errorString;
 }
 
+namespace internal {
+int substract_from_timeout(int timeout, int elapsed)
+{
+   if (timeout == -1) {
+      return -1;
+   }
+   timeout = timeout - elapsed;
+   return timeout < 0 ? 0 : timeout;
+}
+} // internal
+
+#if !defined(PDK_NO_DEBUG_STREAM)
+Debug operator<<(Debug debug, IoDevice::OpenModes modes)
+{
+   debug << "OpenMode(";
+   StringList modeList;
+   if (modes == IoDevice::OpenMode::NotOpen) {
+      modeList << Latin1String("NotOpen");
+   } else {
+      if (modes & IoDevice::OpenMode::ReadOnly) {
+         modeList << Latin1String("ReadOnly");
+      }
+      if (modes & IoDevice::OpenMode::WriteOnly) {
+         modeList << Latin1String("WriteOnly");
+      }
+      if (modes & IoDevice::OpenMode::Append) {
+         modeList << Latin1String("Append");
+      }
+      if (modes & IoDevice::OpenMode::Truncate) {
+         modeList << Latin1String("Truncate");
+      }
+      if (modes & IoDevice::OpenMode::Text) {
+         modeList << Latin1String("Text");
+      }
+      if (modes & IoDevice::OpenMode::Unbuffered) {
+         modeList << Latin1String("Unbuffered");
+      }
+   }
+   std::sort(modeList.begin(), modeList.end());
+   debug << modeList.join(Latin1Character('|'));
+   debug << ')';
+   return debug;
+}
+#endif
 
 } // io
 } // pdk
