@@ -149,8 +149,8 @@ public:
    
    const uchar *getData(int node, pdk::pint64 *size) const;
    DateTime lastModified(int node) const;
-   StringList children(int node) const;
-   virtual String mappingRoot() const
+   StringList getChildren(int node) const;
+   virtual String getMappingRoot() const
    {
       return String();
    }
@@ -381,7 +381,7 @@ void ResourcePrivate::ensureChildren() const
       } else {
          const int node = res->findNode(cleaned);
          if(node != -1) {
-            StringList relatedChildren = res->children(node);
+            StringList relatedChildren = res->getChildren(node);
             for(StringList::size_type kid = 0; kid < relatedChildren.size(); ++kid) {
                k = relatedChildren.at(kid);
                if(kids.find(k) == kids.end()) {
@@ -433,7 +433,7 @@ int ResourceRoot::findNode(const String &path, const Locale &locale) const
 {
    String ppath = path;
    {
-      String root = mappingRoot();
+      String root = getMappingRoot();
       if(!root.isEmpty()) {
          if(root == ppath) {
             ppath = Latin1Character('/');
@@ -600,7 +600,7 @@ DateTime ResourceRoot::lastModified(int node) const
    if (node == -1 || m_version < 0x02) {
       return DateTime();      
    }
-      
+   
    const int offset = findOffset(node) + 14;
    
    const pdk::puint64 timeStamp = pdk::pdk_from_big_endian<pdk::puint64>(m_tree + offset);
@@ -610,7 +610,7 @@ DateTime ResourceRoot::lastModified(int node) const
    return DateTime::fromMSecsSinceEpoch(timeStamp);
 }
 
-StringList ResourceRoot::children(int node) const
+StringList ResourceRoot::getChildren(int node) const
 {
    if(node == -1)
       return StringList();
@@ -633,7 +633,7 @@ StringList ResourceRoot::children(int node) const
 }
 bool ResourceRoot::mappingRootSubdir(const String &path, String *match) const
 {
-   const String root = mappingRoot();
+   const String root = getMappingRoot();
    if (root.isEmpty())
       return false;
    
@@ -656,7 +656,274 @@ bool ResourceRoot::mappingRootSubdir(const String &path, String *match) const
 
 } // internal
 
+PDK_CORE_EXPORT bool register_resource_data(int version, const unsigned char *tree,
+                                            const unsigned char *name, const unsigned char *data)
+{
+   std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+   if ((version == 0x01 || version == 0x2) && resource_list()) {
+      bool found = false;
+      ResourceRoot res(version, tree, name, data);
+      for(size_t i = 0; i < resource_list()->size(); ++i) {
+         auto iter = resource_list()->begin();
+         std::advance(iter, i);
+         if(**iter == res) {
+            found = true;
+            break;
+         }
+      }
+      if(!found) {
+         ResourceRoot *root = new ResourceRoot(version, tree, name, data);
+         root->m_ref.ref();
+         resource_list()->push_back(root);
+      }
+      return true;
+   }
+   return false;
+}
+
+PDK_CORE_EXPORT bool unregister_resource_data(int version, const unsigned char *tree,
+                                              const unsigned char *name, const unsigned char *data)
+{
+   if (sg_resourceGlobalData.isDestroyed()) {
+      return false;
+   }
+   std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+   if ((version == 0x01 || version == 0x02) && resource_list()) {
+      ResourceRoot res(version, tree, name, data);
+      for(size_t i = 0; i < resource_list()->size(); ) {
+         auto iter = resource_list()->begin();
+         std::advance(iter, i);
+         if(**iter == res) {
+            ResourceRoot *root = *iter;
+            resource_list()->erase(iter);
+            if(!root->m_ref.deref())
+               delete root;
+         } else {
+            ++i;
+         }
+      }
+      return true;
+   }
+   return false;
+}
+
+namespace internal {
+
+class DynamicBufferResourceRoot: public ResourceRoot
+{
+   String m_root;
+   const uchar *m_buffer;
+   
+public:
+   inline DynamicBufferResourceRoot(const String &root)
+      : m_root(root),
+        m_buffer(nullptr)
+   {}
+   
+   inline ~DynamicBufferResourceRoot()
+   {}
+   
+   inline const uchar *getMappingBuffer() const
+   {
+      return m_buffer;
+   }
+   virtual String getMappingRoot() const override
+   {
+      return m_root;
+   }
+   
+   virtual ResourceRootType getType() const override
+   {
+      return ResourceRootType::Buffer;
+   }
+   
+   // size == -1 means "unknown"
+   bool registerSelf(const uchar *buffer, int size)
+   {
+      // 5 int "pointers"
+      if (size >= 0 && size < 20) {
+         return false;
+      }
+      //setup the data now
+      int offset = 0;
+      //magic number
+      if(buffer[offset+0] != 'q' || buffer[offset+1] != 'r' ||
+            buffer[offset+2] != 'e' || buffer[offset+3] != 's') {
+         return false;
+      }
+      offset += 4;
+      const int version = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      offset += 4;
+      const int treeOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      offset += 4;
+      const int dataOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      offset += 4;
+      const int nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      offset += 4;
+      // Some sanity checking for sizes. This is _not_ a security measure.
+      if (size >= 0 && (treeOffset >= size || dataOffset >= size || nameOffset >= size))
+         return false;
+      if (version == 0x01 || version == 0x02) {
+         m_buffer = buffer;
+         setSource(version, buffer + treeOffset, buffer + nameOffset, buffer + dataOffset);
+         return true;
+      }
+      return false;
+   }
+};
+
+} // internal
+
+#if defined(PDK_OS_UNIX) && !defined(PDK_OS_INTEGRITY)
+#define PDK_USE_MMAP
+#endif
+
+// most of the headers below are already included in qplatformdefs.h
+// also this lacks Large File support but that's probably irrelevant
+#if defined(PDK_USE_MMAP)
+// for mmap
+} // fs
+} // io
+} // pdk
+
+#include <sys/mman.h>
+#include <errno.h>
+
+namespace pdk {
+namespace io {
+namespace fs {
+#endif
+
+namespace internal {
+
+class DynamicFileResourceRoot: public DynamicBufferResourceRoot
+{
+   String m_fileName;
+   // for mmap'ed files, this is what needs to be unmapped.
+   uchar *m_unmapPointer;
+   unsigned int m_unmapLength;
+   
+public:
+   inline DynamicFileResourceRoot(const String &root) 
+      : DynamicBufferResourceRoot(root),
+        m_unmapPointer(nullptr),
+        m_unmapLength(0)
+   {}
+   
+   ~DynamicFileResourceRoot() {
+#if defined(PDK_USE_MMAP)
+      if (m_unmapPointer) {
+         munmap((char*)m_unmapPointer, m_unmapLength);
+         m_unmapPointer = nullptr;
+         m_unmapLength = 0;
+      } else
+#endif
+      {
+         delete [] getMappingBuffer();
+      }
+   }
+   String getMappingFile() const
+   {
+      return m_fileName;
+   }
+   
+   virtual ResourceRootType getType() const override
+   {
+      return ResourceRootType::File;
+   }
+   
+   bool registerSelf(const String &f) 
+   {
+      bool fromMM = false;
+      uchar *data = nullptr;
+      unsigned int dataLen = 0;
+      
+#ifdef PDK_USE_MMAP
+      
+#ifndef MAP_FILE
+#define MAP_FILE 0
+#endif
+#ifndef MAP_FAILED
+#define MAP_FAILED -1
+#endif
+      
+      int fd = PDK_OPEN(File::encodeName(f), O_RDONLY,
+                  #if defined(PDK_OS_WIN)
+                        _S_IREAD | _S_IWRITE
+                  #else
+                        0666
+                  #endif
+                        );
+      if (fd >= 0) {
+         PDK_STATBUF st;
+         if (!PDK_FSTAT(fd, &st)) {
+            uchar *ptr;
+            ptr = reinterpret_cast<uchar *>(
+                     mmap(0, st.st_size,             // any address, whole file
+                          PROT_READ,                 // read-only memory
+                          MAP_FILE | MAP_PRIVATE,    // swap-backed map from file
+                          fd, 0));                   // from offset 0 of fd
+            if (ptr && ptr != reinterpret_cast<uchar *>(MAP_FAILED)) {
+               data = ptr;
+               dataLen = st.st_size;
+               fromMM = true;
+            }
+         }
+         ::close(fd);
+      }
+#endif // PDK_USE_MMAP
+      if(!data) {
+         File file(f);
+         if (!file.exists()) {
+            return false;
+         }
+         dataLen = file.getSize();
+         data = new uchar[dataLen];
+         bool ok = false;
+         if (file.open(IoDevice::OpenMode::ReadOnly))
+            ok = (dataLen == (uint)file.read((char*)data, dataLen));
+         if (!ok) {
+            delete [] data;
+            data = 0;
+            dataLen = 0;
+            return false;
+         }
+         fromMM = false;
+      }
+      if (data && DynamicBufferResourceRoot::registerSelf(data, dataLen)) {
+         if(fromMM) {
+            m_unmapPointer = data;
+            m_unmapLength = dataLen;
+         }
+         m_fileName = f;
+         return true;
+      }
+      return false;
+   }
+};
+
+} // internal
+
+namespace {
+
+String resource_fix_resource_root(String resource)
+{
+   if(!resource.isEmpty()) {
+      if(resource.startsWith(Latin1Character(':'))) {
+         resource = resource.substring(1);
+      }
+      if(!resource.isEmpty()) {
+         resource = Dir::cleanPath(resource);
+      } 
+   }
+   return resource;
+}
+
+} // anonymous namespace
+
 using internal::ResourcePrivate;
+using internal::DynamicFileResourceRoot;
+using internal::DynamicBufferResourceRoot;
 
 Resource::Resource(const String &file, const Locale &locale)
    : m_implPtr(new ResourcePrivate(this))
@@ -667,7 +934,93 @@ Resource::Resource(const String &file, const Locale &locale)
 }
 
 Resource::~Resource()
+{}
+
+bool Resource::registerResource(const String &rccFilename, const String &resourceRoot)
 {
+   String r = resource_fix_resource_root(resourceRoot);
+   if(!r.isEmpty() && r[0] != Latin1Character('/')) {
+      warning_stream("Dir::registerResource: Registering a resource [%s] must be rooted in an absolute path (start with /) [%s]",
+                     rccFilename.toLocal8Bit().getRawData(), resourceRoot.toLocal8Bit().getRawData());
+      return false;
+   }
+   DynamicFileResourceRoot *root = new DynamicFileResourceRoot(r);
+   if(root->registerSelf(rccFilename)) {
+      root->m_ref.ref();
+      std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+      resource_list()->push_back(root);
+      return true;
+   }
+   delete root;
+   return false;
+}
+
+bool Resource::unregisterResource(const String &rccFilename, const String &resourceRoot)
+{
+   String r = resource_fix_resource_root(resourceRoot);
+   std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+   ResourceList *list = resource_list();
+   for(size_t i = 0; i < list->size(); ++i) {
+      auto iter = list->begin();
+      std::advance(iter, i);
+      ResourceRoot *res = *iter;
+      if(res->getType() == ResourceRoot::ResourceRootType::File) {
+         DynamicFileResourceRoot *root = reinterpret_cast<DynamicFileResourceRoot*>(res);
+         if (root->getMappingFile() == rccFilename && root->getMappingRoot() == r) {
+            resource_list()->erase(iter);
+            if(!root->m_ref.deref()) {
+               delete root;
+               return true;
+            }
+            return false;
+         }
+      }
+   }
+   return false;
+}
+
+bool Resource::registerResource(const uchar *rccData, const String &resourceRoot)
+{
+   String r = resource_fix_resource_root(resourceRoot);
+   if(!r.isEmpty() && r[0] != Latin1Character('/')) {
+      warning_stream("Dir::registerResource: Registering a resource [%p] must be rooted in an absolute path (start with /) [%s]",
+                     rccData, resourceRoot.toLocal8Bit().getRawData());
+      return false;
+   }
+   
+   DynamicBufferResourceRoot *root = new DynamicBufferResourceRoot(r);
+   if (root->registerSelf(rccData, -1)) {
+      root->m_ref.ref();
+      std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+      resource_list()->push_back(root);
+      return true;
+   }
+   delete root;
+   return false;
+}
+
+bool Resource::unregisterResource(const uchar *rccData, const String &resourceRoot)
+{
+   String r = resource_fix_resource_root(resourceRoot);
+   std::lock_guard<std::recursive_mutex> lock(resource_mutex());
+   ResourceList *list = resource_list();
+   for(size_t i = 0; i < list->size(); ++i) {
+      auto iter = list->begin();
+      std::advance(iter, i);
+      ResourceRoot *res = *iter;
+      if(res->getType() == ResourceRoot::ResourceRootType::Buffer) {
+         DynamicBufferResourceRoot *root = reinterpret_cast<DynamicBufferResourceRoot*>(res);
+         if (root->getMappingBuffer() == rccData && root->getMappingRoot() == r) {
+            resource_list()->erase(iter);
+            if(!root->m_ref.deref()) {
+               delete root;
+               return true;
+            }
+            return false;
+         }
+      }
+   }
+   return false;
 }
 
 void Resource::setLocale(const Locale &locale)
@@ -752,6 +1105,344 @@ StringList Resource::getChildren() const
    implPtr->ensureChildren();
    return implPtr->m_children;
 }
+
+namespace internal {
+
+using pdk::kernel::internal::SystemError;
+
+class ResourceFileEnginePrivate : public AbstractFileEnginePrivate
+{
+protected:
+   PDK_DECLARE_PUBLIC(ResourceFileEngine);
+private:
+   uchar *map(pdk::pint64 offset, pdk::pint64 size, File::MemoryMapFlags flags);
+   bool unmap(uchar *ptr);
+   void uncompress() const;
+   pdk::pint64 m_offset;
+   Resource m_resource;
+   mutable ByteArray m_uncompressed;
+protected:
+   ResourceFileEnginePrivate()
+      : m_offset(0)
+   {}
+};
+
+bool ResourceFileEngine::mkdir(const String &, bool) const
+{
+   return false;
+}
+
+bool ResourceFileEngine::rmdir(const String &, bool) const
+{
+   return false;
+}
+
+bool ResourceFileEngine::setSize(pdk::pint64)
+{
+   return false;
+}
+
+StringList ResourceFileEngine::getEntryList(Dir::Filters filters, const StringList &filterNames) const
+{
+   return AbstractFileEngine::getEntryList(filters, filterNames);
+}
+
+bool ResourceFileEngine::caseSensitive() const
+{
+   return true;
+}
+
+ResourceFileEngine::ResourceFileEngine(const String &file) :
+   AbstractFileEngine(*new ResourceFileEnginePrivate)
+{
+   PDK_D(ResourceFileEngine);
+   implPtr->m_resource.setFileName(file);
+}
+
+ResourceFileEngine::~ResourceFileEngine()
+{
+}
+
+void ResourceFileEngine::setFileName(const String &file)
+{
+   PDK_D(ResourceFileEngine);
+   implPtr->m_resource.setFileName(file);
+}
+
+bool ResourceFileEngine::open(IoDevice::OpenModes flags)
+{
+   PDK_D(ResourceFileEngine);
+   if (implPtr->m_resource.getFileName().isEmpty()) {
+      warning_stream("ResourceFileEngine::open: Missing file name");
+      return false;
+   }
+   if(flags & IoDevice::OpenMode::WriteOnly) {
+      return false;
+   }
+   implPtr->uncompress();
+   if (!implPtr->m_resource.isValid()) {
+      implPtr->m_errorString = SystemError::getStdString(ENOENT);
+      return false;
+   }
+   return true;
+}
+
+bool ResourceFileEngine::close()
+{
+   PDK_D(ResourceFileEngine);
+   implPtr->m_offset = 0;
+   implPtr->m_uncompressed.clear();
+   return true;
+}
+
+bool ResourceFileEngine::flush()
+{
+   return true;
+}
+
+pdk::pint64 ResourceFileEngine::read(char *data, pdk::pint64 len)
+{
+   PDK_D(ResourceFileEngine);
+   if(len > getSize() - implPtr->m_offset) {
+      len = getSize() - implPtr->m_offset;
+   }
+   if(len <= 0) {
+      return 0;
+   }
+   if(implPtr->m_resource.isCompressed()) {
+      memcpy(data, implPtr->m_uncompressed.getConstRawData() + implPtr->m_offset, len);
+   } else {
+      memcpy(data, implPtr->m_resource.getData() + implPtr->m_offset, len);
+   }
+   implPtr->m_offset += len;
+   return len;
+}
+
+pdk::pint64 ResourceFileEngine::write(const char *, pdk::pint64)
+{
+   return -1;
+}
+
+bool ResourceFileEngine::remove()
+{
+   return false;
+}
+
+bool ResourceFileEngine::copy(const String &)
+{
+   return false;
+}
+
+bool ResourceFileEngine::rename(const String &)
+{
+   return false;
+}
+
+bool ResourceFileEngine::link(const String &)
+{
+   return false;
+}
+
+pdk::pint64 ResourceFileEngine::getSize() const
+{
+   PDK_D(const ResourceFileEngine);
+   if(!implPtr->m_resource.isValid()) {
+      return 0;
+   }
+   
+   if (implPtr->m_resource.isCompressed()) {
+      implPtr->uncompress();
+      return implPtr->m_uncompressed.size();
+   }
+   return implPtr->m_resource.getSize();
+}
+
+pdk::pint64 ResourceFileEngine::getPosition() const
+{
+   PDK_D(const ResourceFileEngine);
+   return implPtr->m_offset;
+}
+
+bool ResourceFileEngine::atEnd() const
+{
+   PDK_D(const ResourceFileEngine);
+   if(!implPtr->m_resource.isValid()) {
+      return true;
+   }
+   return implPtr->m_offset == getSize();
+}
+
+bool ResourceFileEngine::seek(pdk::pint64 pos)
+{
+   PDK_D(ResourceFileEngine);
+   if(!implPtr->m_resource.isValid()) {
+      return false;
+   }
+   if(implPtr->m_offset > getSize()) {
+      return false;
+   }
+   implPtr->m_offset = pos;
+   return true;
+}
+
+bool ResourceFileEngine::isSequential() const
+{
+   return false;
+}
+
+AbstractFileEngine::FileFlags ResourceFileEngine::getFileFlags(AbstractFileEngine::FileFlags type) const
+{
+   PDK_D(const ResourceFileEngine);
+   AbstractFileEngine::FileFlags ret = 0;
+   if(!implPtr->m_resource.isValid()) {
+      return ret;
+   }
+   if(type & AbstractFileEngine::FileFlag::PermsMask) {
+      ret |= AbstractFileEngine::FileFlag::ReadOwnerPerm;
+      ret |= AbstractFileEngine::FileFlag::ReadUserPerm;
+      ret |= AbstractFileEngine::FileFlag::ReadGroupPerm;
+      ret |= AbstractFileEngine::FileFlag::ReadOtherPerm;
+   }
+   if(type & AbstractFileEngine::FileFlag::TypesMask) {
+      if(implPtr->m_resource.isDir()) {
+         ret |= AbstractFileEngine::FileFlag::DirectoryType;
+      } else {
+         ret |= AbstractFileEngine::FileFlag::FileType;
+      }
+   }
+   if(type & AbstractFileEngine::FileFlag::FlagsMask) {
+      ret |= AbstractFileEngine::FileFlag::ExistsFlag;
+      if(implPtr->m_resource.getAbsoluteFilePath() == Latin1String(":/")) {
+         ret |= AbstractFileEngine::FileFlag::RootFlag;
+      }
+   }
+   return ret;
+}
+
+bool ResourceFileEngine::setPermissions(uint)
+{
+   return false;
+}
+
+String ResourceFileEngine::getFileName(FileName file) const
+{
+   PDK_D(const ResourceFileEngine);
+   if(file == FileName::BaseName) {
+      int slash = implPtr->m_resource.getFileName().lastIndexOf(Latin1Character('/'));
+      if (slash == -1) {
+         return implPtr->m_resource.getFileName();
+      }
+      return implPtr->m_resource.getFileName().substring(slash + 1);
+   } else if(file == FileName::PathName || file == FileName::AbsolutePathName) {
+      const String path = (file == FileName::AbsolutePathName) ? implPtr->m_resource.getAbsoluteFilePath() : implPtr->m_resource.getFileName();
+      const int slash = path.lastIndexOf(Latin1Character('/'));
+      if (slash == -1) {
+         return Latin1String(":");
+      } else if (slash <= 1) {
+         return Latin1String(":/");
+      } 
+      return path.left(slash);
+      
+   } else if(file == FileName::CanonicalName || file == FileName::CanonicalPathName) {
+      const String absoluteFilePath = implPtr->m_resource.getAbsoluteFilePath();
+      if(file == FileName::CanonicalPathName) {
+         const int slash = absoluteFilePath.lastIndexOf(Latin1Character('/'));
+         if (slash != -1) {
+            return absoluteFilePath.left(slash);
+         }
+      }
+      return absoluteFilePath;
+   }
+   return implPtr->m_resource.getFileName();
+}
+
+bool ResourceFileEngine::isRelativePath() const
+{
+   return false;
+}
+
+uint ResourceFileEngine::getOwnerId(FileOwner) const
+{
+   static const uint nobodyID = (uint) -2;
+   return nobodyID;
+}
+
+String ResourceFileEngine::getOwner(FileOwner) const
+{
+   return String();
+}
+
+DateTime ResourceFileEngine::getFileTime(FileTime time) const
+{
+   PDK_D(const ResourceFileEngine);
+   if (time == FileTime::ModificationTime) {
+      return implPtr->m_resource.lastModified();
+   }
+   return DateTime();
+}
+
+AbstractFileEngine::Iterator *ResourceFileEngine::beginEntryList(Dir::Filters filters,
+                                                                 const StringList &filterNames)
+{
+   return new ResourceFileEngineIterator(filters, filterNames);
+}
+
+AbstractFileEngine::Iterator *ResourceFileEngine::endEntryList()
+{
+   return 0;
+}
+
+bool ResourceFileEngine::extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output)
+{
+   PDK_D(ResourceFileEngine);
+   if (extension == MapExtension) {
+      const MapExtensionOption *options = (const MapExtensionOption*)(option);
+      MapExtensionReturn *returnValue = static_cast<MapExtensionReturn*>(output);
+      returnValue->address = implPtr->map(options->offset, options->size, options->flags);
+      return (returnValue->address != 0);
+   }
+   if (extension == UnMapExtension) {
+      const UnMapExtensionOption *options = (const UnMapExtensionOption*)option;
+      return implPtr->unmap(options->address);
+   }
+   return false;
+}
+
+bool ResourceFileEngine::supportsExtension(Extension extension) const
+{
+   return (extension == UnMapExtension || extension == MapExtension);
+}
+
+uchar *ResourceFileEnginePrivate::map(pdk::pint64 offset, pdk::pint64 size, File::MemoryMapFlags flags)
+{
+   PDK_Q(ResourceFileEngine);
+   PDK_UNUSED(flags);
+   if (offset < 0 || size <= 0 || !m_resource.isValid() || offset + size > m_resource.getSize()) {
+      apiPtr->setError(File::FileError::UnspecifiedError, String());
+      return 0;
+   }
+   uchar *address = const_cast<uchar *>(m_resource.getData());
+   return (address + offset);
+}
+
+bool ResourceFileEnginePrivate::unmap(uchar *ptr)
+{
+   PDK_UNUSED(ptr);
+   return true;
+}
+
+void ResourceFileEnginePrivate::uncompress() const
+{
+   if (m_resource.isCompressed() && m_uncompressed.isEmpty() && m_resource.getSize()) {
+#ifndef PDK_NO_COMPRESS
+//      m_uncompressed = qUncompress(resource.data(), resource.size());
+#else
+      PDK_ASSERT(!"ResourceFileEngine::open: pdk built without support for compression");
+#endif
+   }
+}
+
+} // internal
 
 } // fs
 } // io
