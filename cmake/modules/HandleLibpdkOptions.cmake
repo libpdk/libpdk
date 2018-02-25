@@ -114,7 +114,7 @@ if(APPLE)
    endif()
    # Darwin-specific linker flags for loadable modules.
    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-flat_namespace -Wl,-undefined -Wl,suppress")
-   pdk_append("-framework CoreFoundation"
+   pdk_append("-framework CoreFoundation -framework Foundation -framework CoreServices -framework AppKit"
       CMAKE_EXE_LINKER_FLAGS CMAKE_MODULE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
 endif()
 

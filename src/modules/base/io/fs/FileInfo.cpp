@@ -212,10 +212,13 @@ DateTime &FileInfoPrivate::getFileTime(AbstractFileEngine::FileTime request) con
 
 } // internal
 
+FileInfo::FileInfo(FileInfoPrivate *d)
+   : m_implPtr(d)
+{}
+
 FileInfo::FileInfo() 
    : m_implPtr(new FileInfoPrivate())
-{
-}
+{}
 
 FileInfo::FileInfo(const String &file) 
    : m_implPtr(new FileInfoPrivate(file))

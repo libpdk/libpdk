@@ -115,7 +115,7 @@
 */
 #ifndef pdk_utf16_printable
 #  define pdk_utf16_printable(string) \
-    static_cast<const wchar_t*>(static_cast<const void*>(::pdk::lang::String(string).utf16()))
+   static_cast<const wchar_t*>(static_cast<const void*>(::pdk::lang::String(string).utf16()))
 #endif
 
 #define PDK_TERMINATE_ON_EXCEPTION(expr) do { expr; } while (false)
@@ -136,10 +136,10 @@ PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
 #if defined(PDK_CC_GNU) && !defined(__INSURE__)
 #  if defined(PDK_CC_MINGW) && !defined(PDK_CC_CLANG)
 #     define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B) \
-         __attribute__((format(gnu_printf, (A), (B))))
+   __attribute__((format(gnu_printf, (A), (B))))
 #  else
 #     define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B) \
-         __attribute__((format(printf, (A), (B))))
+   __attribute__((format(printf, (A), (B))))
 #  endif
 #else
 #  define PDK_ATTRIBUTE_FORMAT_PRINTF(A, B)
@@ -178,23 +178,23 @@ PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
 
 #ifndef PDK_CONSTRUCTOR_FUNCTION
 # define PDK_CONSTRUCTOR_FUNCTION0(AFUNC) \
-    namespace { \
-    static const struct AFUNC ## InternalCtorClass { \
-        inline AFUNC ## InternalCtorClass() { AFUNC(); } \
-    } AFUNC ## InternalCtorInstance; \
-    }
+   namespace { \
+   static const struct AFUNC ## InternalCtorClass { \
+   inline AFUNC ## InternalCtorClass() { AFUNC(); } \
+   } AFUNC ## InternalCtorInstance; \
+   }
 
 # define PDK_CONSTRUCTOR_FUNCTION(AFUNC) PDK_CONSTRUCTOR_FUNCTION0(AFUNC)
 #endif
 
 #ifndef PDK_DESTRUCTOR_FUNCTION
 # define PDK_DESTRUCTOR_FUNCTION0(AFUNC) \
-    namespace { \
-    static const struct AFUNC ## InternalDtorClass { \
-        inline AFUNC ## InternalDtorClass() { } \
-        inline ~ AFUNC ## InternalDtorClass() { AFUNC(); } \
-    } AFUNC ## InternalDtorInstance; \
-    }
+   namespace { \
+   static const struct AFUNC ## InternalDtorClass { \
+   inline AFUNC ## InternalDtorClass() { } \
+   inline ~ AFUNC ## InternalDtorClass() { AFUNC(); } \
+   } AFUNC ## InternalDtorInstance; \
+   }
 # define PDK_DESTRUCTOR_FUNCTION(AFUNC) PDK_DESTRUCTOR_FUNCTION0(AFUNC)
 #endif
 
@@ -235,9 +235,9 @@ using ulong = unsigned long;
 namespace pdk 
 {
 
-//#ifndef PDK_CC_MSVC
-//PDK_NORETURN
-//#endif
+#ifndef PDK_CC_MSVC
+PDK_NORETURN
+#endif
 PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file, 
                                 int line) noexcept;
 
@@ -251,7 +251,7 @@ PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file,
 
 /*
   uintptr and ptrdiff is guaranteed to be the same size as a pointer, i.e.
-
+  
       sizeof(void *) == sizeof(uintptr)
       && sizeof(void *) == sizeof(ptrdiff)
 */
@@ -331,24 +331,24 @@ static inline T *get_ptr_helper(const std::unique_ptr<T> &p)
 
 #define PDK_DECLARE_PRIVATE(Class)\
    inline Class##Private* getImplPtr()\
-   {\
-      return reinterpret_cast<Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
-   }\
+{\
+   return reinterpret_cast<Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
+}\
    inline const Class##Private* getImplPtr() const\
-   {\
-      return reinterpret_cast<const Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
-   }\
+{\
+   return reinterpret_cast<const Class##Private *>(pdk::get_ptr_helper(m_implPtr));\
+}\
    friend class Class##Private
 
 #define PDK_DECLARE_PUBLIC(Class)\
    inline Class* getApiPtr()\
-   {\
-      return static_cast<Class *>(m_apiPtr);\
-   }\
+{\
+   return static_cast<Class *>(m_apiPtr);\
+}\
    inline const Class* getApiPtr() const\
-   {\
-      return static_cast<const Class *>(m_apiPtr);\
-   }\
+{\
+   return static_cast<const Class *>(m_apiPtr);\
+}\
    friend class Class
 
 #define PDK_D(Class) Class##Private * const implPtr = getImplPtr()
@@ -445,6 +445,22 @@ template <typename T>
 void as_const(const T &&) = delete;
 
 using HANDLE = void *;
+
+namespace kernel {
+#ifdef PDK_OS_DARWIN
+// Implemented in qcore_mac_objc.mm
+class PDK_CORE_EXPORT MacAutoReleasePool
+{
+public:
+   MacAutoReleasePool();
+   ~MacAutoReleasePool();
+private:
+   PDK_DISABLE_COPY(MacAutoReleasePool);
+   void *m_pool;
+};
+
+#endif // PDK_OS_DARWIN
+} // kernel
 
 } // pdk
 

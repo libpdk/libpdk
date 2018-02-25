@@ -48,11 +48,15 @@ pdk_collect_files(
 
 if (WIN32)
 elseif(UNIX)
-list(APPEND PDK_BASE_SOURCES
-   ${IO_DIR}/fs/_platform/FileEngineUnix.cpp
-   ${IO_DIR}/fs/_platform/FileSystemEngineUnix.cpp
-   ${IO_DIR}/fs/_platform/FileSystemiteratorUnix.cpp
-   ${IO_DIR}/fs/_platform/LockFileUnix.cpp)
+   list(APPEND PDK_BASE_SOURCES
+      ${IO_DIR}/fs/_platform/FileEngineUnix.cpp
+      ${IO_DIR}/fs/_platform/FileSystemEngineUnix.cpp
+      ${IO_DIR}/fs/_platform/FileSystemiteratorUnix.cpp
+      ${IO_DIR}/fs/_platform/LockFileUnix.cpp)
+   if (APPLE)
+      list(APPEND PDK_BASE_SOURCES
+         ${IO_DIR}/fs/_platform/SettingsMac.cpp)
+   endif()
 endif()
 
 pdk_collect_files(
@@ -158,7 +162,8 @@ if(UNIX)
       ${KERNEL_BASE_DIR}/_platform/EventDispatcherUnix.cpp)
    if(APPLE)
       list(APPEND PDK_BASE_SOURCES
-         ${KERNEL_BASE_DIR}/_platform/ElapsedTimerMac.cpp)
+         ${KERNEL_BASE_DIR}/_platform/ElapsedTimerMac.cpp
+         ${KERNEL_BASE_DIR}/_platform/CoreMac.cpp)
    else()
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerUnix.cpp)
