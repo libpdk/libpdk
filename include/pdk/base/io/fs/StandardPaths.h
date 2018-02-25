@@ -18,6 +18,10 @@
 
 #include "pdk/base/ds/StringList.h"
 
+namespace pdk {
+namespace io {
+namespace fs {
+
 #ifndef PDK_NO_STANDARDPATHS
 
 using pdk::lang::String;
@@ -74,8 +78,12 @@ private:
    ~StandardPaths();
 };
 
-PDK_DECLARE_OPERATORS_FOR_FLAGS(StandardPaths::LocateOptions);
+PDK_DECLARE_OPERATORS_FOR_FLAGS(StandardPaths::LocateOptions)
 
 #endif // PDK_NO_STANDARDPATHS
+
+} // fs
+} // io
+} // pdk
 
 #endif // PDK_M_BASE_IO_FS_STANDARD_PATHS_H

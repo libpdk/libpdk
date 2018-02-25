@@ -118,15 +118,15 @@ LibraryInfo::LibraryInfo()
 #  elif __INTEL_COMPILER == 1500
 #    define ICC_VERSION "15.0"
 #  else
-#    define ICC_VERSION QT_STRINGIFY(__INTEL_COMPILER)
+#    define ICC_VERSION PDK_STRINGIFY(__INTEL_COMPILER)
 #  endif
 #  ifdef __INTEL_COMPILER_UPDATE
-#    define COMPILER_STRING "Intel(R) C++ " ICC_VERSION "." QT_STRINGIFY(__INTEL_COMPILER_UPDATE) \
-   " build " QT_STRINGIFY(__INTEL_COMPILER_BUILD_DATE) " [" \
+#    define COMPILER_STRING "Intel(R) C++ " ICC_VERSION "." PDK_STRINGIFY(__INTEL_COMPILER_UPDATE) \
+   " build " PDK_STRINGIFY(__INTEL_COMPILER_BUILD_DATE) " [" \
    ICC_COMPAT " compatibility]"
 #  else
 #    define COMPILER_STRING "Intel(R) C++ " ICC_VERSION \
-   " build " QT_STRINGIFY(__INTEL_COMPILER_BUILD_DATE) " [" \
+   " build " PDK_STRINGIFY(__INTEL_COMPILER_BUILD_DATE) " [" \
    ICC_COMPAT " compatibility]"
 #  endif
 #elif defined(PDK_CC_CLANG) // must be before GNU, because clang claims to be GNU too
@@ -136,7 +136,7 @@ LibraryInfo::LibraryInfo()
 #    define COMPILER_STRING "Clang " __clang_version__
 #  endif
 #elif defined(PDK_CC_GHS)
-#  define COMPILER_STRING "GHS " QT_STRINGIFY(__GHS_VERSION_NUMBER)
+#  define COMPILER_STRING "GHS " PDK_STRINGIFY(__GHS_VERSION_NUMBER)
 #elif defined(PDK_CC_GNU)
 #  define COMPILER_STRING "GCC " __VERSION__
 #elif defined(PDK_CC_MSVC)
@@ -153,7 +153,7 @@ LibraryInfo::LibraryInfo()
 #  elif _MSC_VER < 2000
 #    define COMPILER_STRING "MSVC 2017"
 #  else
-#    define COMPILER_STRING "MSVC _MSC_VER " QT_STRINGIFY(_MSC_VER)
+#    define COMPILER_STRING "MSVC _MSC_VER " PDK_STRINGIFY(_MSC_VER)
 #  endif
 #else
 #  define COMPILER_STRING "<unknown compiler>"
