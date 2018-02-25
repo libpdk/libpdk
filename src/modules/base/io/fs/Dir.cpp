@@ -56,6 +56,11 @@ using pdk::os::thread::WriteLocker;
 using pdk::os::thread::ReadWriteLock;
 using pdk::kernel::internal::CoreGlobalData;
 
+#ifndef PDK_NO_DEBUG_STREAM
+using pdk::io::Debug;
+using pdk::io::DebugStateSaver;
+#endif
+
 #if defined(PDK_OS_WIN)
 constexpr const bool OS_SUPPORT_UNICODE_PATHS = true;
 #else
@@ -382,6 +387,8 @@ inline void DirPrivate::initFileEngine()
 
 } // internal
 
+using internal::DirPrivate;
+
 Dir::Dir(DirPrivate &p) 
    : m_implPtr(&p)
 {
@@ -576,8 +583,8 @@ String Dir::fromNativeSeparators(const String &pathName)
 namespace
 {
 
-PDK_UNITTEST_EXPORT String pdk_normalize_path_segments(const String &name, bool allowUncPaths,
-                                                       bool *ok = nullptr)
+PDK_UNITTEST_EXPORT String normalize_path_segments(const String &name, bool allowUncPaths,
+                                                   bool *ok = nullptr)
 {
    const int len = name.length();
    if (ok) {
@@ -700,7 +707,7 @@ PDK_UNITTEST_EXPORT String pdk_normalize_path_segments(const String &name, bool 
    return String::fromUtf16(out + used, len - used);
 }
 
-String pdk_clean_path(const String &path, bool *ok = nullptr)
+String clean_path(const String &path, bool *ok = nullptr)
 {
    if (path.isEmpty()) {
       return path;
@@ -710,7 +717,7 @@ String pdk_clean_path(const String &path, bool *ok = nullptr)
    if (dirSeparator != Latin1Character('/')) {
       name.replace(dirSeparator, Latin1Character('/'));
    }
-   String ret = pdk_normalize_path_segments(name, OS_SUPPORT_UNICODE_PATHS, ok);
+   String ret = normalize_path_segments(name, OS_SUPPORT_UNICODE_PATHS, ok);
    
    // Strip away last slash except for root directories
    if (ret.length() > 1 && ret.endsWith(Latin1Character('/'))) {
@@ -734,7 +741,7 @@ bool Dir::cd(const String &dirName)
    }
    String newPath;
    if (isAbsolutePath(dirName)) {
-      newPath = pdk_clean_path(dirName);
+      newPath = clean_path(dirName);
    } else {
       newPath = implPtr->m_dirEntry.getFilePath();
       if (!newPath.endsWith(Latin1Character('/')))
@@ -744,7 +751,7 @@ bool Dir::cd(const String &dirName)
           || dirName == Latin1String("..")
           || implPtr->m_dirEntry.getFilePath() == Latin1String(".")) {
          bool ok;
-         newPath = pdk_clean_path(newPath, &ok);
+         newPath = clean_path(newPath, &ok);
          if (!ok)
             return false;
          /*
@@ -1235,6 +1242,102 @@ String Dir::getRootPath()
 {
    return FileSystemEngine::getRootPath();
 }
+
+String Dir::cleanPath(const String &path)
+{
+   return clean_path(path);
+}
+
+bool Dir::isRelativePath(const String &path)
+{
+   return FileInfo(path).isRelative();
+}
+
+void Dir::refresh() const
+{
+   DirPrivate *implPtr = const_cast<Dir *>(this)->m_implPtr.data();
+   implPtr->m_metaData.clear();
+   implPtr->initFileEngine();
+   implPtr->clearFileLists();
+}
+
+DirPrivate *Dir::getImplPtr()
+{
+   return m_implPtr.data();
+}
+
+StringList Dir::nameFiltersFromString(const String &nameFilter)
+{
+   return DirPrivate::splitFilters(nameFilter);
+}
+
+#ifndef PDK_NO_DEBUG_STREAM
+Debug operator<<(Debug debug, Dir::Filters filters)
+{
+   DebugStateSaver save(debug);
+   debug.resetFormat();
+   StringList flags;
+   if (filters == Dir::Filter::NoFilter) {
+      flags << Latin1String("NoFilter");
+   } else {
+      if (filters & Dir::Filter::Dirs) flags << Latin1String("Dirs");
+      if (filters & Dir::Filter::AllDirs) flags << Latin1String("AllDirs");
+      if (filters & Dir::Filter::Files) flags << Latin1String("Files");
+      if (filters & Dir::Filter::Drives) flags << Latin1String("Drives");
+      if (filters & Dir::Filter::NoSymLinks) flags << Latin1String("NoSymLinks");
+      if (filters & Dir::Filter::NoDot) flags << Latin1String("NoDot");
+      if (filters & Dir::Filter::NoDotDot) flags << Latin1String("NoDotDot");
+      if ((filters & Dir::Filter::AllEntries) == Dir::Filter::AllEntries) flags << Latin1String("AllEntries");
+      if (filters & Dir::Filter::Readable) flags << Latin1String("Readable");
+      if (filters & Dir::Filter::Writable) flags << Latin1String("Writable");
+      if (filters & Dir::Filter::Executable) flags << Latin1String("Executable");
+      if (filters & Dir::Filter::Modified) flags << Latin1String("Modified");
+      if (filters & Dir::Filter::Hidden) flags << Latin1String("Hidden");
+      if (filters & Dir::Filter::System) flags << Latin1String("System");
+      if (filters & Dir::Filter::CaseSensitive) flags << Latin1String("CaseSensitive");
+   }
+   debug.noquote() << "Dir::Filters(" << flags.join(Latin1Character('|')) << ')';
+   return debug;
+}
+
+static Debug operator<<(Debug debug, Dir::SortFlags sorting)
+{
+   DebugStateSaver save(debug);
+   debug.resetFormat();
+   if (sorting == Dir::SortFlag::NoSort) {
+      debug << "Dir::SortFlags(NoSort)";
+   } else {
+      String type;
+      if ((sorting & 3) == Dir::SortFlag::Name) type = Latin1String("Name");
+      if ((sorting & 3) == Dir::SortFlag::Time) type = Latin1String("Time");
+      if ((sorting & 3) == Dir::SortFlag::Size) type = Latin1String("Size");
+      if ((sorting & 3) == Dir::SortFlag::Unsorted) type = Latin1String("Unsorted");
+      
+      StringList flags;
+      if (sorting & Dir::SortFlag::DirsFirst) flags << Latin1String("DirsFirst");
+      if (sorting & Dir::SortFlag::DirsLast) flags << Latin1String("DirsLast");
+      if (sorting & Dir::SortFlag::IgnoreCase) flags << Latin1String("IgnoreCase");
+      if (sorting & Dir::SortFlag::LocaleAware) flags << Latin1String("LocaleAware");
+      if (sorting & Dir::SortFlag::Type) flags << Latin1String("Type");
+      debug.noquote() << "Dir::SortFlags(" << type << '|' << flags.join(Latin1Character('|')) << ')';
+   }
+   return debug;
+}
+
+Debug operator<<(Debug debug, const Dir &dir)
+{
+   DebugStateSaver save(debug);
+   debug.resetFormat();
+   debug << "Dir(" << dir.getPath() << ", nameFilters = {"
+         << dir.getNameFilters().join(Latin1Character(','))
+         << "}, "
+         << dir.getSorting()
+         << ','
+         << dir.getFilter()
+         << ')';
+   return debug;
+}
+#endif // PDK_NO_DEBUG_STREAM
 
 } // fs
 } // io

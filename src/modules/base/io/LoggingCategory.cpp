@@ -43,6 +43,13 @@ void set_bool_lane(BasicAtomicInt *atomic, bool enable, int shift)
 } // anonymous namespace
 #endif
 
+LoggingCategory::LoggingCategory(const char *category)
+   : m_data(nullptr),
+     m_name(nullptr)
+{
+   init(category, pdk::MsgType::DebugMsg);
+}
+
 LoggingCategory::LoggingCategory(const char *category, pdk::MsgType enableForLevel)
    : m_data(nullptr),
      m_name(nullptr)

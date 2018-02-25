@@ -24,6 +24,8 @@ namespace pdk {
 namespace ds {
 
 using pdk::lang::String;
+using pdk::lang::Latin1String;
+using pdk::lang::Character;
 
 class StringList : public std::vector<String>
 {
@@ -69,11 +71,11 @@ public:
    
    String takeFirst()
    {
-       String t = std::move(front());
-       erase(begin());
-       return t;
+      String t = std::move(front());
+      erase(begin());
+      return t;
    }
-
+   
    String takeLast()
    {
       String t = std::move(back());
@@ -85,6 +87,10 @@ public:
    {
       return std::find(begin(), end(), value) != end();
    }
+   
+   inline String join(const String &sep) const;
+   inline String join(Latin1String sep) const;
+   inline String join(Character sep) const;
    
    StringList &operator +=(const StringList &other)
    {
@@ -145,6 +151,28 @@ public:
       return at(idx);
    }
 };
+
+namespace internal {
+
+String PDK_CORE_EXPORT stringlist_join(const StringList *that, const Character *sep, int seplen);
+PDK_CORE_EXPORT String stringlist_join(const StringList &list, Latin1String sep);
+
+} // internal
+
+inline String StringList::join(const String &sep) const
+{
+   return internal::stringlist_join(this, sep.getConstRawData(), sep.length());
+}
+
+String StringList::join(Latin1String sep) const
+{
+   return internal::stringlist_join(*this, sep);
+}
+
+inline String StringList::join(Character sep) const
+{
+   return internal::stringlist_join(this, &sep, 1);
+}
 
 } // ds
 } // pdk

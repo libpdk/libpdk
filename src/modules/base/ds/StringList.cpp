@@ -13,3 +13,64 @@
 //
 // Created by softboy on 2018/02/01.
 
+#include "pdk/base/ds/StringList.h"
+
+namespace pdk {
+namespace ds {
+namespace internal {
+
+using pdk::ds::StringList;
+
+namespace {
+
+int accumulated_size(const StringList &list, int seplen)
+{
+   int result = 0;
+   if (!list.empty()) {
+      for (const auto &e : list) {
+         result += e.size() + seplen;
+      }
+      result -= seplen;
+   }
+   return result;
+}
+
+} // anonymous namespace
+
+String stringlist_join(const StringList *that, const Character *sep, int seplen)
+{
+   const int totalLength = accumulated_size(*that, seplen);
+   const int size = that->size();
+   String res;
+   if (totalLength == 0) {
+      return res;
+   }
+   res.reserve(totalLength);
+   for (int i = 0; i < size; ++i) {
+      if (i) {
+         res.append(sep, seplen);
+      }
+      res += that->at(i);
+   }
+   return res;
+}
+
+String stringlist_join(const StringList &list, Latin1String sep)
+{
+   String result;
+   if (!list.empty()) {
+      result.reserve(accumulated_size(list, sep.size()));
+      const auto end = list.end();
+      auto it = list.begin();
+      result += *it;
+      while (++it != end) {
+         result += sep;
+         result += *it;
+      }
+   }
+   return result;
+}
+
+} // internal
+} // ds
+} // pdk
