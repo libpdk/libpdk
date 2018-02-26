@@ -424,7 +424,7 @@ template <typename StringLike, typename std::enable_if<
     bool>::type = true>
 inline StringView to_string_view_ignoring_null(const StringLike &s) noexcept
 {
-   return StringView(s.data(), s.size()); 
+   return StringView(s.getRawData(), s.size()); 
 }
 
 } // lang

@@ -21,6 +21,7 @@
 #define PDK_FEATURE_TEXT_CODEC 1
 #define PDK_FEATURE_ICONV -1
 #define PDK_FEATURE_DATETIME_PARSER -1
+#define PDK_FEATURE_datetimeparser -1
 #define PDK_FEATURE_TIMEZONE 1
 #define PDK_FEATURE_timezone 1
 #define PDK_FEATURE_LINKAT 1  // template file private

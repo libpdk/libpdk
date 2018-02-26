@@ -23,6 +23,7 @@ namespace pdk {
 namespace time {
 
 using pdk::lang::String;
+using pdk::lang::StringView;
 
 // forward declare class 
 class TimeZone;
@@ -71,6 +72,14 @@ public:
    int getDaysInYear() const;
    int getWeekNumber(int *yearNum = nullptr) const;
    
+#ifndef PDK_NO_DATESTRING
+   String toString(pdk::DateFormat f = pdk::DateFormat::TextDate) const;
+#if PDK_STRINGVIEW_LEVEL < 2
+   String toString(const String &format) const;
+#endif
+   String toString(StringView format) const;
+#endif
+   
    static String getShortMonthName(int month, MonthNameType type = MonthNameType::DateFormat);
    static String getShortDayName(int weekday, MonthNameType type = MonthNameType::DateFormat);
    static String getLongMonthName(int month, MonthNameType type = MonthNameType::DateFormat);
@@ -113,11 +122,11 @@ public:
       return m_jd >= other.m_jd;
    }
    
-   static Date currentDate();
-   
+   static Date getCurrentDate();
+#ifndef PDK_NO_DATESTRING
    static Date fromString(const String &s, pdk::DateFormat f = pdk::DateFormat::TextDate);
    static Date fromString(const String &s, const String &format);
-   
+#endif
    static bool isValid(int year, int month, int day);
    static bool isLeapYear(int year);
    
