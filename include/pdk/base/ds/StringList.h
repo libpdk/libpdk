@@ -83,13 +83,14 @@ public:
       return t;
    }
    
+   void swap(int i, int j);
    inline bool contains(const_reference value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    inline bool contains(Latin1String value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
    inline String join(const String &sep) const;
    inline String join(Latin1String sep) const;
    inline String join(Character sep) const;
-   
+   inline int removeDuplicates();
    StringList &operator +=(const StringList &other)
    {
       StringList::const_iterator iter = other.cbegin();
@@ -156,8 +157,14 @@ String PDK_CORE_EXPORT stringlist_join(const StringList *that, const Character *
 PDK_CORE_EXPORT String stringlist_join(const StringList &list, Latin1String sep);
 bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, const String &str, pdk::CaseSensitivity cs);
 bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, Latin1String str, pdk::CaseSensitivity cs);
+int PDK_CORE_EXPORT stringlist_remove_duplicates(StringList *that);
 
 } // internal
+
+inline int StringList::removeDuplicates()
+{
+   return internal::stringlist_remove_duplicates(this);
+}
 
 inline String StringList::join(const String &sep) const
 {
@@ -181,6 +188,13 @@ inline bool StringList::contains(const_reference value, pdk::CaseSensitivity cs)
 inline bool StringList::contains(Latin1String value, pdk::CaseSensitivity cs) const
 {
    return internal::stringlist_contains(this, value, cs);
+}
+
+void StringList::swap(int i, int j)
+{
+   PDK_ASSERT_X(i >= 0 && i < size() && j >= 0 && j < size(),
+                "StringList::swap", "index out of range");
+   std::swap((*this)[i], (*this)[j]);
 }
 
 } // ds

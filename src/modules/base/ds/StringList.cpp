@@ -14,6 +14,7 @@
 // Created by softboy on 2018/02/01.
 
 #include "pdk/base/ds/StringList.h"
+#include <set>
 
 namespace pdk {
 namespace ds {
@@ -94,6 +95,30 @@ bool stringlist_contains(const StringList *that, const String &str, pdk::CaseSen
 bool stringlist_contains(const StringList *that, Latin1String str, pdk::CaseSensitivity cs)
 {
    return stringlist_contains(*that, str, cs);
+}
+
+int stringlist_remove_duplicates(StringList *that)
+{
+   int n = that->size();
+   int j = 0;
+   std::set<String> seen;
+   size_t setSize = 0;
+   for (int i = 0; i < n; ++i) {
+      const String &s = that->at(i);
+      seen.insert(s);
+      if (setSize == seen.size()) {// unchanged size => was already seen
+         continue;
+      }
+      ++setSize;
+      if (j != i) {
+         that->swap(i, j);
+      }
+      ++j;
+   }
+   if (n != j) {
+      that->erase(that->begin() + j, that->end());
+   }
+   return n - j;
 }
 
 } // internal
