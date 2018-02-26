@@ -167,7 +167,8 @@ if(UNIX)
    if(APPLE)
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerMac.cpp
-         ${KERNEL_BASE_DIR}/_platform/CoreMac.cpp)
+         ${KERNEL_BASE_DIR}/_platform/CoreMac.cpp
+         ${KERNEL_BASE_DIR}/_platform/CoreFoundationMac.mm)
    else()
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerUnix.cpp)

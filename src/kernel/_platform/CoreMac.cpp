@@ -13,4 +13,30 @@
 //
 // Created by softboy on 2018/02/25.
 
+#include "pdk/kernel/internal/CoreMacPrivate.h"
+#include "pdk/base/ds/VarLengthArray.h"
+#include <new>
 
+namespace pdk {
+namespace kernel {
+
+using pdk::lang::String;
+
+CFString::operator String() const
+{
+   if (m_string.isEmpty() && m_value) {
+      const_cast<CFString*>(this)->m_string = String::fromCFString(m_value);
+   }
+   return m_string;
+}
+
+CFString::operator CFStringRef() const
+{
+   if (!m_value) {
+      const_cast<CFString*>(this)->m_value = m_string.toCFString();
+   }
+   return m_value;
+}
+
+} // kernel
+} // pdk
