@@ -156,7 +156,7 @@ String VersionNumber::toString() const
    return version;
 }
 
-#if QT_STRINGVIEW_LEVEL < 2
+#if PDK_STRINGVIEW_LEVEL < 2
 VersionNumber VersionNumber::fromString(const String &string, int *suffixIndex)
 {
    return fromString(Latin1String(string.toLatin1()), suffixIndex);

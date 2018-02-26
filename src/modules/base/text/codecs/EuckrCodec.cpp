@@ -28,7 +28,7 @@ using pdk::lang::Latin1Character;
 
 unsigned int pdk_ksc5601_to_unicode(unsigned int code);
 
-unsigned int qt_unicode_to_ksc5601(unsigned int unicode);
+unsigned int pdk_unicode_to_ksc5601(unsigned int unicode);
 
 #define        IsEucChar(c)        (((c) >= 0xa1) && ((c) <= 0xfe))
 #define        IsCP949Char(c)      (((c) >= 0x81) && ((c) <= 0xa0))
@@ -53,7 +53,7 @@ ByteArray EucKrCodec::convertFromUnicode(const Character *uc, int len, Converter
       if (ch < 0x80) {
          // ASCII
          *cursor++ = ch;
-      } else if ((j = qt_unicode_to_ksc5601(ch))) {
+      } else if ((j = pdk_unicode_to_ksc5601(ch))) {
          // KSC 5601
          *cursor++ = (j >> 8)   | 0x80;
          *cursor++ = (j & 0xff) | 0x80;
@@ -153,10 +153,10 @@ unsigned int pdk_ksc5601_to_unicode(unsigned int code)
    return ksc2unicode((unsigned short)code);
 }
 
-unsigned int qt_unicode_to_ksc5601(unsigned int unicode)
+unsigned int pdk_unicode_to_ksc5601(unsigned int unicode)
 {
 #if 0
-   printf("qt_unicode_to_ksc5601 : unicode = %x, %x\n",
+   printf("pdk_unicode_to_ksc5601 : unicode = %x, %x\n",
           unicode, unicode2ksc((unsigned short)unicode));
 #endif
    return unicode2ksc((unsigned short)unicode);
@@ -3325,7 +3325,7 @@ ByteArray CP949Codec::convertFromUnicode(const Character *uc, int len, Converter
       if (ch < 0x80) {
          // ASCII
          *cursor++ = ch;
-      } else if ((j = qt_unicode_to_ksc5601(ch))) {
+      } else if ((j = pdk_unicode_to_ksc5601(ch))) {
          // KSC 5601
          *cursor++ = (j >> 8)   | 0x80;
          *cursor++ = (j & 0xff) | 0x80;

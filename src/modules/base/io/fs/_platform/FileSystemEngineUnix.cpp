@@ -809,7 +809,7 @@ String FileSystemEngine::resolveUserName(uint userId)
 //static
 String FileSystemEngine::resolveGroupName(uint groupId)
 {
-#if !defined(QT_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(Q_OS_OPENBSD)
+#if !defined(PDK_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(Q_OS_OPENBSD)
    int sizeMax = sysconf(_SC_GETPW_R_SIZE_MAX);
    if (sizeMax == -1) {
       sizeMax = 1024;
@@ -1403,7 +1403,7 @@ bool FileSystemEngine::setFileTime(int fd, const DateTime &newDate, AbstractFile
    struct timeval tv[2];
    PDK_STATBUF st;
    
-   if (QT_FSTAT(fd, &st) == -1) {
+   if (PDK_FSTAT(fd, &st) == -1) {
       error = SystemError(errno, SystemError::ErrorScope::StandardLibraryError);
       return false;
    }

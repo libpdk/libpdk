@@ -68,15 +68,15 @@
 // pointer type
 #if defined(PDK_OS_WIN64) || (defined(PDK_OS_WINRT) && defined(_M_X64))
 #  define ARCH_POINTER "llp64"
-#elif defined(__LP64__) || QT_POINTER_SIZE - 0 == 8
+#elif defined(__LP64__) || PDK_POINTER_SIZE - 0 == 8
 #  define ARCH_POINTER "lp64"
 #else
 #  define ARCH_POINTER "ilp32"
 #endif
 
 // qreal type, if not double (includes the dash)
-#ifdef QT_COORD_TYPE_STRING
-#  define ARCH_COORD_TYPE   "-qreal_" QT_COORD_TYPE_STRING
+#ifdef PDK_COORD_TYPE_STRING
+#  define ARCH_COORD_TYPE   "-qreal_" PDK_COORD_TYPE_STRING
 #else
 #  define ARCH_COORD_TYPE  ""
 #endif

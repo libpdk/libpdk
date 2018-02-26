@@ -555,7 +555,7 @@ ByteArray pdk_convert_to_local_8bit(StringView string)
    TextCodec *localeCodec = TextCodec::getCodecForLocale();
    if (localeCodec)
       return localeCodec->fromUnicode(string);
-#endif // QT_NO_TEXTCODEC
+#endif // PDK_NO_TEXTCODEC
    return pdk_convert_to_latin1(string);
 }
 

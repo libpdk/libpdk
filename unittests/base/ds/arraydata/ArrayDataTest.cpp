@@ -1356,7 +1356,7 @@ TEST(ArrayDataTest, testVariadicLiterals)
       ASSERT_EQ(v.size(), static_cast<size_t>(7));
       // v.capacity() is unspecified, for now
       ASSERT_TRUE(v.isStatic());
-#if !defined(QT_NO_UNSHARABLE_CONTAINERS)
+#if !defined(PDK_NO_UNSHARABLE_CONTAINERS)
       ASSERT_TRUE(v.isSharable());
 #endif
       ASSERT_EQ(static_cast<const int *>(v.constBegin() + v.size()), static_cast<const int *>(v.constEnd()));

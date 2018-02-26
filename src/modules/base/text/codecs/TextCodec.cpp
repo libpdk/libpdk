@@ -250,7 +250,7 @@ void setup()
    (void)new internal::CP949Codec;
    (void)new internal::Big5Codec;
    (void)new internal::Big5hkscsCodec;
-#  endif // !QT_NO_BIG_CODECS && !Q_OS_INTEGRITY
+#  endif // !PDK_NO_BIG_CODECS && !Q_OS_INTEGRITY
 #if PDK_CONFIG(ICONV)
    (void) new internal::IconvCodec;
 #endif

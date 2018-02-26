@@ -119,7 +119,7 @@ PDK_ALWAYS_INLINE unsigned long pdk_builtin_clz(pdk::puint32 value)
 }
 #     if PDK_PROCESSOR_WORDSIZE == 8
 // These are only defined for 64bit builds.
-#        define QT_HAS_BUILTIN_CTZLL
+#        define PDK_HAS_BUILTIN_CTZLL
 PDK_ALWAYS_INLINE unsigned long pdk_builtin_ctzll(pdk::puint64 value)
 {
    unsigned long result;
@@ -127,7 +127,7 @@ PDK_ALWAYS_INLINE unsigned long pdk_builtin_ctzll(pdk::puint64 value)
    return result;
 }
 // MSVC calls it _BitScanReverse and returns the carry flag, which we don't need
-#        define QT_HAS_BUILTIN_CLZLL
+#        define PDK_HAS_BUILTIN_CLZLL
 PDK_ALWAYS_INLINE unsigned long pdk_builtin_clzll(pdk::puint64 value)
 {
    unsigned long result;

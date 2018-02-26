@@ -294,7 +294,7 @@ uint pdk_hash(Latin1String key, uint seed) noexcept
     therefore one must not rely on the fact that it will always give the same
     results.
     
-    The qt_hash functions must *never* change their results.
+    The pdk_hash functions must *never* change their results.
     
     This function can hash discontiguous memory by invoking it on each chunk,
     passing the previous's result in the next call's \a chained argument.

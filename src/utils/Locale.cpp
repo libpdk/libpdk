@@ -1087,7 +1087,7 @@ double Locale::toDouble(const StringRef &str, bool *ok) const
 {
    return m_implPtr->m_data->stringToDouble(str, ok, m_implPtr->m_numberOptions);
 }
-#endif // QT_STRINGVIEW_LEVEL < 2
+#endif // PDK_STRINGVIEW_LEVEL < 2
 
 short Locale::toShort(StringView str, bool *ok) const
 {
@@ -1217,7 +1217,7 @@ String Locale::toString(const Time &time, StringView format) const
    return m_implPtr->dateTimeToString(format, DateTime(), Date(), time, this);
 }
 
-#if QT_STRINGVIEW_LEVEL < 2
+#if PDK_STRINGVIEW_LEVEL < 2
 
 String Locale::toString(const DateTime &dateTime, const String &format) const
 {

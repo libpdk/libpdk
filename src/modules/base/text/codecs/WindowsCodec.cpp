@@ -199,7 +199,7 @@ ByteArray WindowsLocalCodec::convertFromUnicode(const Character *ch, int uclen, 
          // and try again...
       } else {
          // Fail.  Probably can't happen in fact (dwFlags is 0).
-#ifndef QT_NO_DEBUG
+#ifndef PDK_NO_DEBUG
          // Can't use warning_stream(), as it'll recurse to handle %ls
          fprintf(stderr,
                  "WideCharToMultiByte: Cannot convert multibyte text (error %d): %ls\n",

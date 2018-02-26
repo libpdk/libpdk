@@ -906,7 +906,7 @@ void MessagePattern::setPattern(const String &pattern)
             //            if (m.hasMatch()) {
             //               int depth = m.capturedRef(1).toInt();
             //               if (depth <= 0)
-            //                  error += Latin1String("QT_MESSAGE_PATTERN: %{backtrace} depth must be a number greater than 0\n");
+            //                  error += Latin1String("PDK_MESSAGE_PATTERN: %{backtrace} depth must be a number greater than 0\n");
             //               else
             //                  backtraceDepth = depth;
             //            }

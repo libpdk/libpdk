@@ -231,7 +231,7 @@ public:
    
    static String getTempPath();
    
-#ifndef QT_NO_REGEXP
+#ifndef PDK_NO_REGEXP
    static bool match(const StringList &filters, const String &fileName);
    static bool match(const String &filter, const String &fileName);
 #endif

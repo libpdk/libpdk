@@ -226,7 +226,7 @@ inline int safe_dup(int oldfd, int atleast = 0, int flags = FD_CLOEXEC)
 }
 
 // don't call dup2
-// call qt_safe_dup2
+// call pdk_safe_dup2
 inline int safe_dup2(int oldfd, int newfd, int flags = FD_CLOEXEC)
 {
    PDK_ASSERT(flags == FD_CLOEXEC || flags == 0);

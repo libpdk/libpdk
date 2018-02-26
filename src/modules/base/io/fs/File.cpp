@@ -359,7 +359,7 @@ bool File::copy(const String &newName)
             error = true;
             implPtr->setError(FileError::CopyError, tr("Cannot open %1 for input").arg(implPtr->m_fileName));
          } else {
-            String fileTemplate = Latin1String("%1/qt_temp.XXXXXX");
+            String fileTemplate = Latin1String("%1/pdk_temp.XXXXXX");
 #ifdef PDK_NO_TEMPORARYFILE
             File out(fileTemplate.arg(FileInfo(newName).getPath()));
             if (!out.open(IoDevice::ReadWrite)) {

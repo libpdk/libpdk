@@ -42,7 +42,7 @@ namespace {
 
 void append_organization_and_app(String &path)
 {
-#ifndef QT_BOOTSTRAPPED
+#ifndef PDK_BOOTSTRAPPED
    const String org = CoreApplication::getOrgName();
    if (!org.isEmpty()) {
       path += Latin1Character('/') + org;
