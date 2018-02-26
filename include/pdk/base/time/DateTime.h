@@ -18,12 +18,38 @@
 
 #include "pdk/base/lang/String.h"
 
+#if defined(PDK_OS_DARWIN)
+PDK_FORWARD_DECLARE_CF_TYPE(CFDate);
+PDK_FORWARD_DECLARE_OBJC_CLASS(NSDate);
+#endif
+
 namespace pdk {
+
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+namespace io {
+class Debug;
+}
+#endif
+
+#ifndef PDK_NO_DATASTREAM
+namespace io {
+class DataStream;
+}
+#endif
+
 namespace time {
 
 namespace internal {
 class DateTimePrivate;
 } // internal
+
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+using pdk::io::Debug;
+#endif
+
+#ifndef PDK_NO_DATASTREAM
+using pdk::io::DataStream;
+#endif
 
 class TimeZone;
 class Time;
@@ -74,7 +100,7 @@ public:
    explicit DateTime(const Date &);
    DateTime(const Date &, const Time &, pdk::TimeSpec spec = pdk::TimeSpec::LocalTime,
             int offsetSeconds = 0);
-#ifdef PDK_CONFIG_TIMEZONE
+#if PDK_CONFIG(timezone)
    DateTime(const Date &date, const Time &time, const TimeZone &timeZone);
 #endif
    DateTime(const DateTime &other) noexcept;
@@ -100,7 +126,7 @@ public:
    Time getTime() const;
    pdk::TimeSpec getTimeSpec() const;
    int getOffsetFromUtc() const;
-#ifdef PDK_CONFIG_TIMEZONE
+#if PDK_CONFIG(timezone)
    TimeZone getTimeZone() const;
 #endif
    String timeZoneAbbreviation() const;
@@ -113,8 +139,8 @@ public:
    void setTime(const Time &time);
    void setTimeSpec(pdk::TimeSpec spec);
    void setOffsetFromUtc(int offsetSeconds);
-#ifdef PDK_CONFIG_TIMEZONE
-   TimeZone setTimeZone(const QTimeZone &toZone);
+#if PDK_CONFIG(timezone)
+   TimeZone setTimeZone(const TimeZone &toZone);
 #endif
    void setMSecsSinceEpoch(pdk::pint64 msecs);
    void setSecsSinceEpoch(pdk::pint64 secs);
@@ -139,7 +165,7 @@ public:
       return toTimeSpec(pdk::TimeSpec::UTC);
    }
    DateTime toOffsetFromUtc(int offsetSeconds) const;
-#if PDK_CONFIG(TIMEZONE)
+#if PDK_CONFIG(timezone)
    DateTime toTimeZone(const TimeZone &toZone) const;
 #endif
    
@@ -176,19 +202,35 @@ public:
    static DateTime fromMSecsSinceEpoch(pdk::pint64 msecs, pdk::TimeSpec spec = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
    static DateTime fromSecsSinceEpoch(pdk::pint64 secs, pdk::TimeSpec spe = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
    
-#if PDK_CONFIG(TIMEZONE)
+#if PDK_CONFIG(timezone)
    static DateTime fromMSecsSinceEpoch(pdk::pint64 msecs, const TimeZone &timeZone);
    static DateTime fromSecsSinceEpoch(pdk::pint64 secs, const TimeZone &timeZone);
 #endif
    
    static pdk::pint64 getCurrentMSecsSinceEpoch() noexcept;
    static pdk::pint64 getCurrentSecsSinceEpoch() noexcept;
+   
+#if defined(PDK_OS_DARWIN)
+   static DateTime fromCFDate(CFDateRef date);
+   CFDateRef toCFDate() const PDK_DECL_CF_RETURNS_RETAINED;
+   static DateTime fromNSDate(const NSDate *date);
+   NSDate *toNSDate() const PDK_DECL_CF_RETURNS_RETAINED;
+#endif
 private:
    friend class DateTimePrivate;
    Data m_implPtr;
 };
 
 PDK_CORE_EXPORT uint hash(const DateTime &key, uint seed = 0);
+
+#ifndef PDK_NO_DATASTREAM
+PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const DateTime &);
+PDK_CORE_EXPORT DataStream &operator>>(DataStream &, DateTime &);
+#endif // PDK_NO_DATASTREAM
+
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+PDK_CORE_EXPORT Debug operator<<(Debug, const DateTime &);
+#endif
 
 } // time
 } // pdk

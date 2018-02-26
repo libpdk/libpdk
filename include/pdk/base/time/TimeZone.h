@@ -24,6 +24,11 @@
 
 PDK_REQUIRE_CONFIG(TIMEZONE);
 
+#if defined(PDK_OS_DARWIN) && !defined(PDK_NO_SYSTEMLOCALE)
+PDK_FORWARD_DECLARE_CF_TYPE(CFTimeZone);
+PDK_FORWARD_DECLARE_OBJC_CLASS(NSTimeZone);
+#endif
+
 namespace pdk {
 
 // forward declare class with namespace
@@ -144,6 +149,14 @@ public:
    static std::list<ByteArray> windowsIdToIanaIds(const ByteArray &windowsId,
                                                   Locale::Country country);
    
+#if (defined(PDK_OS_DARWIN)) && !defined(PDK_NO_SYSTEMLOCALE)
+   static TimeZone fromCFTimeZone(CFTimeZoneRef timeZone);
+   CFTimeZoneRef toCFTimeZone() const PDK_DECL_CF_RETURNS_RETAINED;
+   static TimeZone fromNSTimeZone(const NSTimeZone *timeZone);
+   NSTimeZone *toNSTimeZone() const PDK_DECL_NS_RETURNS_AUTORELEASED;
+#endif
+   
+   
 private:
    TimeZone(TimeZonePrivate &dd);
    friend class TimeZonePrivate;
@@ -151,6 +164,15 @@ private:
    friend class DateTimePrivate;
    pdk::utils::SharedDataPointer<TimeZonePrivate> m_imptr;
 };
+
+#ifndef PDK_NO_DATASTREAM
+PDK_CORE_EXPORT DataStream &operator<<(DataStream &ds, const TimeZone &tz);
+PDK_CORE_EXPORT DataStream &operator>>(DataStream &ds, TimeZone &tz);
+#endif
+
+#ifndef PDK_NO_DEBUG_STREAM
+PDK_CORE_EXPORT Debug operator<<(Debug dbg, const TimeZone &tz);
+#endif
 
 } // time
 } // pdk

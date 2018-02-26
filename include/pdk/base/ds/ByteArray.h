@@ -324,8 +324,8 @@ public:
    ByteArray toHex() const;
    ByteArray toHex(char separator) const; // ### Qt6 merge with previous
    ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
-                                const ByteArray &include = ByteArray(),
-                                char percent = '%') const;
+                               const ByteArray &include = ByteArray(),
+                               char percent = '%') const;
    
    inline ByteArray &setNum(short, int base = 10);
    inline ByteArray &setNum(ushort, int base = 10);
@@ -346,6 +346,17 @@ public:
    PDK_REQUIRED_RESULT static ByteArray fromBase64(const ByteArray &base64, Base64Options options);
    PDK_REQUIRED_RESULT static ByteArray fromHex(const ByteArray &hexEncoded);
    PDK_REQUIRED_RESULT static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%');
+   
+#if defined(PDK_OS_DARWIN)
+   static ByteArray fromCFData(CFDataRef data);
+   static ByteArray fromRawCFData(CFDataRef data);
+   CFDataRef toCFData() const PDK_DECL_CF_RETURNS_RETAINED;
+   CFDataRef toRawCFData() const PDK_DECL_CF_RETURNS_RETAINED;
+   static ByteArray fromNSData(const NSData *data);
+   static ByteArray fromRawNSData(const NSData *data);
+   NSData *toNSData() const PDK_DECL_NS_RETURNS_AUTORELEASED;
+   NSData *toRawNSData() const PDK_DECL_NS_RETURNS_AUTORELEASED;
+#endif
    
    using Iterator = char *;
    using iterator = Iterator;
