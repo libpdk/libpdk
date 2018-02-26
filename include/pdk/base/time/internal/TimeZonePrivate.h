@@ -51,13 +51,13 @@ class PDK_UNITTEST_EXPORT TimeZonePrivate : public SharedData
 public:
    //Version of TimeZone::OffsetData struct using msecs for efficiency
    struct Data {
-      String abbreviation;
-      pdk::pint64 atMSecsSinceEpoch;
-      int offsetFromUtc;
-      int standardTimeOffset;
-      int daylightTimeOffset;
+      String m_abbreviation;
+      pdk::pint64 m_atMSecsSinceEpoch;
+      int m_offsetFromUtc;
+      int m_standardTimeOffset;
+      int m_daylightTimeOffset;
    };
-   typedef std::vector<Data> DataList;
+   using DataList = std::vector<Data>;
    
    // Create null time zone
    TimeZonePrivate();

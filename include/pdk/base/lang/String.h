@@ -42,6 +42,13 @@ PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
 
 namespace pdk {
 
+#if !defined(PDK_NO_DATASTREAM)
+// forward declare class with namespace
+namespace io {
+class DataStream;
+} // io
+#endif // PDK_NO_DATASTREAM
+
 // forward declare class with namespace
 namespace ds {
 class StringList;
@@ -55,6 +62,9 @@ class CharacterRef;
 class String;
 class StringRef;
 using pdk::ds::StringList;
+#if !defined(PDK_NO_DATASTREAM)
+using pdk::io::DataStream;
+#endif // PDK_NO_DATASTREAM
 
 class Latin1String
 {
@@ -927,6 +937,11 @@ private:
 };
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(String::SectionFlags)
+
+#if !defined(PDK_NO_DATASTREAM)
+PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const String &);
+PDK_CORE_EXPORT DataStream &operator>>(DataStream &, String &);
+#endif
 
 inline bool Latin1String::operator ==(const String &str) const noexcept
 {
