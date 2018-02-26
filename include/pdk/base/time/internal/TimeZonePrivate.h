@@ -71,7 +71,7 @@ public:
    
    bool isValid() const;
    
-   ByteArray id() const;
+   ByteArray getId() const;
    virtual Locale::Country getCountry() const;
    virtual String getComment() const;
    

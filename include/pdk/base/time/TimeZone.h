@@ -113,9 +113,9 @@ public:
    
    bool isValid() const;
    
-   ByteArray id() const;
-   Locale::Country country() const;
-   String comment() const;
+   ByteArray getId() const;
+   Locale::Country getCountry() const;
+   String getComment() const;
    
    String displayName(const DateTime &atDateTime,
                       TimeZone::NameType nameType = NameType::DefaultName,
@@ -139,15 +139,15 @@ public:
    OffsetData previousTransition(const DateTime &beforeDateTime) const;
    OffsetDataList transitions(const DateTime &fromDateTime, const DateTime &toDateTime) const;
    
-   static ByteArray systemTimeZoneId();
-   static TimeZone systemTimeZone();
-   static TimeZone utc();
+   static ByteArray getSystemTimeZoneId();
+   static TimeZone getSystemTimeZone();
+   static TimeZone getUtc();
    
    static bool isTimeZoneIdAvailable(const ByteArray &ianaId);
    
-   static std::list<ByteArray> availableTimeZoneIds();
-   static std::list<ByteArray> availableTimeZoneIds(Locale::Country country);
-   static std::list<ByteArray> availableTimeZoneIds(int offsetSeconds);
+   static std::list<ByteArray> getAvailableTimeZoneIds();
+   static std::list<ByteArray> getAvailableTimeZoneIds(Locale::Country country);
+   static std::list<ByteArray> getAvailableTimeZoneIds(int offsetSeconds);
    
    static ByteArray ianaIdToWindowsId(const ByteArray &ianaId);
    static ByteArray windowsIdToDefaultIanaId(const ByteArray &windowsId);

@@ -137,7 +137,7 @@ bool TimeZonePrivate::isValid() const
    return !m_id.isEmpty();
 }
 
-ByteArray TimeZonePrivate::id() const
+ByteArray TimeZonePrivate::getId() const
 {
    return m_id;
 }
