@@ -23,7 +23,7 @@
 #include "pdk/base/time/Date.h"
 #include "pdk/base/time/DateTime.h"
 
-#if PDK_CONFIG(TIMEZONE)
+#if PDK_CONFIG(timezone)
 #include "pdk/base/time/TimeZone.h"
 #endif
 
