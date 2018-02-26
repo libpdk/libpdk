@@ -16,15 +16,16 @@
 #include "pdk/base/lang/String.h"
 #include "pdk/base/lang/StringAlgorithms.h"
 #include "pdk/base/lang/internal/StringAlgorithmsPrivate.h"
-#include "pdk/base/ds/StringList.h"
-#include "pdk/base/lang/StringIterator.h"
-#include "pdk/base/ds/VarLengthArray.h"
-#include "pdk/kernel/StringUtils.h"
-#include "pdk/pal/kernel/Simd.h"
 #include "pdk/base/lang/internal/StringHelper.h"
-#include "pdk/kernel/Algorithms.h"
-#include "pdk/global/Endian.h"
 #include "pdk/base/lang/internal/UnicodeTablesPrivate.h"
+#include "pdk/base/lang/StringIterator.h"
+#include "pdk/base/lang/StringBuilder.h"
+#include "pdk/base/ds/VarLengthArray.h"
+#include "pdk/base/ds/StringList.h"
+#include "pdk/kernel/StringUtils.h"
+#include "pdk/kernel/Algorithms.h"
+#include "pdk/pal/kernel/Simd.h"
+#include "pdk/global/Endian.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include <cstring>
@@ -2296,6 +2297,11 @@ float StringRef::toFloat(bool *ok) const
 String String::toHtmlEscaped() const
 {
    
+}
+
+void AbstractConcatenable::appendLatin1To(const char *a, int len, Character *out) noexcept
+{
+    internal::utf16_from_latin1(reinterpret_cast<char16_t *>(out), a, uint(len));
 }
 
 } // lang
