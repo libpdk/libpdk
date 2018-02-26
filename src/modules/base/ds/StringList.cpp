@@ -71,6 +71,31 @@ String stringlist_join(const StringList &list, Latin1String sep)
    return result;
 }
 
+namespace {
+
+template<typename T>
+static bool stringlist_contains(const StringList &stringList, const T &str, pdk::CaseSensitivity cs)
+{
+   for (const auto &string : stringList) {
+      if (string.size() == str.size() && string.compare(str, cs) == 0) {
+         return true;
+      }
+   }
+   return false;
+}
+
+} // anonymous namespace
+
+bool stringlist_contains(const StringList *that, const String &str, pdk::CaseSensitivity cs)
+{
+   return stringlist_contains(*that, str, cs);
+}
+
+bool stringlist_contains(const StringList *that, Latin1String str, pdk::CaseSensitivity cs)
+{
+   return stringlist_contains(*that, str, cs);
+}
+
 } // internal
 } // ds
 } // pdk

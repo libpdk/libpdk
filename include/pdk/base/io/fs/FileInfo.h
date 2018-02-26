@@ -113,6 +113,7 @@ public:
    bool isDir() const;
    bool isSymLink() const;
    bool isRoot() const;
+   bool isBundle() const;
    
    String getSymLinkTarget() const;
    

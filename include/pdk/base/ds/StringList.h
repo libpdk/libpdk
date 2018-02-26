@@ -83,10 +83,8 @@ public:
       return t;
    }
    
-   inline bool contains(const_reference value) const
-   {
-      return std::find(begin(), end(), value) != end();
-   }
+   inline bool contains(const_reference value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   inline bool contains(Latin1String value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
    inline String join(const String &sep) const;
    inline String join(Latin1String sep) const;
@@ -156,6 +154,8 @@ namespace internal {
 
 String PDK_CORE_EXPORT stringlist_join(const StringList *that, const Character *sep, int seplen);
 PDK_CORE_EXPORT String stringlist_join(const StringList &list, Latin1String sep);
+bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, const String &str, pdk::CaseSensitivity cs);
+bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, Latin1String str, pdk::CaseSensitivity cs);
 
 } // internal
 
@@ -172,6 +172,15 @@ String StringList::join(Latin1String sep) const
 inline String StringList::join(Character sep) const
 {
    return internal::stringlist_join(this, &sep, 1);
+}
+
+inline bool StringList::contains(const_reference value, pdk::CaseSensitivity cs) const
+{
+   return internal::stringlist_contains(this, value, cs);
+}
+inline bool StringList::contains(Latin1String value, pdk::CaseSensitivity cs) const
+{
+   return internal::stringlist_contains(this, value, cs);
 }
 
 } // ds

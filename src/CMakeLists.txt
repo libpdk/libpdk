@@ -55,7 +55,12 @@ elseif(UNIX)
       ${IO_DIR}/fs/_platform/LockFileUnix.cpp)
    if (APPLE)
       list(APPEND PDK_BASE_SOURCES
-         ${IO_DIR}/fs/_platform/SettingsMac.cpp)
+         ${IO_DIR}/fs/_platform/SettingsMac.cpp
+         ${IO_DIR}/fs/_platform/StandardPathsMac.mm
+         ${IO_DIR}/fs/_platform/StandardPathsUnix.cpp)
+   else()
+      list(APPEND PDK_BASE_SOURCES
+         ${IO_DIR}/fs/_platform/StandardPathsUnix.cpp)
    endif()
 endif()
 

@@ -95,6 +95,11 @@ public:
    
    static void flush();
    
+   static String translate(const char * context,
+                            const char * key,
+                            const char * disambiguation = nullptr,
+                            int n = -1);
+   
    void installNativeEventFilter(AbstractNativeEventFilter *filterObj);
    void removeNativeEventFilter(AbstractNativeEventFilter *filterObj);
    static bool isQuitLockEnabled();
@@ -155,10 +160,10 @@ PDK_CORE_EXPORT void remove_post_routine(CleanUpFunction);
 PDK_CORE_EXPORT String retrieve_app_name();                // get application name
 
 #define PDK_COREAPP_STARTUP_FUNCTION(AFUNC) \
-    static void AFUNC ## _ctor_function() {  \
-        qAddPreRoutine(AFUNC);        \
-    }                                 \
-    PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
+   static void AFUNC ## _ctor_function() {  \
+   qAddPreRoutine(AFUNC);        \
+}                                 \
+   PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
 
 PDK_CORE_EXPORT uint global_posted_events_count();
 void PDK_CORE_EXPORT call_post_routines();
