@@ -17,8 +17,11 @@
 #include "pdk/base/time/internal/TimeZonePrivate.h"
 #include "pdk/base/time/DateTime.h"
 #include "pdk/base/io/DataStream.h"
+#include "pdk/base/lang/String.h"
 #include "pdk/utils/SharedData.h"
+#ifndef PDK_NO_DEBUG_STREAM
 #include "pdk/base/io/Debug.h"
+#endif
 #include "pdk/global/GlobalStatic.h"
 #include <algorithm>
 
@@ -29,6 +32,12 @@ using internal::TimeZonePrivate;
 using internal::UtcTimeZonePrivate;
 using pdk::utils::SharedDataPointer;
 using pdk::utils::Locale;
+#ifndef PDK_NO_DEBUG_STREAM
+using pdk::io::Debug;
+using pdk::io::DebugStateSaver;
+#endif
+using pdk::lang::Latin1String;
+using pdk::lang::String;
 
 #if PDK_CONFIG(icu)
 using internal::IcuTimeZonePrivate;
@@ -422,6 +431,48 @@ std::list<ByteArray> TimeZone::windowsIdToIanaIds(const ByteArray &windowsId,
 {
    return TimeZonePrivate::windowsIdToIanaIds(windowsId, country);
 }
+
+#ifndef PDK_NO_DATASTREAM
+DataStream &operator<<(DataStream &ds, const TimeZone &tz)
+{
+   tz.m_imptr->serialize(ds);
+   return ds;
+}
+
+DataStream &operator>>(DataStream &ds, TimeZone &tz)
+{
+   String ianaId;
+   ds >> ianaId;
+   if (ianaId == Latin1String("OffsetFromUtc")) {
+      int utcOffset;
+      String name;
+      String abbreviation;
+      int country;
+      String comment;
+      ds >> ianaId >> utcOffset >> name >> abbreviation >> country >> comment;
+      // Try creating as a system timezone, which succeeds (producing a valid
+      // zone) iff ianaId is valid; we can then ignore the other data.
+      tz = TimeZone(ianaId.toUtf8());
+      // If not, then construct a custom timezone using all the saved values:
+      if (!tz.isValid())
+         tz = TimeZone(ianaId.toUtf8(), utcOffset, name, abbreviation,
+                       Locale::Country(country), comment);
+   } else {
+      tz = TimeZone(ianaId.toUtf8());
+   }
+   return ds;
+}
+#endif // PDK_NO_DATASTREAM
+
+#ifndef PDK_NO_DEBUG_STREAM
+Debug operator<<(Debug dbg, const TimeZone &tz)
+{
+   DebugStateSaver saver(dbg);
+   //TODO Include backend and data version details?
+   dbg.nospace() << "TimeZone(" << String::fromUtf8(tz.getId()) << ')';
+   return dbg;
+}
+#endif
 
 } // time
 } // pdk

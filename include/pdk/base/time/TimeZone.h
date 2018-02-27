@@ -163,8 +163,11 @@ public:
    static TimeZone fromNSTimeZone(const NSTimeZone *timeZone);
    NSTimeZone *toNSTimeZone() const PDK_DECL_NS_RETURNS_AUTORELEASED;
 #endif
-   
-   
+private:
+#ifndef PDK_NO_DATASTREAM
+    friend PDK_CORE_EXPORT DataStream &operator<<(DataStream &ds, const TimeZone &tz);
+#endif
+    
 private:
    TimeZone(TimeZonePrivate &dd);
    friend class TimeZonePrivate;
