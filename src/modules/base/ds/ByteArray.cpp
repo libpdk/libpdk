@@ -146,6 +146,23 @@ ByteArray &ByteArray::setNum(double n, char f, int prec)
    return *this;
 }
 
+ByteArray &ByteArray::setRawData(const char *data, int size)
+{
+   if (m_data->m_ref.isShared() || m_data->m_alloc) {
+      *this = fromRawData(data, size);
+   } else {
+      if (data) {
+         m_data->m_size = size;
+         m_data->m_offset = data - reinterpret_cast<char *>(m_data);
+      } else {
+         m_data->m_offset = sizeof(ByteArrayData);
+         m_data->m_size = 0;
+         *m_data->getData() = 0;
+      }
+   }
+   return *this;
+}
+
 ByteArray ByteArray::number(int n, int base)
 {
    ByteArray s;
@@ -260,6 +277,71 @@ ByteArray ByteArray::fromHex(const ByteArray &hexEncoded)
    }
    result.remove(0, resultDataPtr - reinterpret_cast<const uchar *>(result.getConstRawData()));
    return result;
+}
+
+namespace {
+
+static void from_percent_encoding(ByteArray *ba, char percent)
+{
+   if (ba->isEmpty()) {
+      return;
+   }
+   char *data = ba->getRawData();
+   const char *inputPtr = data;
+   int i = 0;
+   int len = ba->count();
+   int outlen = 0;
+   int a, b;
+   char c;
+   while (i < len) {
+      c = inputPtr[i];
+      if (c == percent && i + 2 < len) {
+         a = inputPtr[++i];
+         b = inputPtr[++i];
+         if (a >= '0' && a <= '9') {
+            a -= '0';
+         } else if (a >= 'a' && a <= 'f') {
+            a = a - 'a' + 10;
+         } else if (a >= 'A' && a <= 'F') {
+            a = a - 'A' + 10;
+         }         
+         if (b >= '0' && b <= '9') {
+            b -= '0';
+         } else if (b >= 'a' && b <= 'f') {
+            b  = b - 'a' + 10;
+         } else if (b >= 'A' && b <= 'F') {
+            b  = b - 'A' + 10;
+         }
+         *data++ = (char)((a << 4) | b);
+      } else {
+         *data++ = c;
+      }
+      ++i;
+      ++outlen;
+   }
+   if (outlen != len) {
+      ba->truncate(outlen);
+   }
+}
+
+void from_percent_encoding(ByteArray *ba)
+{
+   from_percent_encoding(ba, '%');
+}
+
+} // anonymous namespace
+
+ByteArray ByteArray::fromPercentEncoding(const ByteArray &input, char percent)
+{
+   if (input.isNull()) {
+      return ByteArray();       // preserve null
+   }
+   if (input.isEmpty()) {
+      return ByteArray(input.getRawData(), 0);
+   }
+   ByteArray tmp = input;
+   from_percent_encoding(&tmp, percent);
+   return tmp;
 }
 
 void ByteArray::reallocData(uint alloc, Data::AllocationOptions options)
