@@ -27,8 +27,8 @@ pdk_collect_files(
    OUTPUT_VAR PDK_BASE_SOURCES)
 
 if (WIN32)
-#   list(APPEND PDK_BASE_SOURCES
-#            ${UTILS_DIR}/_platform/CollatorWin.cpp)
+   #   list(APPEND PDK_BASE_SOURCES
+   #            ${UTILS_DIR}/_platform/CollatorWin.cpp)
 elseif(UNIX)
    if (APPLE)
       list(APPEND PDK_BASE_SOURCES
@@ -184,7 +184,8 @@ if(UNIX)
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerMac.cpp
          ${KERNEL_BASE_DIR}/_platform/CoreMac.cpp
-         ${KERNEL_BASE_DIR}/_platform/CoreFoundationMac.mm)
+         ${KERNEL_BASE_DIR}/_platform/CoreFoundationMac.mm
+         ${KERNEL_BASE_DIR}/_platform/CoreMacObjc.mm)
    else()
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerUnix.cpp)

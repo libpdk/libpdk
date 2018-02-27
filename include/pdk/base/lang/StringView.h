@@ -172,33 +172,33 @@ private:
    }
    
 public:
-   constexpr StringView() noexcept
+    constexpr StringView() noexcept
       : m_size(0),
         m_data(nullptr)
    {}
    
-   constexpr StringView(std::nullptr_t) noexcept
+   explicit constexpr StringView(std::nullptr_t) noexcept
       : StringView()
    {}
    
    template <typename Char, if_compatible_char<Char> = true>
-   constexpr StringView(const Char *str, pdk::sizetype len)
+   explicit constexpr StringView(const Char *str, pdk::sizetype len)
       : m_size((PDK_ASSERT(len >= 0), PDK_ASSERT(str || !len), len)),
         m_data(castHelper(str)) 
    {}
    
    template <typename Char, if_compatible_char<Char> = true>
-   constexpr StringView(const Char *f, const Char *l)
+   explicit constexpr StringView(const Char *f, const Char *l)
       : StringView(f, l - f)
    {}
    
    template <typename Array, if_compatible_array<Array> = true>
-   constexpr StringView(const Array &str) noexcept
+   explicit constexpr StringView(const Array &str) noexcept
       : StringView(str, lengthHelperArray(str))
    {}
    
    template <typename Pointer, if_compatible_pointer<Pointer> = true>
-   constexpr StringView(const Pointer &str) noexcept
+   explicit constexpr StringView(const Pointer &str) noexcept
       : StringView(str, str ? lengthHelperPointer(str) : 0)
    {}
    
@@ -208,7 +208,7 @@ public:
    {}
    
    template <typename StdBasicString, if_compatible_string<StdBasicString> = true>
-   StringView(const StdBasicString &str) noexcept
+   explicit StringView(const StdBasicString &str) noexcept
       : StringView(str.getRawData(), pdk::sizetype(str.size())) {}
    
    PDK_REQUIRED_RESULT inline String toString() const; // defined in string.h

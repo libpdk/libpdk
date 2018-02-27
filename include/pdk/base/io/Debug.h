@@ -29,6 +29,11 @@
 #include <map>
 #include <utility>
 
+#ifdef PDK_OS_MAC
+PDK_FORWARD_DECLARE_CF_TYPE(CFString);
+PDK_FORWARD_DECLARE_OBJC_CLASS(NSObject);
+#endif
+
 namespace pdk {
 
 // forward declare class
@@ -106,7 +111,7 @@ class PDK_CORE_EXPORT Debug
          NoQuotes = 0x1
       };
       
-      // ### Qt 6: unify with space, introduce own version member
+      // ### @TODO unify with space, introduce own version member
       bool testFlag(FormatFlag flag) const
       {
          return (m_context.m_version > 1) ? (m_flags & flag) : false;
@@ -343,11 +348,7 @@ public:
       return maybeSpace(); 
    }
 #endif
-   inline Debug &operator<<(StringView s) 
-   { 
-      putString(s.data(), size_t(s.size())); 
-      return maybeSpace(); 
-   }
+   
    inline Debug &operator<<(Latin1String t) 
    {
       putByteArray(t.latin1(), t.size(), Latin1Content::ContainsLatin1);
@@ -381,6 +382,12 @@ public:
    { 
       m_stream->m_ts << m;
       return *this;
+   }
+   
+   inline Debug &operator<<(StringView s) 
+   { 
+      putString(s.data(), size_t(s.size())); 
+      return maybeSpace(); 
    }
 };
 
@@ -574,10 +581,67 @@ inline Debug operator<<(Debug debug, const pdk::Flags<T> &flags)
    // operator<< the compiler would try to instantiate QFlags<T> for the std::enable_if
    return pdk_meta_enum_flag_debug_operator_helper(debug, flags);
 }
-         
+#ifdef PDK_OS_MAC        
+// Defined in CoreMacObjc.mm
+PDK_CORE_EXPORT Debug operator<<(Debug, const NSObject *);
+PDK_CORE_EXPORT Debug operator<<(Debug, CFStringRef);
+#endif
 } // io
 } // pdk
 
 PDK_DECLARE_SHARED(pdk::io::Debug)
+
+#ifdef PDK_OS_MAC
+
+// We provide Debug stream operators for commonly used Core Foundation
+// and Core Graphics types, as well as NSObject. Additional CF/CG types
+// may be added by the user, using PDK_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE.
+
+#define PDK_FOR_EACH_CORE_FOUNDATION_TYPE(F) \
+   F(CFArray) \
+   F(CFURL) \
+   F(CFData) \
+   F(CFNumber) \
+   F(CFDictionary) \
+   F(CFLocale) \
+   F(CFDate) \
+   F(CFBoolean) \
+   F(CFTimeZone) \
+   
+#define PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(F) \
+   F(CFError) \
+   F(CFBundle) \
+   
+#define LPDK_FORWARD_DECLARE_CF_TYPE(type) PDK_FORWARD_DECLARE_CF_TYPE(type);
+#define LPDK_FORWARD_DECLARE_MUTABLE_CF_TYPE(type) PDK_FORWARD_DECLARE_MUTABLE_CF_TYPE(type);
+#define LPDK_FORWARD_DECLARE_CG_TYPE(type) PDK_FORWARD_DECLARE_CG_TYPE(type);
+#define LPDK_FORWARD_DECLARE_MUTABLE_CG_TYPE(type) PDK_FORWARD_DECLARE_MUTABLE_CG_TYPE(type);
+
+PDK_FOR_EACH_CORE_FOUNDATION_TYPE(LPDK_FORWARD_DECLARE_CF_TYPE)
+PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(LPDK_FORWARD_DECLARE_MUTABLE_CF_TYPE)
+
+#define PDK_FORWARD_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE(CFType) \
+   PDK_CORE_EXPORT pdk::io::Debug operator<<(pdk::io::Debug, CFType##Ref);
+
+#define PDK_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE(CFType) \
+   pdk::io::Debug operator<<(pdk::io::Debug debug, CFType##Ref ref) \
+{ \
+   if (!ref) \
+   return debug << PDK_STRINGIFY(CFType) "Ref(0x0)"; \
+   if (CFStringRef description = CFCopyDescription(ref)) { \
+   pdk::io::DebugStateSaver saver(debug); \
+   debug.noquote() << description; \
+   CFRelease(description); \
+   } \
+   return debug; \
+   }
+
+PDK_FOR_EACH_CORE_FOUNDATION_TYPE(PDK_FORWARD_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE)
+PDK_FOR_EACH_MUTABLE_CORE_FOUNDATION_TYPE(PDK_FORWARD_DECLARE_DEBUG_OPERATOR_FOR_CF_TYPE)
+
+#undef LPDK_FORWARD_DECLARE_CF_TYPE
+#undef LPDK_FORWARD_DECLARE_MUTABLE_CF_TYPE
+
+#endif // PDK_OS_MAC
 
 #endif // PDK_M_BASE_IO_DEBUG_H
