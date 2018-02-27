@@ -112,8 +112,8 @@ class CollatorSortKeyPrivate : public SharedData
 public:
    template <typename...T>
    explicit CollatorSortKeyPrivate(T &&...args)
-      : SharedData()
-      , m_key(std::forward<T>(args)...)
+      : SharedData(),
+        m_key{std::forward<T>(args)...}
    {
    }
    

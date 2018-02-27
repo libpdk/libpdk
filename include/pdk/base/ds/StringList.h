@@ -192,7 +192,7 @@ inline bool StringList::contains(Latin1String value, pdk::CaseSensitivity cs) co
 
 void StringList::swap(int i, int j)
 {
-   PDK_ASSERT_X(i >= 0 && i < size() && j >= 0 && j < size(),
+   PDK_ASSERT_X(i >= 0 && static_cast<size_t>(i) < size() && j >= 0 && static_cast<size_t>(j) < size(),
                 "StringList::swap", "index out of range");
    std::swap((*this)[i], (*this)[j]);
 }

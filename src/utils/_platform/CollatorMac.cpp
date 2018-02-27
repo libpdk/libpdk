@@ -28,6 +28,7 @@
 
 namespace pdk {
 namespace utils {
+
 namespace internal {
 
 void CollatorPrivate::init()
