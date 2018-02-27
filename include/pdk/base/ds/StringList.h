@@ -171,7 +171,7 @@ inline String StringList::join(const String &sep) const
    return internal::stringlist_join(this, sep.getConstRawData(), sep.length());
 }
 
-String StringList::join(Latin1String sep) const
+inline String StringList::join(Latin1String sep) const
 {
    return internal::stringlist_join(*this, sep);
 }
@@ -190,7 +190,7 @@ inline bool StringList::contains(Latin1String value, pdk::CaseSensitivity cs) co
    return internal::stringlist_contains(this, value, cs);
 }
 
-void StringList::swap(int i, int j)
+inline void StringList::swap(int i, int j)
 {
    PDK_ASSERT_X(i >= 0 && static_cast<size_t>(i) < size() && j >= 0 && static_cast<size_t>(j) < size(),
                 "StringList::swap", "index out of range");

@@ -681,14 +681,35 @@ public:
    PDK_REQUIRED_RESULT String repeated(int times) const;
    const char16_t *utf16() const;
    
-   PDK_REQUIRED_RESULT ByteArray toLatin1() const &;
-   PDK_REQUIRED_RESULT ByteArray toLatin1() const &&;
+   PDK_REQUIRED_RESULT ByteArray toLatin1() const &
+   {
+      return toLatin1Helper(*this);
+   }
    
-   PDK_REQUIRED_RESULT ByteArray toUtf8() const &;
-   PDK_REQUIRED_RESULT ByteArray toUtf8() const &&;
+   PDK_REQUIRED_RESULT ByteArray toLatin1() &&
+   {
+      return toLatin1HelperInplace(*this);
+   }
    
-   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const &;
-   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const &&;
+   PDK_REQUIRED_RESULT ByteArray toUtf8() const &
+   {
+      return toUtf8Helper(*this);
+   }
+   
+   PDK_REQUIRED_RESULT ByteArray toUtf8() &&
+   {
+      return toUtf8Helper(*this);
+   }
+   
+   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() const &
+   {
+      return toLocal8BitHelper(isNull() ? nullptr : getConstRawData(), size()); 
+   }
+   
+   PDK_REQUIRED_RESULT ByteArray toLocal8Bit() &&
+   {
+      return toLocal8BitHelper(isNull() ? nullptr : getConstRawData(), size());
+   }
    
    PDK_REQUIRED_RESULT std::vector<char32_t> toUcs4() const;
    

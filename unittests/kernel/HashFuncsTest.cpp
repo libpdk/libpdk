@@ -25,11 +25,11 @@ TEST(HashFuncsTest, testHash)
    {
       std::pair<int, int> p12(1, 2);
       std::pair<int, int> p21(2, 1);
-      ASSERT_TRUE(pdk::hash(p12) == pdk::hash(p12));
-      ASSERT_TRUE(pdk::hash(p21) == pdk::hash(p21));
-      ASSERT_FALSE(pdk::hash(p12) == pdk::hash(p21));
+      ASSERT_TRUE(pdk::pdk_hash(p12) == pdk::pdk_hash(p12));
+      ASSERT_TRUE(pdk::pdk_hash(p21) == pdk::pdk_hash(p21));
+      ASSERT_FALSE(pdk::pdk_hash(p12) == pdk::pdk_hash(p21));
       std::pair<int, int> pA(0x12345678, 0x12345678);
       std::pair<int, int> pB(0x12345675, 0x12345675);
-      ASSERT_FALSE(pdk::hash(pA) == pdk::hash(pB));
+      ASSERT_FALSE(pdk::pdk_hash(pA) == pdk::pdk_hash(pB));
    }
 }

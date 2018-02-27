@@ -1206,14 +1206,21 @@ ByteArray ByteArray::toBase64(Base64Options options) const
    return temp;
 }
 
-ByteArray ByteArray::toHex() const
+ByteArray ByteArray::toHex(char separator) const
 {
-   ByteArray hex(m_data->m_size * 2, pdk::Initialization::Uninitialized);
+   if (!m_data->m_size) {
+      return ByteArray();
+   }
+   const int length = separator ? (m_data->m_size * 3 - 1) : (m_data->m_size * 2);
+   ByteArray hex(length, pdk::Uninitialized);
    char *hexData = hex.getRawData();
-   const uchar *data = reinterpret_cast<const uchar *>(m_data->getData());
-   for (int i = 0; i < m_data->m_size; ++i) {
-      hexData[i*2] = pdk::to_hex_lower(data[i] >> 4);
-      hexData[i*2+1] = pdk::to_hex_lower(data[i] & 0xf);
+   const uchar *data = (const uchar *)m_data->getData();
+   for (int i = 0, o = 0; i < m_data->m_size; ++i) {
+      hexData[o++] = to_hex_lower(data[i] >> 4);
+      hexData[o++] = to_hex_lower(data[i] & 0xf);
+      if ((separator) && (o < length)) {
+         hexData[o++] = separator;
+      }  
    }
    return hex;
 }

@@ -26,7 +26,7 @@
 using pdk::utils::SharedPointer;
 using pdk::utils::WeakPointer;
 using pdk::utils::internal::sharedptr::ExternalRefCountData;
-using pdk::hash;
+using pdk::pdk_hash;
 
 template <typename T>
 static inline ExternalRefCountData *refcount_data(const SharedPointer<T> &b)
@@ -244,8 +244,8 @@ TEST(SharedPointerTest, testOperators)
    ASSERT_TRUE(!(p2 < p2));
    ASSERT_TRUE(!(p1 < p1));
    
-   ASSERT_EQ(hash(p1), hash(p1.getData()));
-   ASSERT_EQ(hash(p2), hash(p2.getData()));
+   ASSERT_EQ(pdk_hash(p1), pdk_hash(p1.getData()));
+   ASSERT_EQ(pdk_hash(p2), pdk_hash(p2.getData()));
 }
 
 TEST(SharedPointerTest, testNullPtrOps)

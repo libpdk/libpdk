@@ -320,9 +320,8 @@ public:
    pdk::pulonglong toULongLong(bool *ok = nullptr, int base = 10) const;
    float toFloat(bool *ok = nullptr) const;
    double toDouble(bool *ok = nullptr) const;
-   ByteArray toBase64(Base64Options options) const;
-   ByteArray toHex() const;
-   ByteArray toHex(char separator) const; // ### Qt6 merge with previous
+   ByteArray toBase64(Base64Options options = Base64Encoding) const;
+   ByteArray toHex(char separator = '\0') const;
    ByteArray toPercentEncoding(const ByteArray &exclude = ByteArray(),
                                const ByteArray &include = ByteArray(),
                                char percent = '%') const;
@@ -343,7 +342,7 @@ public:
    PDK_REQUIRED_RESULT static ByteArray number(pdk::pulonglong, int base = 10);
    PDK_REQUIRED_RESULT static ByteArray number(double, char f = 'g', int prec = 6);
    PDK_REQUIRED_RESULT static ByteArray fromRawData(const char *, int size);
-   PDK_REQUIRED_RESULT static ByteArray fromBase64(const ByteArray &base64, Base64Options options);
+   PDK_REQUIRED_RESULT static ByteArray fromBase64(const ByteArray &base64, Base64Options options = Base64Encoding);
    PDK_REQUIRED_RESULT static ByteArray fromHex(const ByteArray &hexEncoded);
    PDK_REQUIRED_RESULT static ByteArray fromPercentEncoding(const ByteArray &pctEncoded, char percent = '%');
    
