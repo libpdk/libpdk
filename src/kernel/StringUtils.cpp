@@ -13,10 +13,15 @@
 //
 // Created by softboy on 2017/12/15.
 
+#include "pdk/global/PlatformDefs.h"
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/base/ds/ByteArray.h"
+#include "pdk/base/lang/String.h"
 
 namespace pdk {
+
+using pdk::ds::ByteArray;
+using pdk::lang::String;
 
 /*
 #!/usr/bin/perl -l
@@ -259,6 +264,46 @@ int strcmp(const ds::ByteArray &lhs, const ds::ByteArray &rhs)
       return ret;
    }
    return lhsLength - rhsLength;
+}
+
+#if !defined(PDK_VSNPRINTF)
+
+int vsnprintf(char *str, size_t n, const char *fmt, va_list ap)
+{
+   if (!str || !fmt) {
+      return -1;
+   }
+   const ByteArray ba = String::vasprintf(fmt, ap).toLocal8Bit();
+   
+   if (n > 0) {
+      size_t blen = std::min(size_t(ba.length()), size_t(n - 1));
+      memcpy(str, ba.getConstRawData(), blen);
+      str[blen] = '\0'; // make sure str is always 0 terminated
+   }
+   return ba.length();
+}
+
+#else
+} // pdk
+#include <stdio.h>
+
+namespace pdk {
+
+int vsnprintf(char *str, size_t n, const char *fmt, va_list ap)
+{
+   return PDK_VSNPRINTF(str, n, fmt, ap);
+}
+
+#endif
+
+int snprintf(char *str, size_t n, const char *fmt, ...)
+{
+   va_list ap;
+   va_start(ap, fmt);
+   int ret = vsnprintf(str, n, fmt, ap);
+   va_end(ap);
+   
+   return ret;
 }
 
 } // pdk

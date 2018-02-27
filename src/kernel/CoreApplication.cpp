@@ -24,6 +24,7 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
+#include "pdk/base/os/thread/ReadWriteLock.h"
 
 #include <cstdlib>
 #include <list>
@@ -59,6 +60,7 @@ using pdk::os::thread::internal::ThreadData;
 using pdk::os::thread::internal::PostEvent;
 using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
+using pdk::os::thread::ReadLocker;
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
 {
@@ -132,12 +134,12 @@ bool CoreApplicationPrivate::sm_setuidAllowed = false;
 
 String CoreApplicationPrivate::getAppName() const
 {
-//   String appName;
-//   if (m_argv[0]) {
-//      char *p = std::strrchr(m_argv[0], '/');
-//      appName = p ? (p + 1) : m_argv[0];
-//   }
-//   return appName;
+   //   String appName;
+   //   if (m_argv[0]) {
+   //      char *p = std::strrchr(m_argv[0], '/');
+   //      appName = p ? (p + 1) : m_argv[0];
+   //   }
+   //   return appName;
 }
 
 String *CoreApplicationPrivate::m_cachedAppFilePath = nullptr;
@@ -367,12 +369,12 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
    Thread *thread = receiver->getThread();
    //   PDK_ASSERT_X(currentThread == thr || !thr,
    //              "CoreApplication::sendEvent",
-   //              QString::fromLatin1("Cannot send events to objects owned by a different thread. "
+   //              String::fromLatin1("Cannot send events to objects owned by a different thread. "
    //                                  "Current thread %1. Receiver '%2' (of type '%3') was created in thread %4")
-   //              .arg(QString::number((quintptr) currentThread, 16))
+   //              .arg(String::number((quintptr) currentThread, 16))
    //              .arg(receiver->objectName())
    //              .arg(QLatin1String(receiver->metaObject()->className()))
-   //              .arg(QString::number((quintptr) thr, 16))
+   //              .arg(String::number((quintptr) thr, 16))
    //              .toLocal8Bit().data());
    PDK_ASSERT_X(currentThread == thread || !thread,
                 "CoreApplication::sendEvent",
@@ -383,19 +385,19 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 
 void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
-//#ifndef PDK_NO_LIBRARY
-//   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
-//   if (!appLibPaths) {
-//      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
-//   }
-//   String appLocation = CoreApplication::getAppFilePath();
-//   appLocation.erase(appLocation.find_last_of('/'));
-//   // TODO we need check exist
-//   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
-//   if(iter == appLibPaths->cend()) {
-//      appLibPaths->push_back(appLocation);
-//   }
-//#endif
+   //#ifndef PDK_NO_LIBRARY
+   //   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
+   //   if (!appLibPaths) {
+   //      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
+   //   }
+   //   String appLocation = CoreApplication::getAppFilePath();
+   //   appLocation.erase(appLocation.find_last_of('/'));
+   //   // TODO we need check exist
+   //   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
+   //   if(iter == appLibPaths->cend()) {
+   //      appLibPaths->push_back(appLocation);
+   //   }
+   //#endif
 }
 
 void CoreApplicationPrivate::initLocale()
@@ -460,6 +462,36 @@ CoreApplication::CoreApplication(int &argc, char **argv, int internal)
 void CoreApplication::flush()
 {
 }
+
+String CoreApplication::translate(const char *context, const char *sourceText,
+                                    const char *disambiguation, int n)
+{
+   String result;
+//   if (!sourceText) {
+//      return result;
+//   }
+//   if (sm_self) {
+//      CoreApplicationPrivate *d = sm_self->getImplPtr();
+//      ReadLocker locker(&d->translateMutex);
+//      if (!d->translators.isEmpty()) {
+//         std::list<QTranslator*>::const_iterator it;
+//         Translator *translationFile;
+//         for (it = d->translators.constBegin(); it != d->translators.constEnd(); ++it) {
+//            translationFile = *it;
+//            result = translationFile->translate(context, sourceText, disambiguation, n);
+//            if (!result.isNull())
+//               break;
+//         }
+//      }
+//   }
+   
+//   if (result.isNull())
+//      result = String::fromUtf8(sourceText);
+   
+//   replacePercentN(&result, n);
+   return result;
+}
+
 
 CoreApplication::~CoreApplication()
 {
@@ -549,7 +581,7 @@ void CoreApplicationPrivate::maybeQuit()
 {
 }
 
-// Makes it possible to point QCoreApplication to a custom location to ensure
+// Makes it possible to point CoreApplication to a custom location to ensure
 // the directory is added to the patch, and qt.conf and deployed plugins are
 // found from there. This is for use cases in which QGuiApplication is
 // instantiated by a library and not by an application executable, for example,

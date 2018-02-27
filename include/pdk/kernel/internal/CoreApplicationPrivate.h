@@ -84,6 +84,12 @@ public:
    void cleanupThreadData();
    void appendAppPathToLibPaths(void);
    
+#ifndef PDK_NO_TRANSLATION
+//    TranslatorList m_translators;
+//    ReadWriteLock m_translateMutex;
+//    static bool isTranslatorInstalled(Translator *translator);
+#endif
+   
    static String *m_cachedAppFilePath;
    static void setAppFilePath(const String &path);
    static inline void clearAppFilePath()
