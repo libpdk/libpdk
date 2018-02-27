@@ -698,7 +698,7 @@ void TextStreamPrivate::putString(const Character *data, int len, bool number)
       const PaddingResult pad = padding(len);
       if (m_params.m_fieldAlignment == TextStream::FieldAlignment::AlignAccountingStyle && number) {
          const Character sign = len > 0 ? data[0] : Character();
-         if (sign == m_locale.negativeSign() || sign == m_locale.positiveSign()) {
+         if (sign == m_locale.getNegativeSign() || sign == m_locale.getPositiveSign()) {
             // write the sign before the padding, then skip it later
             write(&sign, 1);
             ++data;
@@ -721,7 +721,7 @@ void TextStreamPrivate::putString(Latin1String data, bool number)
       const PaddingResult pad = padding(data.size());
       if (m_params.m_fieldAlignment == TextStream::FieldAlignment::AlignAccountingStyle && number) {
          const Character sign = data.size() > 0 ? Latin1Character(*data.getRawData()) : Character();
-         if (sign == m_locale.negativeSign() || sign == m_locale.positiveSign()) {
+         if (sign == m_locale.getNegativeSign() || sign == m_locale.getPositiveSign()) {
             // write the sign before the padding, then skip it later
             write(&sign, 1);
             data = Latin1String(data.getRawData() + 1, data.size() - 1);
@@ -765,7 +765,7 @@ TextStreamPrivate::NumberParsingStatus TextStreamPrivate::getNumber(pulonglong *
             base = 10;
          }
          ungetChar(ch2);
-      } else if (ch == m_locale.negativeSign() || ch == m_locale.positiveSign() || ch.isDigit()) {
+      } else if (ch == m_locale.getNegativeSign() || ch == m_locale.getPositiveSign() || ch.isDigit()) {
          base = 10;
       } else {
          ungetChar(ch);
@@ -838,7 +838,7 @@ TextStreamPrivate::NumberParsingStatus TextStreamPrivate::getNumber(pulonglong *
       int ndigits = 0;
       if (!getChar(&sign))
          return NumberParsingStatus::npsMissingDigit;
-      if (sign != m_locale.negativeSign() && sign != m_locale.positiveSign()) {
+      if (sign != m_locale.getNegativeSign() && sign != m_locale.getPositiveSign()) {
          if (!sign.isDigit()) {
             ungetChar(sign);
             return NumberParsingStatus::npsMissingDigit;
@@ -852,7 +852,7 @@ TextStreamPrivate::NumberParsingStatus TextStreamPrivate::getNumber(pulonglong *
          if (ch.isDigit()) {
             val *= 10;
             val += ch.getDigitValue();
-         } else if (m_locale != Locale::c() && ch == m_locale.groupSeparator()) {
+         } else if (m_locale != Locale::c() && ch == m_locale.getGroupSeparator()) {
             continue;
          } else {
             ungetChar(ch);
@@ -862,7 +862,7 @@ TextStreamPrivate::NumberParsingStatus TextStreamPrivate::getNumber(pulonglong *
       }
       if (ndigits == 0)
          return NumberParsingStatus::npsMissingDigit;
-      if (sign == m_locale.negativeSign()) {
+      if (sign == m_locale.getNegativeSign()) {
          pdk::plonglong ival = pdk::plonglong(val);
          if (ival > 0)
             ival = -ival;
@@ -993,15 +993,15 @@ bool TextStreamPrivate::getReal(double *f)
          break;
       default: {
          Character lc = c.toLower();
-         if (lc == m_locale.decimalPoint().toLower()) {
+         if (lc == m_locale.getDecimalPoint().toLower()) {
             input = InputDot;
-         } else if (lc == m_locale.exponential().toLower()) {
+         } else if (lc == m_locale.getExponential().toLower()) {
             input = InputExp;
-         } else if (lc == m_locale.negativeSign().toLower() 
-                    || lc == m_locale.positiveSign().toLower()) {
+         } else if (lc == m_locale.getNegativeSign().toLower() 
+                    || lc == m_locale.getPositiveSign().toLower()) {
             input = InputSign;
          } else if (m_locale != Locale::c() // backward-compatibility
-                    && lc == m_locale.groupSeparator().toLower()) {
+                    && lc == m_locale.getGroupSeparator().toLower()) {
             input = InputDigit; // well, it isn't a digit, but no one cares.
          } else {
             input = None;
@@ -1088,7 +1088,7 @@ void TextStreamPrivate::putNumber(pdk::pulonglong number, bool negative)
       // TextStream(result) << showbase << hex << -1 << oct << -1
       // should output: -0x1 -0b1
       result = dd->unsLongLongToString(number, -1, base, -1, flags);
-      result.prepend(m_locale.negativeSign());
+      result.prepend(m_locale.getNegativeSign());
    } else {
       result = dd->unsLongLongToString(number, -1, base, -1, flags);
       // workaround for backward compatibility - in octal form with

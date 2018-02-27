@@ -177,7 +177,7 @@ int from_short_month_name(const StringRef &monthName)
    }
    // If English names can't be found, search the localized ones
    for (int i = 1; i <= 12; ++i) {
-      if (monthName == Locale::system().monthName(i, Locale::FormatType::ShortFormat)) {
+      if (monthName == Locale::getSystem().getMonthName(i, Locale::FormatType::ShortFormat)) {
          return i;
       }
    }
@@ -396,8 +396,8 @@ String to_string_text_date(Date date)
 {
    const ParsedDate pd = get_date_from_julian_day(date.toJulianDay());
    static const Latin1Character sp(' ');
-   return Locale::system().dayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat) + sp
-         + Locale::system().monthName(pd.m_month, Locale::FormatType::ShortFormat) + sp
+   return Locale::getSystem().getDayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat) + sp
+         + Locale::getSystem().getMonthName(pd.m_month, Locale::FormatType::ShortFormat) + sp
          + String::number(pd.m_day) + sp
          + String::number(pd.m_year);
 }
@@ -422,9 +422,9 @@ String Date::toString(pdk::DateFormat format) const
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toString(*this, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toString(*this, Locale::FormatType::   LongFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::   LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:
@@ -443,7 +443,7 @@ String Date::toString(pdk::DateFormat format) const
 
 String Date::toString(StringView format) const
 {
-   return Locale::system().toString(*this, format); // Locale::c() ### Qt6
+   return Locale::getSystem().toString(*this, format); // Locale::c() ### Qt6
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
@@ -583,9 +583,9 @@ Date Date::fromString(const String& string, pdk::DateFormat format)
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toDate(string, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toDate(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toDate(string, Locale::FormatType::LongFormat);
+      return Locale::getSystem().toDate(string, Locale::FormatType::LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toDate(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:
@@ -717,9 +717,9 @@ String Time::toString(pdk::DateFormat format) const
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toString(*this, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toString(*this, Locale::FormatType::LongFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:
@@ -735,7 +735,7 @@ String Time::toString(pdk::DateFormat format) const
 
 String Time::toString(StringView format) const
 {
-   return Locale::system().toString(*this, format); // Locale::c() ### Qt6
+   return Locale::getSystem().toString(*this, format); // Locale::c() ### Qt6
 }
 
 #if PDK_STRINGVIEW_VERSION < 2
@@ -883,9 +883,9 @@ Time Time::fromString(const String& string, pdk::DateFormat format)
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toTime(string, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toTime(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toTime(string, Locale::FormatType::LongFormat);
+      return Locale::getSystem().toTime(string, Locale::FormatType::LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toTime(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:
@@ -2124,9 +2124,9 @@ String DateTime::toString(pdk::DateFormat format) const
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toString(*this, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toString(*this, Locale::FormatType::LongFormat);
+      return Locale::getSystem().toString(*this, Locale::FormatType::LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toString(*this, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:
@@ -2192,7 +2192,7 @@ String DateTime::toString(pdk::DateFormat format) const
 
 String DateTime::toString(StringView format) const
 {
-   return Locale::system().toString(*this, format); // Locale::c() ### Qt6
+   return Locale::getSystem().toString(*this, format); // Locale::c() ### Qt6
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
@@ -2537,9 +2537,9 @@ DateTime DateTime::fromString(const String& string, pdk::DateFormat format)
    }
    switch (format) {
    case pdk::DateFormat::SystemLocaleShortDate:
-      return Locale::system().toDateTime(string, Locale::FormatType::ShortFormat);
+      return Locale::getSystem().toDateTime(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::SystemLocaleLongDate:
-      return Locale::system().toDateTime(string, Locale::FormatType::LongFormat);
+      return Locale::getSystem().toDateTime(string, Locale::FormatType::LongFormat);
    case pdk::DateFormat::DefaultLocaleShortDate:
       return Locale().toDateTime(string, Locale::FormatType::ShortFormat);
    case pdk::DateFormat::DefaultLocaleLongDate:

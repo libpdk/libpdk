@@ -1015,9 +1015,9 @@ public:
    String toString(const Time &time, FormatType format = FormatType::LongFormat) const;
    String toString(const DateTime &dateTime, FormatType format = FormatType::LongFormat) const;
    
-   String dateFormat(FormatType format = FormatType::LongFormat) const;
-   String timeFormat(FormatType format = FormatType::LongFormat) const;
-   String dateTimeFormat(FormatType format = FormatType::LongFormat) const;
+   String getDateFormat(FormatType format = FormatType::LongFormat) const;
+   String getTimeFormat(FormatType format = FormatType::LongFormat) const;
+   String getDateTimeFormat(FormatType format = FormatType::LongFormat) const;
    
    Date toDate(const String &string, FormatType = FormatType::LongFormat) const;
    Time toTime(const String &string, FormatType = FormatType::LongFormat) const;
@@ -1026,33 +1026,33 @@ public:
    Time toTime(const String &string, const String &format) const;
    DateTime toDateTime(const String &string, const String &format) const;
    
-   Character decimalPoint() const;
-   Character groupSeparator() const;
-   Character percent() const;
-   Character zeroDigit() const;
-   Character negativeSign() const;
-   Character positiveSign() const;
-   Character exponential() const;
+   Character getDecimalPoint() const;
+   Character getGroupSeparator() const;
+   Character getPercent() const;
+   Character getZeroDigit() const;
+   Character getNegativeSign() const;
+   Character getPositiveSign() const;
+   Character getExponential() const;
    
-   String monthName(int, FormatType format = FormatType::LongFormat) const;
-   String standaloneMonthName(int, FormatType format = FormatType::LongFormat) const;
-   String dayName(int, FormatType format = FormatType::LongFormat) const;
-   String standaloneDayName(int, FormatType format = FormatType::LongFormat) const;
+   String getMonthName(int, FormatType format = FormatType::LongFormat) const;
+   String getStandaloneMonthName(int, FormatType format = FormatType::LongFormat) const;
+   String getDayName(int, FormatType format = FormatType::LongFormat) const;
+   String getStandaloneDayName(int, FormatType format = FormatType::LongFormat) const;
    
-   pdk::DayOfWeek firstDayOfWeek() const;
-   std::list<pdk::DayOfWeek> weekdays() const;
+   pdk::DayOfWeek getFirstDayOfWeek() const;
+   std::list<pdk::DayOfWeek> getWeekdays() const;
    
-   String amText() const;
-   String pmText() const;
+   String getAmText() const;
+   String getPmText() const;
    
-   MeasurementSystem measurementSystem() const;
+   MeasurementSystem getMeasurementSystem() const;
    
-   pdk::LayoutDirection textDirection() const;
+   pdk::LayoutDirection getTextDirection() const;
    
    String toUpper(const String &str) const;
    String toLower(const String &str) const;
    
-   String currencySymbol(CurrencySymbolFormat = CurrencySymbol) const;
+   String getCurrencySymbol(CurrencySymbolFormat = CurrencySymbol) const;
    String toCurrencyString(plonglong, const String &symbol = String()) const;
    String toCurrencyString(pulonglong, const String &symbol = String()) const;
    inline String toCurrencyString(short, const String &symbol = String()) const;
@@ -1068,7 +1068,7 @@ public:
    
    String formattedDataSize(pdk::pint64 bytes, int precision = 2, DataSizeFormats format = DataSizeIecFormat);
    
-   StringList uiLanguages() const;
+   StringList getUiLanguages() const;
    
    bool operator==(const Locale &other) const;
    bool operator!=(const Locale &other) const;
@@ -1083,7 +1083,7 @@ public:
       return Locale(Language::C);
    }
    
-   static Locale system();
+   static Locale getSystem();
    
    static std::list<Locale> matchingLocales(Locale::Language language, Locale::Script script, Locale::Country country);
    static std::list<Country> countriesForLanguage(Language lang);

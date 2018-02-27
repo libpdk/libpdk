@@ -1179,7 +1179,7 @@ String Locale::toString(const Date &date, FormatType format) const
       }
    }
 #endif
-   String formatStr = dateFormat(format);
+   String formatStr = getDateFormat(format);
    return toString(date, formatStr);
 }
 
@@ -1248,7 +1248,7 @@ String Locale::toString(const DateTime &dateTime, FormatType format) const
    }
 #endif
    
-   const String formatStr = dateTimeFormat(format);
+   const String formatStr = getDateTimeFormat(format);
    return toString(dateTime, formatStr);
 }
 
@@ -1269,11 +1269,11 @@ String Locale::toString(const Time &time, FormatType format) const
    }
 #endif
    
-   String format_str = timeFormat(format);
+   String format_str = getTimeFormat(format);
    return toString(time, format_str);
 }
 
-String Locale::dateFormat(FormatType format) const
+String Locale::getDateFormat(FormatType format) const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1301,7 +1301,7 @@ String Locale::dateFormat(FormatType format) const
    return internal::get_locale_data(internal::sg_dateFormatData + idx, size);
 }
 
-String Locale::timeFormat(FormatType format) const
+String Locale::getTimeFormat(FormatType format) const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1330,7 +1330,7 @@ String Locale::timeFormat(FormatType format) const
    return internal::get_locale_data(internal::sg_timeFormatData + idx, size);
 }
 
-String Locale::dateTimeFormat(FormatType format) const
+String Locale::getDateTimeFormat(FormatType format) const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1343,29 +1343,29 @@ String Locale::dateTimeFormat(FormatType format) const
       }
    }
 #endif
-   return dateFormat(format) + Latin1Character(' ') + timeFormat(format);
+   return getDateFormat(format) + Latin1Character(' ') + getTimeFormat(format);
 }
 
 #ifndef PDK_NO_DATESTRING
 Time Locale::toTime(const String &string, FormatType format) const
 {
-   return toTime(string, timeFormat(format));
+   return toTime(string, getTimeFormat(format));
 }
 
 Date Locale::toDate(const String &string, FormatType format) const
 {
-   return toDate(string, dateFormat(format));
+   return toDate(string, getDateFormat(format));
 }
 
 DateTime Locale::toDateTime(const String &string, FormatType format) const
 {
-   return toDateTime(string, dateTimeFormat(format));
+   return toDateTime(string, getDateTimeFormat(format));
 }
 
 Time Locale::toTime(const String &string, const String &format) const
 {
    Time time;
-#if PDK_CONFIG(DATETIME_PARSER)
+#if PDK_CONFIG(datetimeparser)
    //    DateTimeParser dt(Variant::Time, DateTimeParser::FromString);
    //    dt.setDefaultLocale(*this);
    //    if (dt.parseFormat(format))
@@ -1380,7 +1380,7 @@ Time Locale::toTime(const String &string, const String &format) const
 Date Locale::toDate(const String &string, const String &format) const
 {
    Date date;
-#if PDK_CONFIG(DATETIME_PARSER)
+#if PDK_CONFIG(datetimeparser)
    //    DateTimeParser dt(Variant::Date, DateTimeParser::FromString);
    //    dt.setDefaultLocale(*this);
    //    if (dt.parseFormat(format))
@@ -1394,7 +1394,7 @@ Date Locale::toDate(const String &string, const String &format) const
 
 DateTime Locale::toDateTime(const String &string, const String &format) const
 {
-#if PDK_CONFIG(DATETIME_PARSER)
+#if PDK_CONFIG(datetimeparser)
    //    Time time;
    //    Date date;
    
@@ -1411,37 +1411,37 @@ DateTime Locale::toDateTime(const String &string, const String &format) const
 
 #endif
 
-Character Locale::decimalPoint() const
+Character Locale::getDecimalPoint() const
 {
    return m_implPtr->decimal();
 }
 
-Character Locale::groupSeparator() const
+Character Locale::getGroupSeparator() const
 {
    return m_implPtr->group();
 }
 
-Character Locale::percent() const
+Character Locale::getPercent() const
 {
    return m_implPtr->percent();
 }
 
-Character Locale::zeroDigit() const
+Character Locale::getZeroDigit() const
 {
    return m_implPtr->zero();
 }
 
-Character Locale::negativeSign() const
+Character Locale::getNegativeSign() const
 {
    return m_implPtr->minus();
 }
 
-Character Locale::positiveSign() const
+Character Locale::getPositiveSign() const
 {
    return m_implPtr->plus();
 }
 
-Character Locale::exponential() const
+Character Locale::getExponential() const
 {
    return m_implPtr->exponential();
 }
@@ -1498,7 +1498,7 @@ String Locale::toString(double i, char f, int prec) const
    return m_implPtr->m_data->doubleToString(i, prec, form, -1, flags);
 }
 
-Locale Locale::system()
+Locale Locale::getSystem()
 {
    return Locale(*LocalePrivate::create(internal::system_data()));
 }
@@ -1539,7 +1539,7 @@ std::list<Locale> Locale::matchingLocales(Language language,
    return result;
 }
 
-String Locale::monthName(int month, FormatType type) const
+String Locale::getMonthName(int month, FormatType type) const
 {
    if (month < 1 || month > 12)
       return String();
@@ -1575,7 +1575,7 @@ String Locale::monthName(int month, FormatType type) const
    return internal::get_locale_list_data(internal::sg_monthsData + idx, size, month - 1);
 }
 
-String Locale::standaloneMonthName(int month, FormatType type) const
+String Locale::getStandaloneMonthName(int month, FormatType type) const
 {
    if (month < 1 || month > 12) {
       return String();
@@ -1610,12 +1610,12 @@ String Locale::standaloneMonthName(int month, FormatType type) const
    }
    String name = internal::get_locale_list_data(internal::sg_monthsData + idx, size, month - 1);
    if (name.isEmpty()) {
-      return monthName(month, type);
+      return getMonthName(month, type);
    }
    return name;
 }
 
-String Locale::dayName(int day, FormatType type) const
+String Locale::getDayName(int day, FormatType type) const
 {
    if (day < 1 || day > 7) {
       return String();
@@ -1653,7 +1653,7 @@ String Locale::dayName(int day, FormatType type) const
    return internal::get_locale_list_data(internal::sg_daysData + idx, size, day);
 }
 
-String Locale::standaloneDayName(int day, FormatType type) const
+String Locale::getStandaloneDayName(int day, FormatType type) const
 {
    if (day < 1 || day > 7) {
       return String();
@@ -1689,12 +1689,12 @@ String Locale::standaloneDayName(int day, FormatType type) const
    }
    String name = internal::get_locale_list_data(internal::sg_daysData + idx, size, day);
    if (name.isEmpty()) {
-      return dayName(day == 0 ? 7 : day, type);
+      return getDayName(day == 0 ? 7 : day, type);
    }
    return name;
 }
 
-pdk::DayOfWeek Locale::firstDayOfWeek() const
+pdk::DayOfWeek Locale::getFirstDayOfWeek() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1722,7 +1722,7 @@ Locale::MeasurementSystem LocalePrivate::measurementSystem() const
 
 } // internal
 
-std::list<pdk::DayOfWeek> Locale::weekdays() const
+std::list<pdk::DayOfWeek> Locale::getWeekdays() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1744,7 +1744,7 @@ std::list<pdk::DayOfWeek> Locale::weekdays() const
    return weekdays;
 }
 
-Locale::MeasurementSystem Locale::measurementSystem() const
+Locale::MeasurementSystem Locale::getMeasurementSystem() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1757,7 +1757,7 @@ Locale::MeasurementSystem Locale::measurementSystem() const
    return m_implPtr->measurementSystem();
 }
 
-pdk::LayoutDirection Locale::textDirection() const
+pdk::LayoutDirection Locale::getTextDirection() const
 {
    switch (getScript()) {
    case Script::AdlamScript:
@@ -1821,7 +1821,7 @@ String Locale::toLower(const String &str) const
    return str.toLower();
 }
 
-String Locale::amText() const
+String Locale::getAmText() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1834,7 +1834,7 @@ String Locale::amText() const
    return internal::get_locale_data(internal::sg_amData + m_implPtr->m_data->m_amIdx, m_implPtr->m_data->m_amSize);
 }
 
-String Locale::pmText() const
+String Locale::getPmText() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -1924,10 +1924,10 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                                                       pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
                break;
             case 3:
-               result.append(q->monthName(date.getMonth(), Locale::FormatType::ShortFormat));
+               result.append(q->getMonthName(date.getMonth(), Locale::FormatType::ShortFormat));
                break;
             case 4:
-               result.append(q->monthName(date.getMonth(), Locale::FormatType::LongFormat));
+               result.append(q->getMonthName(date.getMonth(), Locale::FormatType::LongFormat));
                break;
             }
             break;
@@ -1944,10 +1944,10 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                                                       pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
                break;
             case 3:
-               result.append(q->dayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat));
+               result.append(q->getDayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat));
                break;
             case 4:
-               result.append(q->dayName(date.getDayOfWeek(), Locale::FormatType::LongFormat));
+               result.append(q->getDayName(date.getDayOfWeek(), Locale::FormatType::LongFormat));
                break;
             }
             break;
@@ -2030,7 +2030,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
             } else {
                repeat = 1;
             }
-            result.append(time.getHour() < 12 ? q->amText().toLower() : q->pmText().toLower());
+            result.append(time.getHour() < 12 ? q->getAmText().toLower() : q->getPmText().toLower());
             break;
             
          case 'A':
@@ -2040,7 +2040,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
             } else {
                repeat = 1;
             }
-            result.append(time.getHour() < 12 ? q->amText().toUpper() : q->pmText().toUpper());
+            result.append(time.getHour() < 12 ? q->getAmText().toUpper() : q->getPmText().toUpper());
             break;
             
          case 'z':
@@ -2757,7 +2757,7 @@ pdk::pulonglong LocaleData::bytearrayToUnsLongLong(const char *num, int base, bo
    return l;
 }
 
-String Locale::currencySymbol(Locale::CurrencySymbolFormat format) const
+String Locale::getCurrencySymbol(Locale::CurrencySymbolFormat format) const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
@@ -2812,9 +2812,9 @@ String Locale::toCurrencyString(pdk::plonglong value, const String &symbol) cons
       value = -value;
    }
    String str = toString(value);
-   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   String sym = symbol.isNull() ? getCurrencySymbol() : symbol;
    if (sym.isEmpty()) {
-      sym = currencySymbol(Locale::CurrencyIsoCode);
+      sym = getCurrencySymbol(Locale::CurrencyIsoCode);
    }
    String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
    return format.arg(str, sym);
@@ -2835,9 +2835,9 @@ String Locale::toCurrencyString(pdk::pulonglong value, const String &symbol) con
    pdk::puint8 idx = data->m_currencyFormatIdx;
    pdk::puint8 size = data->m_currencyFormatSize;
    String str = toString(value);
-   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   String sym = symbol.isNull() ? getCurrencySymbol() : symbol;
    if (sym.isEmpty()) {
-      sym = currencySymbol(Locale::CurrencyIsoCode);
+      sym = getCurrencySymbol(Locale::CurrencyIsoCode);
    }
    String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
    return format.arg(str, sym);
@@ -2863,9 +2863,9 @@ String Locale::toCurrencyString(double value, const String &symbol, int precisio
       value = -value;
    }
    String str = toString(value, 'f', precision == -1 ? m_implPtr->m_data->m_currencyDigits : precision);
-   String sym = symbol.isNull() ? currencySymbol() : symbol;
+   String sym = symbol.isNull() ? getCurrencySymbol() : symbol;
    if (sym.isEmpty()) {
-      sym = currencySymbol(Locale::CurrencyIsoCode);
+      sym = getCurrencySymbol(Locale::CurrencyIsoCode);
    }
    String format = internal::get_locale_data(internal::sg_currencyFormatData + idx, size);
    return format.arg(str, sym);
@@ -2907,7 +2907,7 @@ String Locale::formattedDataSize(pdk::pint64 bytes, int precision, DataSizeForma
    return number + Latin1Character(' ') + unit;
 }
 
-StringList Locale::uiLanguages() const
+StringList Locale::getUiLanguages() const
 {
 #ifndef PDK_NO_SYSTEMLOCALE
    if (m_implPtr->m_data == internal::system_data()) {
