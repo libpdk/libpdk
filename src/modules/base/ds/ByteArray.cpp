@@ -18,6 +18,9 @@
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/kernel/internal/StringAlgorithms.h"
+#include "pdk/utils/internal/LocalePrivate.h"
+#include "pdk/utils/internal/LocaleToolsPrivate.h"
+#include "pdk/global/Logging.h"
 
 #include <limits.h>
 
@@ -26,6 +29,8 @@
 
 namespace pdk {
 namespace ds {
+
+using pdk::utils::internal::LocaleData;
 
 namespace
 {
@@ -45,19 +50,19 @@ inline char to_lower(char c)
 char *pdk_ulltoa2(char *p, pdk::pulonglong n, int base)
 {
 #if defined(PDK_CHECK_RANGE)
-    if (base < 2 || base > 36) {
-        // warning_stream("ByteArray::setNum: Invalid base %d", base);
-        base = 10;
-    }
+   if (base < 2 || base > 36) {
+      // warning_stream("ByteArray::setNum: Invalid base %d", base);
+      base = 10;
+   }
 #endif
-    const char b = 'a' - 10;
-    do {
-        const int c = n % base;
-        n /= base;
-        *--p = c + (c < 10 ? '0' : b);
-    } while (n);
-
-    return p;
+   const char b = 'a' - 10;
+   do {
+      const int c = n % base;
+      n /= base;
+      *--p = c + (c < 10 ? '0' : b);
+   } while (n);
+   
+   return p;
 }
 
 }
@@ -105,31 +110,31 @@ ByteArray::ByteArray(int size, Initialization)
 
 ByteArray &ByteArray::setNum(pdk::plonglong n, int base)
 {
-    const int buffsize = 66; // big enough for MAX_ULLONG in base 2
-    char buff[buffsize];
-    char *p;
-
-    if (n < 0 && base == 10) {
-        p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(-(1 + n)) + 1, base);
-        *--p = '-';
-    } else {
-        p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(n), base);
-    }
-
-    clear();
-    append(p, buffsize - (p - buff));
-    return *this;
+   const int buffsize = 66; // big enough for MAX_ULLONG in base 2
+   char buff[buffsize];
+   char *p;
+   
+   if (n < 0 && base == 10) {
+      p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(-(1 + n)) + 1, base);
+      *--p = '-';
+   } else {
+      p = pdk_ulltoa2(buff + buffsize, pdk::pulonglong(n), base);
+   }
+   
+   clear();
+   append(p, buffsize - (p - buff));
+   return *this;
 }
 
 ByteArray &ByteArray::setNum(pdk::pulonglong n, int base)
 {
-    const int buffsize = 66; // big enough for MAX_ULLONG in base 2
-    char buff[buffsize];
-    char *p = pdk_ulltoa2(buff + buffsize, n, base);
-
-    clear();
-    append(p, buffsize - (p - buff));
-    return *this;
+   const int buffsize = 66; // big enough for MAX_ULLONG in base 2
+   char buff[buffsize];
+   char *p = pdk_ulltoa2(buff + buffsize, n, base);
+   
+   clear();
+   append(p, buffsize - (p - buff));
+   return *this;
 }
 
 // @TODO wait for locale
@@ -143,37 +148,37 @@ ByteArray &ByteArray::setNum(double n, char f, int prec)
 
 ByteArray ByteArray::number(int n, int base)
 {
-    ByteArray s;
-    s.setNum(n, base);
-    return s;
+   ByteArray s;
+   s.setNum(n, base);
+   return s;
 }
 
 ByteArray ByteArray::number(uint n, int base)
 {
-    ByteArray s;
-    s.setNum(n, base);
-    return s;
+   ByteArray s;
+   s.setNum(n, base);
+   return s;
 }
 
 ByteArray ByteArray::number(pdk::plonglong n, int base)
 {
-    ByteArray s;
-    s.setNum(n, base);
-    return s;
+   ByteArray s;
+   s.setNum(n, base);
+   return s;
 }
 
 ByteArray ByteArray::number(pdk::pulonglong n, int base)
 {
-    ByteArray s;
-    s.setNum(n, base);
-    return s;
+   ByteArray s;
+   s.setNum(n, base);
+   return s;
 }
 
 ByteArray ByteArray::number(double n, char f, int prec)
 {
-    ByteArray s;
-    s.setNum(n, f, prec);
-    return s;
+   ByteArray s;
+   s.setNum(n, f, prec);
+   return s;
 }
 
 ByteArray ByteArray::fromRawData(const char *data, int size)
@@ -281,7 +286,7 @@ void ByteArray::expand(int i)
    resize(std::max(i + 1, m_data->m_size));
 }
 
-ByteArray ByteArray::nullTerminated() const
+ByteArray ByteArray::getNullTerminated() const
 {
    if (!PDK_BA_IS_RAW_DATA(m_data)) {
       return *this;
@@ -554,7 +559,7 @@ int ByteArray::indexOf(const char *needle, int from) const
       return from;
    }
    return pdk_find_byte_array(m_data->getData(), m_data->m_size, from, 
-                                    needle, searchedLength);
+                              needle, searchedLength);
 }
 
 int ByteArray::indexOf(char needle, int from) const
@@ -1259,6 +1264,96 @@ ByteArray ByteArray::repeated(int times) const
    resultDataPtr[resultSize] = '\0';
    result.m_data->m_size = resultSize;
    return result;
+}
+
+namespace {
+pdk::plonglong to_integral_helper(const char *data, bool *ok, int base, pdk::plonglong)
+{
+   return LocaleData::bytearrayToLongLong(data, base, ok);
+}
+
+pdk::pulonglong to_integral_helper(const char *data, bool *ok, int base, pdk::pulonglong)
+{
+   return LocaleData::bytearrayToUnsLongLong(data, base, ok);
+}
+
+template <typename T>
+inline T to_integral_helper(const char *data, bool *ok, int base)
+{
+   typedef typename std::conditional<std::is_unsigned<T>::value, pdk::pulonglong, pdk::plonglong>::type Int64;
+#if defined(PDK_CHECK_RANGE)
+   if (base != 0 && (base < 2 || base > 36)) {
+      warning_stream("ByteArray::toIntegral: Invalid base %d", base);
+      base = 10;
+   }
+#endif
+   // we select the right overload by the last, unused parameter
+   Int64 val = to_integral_helper(data, ok, base, Int64());
+   if (T(val) != val) {
+      if (ok) {
+         *ok = false;
+      }
+      val = 0;
+   }
+   return T(val);
+}
+} // anonymous namespace
+
+pdk::plonglong ByteArray::toLongLong(bool *ok, int base) const
+{
+   return to_integral_helper<pdk::plonglong>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+pdk::pulonglong ByteArray::toULongLong(bool *ok, int base) const
+{
+   return to_integral_helper<pdk::pulonglong>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+int ByteArray::toInt(bool *ok, int base) const
+{
+   return to_integral_helper<int>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+uint ByteArray::toUInt(bool *ok, int base) const
+{
+   return to_integral_helper<uint>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+long ByteArray::toLong(bool *ok, int base) const
+{
+   return to_integral_helper<long>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+ulong ByteArray::toULong(bool *ok, int base) const
+{
+   return to_integral_helper<ulong>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+short ByteArray::toShort(bool *ok, int base) const
+{
+   return to_integral_helper<short>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+ushort ByteArray::toUShort(bool *ok, int base) const
+{
+   return to_integral_helper<ushort>(getNullTerminated().getConstRawData(), ok, base);
+}
+
+double ByteArray::toDouble(bool *ok) const
+{
+   ByteArray nulled = getNullTerminated();
+   bool nonNullOk = false;
+   int processed = 0;
+   double d = pdk::utils::internal::ascii_to_double(nulled.getConstRawData(), nulled.length(), nonNullOk, processed);
+   if (ok) {
+      *ok = nonNullOk;
+   }
+   return d;
+}
+
+float ByteArray::toFloat(bool *ok) const
+{
+   return LocaleData::convertDoubleToFloat(toDouble(ok), ok);
 }
 
 bool ByteArray::isNull() const

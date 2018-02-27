@@ -515,7 +515,7 @@ inline char LocaleData::digitToCLocale(Character in) const
    return 0;
 }
 
-String read_escaped_format_string(const String &format, int *idx);
+String read_escaped_format_string(StringView format, int *idx);
 bool split_locale_name(const String &name, String &lang, String &script, String &cntry);
 int repeat_count(StringView str);
 

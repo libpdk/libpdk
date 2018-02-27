@@ -957,6 +957,12 @@ private:
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(String::SectionFlags)
 
+String StringView::toString() const
+{
+   PDK_ASSERT(size() == static_cast<size_t>(length()));
+   return String(data(), length());
+}
+
 #if !defined(PDK_NO_DATASTREAM)
 PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const String &);
 PDK_CORE_EXPORT DataStream &operator>>(DataStream &, String &);
@@ -1107,16 +1113,16 @@ inline void String::squeeze()
    }
 }
 
-//inline int String::toWCharArray(wchar_t *array) const
-//{
-//   int length = size();
-//   if (sizeof(wchar_t) == sizeof(Character)) {
-//      std::memcpy(array, m_data->getData(), sizeof(Character) * length);
-//      return length;
-//   } else {
-//      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
-//   }
-//}
+inline int String::toWCharArray(wchar_t *array) const
+{
+   int length = size();
+   if (sizeof(wchar_t) == sizeof(Character)) {
+      std::memcpy(array, m_data->getData(), sizeof(Character) * length);
+      return length;
+   } else {
+      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
+   }
+}
 
 inline String String::fromWCharArray(const wchar_t *string, int size)
 {
@@ -1237,13 +1243,99 @@ inline String String::fromStdU32String(const std::u32string &str)
    return fromUcs4(str.data(), str.size());
 }
 
-//inline std::u32string String::toStdU32String() const
-//{
-//   std::u32string u32Str(length(), char32_t(0));
-//   int len = toUcs4Helper(m_data->getData(), length(), reinterpret_cast<char32_t *>(&u32Str[0]));
-//   u32Str.resize(len);
-//   return u32Str;
-//}
+inline std::u32string String::toStdU32String() const
+{
+   std::u32string u32Str(length(), char32_t(0));
+   int len = toUcs4Helper(m_data->getData(), length(), reinterpret_cast<char32_t *>(&u32Str[0]));
+   u32Str.resize(len);
+   return u32Str;
+}
+
+inline String String::arg(int a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::plonglong(a), fieldWidth, base, fillChar);
+}
+
+inline String String::arg(uint a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::pulonglong(a), fieldWidth, base, fillChar);
+}
+
+inline String String::arg(long a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::plonglong(a), fieldWidth, base, fillChar);
+}
+
+inline String String::arg(ulong a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::pulonglong(a), fieldWidth, base, fillChar); 
+}
+
+inline String String::arg(short a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::plonglong(a), fieldWidth, base, fillChar);
+}
+
+inline String String::arg(ushort a, int fieldWidth, int base, Character fillChar) const
+{
+   return arg(pdk::pulonglong(a), fieldWidth, base, fillChar);
+}
+
+inline String String::arg(const String &a1, const String &a2) const
+{
+   const String *args[2] = { &a1, &a2 }; 
+   return multiArg(2, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3) const
+{
+   const String *args[3] = { &a1, &a2, &a3 };
+   return multiArg(3, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4) const
+{
+   const String *args[4] = { &a1, &a2, &a3, &a4 }; 
+   return multiArg(4, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4, const String &a5) const
+{
+   const String *args[5] = { &a1, &a2, &a3, &a4, &a5 };
+   return multiArg(5, args);
+}
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4, const String &a5, const String &a6) const
+{
+   const String *args[6] = { &a1, &a2, &a3, &a4, &a5, &a6 };
+   return multiArg(6, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4, const String &a5, const String &a6,
+                          const String &a7) const
+{
+   const String *args[7] = { &a1, &a2, &a3, &a4, &a5, &a6,  &a7 };
+   return multiArg(7, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4, const String &a5, const String &a6,
+                          const String &a7, const String &a8) const
+{
+   const String *args[8] = { &a1, &a2, &a3, &a4, &a5, &a6,  &a7, &a8 }; 
+   return multiArg(8, args);
+}
+
+inline String String::arg(const String &a1, const String &a2, const String &a3,
+                          const String &a4, const String &a5, const String &a6,
+                          const String &a7, const String &a8, const String &a9) const
+{
+   const String *args[9] = { &a1, &a2, &a3, &a4, &a5, &a6,  &a7, &a8, &a9 };
+   return multiArg(9, args);
+}
 
 inline bool operator ==(String::Null, String::Null)
 {

@@ -146,8 +146,9 @@ private:
 #if defined(PDK_CC_GNU) && !defined(PDK_CC_CLANG) && !defined(PDK_CC_INTEL)
       if (__builtin_constant_p(*str)) {
          pdk::sizetype result = 0;
-         while (*str++)
+         while (*str++) {
             ++result;
+         }
          return result;
       }
 #endif
@@ -210,7 +211,7 @@ public:
    StringView(const StdBasicString &str) noexcept
       : StringView(str.getRawData(), pdk::sizetype(str.size())) {}
    
-   PDK_REQUIRED_RESULT inline String toString() const; // defined in qstring.h
+   PDK_REQUIRED_RESULT inline String toString() const; // defined in string.h
    
    PDK_REQUIRED_RESULT constexpr pdk::sizetype size() const noexcept
    {
@@ -233,7 +234,7 @@ public:
    }
    
    //
-   // QString API
+   // String API
    //
    
    PDK_REQUIRED_RESULT ByteArray toLatin1() const
@@ -258,12 +259,12 @@ public:
       return (*this)[n];
    }
    
-   PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR StringView mid(pdk::sizetype pos) const
+   PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR StringView substring(pdk::sizetype pos) const
    {
       return PDK_ASSERT(pos >= 0), PDK_ASSERT(pos <= size()), StringView(m_data + pos, m_size - pos);
    }
    
-   PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR StringView mid(pdk::sizetype pos, pdk::sizetype n) const
+   PDK_REQUIRED_RESULT PDK_DECL_CONSTEXPR StringView substring(pdk::sizetype pos, pdk::sizetype n) const
    {
       return PDK_ASSERT(pos >= 0), PDK_ASSERT(n >= 0), PDK_ASSERT(pos + n <= size()), StringView(m_data + pos, n);
    }

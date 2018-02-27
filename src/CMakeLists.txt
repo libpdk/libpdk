@@ -32,10 +32,12 @@ if (WIN32)
 elseif(UNIX)
    if (APPLE)
       list(APPEND PDK_BASE_SOURCES
-         ${UTILS_DIR}/_platform/CollatorMac.cpp)
+         ${UTILS_DIR}/_platform/CollatorMac.cpp
+         ${UTILS_DIR}/_platform/LocaleMac.mm)
    else()
       list(APPEND PDK_BASE_SOURCES
-         ${UTILS_DIR}/_platform/CollatorPosix.cpp)
+         ${UTILS_DIR}/_platform/CollatorPosix.cpp
+         ${UTILS_DIR}/_platform/LocaleUnix.cpp)
    endif()
 endif()
 

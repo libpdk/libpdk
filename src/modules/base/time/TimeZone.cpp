@@ -121,40 +121,40 @@ public:
 PDK_GLOBAL_STATIC(TimeZoneSingleton, sg_globalTimeZone);
 
 TimeZone::TimeZone() noexcept
-   : m_imptr(0)
+   : m_implPtr(0)
 {}
 
 TimeZone::TimeZone(const ByteArray &ianaId)
 {
    // Try and see if it's a valid UTC offset ID, just as quick to try create as look-up
-   m_imptr = new UtcTimeZonePrivate(ianaId);
+   m_implPtr = new UtcTimeZonePrivate(ianaId);
    // If not a valid UTC offset ID then try create it with the system backend
    // Relies on backend not creating valid tz with invalid name
-   if (!m_imptr->isValid()) {
-      m_imptr = new_backend_timezone(ianaId);
+   if (!m_implPtr->isValid()) {
+      m_implPtr = new_backend_timezone(ianaId);
    }
 }
 
 TimeZone::TimeZone(int offsetSeconds)
-   : m_imptr((offsetSeconds >= MinUtcOffsetSecs && offsetSeconds <= MaxUtcOffsetSecs)
+   : m_implPtr((offsetSeconds >= MinUtcOffsetSecs && offsetSeconds <= MaxUtcOffsetSecs)
              ? new UtcTimeZonePrivate(offsetSeconds) : nullptr)
 {}
 
 TimeZone::TimeZone(const ByteArray &ianaId, int offsetSeconds, const String &name,
                    const String &abbreviation, Locale::Country country, const String &comment)
-   : m_imptr()
+   : m_implPtr()
 {
    if (!isTimeZoneIdAvailable(ianaId)) {
-      m_imptr = new UtcTimeZonePrivate(ianaId, offsetSeconds, name, abbreviation, country, comment);
+      m_implPtr = new UtcTimeZonePrivate(ianaId, offsetSeconds, name, abbreviation, country, comment);
    }
 }
 
 TimeZone::TimeZone(TimeZonePrivate &dd)
-   : m_imptr(&dd)
+   : m_implPtr(&dd)
 {}
 
 TimeZone::TimeZone(const TimeZone &other)
-   : m_imptr(other.m_imptr)
+   : m_implPtr(other.m_implPtr)
 {}
 
 TimeZone::~TimeZone()
@@ -162,32 +162,32 @@ TimeZone::~TimeZone()
 
 TimeZone &TimeZone::operator=(const TimeZone &other)
 {
-   m_imptr = other.m_imptr;
+   m_implPtr = other.m_implPtr;
    return *this;
 }
 
 bool TimeZone::operator==(const TimeZone &other) const
 {
-   if (m_imptr && other.m_imptr) {
-      return (*m_imptr == *other.m_imptr);
+   if (m_implPtr && other.m_implPtr) {
+      return (*m_implPtr == *other.m_implPtr);
    } else {
-      return (m_imptr == other.m_imptr);
+      return (m_implPtr == other.m_implPtr);
    }
 }
 
 bool TimeZone::operator!=(const TimeZone &other) const
 {
-   if (m_imptr && other.m_imptr) {
-      return (*m_imptr != *other.m_imptr);
+   if (m_implPtr && other.m_implPtr) {
+      return (*m_implPtr != *other.m_implPtr);
    } else {
-      return (m_imptr != other.m_imptr);
+      return (m_implPtr != other.m_implPtr);
    }
 }
 
 bool TimeZone::isValid() const
 {
-   if (m_imptr) {
-      return m_imptr->isValid();
+   if (m_implPtr) {
+      return m_implPtr->isValid();
    } else {
       return false;
    }
@@ -195,8 +195,8 @@ bool TimeZone::isValid() const
 
 ByteArray TimeZone::getId() const
 {
-   if (m_imptr) {
-      return m_imptr->getId();
+   if (m_implPtr) {
+      return m_implPtr->getId();
    } else {
       return ByteArray();
    } 
@@ -205,7 +205,7 @@ ByteArray TimeZone::getId() const
 Locale::Country TimeZone::getCountry() const
 {
    if (isValid()) {
-      return m_imptr->getCountry();
+      return m_implPtr->getCountry();
    } else {
       return Locale::Country::AnyCountry;
    }
@@ -214,7 +214,7 @@ Locale::Country TimeZone::getCountry() const
 String TimeZone::getComment() const
 {
    if (isValid()) {
-      return m_imptr->getComment();
+      return m_implPtr->getComment();
    } else {
       return String();
    }
@@ -224,7 +224,7 @@ String TimeZone::displayName(const DateTime &atDateTime, NameType nameType,
                              const Locale &locale) const
 {
    if (isValid()) {
-      return m_imptr->displayName(atDateTime.toMSecsSinceEpoch(), nameType, locale);
+      return m_implPtr->displayName(atDateTime.toMSecsSinceEpoch(), nameType, locale);
    } else {
       return String();
    }
@@ -234,7 +234,7 @@ String TimeZone::displayName(TimeType timeType, NameType nameType,
                              const Locale &locale) const
 {
    if (isValid()) {
-      return m_imptr->displayName(timeType, nameType, locale);
+      return m_implPtr->displayName(timeType, nameType, locale);
    } else {
       return String();
    }
@@ -243,7 +243,7 @@ String TimeZone::displayName(TimeType timeType, NameType nameType,
 String TimeZone::abbreviation(const DateTime &atDateTime) const
 {
    if (isValid()) {
-      return m_imptr->abbreviation(atDateTime.toMSecsSinceEpoch());
+      return m_implPtr->abbreviation(atDateTime.toMSecsSinceEpoch());
    } else {
       return String();
    }
@@ -252,7 +252,7 @@ String TimeZone::abbreviation(const DateTime &atDateTime) const
 int TimeZone::offsetFromUtc(const DateTime &atDateTime) const
 {
    if (isValid()) {
-      return m_imptr->offsetFromUtc(atDateTime.toMSecsSinceEpoch());
+      return m_implPtr->offsetFromUtc(atDateTime.toMSecsSinceEpoch());
    } else {
       return 0;
    }
@@ -261,7 +261,7 @@ int TimeZone::offsetFromUtc(const DateTime &atDateTime) const
 int TimeZone::standardTimeOffset(const DateTime &atDateTime) const
 {
    if (isValid()) {
-      return m_imptr->standardTimeOffset(atDateTime.toMSecsSinceEpoch());
+      return m_implPtr->standardTimeOffset(atDateTime.toMSecsSinceEpoch());
    } else {
       return 0;
    }
@@ -270,7 +270,7 @@ int TimeZone::standardTimeOffset(const DateTime &atDateTime) const
 int TimeZone::daylightTimeOffset(const DateTime &atDateTime) const
 {
    if (hasDaylightTime()) {
-      return m_imptr->daylightTimeOffset(atDateTime.toMSecsSinceEpoch());
+      return m_implPtr->daylightTimeOffset(atDateTime.toMSecsSinceEpoch());
    } else {
       return 0;
    } 
@@ -279,7 +279,7 @@ int TimeZone::daylightTimeOffset(const DateTime &atDateTime) const
 bool TimeZone::hasDaylightTime() const
 {
    if (isValid()) {
-      return m_imptr->hasDaylightTime();
+      return m_implPtr->hasDaylightTime();
    } else {
       return false;
    }
@@ -288,7 +288,7 @@ bool TimeZone::hasDaylightTime() const
 bool TimeZone::isDaylightTime(const DateTime &atDateTime) const
 {
    if (hasDaylightTime()) {
-      return m_imptr->isDaylightTime(atDateTime.toMSecsSinceEpoch());
+      return m_implPtr->isDaylightTime(atDateTime.toMSecsSinceEpoch());
    } else {
       return false;
    }
@@ -297,7 +297,7 @@ bool TimeZone::isDaylightTime(const DateTime &atDateTime) const
 TimeZone::OffsetData TimeZone::offsetData(const DateTime &forDateTime) const
 {
    if (hasTransitions()) {
-      return TimeZonePrivate::toOffsetData(m_imptr->data(forDateTime.toMSecsSinceEpoch()));
+      return TimeZonePrivate::toOffsetData(m_implPtr->data(forDateTime.toMSecsSinceEpoch()));
    } else {
       return TimeZonePrivate::getInvalidOffsetData();
    }
@@ -306,7 +306,7 @@ TimeZone::OffsetData TimeZone::offsetData(const DateTime &forDateTime) const
 bool TimeZone::hasTransitions() const
 {
    if (isValid()) {
-      return m_imptr->hasTransitions();
+      return m_implPtr->hasTransitions();
    } else {
       return false;
    }
@@ -315,7 +315,7 @@ bool TimeZone::hasTransitions() const
 TimeZone::OffsetData TimeZone::nextTransition(const DateTime &afterDateTime) const
 {
    if (hasTransitions()) {
-      return TimeZonePrivate::toOffsetData(m_imptr->nextTransition(afterDateTime.toMSecsSinceEpoch()));
+      return TimeZonePrivate::toOffsetData(m_implPtr->nextTransition(afterDateTime.toMSecsSinceEpoch()));
    } else {
       return TimeZonePrivate::getInvalidOffsetData();
    }
@@ -324,7 +324,7 @@ TimeZone::OffsetData TimeZone::nextTransition(const DateTime &afterDateTime) con
 TimeZone::OffsetData TimeZone::previousTransition(const DateTime &beforeDateTime) const
 {
    if (hasTransitions()) {
-      return TimeZonePrivate::toOffsetData(m_imptr->previousTransition(beforeDateTime.toMSecsSinceEpoch()));
+      return TimeZonePrivate::toOffsetData(m_implPtr->previousTransition(beforeDateTime.toMSecsSinceEpoch()));
    } else {
       return TimeZonePrivate::getInvalidOffsetData();
    }
@@ -335,7 +335,7 @@ TimeZone::OffsetDataList TimeZone::transitions(const DateTime &fromDateTime,
 {
    OffsetDataList list;
    if (hasTransitions()) {
-      const TimeZonePrivate::DataList plist = m_imptr->transitions(fromDateTime.toMSecsSinceEpoch(),
+      const TimeZonePrivate::DataList plist = m_implPtr->transitions(fromDateTime.toMSecsSinceEpoch(),
                                                                    toDateTime.toMSecsSinceEpoch());
       list.reserve(plist.size());
       for (const TimeZonePrivate::Data &pdata : plist) {
@@ -435,7 +435,7 @@ std::list<ByteArray> TimeZone::windowsIdToIanaIds(const ByteArray &windowsId,
 #ifndef PDK_NO_DATASTREAM
 DataStream &operator<<(DataStream &ds, const TimeZone &tz)
 {
-   tz.m_imptr->serialize(ds);
+   tz.m_implPtr->serialize(ds);
    return ds;
 }
 

@@ -1628,7 +1628,7 @@ std::pair<Date, Time> get_datetime(const DateTimeData &data)
 namespace internal {
 void DateTimePrivate::setUtcOffsetByTZ(pdk::pint64 atMSecsSinceEpoch)
 {
-   m_offsetFromUtc = m_timeZone.m_imptr->offsetFromUtc(atMSecsSinceEpoch);
+   m_offsetFromUtc = m_timeZone.m_implPtr->offsetFromUtc(atMSecsSinceEpoch);
 }
 } // internal
 
@@ -1802,7 +1802,7 @@ inline pdk::pint64 DateTimePrivate::zoneMSecsToEpochMSecs(pdk::pint64 zoneMSecs,
                                                           Date *localDate, Time *localTime)
 {
    // Get the effective data from TimeZone
-   TimeZonePrivate::Data data = zone.m_imptr->dataForLocalTime(zoneMSecs, int(hint));
+   TimeZonePrivate::Data data = zone.m_implPtr->dataForLocalTime(zoneMSecs, int(hint));
    // Docs state any LocalTime before 1970-01-01 will *not* have any DST applied
    // but all affected times afterwards will have DST applied.
    if (data.m_atMSecsSinceEpoch >= 0) {
@@ -1943,7 +1943,7 @@ String DateTime::timeZoneAbbreviation() const
 #if !PDK_CONFIG(timezone)
       break;
 #else
-      return m_data->m_timeZone.m_imptr->abbreviation(toMSecsSinceEpoch());
+      return m_data->m_timeZone.m_implPtr->abbreviation(toMSecsSinceEpoch());
 #endif // timezone
    case pdk::TimeSpec::LocalTime:  {
       String abbrev;
@@ -1965,7 +1965,7 @@ bool DateTime::isDaylightTime() const
 #if !PDK_CONFIG(timezone)
       break;
 #else
-      return m_data->m_timeZone.m_imptr->isDaylightTime(toMSecsSinceEpoch());
+      return m_data->m_timeZone.m_implPtr->isDaylightTime(toMSecsSinceEpoch());
 #endif // timezone
    case pdk::TimeSpec::LocalTime: {
       auto status = extract_daylight_status(get_status(m_data));
@@ -2070,13 +2070,13 @@ void DateTime::setMSecsSinceEpoch(pdk::pint64 msecs)
       m_data.detach();
       if (msecs >= 0) {
          status = merge_daylight_status(status,
-                                        m_data->m_timeZone.m_imptr->isDaylightTime(msecs)
+                                        m_data->m_timeZone.m_implPtr->isDaylightTime(msecs)
                                         ? DateTimePrivate::DaylightStatus::DaylightTime
                                         : DateTimePrivate::DaylightStatus::StandardTime);
-         m_data->m_offsetFromUtc = m_data->m_timeZone.m_imptr->offsetFromUtc(msecs);
+         m_data->m_offsetFromUtc = m_data->m_timeZone.m_implPtr->offsetFromUtc(msecs);
       } else {
          status = merge_daylight_status(status, DateTimePrivate::DaylightStatus::StandardTime);
-         m_data->m_offsetFromUtc = m_data->m_timeZone.m_imptr->standardTimeOffset(msecs);
+         m_data->m_offsetFromUtc = m_data->m_timeZone.m_implPtr->standardTimeOffset(msecs);
       }
       msecs = msecs + (m_data->m_offsetFromUtc * 1000);
       status = status

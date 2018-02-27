@@ -172,13 +172,15 @@ TimeZone TimeZone::fromCFTimeZone(CFTimeZoneRef timeZone)
    return TimeZone(String::fromCFString(CFTimeZoneGetName(timeZone)).toLatin1());
 }
 
+using internal::MacTimeZonePrivate;
+
 CFTimeZoneRef TimeZone::toCFTimeZone() const
 {
-   //#ifndef PDK_NO_DYNAMIC_CAST
-   //   PDK_ASSERT(dynamic_cast<const MacTimeZonePrivate *>(m_implPtr.data()));
-   //#endif
-   //   const MacTimeZonePrivate *p = static_cast<const MacTimeZonePrivate *>(m_implPtr.data());
-   //   return reinterpret_cast<CFTimeZoneRef>([p->nsTimeZone() copy]);
+#ifndef PDK_NO_DYNAMIC_CAST
+   PDK_ASSERT(dynamic_cast<const MacTimeZonePrivate *>(m_implPtr.data()));
+#endif
+   const MacTimeZonePrivate *p = static_cast<const MacTimeZonePrivate *>(m_implPtr.data());
+   return reinterpret_cast<CFTimeZoneRef>([p->getNsTimeZone() copy]);
 }
 
 TimeZone TimeZone::fromNSTimeZone(const NSTimeZone *timeZone)

@@ -105,7 +105,7 @@ public:
    
    void swap(TimeZone &other) noexcept
    {
-      m_imptr.swap(other.m_imptr);
+      m_implPtr.swap(other.m_implPtr);
    }
    
    bool operator==(const TimeZone &other) const;
@@ -173,7 +173,7 @@ private:
    friend class TimeZonePrivate;
    friend class DateTime;
    friend class DateTimePrivate;
-   pdk::utils::SharedDataPointer<TimeZonePrivate> m_imptr;
+   pdk::utils::SharedDataPointer<TimeZonePrivate> m_implPtr;
 };
 
 #ifndef PDK_NO_DATASTREAM

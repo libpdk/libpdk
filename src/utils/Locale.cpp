@@ -1882,7 +1882,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
       }
       
       const Character c = format.at(i);
-      int repeat = internal::repeat_count(format.mid(i));
+      int repeat = internal::repeat_count(format.substring(i));
       bool used = false;
       if (formatDate) {
          switch (c.unicode()) {

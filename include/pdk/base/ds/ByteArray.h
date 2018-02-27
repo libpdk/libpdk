@@ -449,7 +449,7 @@ private:
    operator pdk::NoImplicitBoolCast() const;
    void reallocData(uint alloc, Data::AllocationOptions options);
    void expand(int i);
-   ByteArray nullTerminated() const;
+   ByteArray getNullTerminated() const;
    
    static ByteArray toLowerHelper(const ByteArray &a);
    static ByteArray toLowerHelper(ByteArray &a);

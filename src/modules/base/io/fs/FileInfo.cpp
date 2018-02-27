@@ -460,10 +460,19 @@ String FileInfo::getSuffix() const
    return implPtr->m_fileEntry.getSuffix();
 }
 
+String FileInfo::getBundleName() const
+{
+   PDK_D(const FileInfo);
+   if (implPtr->m_isDefaultConstructed) {
+      return Latin1String("");
+   }
+   return implPtr->getFileName(AbstractFileEngine::FileName::BundleName);
+}
+
 Dir FileInfo::getDir() const
 {
    PDK_D(const FileInfo);
-   // ### Qt 6: Maybe rename this to parentDirectory(), considering what it actually does?
+   // ### Maybe rename this to parentDirectory(), considering what it actually does?
    return Dir(implPtr->m_fileEntry.getPath());
 }
 
@@ -568,6 +577,15 @@ bool FileInfo::isRoot() const
       return false;
    }
    return implPtr->getFileFlags(AbstractFileEngine::FileFlag::RootFlag);
+}
+
+bool FileInfo::isBundle() const
+{
+   PDK_D(const FileInfo);
+   return implPtr->checkAttribute<bool>(
+            FileSystemMetaData::MetaDataFlag::BundleType,
+            [implPtr]() { return implPtr->m_metaData.isBundle(); },
+   [implPtr]() { return implPtr->getFileFlags(AbstractFileEngine::FileFlag::BundleType); });
 }
 
 String FileInfo::getSymLinkTarget() const

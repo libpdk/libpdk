@@ -135,7 +135,7 @@ class CFType : public AppleRefCounted<T, CFTypeRef, CFRetain, CFRelease>
 {
 public:
    using AppleRefCounted<T, CFTypeRef, CFRetain, CFRelease>::AppleRefCounted;
-   template <typename X> X as() const { return reinterpret_cast<X>(this->value); }
+   template <typename X> X as() const { return reinterpret_cast<X>(this->m_value); }
    static CFType constructFromGet(const T &t)
    {
       if (t) {
