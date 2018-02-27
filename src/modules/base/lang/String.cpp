@@ -28,6 +28,7 @@
 #include "pdk/global/Endian.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
+#include "pdk/base/io/DataStream.h"
 #include <cstring>
 
 #include <limits.h>
@@ -71,6 +72,7 @@ using pdk::text::codecs::internal::Utf32;
 using pdk::ds::VarLengthArray;
 using pdk::lang::StringIterator;
 using pdk::text::codecs::TextCodec;
+using pdk::io::DataStream;
 
 // forward declare with namespace
 namespace internal {
@@ -1858,7 +1860,7 @@ PDK_NEVER_INLINE
 String detach_and_convert_case(T &str, StringIterator it)
 {
    PDK_ASSERT(!str.isEmpty());
-   String s = std::move(str);             // will copy if T is const QString
+   String s = std::move(str);             // will copy if T is const String
    Character *pp = s.begin() + it.index(); // will detach if necessary
    
    do {
@@ -2124,6 +2126,70 @@ String &String::setRawData(const Character *unicode, int size)
 String StringRef::toString() const
 {}
 
+#if !defined(PDK_NO_DATASTREAM)
+DataStream &operator<<(DataStream &out, const String &str)
+{
+   if (!str.isNull()) {
+      if ((out.getByteOrder() == DataStream::ByteOrder::BigEndian) == (SysInfo::ByteOrder == SysInfo::BigEndian)) {
+         out.writeBytes(reinterpret_cast<const char *>(str.unicode()), sizeof(Character) * str.length());
+      } else {
+         VarLengthArray<ushort> buffer(str.length());
+         const ushort *data = reinterpret_cast<const ushort *>(str.getConstRawData());
+         for (int i = 0; i < str.length(); i++) {
+            buffer[i] = pdk::bswap(*data);
+            ++data;
+         }
+         out.writeBytes(reinterpret_cast<const char *>(buffer.getRawData()), sizeof(ushort) * buffer.size());
+      }
+   } else {
+      // write null marker
+      out << (pdk::puint32)0xffffffff;
+   }
+   return out;
+}
+
+DataStream &operator>>(DataStream &in, String &str)
+{
+   pdk::puint32 bytes = 0;
+   in >> bytes;                                  // read size of string
+   if (bytes == 0xffffffff) {                    // null string
+      str.clear();
+   } else if (bytes > 0) {                       // not empty
+      if (bytes & 0x1) {
+         str.clear();
+         in.setStatus(DataStream::Status::ReadCorruptData);
+         return in;
+      }
+      const pdk::puint32 Step = 1024 * 1024;
+      pdk::puint32 len = bytes / 2;
+      pdk::puint32 allocated = 0;
+      while (allocated < len) {
+         int blockSize = std::min(Step, len - allocated);
+         str.resize(allocated + blockSize);
+         if (in.readRawData(reinterpret_cast<char *>(str.getRawData()) + allocated * 2,
+                            blockSize * 2) != blockSize * 2) {
+            str.clear();
+            in.setStatus(DataStream::Status::ReadPastEnd);
+            return in;
+         }
+         allocated += blockSize;
+      }
+      
+      if ((in.getByteOrder() == DataStream::ByteOrder::BigEndian)
+          != (SysInfo::ByteOrder == SysInfo::BigEndian)) {
+         ushort *data = reinterpret_cast<ushort *>(str.getRawData());
+         while (len--) {
+            *data = pdk::bswap(*data);
+            ++data;
+         }
+      }
+   } else {
+      str = String(Latin1String(""));
+   }
+   return in;
+}
+#endif // PDK_NO_DATASTREAM
+
 bool operator==(const StringRef &lhs,const StringRef &rhs) noexcept
 {
    
@@ -2301,7 +2367,7 @@ String String::toHtmlEscaped() const
 
 void AbstractConcatenable::appendLatin1To(const char *a, int len, Character *out) noexcept
 {
-    internal::utf16_from_latin1(reinterpret_cast<char16_t *>(out), a, uint(len));
+   internal::utf16_from_latin1(reinterpret_cast<char16_t *>(out), a, uint(len));
 }
 
 } // lang

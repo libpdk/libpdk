@@ -404,10 +404,10 @@ public:
    }
    
 #if defined(PDK_OS_DARWIN)
-    static String fromCFString(CFStringRef string);
-    CFStringRef toCFString() const PDK_DECL_CF_RETURNS_RETAINED;
-    static String fromNSString(const NSString *string);
-    NSString *toNSString() const PDK_DECL_CF_RETURNS_RETAINED;
+   static String fromCFString(CFStringRef string);
+   CFStringRef toCFString() const PDK_DECL_CF_RETURNS_RETAINED;
+   static String fromNSString(const NSString *string);
+   NSString *toNSString() const PDK_DECL_CF_RETURNS_RETAINED;
 #endif
    
    inline bool isNull() const
@@ -608,11 +608,30 @@ public:
    String &append(const StringRef &str);
    String &append(Latin1String str);
    
-   inline String &prepend(Character c);
-   inline String &prepend(const Character *str, int length);
-   inline String &prepend(const String &str);
-   inline String &prepend(const StringRef &str);
-   inline String &prepend(Latin1String str);
+   inline String &prepend(Character c)
+   {
+      return insert(0, c); 
+   }
+   
+   inline String &prepend(const Character *str, int length)
+   {
+      return insert(0, str, length);  
+   }
+   
+   inline String &prepend(const String &str)
+   {
+      return insert(0, str);  
+   }
+   
+   inline String &prepend(const StringRef &str)
+   {
+      return insert(0, str);
+   }
+   
+   inline String &prepend(Latin1String str)
+   {
+      return insert(0, str);
+   }
    
    inline String &operator +=(Character c)
    {
