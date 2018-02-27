@@ -2,6 +2,7 @@
 
 set(MODULE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/base)
 set(KERNEL_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
+set(UTILS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/utils)
 
 set(PDK_HAS_FEATURE_TIMEZONE TRUE)
 
@@ -24,6 +25,19 @@ pdk_collect_files(
    TYPE_SOURCE
    DIR utils
    OUTPUT_VAR PDK_BASE_SOURCES)
+
+if (WIN32)
+#   list(APPEND PDK_BASE_SOURCES
+#            ${UTILS_DIR}/_platform/CollatorWin.cpp)
+elseif(UNIX)
+   if (APPLE)
+      list(APPEND PDK_BASE_SOURCES
+         ${UTILS_DIR}/_platform/CollatorMac.cpp)
+   else()
+      list(APPEND PDK_BASE_SOURCES
+         ${UTILS_DIR}/_platform/CollatorPosix.cpp)
+   endif()
+endif()
 
 pdk_collect_files(
    TYPE_SOURCE

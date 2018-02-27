@@ -49,7 +49,7 @@ public:
    
    void swap(CollatorSortKey &other) noexcept
    {
-      d.swap(other.d);
+      m_implPtr.swap(other.m_implPtr);
    }
    
    int compare(const CollatorSortKey &key) const;
@@ -57,7 +57,7 @@ public:
 protected:
    CollatorSortKey(CollatorSortKeyPrivate*);
    
-   pdk::utils::ExplicitlySharedDataPointer<CollatorSortKeyPrivate> d;
+   pdk::utils::ExplicitlySharedDataPointer<CollatorSortKeyPrivate> m_implPtr;
    
 private:
    CollatorSortKey();
@@ -123,7 +123,7 @@ private:
 } // utils
 } // pdk
 
-PDK_DECLARE_SHARED(pdk::utils::CollatorSortKey);
-PDK_DECLARE_SHARED(pdk::utils::Collator);
+PDK_DECLARE_SHARED(pdk::utils::CollatorSortKey)
+PDK_DECLARE_SHARED(pdk::utils::Collator)
 
 #endif // PDK_UTILS_COLLATOR_H
