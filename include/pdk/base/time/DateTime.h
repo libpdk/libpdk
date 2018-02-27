@@ -55,6 +55,7 @@ class TimeZone;
 class Time;
 class Date;
 using pdk::lang::String;
+using pdk::lang::StringView;
 using internal::DateTimePrivate;
 class PDK_CORE_EXPORT DateTime
 {
@@ -92,7 +93,7 @@ class PDK_CORE_EXPORT DateTime
       const DateTimePrivate *operator->() const;
       DateTimePrivate *operator->();
       
-      DateTimePrivate *d;
+      DateTimePrivate *m_implPtr;
       ShortData m_data;
    };
 public:
@@ -116,7 +117,7 @@ public:
    DateTime &operator=(const DateTime &other) noexcept;
    void swap(DateTime &other) noexcept
    {
-      std::swap(m_implPtr.d, other.m_implPtr.d);
+      std::swap(m_data.m_implPtr, other.m_data.m_implPtr);
    }
    
    bool isNull() const;
@@ -140,13 +141,18 @@ public:
    void setTimeSpec(pdk::TimeSpec spec);
    void setOffsetFromUtc(int offsetSeconds);
 #if PDK_CONFIG(timezone)
-   TimeZone setTimeZone(const TimeZone &toZone);
+   void setTimeZone(const TimeZone &toZone);
 #endif
    void setMSecsSinceEpoch(pdk::pint64 msecs);
    void setSecsSinceEpoch(pdk::pint64 secs);
    
-   String toString(pdk::DateFormat f = pdk::DateFormat::TextDate) const;
+#ifndef PDK_NO_DATESTRING
+   String toString(pdk::DateFormat format = pdk::DateFormat::TextDate) const;
+#if PDK_STRINGVIEW_LEVEL < 2
    String toString(const String &format) const;
+#endif
+   String toString(StringView format) const;
+#endif
    
    DateTime addDays(pdk::pint64 days) const PDK_REQUIRED_RESULT;
    DateTime addMonths(int months) const PDK_REQUIRED_RESULT;
@@ -196,8 +202,10 @@ public:
    
    static DateTime getCurrentDateTime();
    static DateTime getCurrentDateTimeUtc();
+#ifndef PDK_NO_DATESTRING
    static DateTime fromString(const String &s, pdk::DateFormat f = pdk::DateFormat::TextDate);
    static DateTime fromString(const String &s, const String &format);
+#endif
    
    static DateTime fromMSecsSinceEpoch(pdk::pint64 msecs, pdk::TimeSpec spec = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
    static DateTime fromSecsSinceEpoch(pdk::pint64 secs, pdk::TimeSpec spe = pdk::TimeSpec::LocalTime, int offsetFromUtc = 0);
@@ -217,11 +225,21 @@ public:
    NSDate *toNSDate() const PDK_DECL_CF_RETURNS_RETAINED;
 #endif
 private:
+#ifndef PDK_NO_DATASTREAM
+   friend PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const DateTime &);
+   friend PDK_CORE_EXPORT DataStream &operator>>(DataStream &, DateTime &);
+#endif
+   
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+   friend PDK_CORE_EXPORT Debug operator<<(Debug, const DateTime &);
+#endif
+   
+private:
    friend class DateTimePrivate;
-   Data m_implPtr;
+   Data m_data;
 };
 
-PDK_CORE_EXPORT uint hash(const DateTime &key, uint seed = 0);
+PDK_CORE_EXPORT uint pdk_hash(const DateTime &key, uint seed = 0);
 
 #ifndef PDK_NO_DATASTREAM
 PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const DateTime &);

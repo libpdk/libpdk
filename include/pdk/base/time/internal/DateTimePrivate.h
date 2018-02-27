@@ -86,26 +86,26 @@ public:
    DateTimePrivate() : m_msecs(0),
       m_status(StatusFlag(pdk::as_integer<pdk::TimeSpec>(pdk::TimeSpec::LocalTime) << TimeSpecShift)),
       m_offsetFromUtc(0),
-      ref(0)
+      m_ref(0)
    {
    }
    
    static DateTime::Data create(const Date &toDate, const Time &toTime, pdk::TimeSpec toSpec,
                                 int offsetSeconds);
    
-#if PDK_CONFIG(TIMEZONE)
+#if PDK_CONFIG(timezone)
    static DateTime::Data create(const Date &toDate, const Time &toTime, const TimeZone & timeZone);
 #endif // timezone
    
    pdk::pint64 m_msecs;
    StatusFlags m_status;
    int m_offsetFromUtc;
-   mutable AtomicInt ref;
-#if PDK_CONFIG(TIMEZONE)
+   mutable AtomicInt m_ref;
+#if PDK_CONFIG(timezone)
    TimeZone m_timeZone;
 #endif // timezone
    
-#if PDK_CONFIG(TIMEZONE)
+#if PDK_CONFIG(timezone)
    static pdk::pint64 zoneMSecsToEpochMSecs(pdk::pint64 msecs, const TimeZone &zone,
                                             DaylightStatus hint = DaylightStatus::UnknownDaylightTime,
                                             Date *localDate = 0, Time *localTime = 0);

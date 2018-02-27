@@ -20,6 +20,19 @@
 #include <limits>
 
 namespace pdk {
+
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+namespace io {
+class Debug;
+}
+#endif
+
+#ifndef PDK_NO_DATASTREAM
+namespace io {
+class DataStream;
+}
+#endif
+
 namespace time {
 
 using pdk::lang::String;
@@ -31,6 +44,13 @@ class DateTime;
 namespace internal {
 class DateTimePrivate;
 } // internal
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+using pdk::io::Debug;
+#endif
+
+#ifndef PDK_NO_DATASTREAM
+using pdk::io::DataStream;
+#endif
 
 using internal::DateTimePrivate;
 
@@ -159,10 +179,22 @@ private:
 private:
    friend class DateTime;
    friend class DateTimePrivate;
+#ifndef PDK_NO_DATASTREAM
+    friend PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const Date &);
+    friend PDK_CORE_EXPORT DataStream &operator>>(DataStream &, Date &);
+#endif
    pdk::pint64 m_jd;
 };
 
-PDK_CORE_EXPORT uint hash(const Date &key, uint seed = 0) noexcept;
+#ifndef PDK_NO_DATASTREAM
+PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const Date &);
+#endif
+
+#if !defined(PDK_NO_DEBUG_STREAM) && !defined(PDK_NO_DATESTRING)
+PDK_CORE_EXPORT Debug operator<<(Debug, const Date &);
+#endif
+
+PDK_CORE_EXPORT uint pdk_hash(const Date &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk

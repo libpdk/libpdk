@@ -78,23 +78,23 @@ public:
    DataStream(const ByteArray &);
    ~DataStream();
    
-   IoDevice *device() const;
+   IoDevice *getDevice() const;
    void setDevice(IoDevice *);
    void unsetDevice();
    
    bool atEnd() const;
    
-   Status status() const;
+   Status getStatus() const;
    void setStatus(Status status);
    void resetStatus();
    
-   FloatingPointPrecision floatingPointPrecision() const;
+   FloatingPointPrecision getFloatingPointPrecision() const;
    void setFloatingPointPrecision(FloatingPointPrecision precision);
    
-   ByteOrder byteOrder() const;
+   ByteOrder getByteOrder() const;
    void setByteOrder(ByteOrder);
    
-   Version version() const;
+   Version getVersion() const;
    void setVersion(Version);
    
    DataStream &operator>>(pdk::pint8 &i);
@@ -162,7 +162,7 @@ class StreamStateSaver
 public:
    inline StreamStateSaver(DataStream *s) 
       : m_stream(s),
-        m_oldStatus(s->status())
+        m_oldStatus(s->getStatus())
    {
       if (!m_stream->m_device || !m_stream->m_device->isTransactionStarted())
          m_stream->resetStatus();
@@ -192,7 +192,7 @@ DataStream &read_array_based_container(DataStream &s, Container &c)
    for (pdk::puint32 i = 0; i < n; ++i) {
       typename Container::value_type t;
       s >> t;
-      if (s.status() != DataStream::Status::Ok) {
+      if (s.getStatus() != DataStream::Status::Ok) {
          c.clear();
          break;
       }
@@ -213,7 +213,7 @@ DataStream &read_list_based_container(DataStream &s, Container &c)
    for (pdk::puint32 i = 0; i < n; ++i) {
       typename Container::value_type t;
       s >> t;
-      if (s.status() != DataStream::Status::Ok) {
+      if (s.getStatus() != DataStream::Status::Ok) {
          c.clear();
          break;
       }
@@ -235,7 +235,7 @@ DataStream &read_associative_container(DataStream &s, Container &c)
       typename Container::key_type k;
       typename Container::value_type t;
       s >> k >> t;
-      if (s.status() != DataStream::Status::Ok) {
+      if (s.getStatus() != DataStream::Status::Ok) {
          c.clear();
          break;
       }
@@ -274,17 +274,17 @@ DataStream &write_associative_container(DataStream &s, const Container &c)
 
 } // internal namespace
 
-inline IoDevice *DataStream::device() const
+inline IoDevice *DataStream::getDevice() const
 {
    return m_device;
 }
 
-inline DataStream::ByteOrder DataStream::byteOrder() const
+inline DataStream::ByteOrder DataStream::getByteOrder() const
 {
    return m_byteorder;
 }
 
-inline DataStream::Version DataStream::version() const
+inline DataStream::Version DataStream::getVersion() const
 {
    return m_version;
 }

@@ -132,7 +132,7 @@ bool DataStream::atEnd() const
    return m_device ? m_device->atEnd() : true;
 }
 
-DataStream::FloatingPointPrecision DataStream::floatingPointPrecision() const
+DataStream::FloatingPointPrecision DataStream::getFloatingPointPrecision() const
 {
    return m_implPtr == nullptr 
          ? DataStream::FloatingPointPrecision::DoublePrecision 
@@ -147,7 +147,7 @@ void DataStream::setFloatingPointPrecision(DataStream::FloatingPointPrecision pr
    m_implPtr->m_floatingPointPrecision = precision;
 }
 
-DataStream::Status DataStream::status() const
+DataStream::Status DataStream::getStatus() const
 {
    return m_status;
 }
@@ -286,7 +286,7 @@ DataStream &DataStream::operator>>(pdk::pint64 &i)
 {
    i = pdk::pint64(0);
    CHECK_STREAM_PRECOND(*this);
-   if (pdk::as_integer<Version>(version()) < 6) {
+   if (pdk::as_integer<Version>(getVersion()) < 6) {
       pdk::puint32 i1, i2;
       *this >> i2 >> i1;
       i = ((pdk::puint64)i1 << 32) + i2;
@@ -312,7 +312,7 @@ DataStream &DataStream::operator>>(bool &i)
 
 DataStream &DataStream::operator>>(float &f)
 {
-   if (floatingPointPrecision() == DataStream::FloatingPointPrecision::DoublePrecision) {
+   if (getFloatingPointPrecision() == DataStream::FloatingPointPrecision::DoublePrecision) {
       double d;
       *this >> d;
       f = d;
@@ -338,7 +338,7 @@ DataStream &DataStream::operator>>(float &f)
 
 DataStream &DataStream::operator>>(double &f)
 {
-   if (floatingPointPrecision() == DataStream::FloatingPointPrecision::SinglePrecision) {
+   if (getFloatingPointPrecision() == DataStream::FloatingPointPrecision::SinglePrecision) {
       float d;
       *this >> d;
       f = d;
@@ -469,7 +469,7 @@ DataStream &DataStream::operator<<(bool i)
 
 DataStream &DataStream::operator<<(float f)
 {
-   if (floatingPointPrecision() == DataStream::FloatingPointPrecision::DoublePrecision) {
+   if (getFloatingPointPrecision() == DataStream::FloatingPointPrecision::DoublePrecision) {
       *this << double(f);
       return *this;
    }
@@ -497,7 +497,7 @@ DataStream &DataStream::operator<<(float f)
 
 DataStream &DataStream::operator<<(double f)
 {
-   if (floatingPointPrecision() == DataStream::FloatingPointPrecision::SinglePrecision) {
+   if (getFloatingPointPrecision() == DataStream::FloatingPointPrecision::SinglePrecision) {
       *this << float(f);
       return *this;
    }

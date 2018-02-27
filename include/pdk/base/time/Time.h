@@ -19,6 +19,13 @@
 #include "pdk/base/lang/String.h"
 
 namespace pdk {
+
+#ifndef PDK_NO_DATASTREAM
+namespace io {
+class DataStream;
+}
+#endif
+
 namespace time {
 
 class DateTime;
@@ -28,6 +35,10 @@ class DateTimePrivate;
 
 using internal::DateTimePrivate;
 using pdk::lang::String;
+using pdk::lang::StringView;
+#ifndef PDK_NO_DATASTREAM
+using pdk::io::DataStream;
+#endif
 
 class PDK_CORE_EXPORT Time
 {
@@ -55,16 +66,23 @@ public:
    int getMinute() const;
    int getSecond() const;
    int getMsec() const;
+#ifndef PDK_NO_DATESTRING
    String toString(pdk::DateFormat f = pdk::DateFormat::TextDate) const;
+#if PDK_STRINGVIEW_LEVEL < 2
    String toString(const String &format) const;
+#endif
+   String toString(StringView format) const;
+#endif
    
-   bool setHMS(int h, int m, int s, int ms = 0);
+   bool setHMS(int hour, int minute, int second, int ms = 0);
    
    Time addSecs(int secs) const PDK_REQUIRED_RESULT;
    int secsTo(const Time &) const;
    Time addMSecs(int ms) const PDK_REQUIRED_RESULT;
    int msecsTo(const Time &) const;
-   
+   void start();
+   int restart();
+   int elapsed() const;
    constexpr bool operator==(const Time &other) const
    {
       return m_mds == other.m_mds;
@@ -106,15 +124,28 @@ public:
    }
    
    static Time getCurrentTime();
+   
+#ifndef PDK_NO_DATESTRING
+   static Time fromString(const String &s, pdk::DateFormat f = pdk::DateFormat::TextDate);
+   static Time fromString(const String &s, const String &format);
+#endif
+   static bool isValid(int hour, int minute, int second, int ms = 0);
 private:
+   constexpr inline int ds() const
+   {
+      return m_mds == -1 ? 0 : m_mds;
+   }
    friend class DateTime;
    friend class DateTimePrivate;
-   
+#ifndef PDK_NO_DATASTREAM
+   friend PDK_CORE_EXPORT DataStream &operator<<(DataStream &, const Time &);
+   friend PDK_CORE_EXPORT DataStream &operator>>(DataStream &, Time &);
+#endif
 private:
    int m_mds;
 };
 
-PDK_CORE_EXPORT uint hash(const Time &key, uint seed = 0) noexcept;
+PDK_CORE_EXPORT uint pdk_hash(const Time &key, uint seed = 0) noexcept;
 
 } // time
 } // pdk
