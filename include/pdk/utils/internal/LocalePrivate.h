@@ -183,7 +183,7 @@ public:
       _DFMax = DFSignificantDigits
    };
    
-   enum class Flags : uint
+   enum class Flag : uint
    {
       NoFlags             = 0,
       AddTrailingZeroes   = 0x01,
@@ -200,6 +200,8 @@ public:
       ForcePoint          = 0x400
    };
    
+   PDK_DECLARE_FLAGS(Flags, Flag);
+   
    enum class NumberMode
    { 
       IntegerMode,
@@ -214,34 +216,34 @@ public:
                                 const Character group, const Character decimal,
                                 double d, int precision,
                                 DoubleForm form,
-                                int width, unsigned flags);
+                                int width, Flags flags);
    
    static String longLongToString(const Character zero, const Character group,
                                   const Character plus, const Character minus,
                                   pdk::pint64 l, int precision, int base,
-                                  int width, unsigned flags);
+                                  int width, Flags flags);
    
    static String unsLongLongToString(const Character zero, const Character group,
                                      const Character plus,
                                      pdk::puint64 l, int precision,
                                      int base, int width,
-                                     unsigned flags);
+                                     Flags flags);
    
    String doubleToString(double d,
                          int precision = -1,
                          DoubleForm form = DoubleForm::DFSignificantDigits,
                          int width = -1,
-                         unsigned flags = (unsigned)Flags::NoFlags) const;
+                         Flags flags = Flag::NoFlags) const;
    
    String longLongToString(pdk::pint64 l, int precision = -1,
                            int base = 10,
                            int width = -1,
-                           unsigned flags = (unsigned)Flags::NoFlags) const;
+                           Flags flags = Flag::NoFlags) const;
    
    String unsLongLongToString(pdk::puint64 l, int precision = -1,
                               int base = 10,
                               int width = -1,
-                              unsigned flags = (unsigned)Flags::NoFlags) const;
+                              Flags flags = Flag::NoFlags) const;
    
    // this function is meant to be called with the result of stringToDouble or bytearrayToDouble
    static float convertDoubleToFloat(double d, bool *ok)

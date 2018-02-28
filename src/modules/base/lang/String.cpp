@@ -29,6 +29,8 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include "pdk/base/io/DataStream.h"
+#include "pdk/utils/Locale.h"
+#include "pdk/utils/internal/LocalePrivate.h"
 #include <cstring>
 
 #include <limits.h>
@@ -1982,19 +1984,55 @@ bool String::endsWith(Character needle, CaseSensitivity cs) const
 }
 
 ByteArray String::toLatin1Helper(const String &str)
-{}
+{
+   return pdk_convert_to_latin1(str);
+}
 
 ByteArray String::toLatin1Helper(const Character *str, int size)
-{}
+{
+   return pdk_convert_to_latin1(StringView(str, size));
+}
+
+using pdk::ds::ByteArrayDataPtr;
 
 ByteArray String::toLatin1HelperInplace(String &str)
-{}
+{
+   if (!str.isDetached()) {
+      return pdk_convert_to_latin1(str);
+   }
+   // We can return our own buffer to the caller.
+   // Conversion to Latin-1 always shrinks the buffer by half.
+   const char16_t *data = reinterpret_cast<const char16_t *>(str.getConstRawData());
+   uint length = str.size();
+   
+   // Swap the d pointers.
+   // Kids, avert your eyes. Don't try this at home.
+   ArrayData *byteArrayData = str.m_data;
+   
+   // multiply the allocated capacity by sizeof(ushort)
+   byteArrayData->m_alloc *= sizeof(ushort);
+   
+   // reset ourselves to tring()
+   str.m_data = String().m_data;
+   
+   // do the in-place conversion
+   uchar *dst = reinterpret_cast<uchar *>(byteArrayData->getData());
+   internal::utf16_to_latin1(dst, data, length);
+   dst[length] = '\0';
+   
+   ByteArrayDataPtr badptr = { byteArrayData };
+   return ByteArray(badptr);
+}
 
 ByteArray String::toLocal8BitHelper(const Character *str, int size)
-{}
+{
+   return pdk_convert_to_local_8bit(StringView(str, size));
+}
 
 ByteArray String::toUtf8Helper(const String &str)
-{}
+{
+   return pdk_convert_to_utf8(str);
+}
 
 std::vector<char32_t> String::toUcs4() const
 {
@@ -2251,7 +2289,7 @@ int String::localeAwareCompareHelper(const Character *lhs, int lhsLength, const 
    CFRelease(thisString);
    CFRelease(otherString);
    return result;
-#elif PDK_CONFIG(ICU)
+#elif PDK_CONFIG(icu)
    if (!defaultCollator()->hasLocalData())
       defaultCollator()->setLocalData(QCollator());
    return defaultCollator()->localData().compare(data1, length1, data2, length2);
@@ -2430,18 +2468,90 @@ String String::toUpperHelper(String &str)
    return internal::unicodetables::convert_case<internal::unicodetables::UppercaseTraits>(str);
 }
 
-String &String::sprintf(const char *format, ...)
-{
-   
-}
-
 String String::asprintf(const char *format, ...)
 {
-   
+   va_list ap;
+   va_start(ap, format);
+   const String s = vasprintf(format, ap);
+   va_end(ap);
+   return s;
 }
 
-String &String::vsprintf(const char *format, va_list ap)
-{}
+namespace {
+
+void append_utf8(String &qs, const char *cs, int len)
+{
+   const int oldSize = qs.size();
+   qs.resize(oldSize + len);
+   const Character *newEnd = Utf8::convertToUnicode(qs.getRawData() + oldSize, cs, len);
+   qs.resize(newEnd - qs.getConstRawData());
+}
+
+using pdk::utils::internal::LocaleData;
+
+LocaleData::Flags parse_flag_characters(const char * &c) noexcept
+{
+   LocaleData::Flags flags = LocaleData::Flag::ZeroPadExponent;
+   while (true) {
+      switch (*c) {
+      case '#':
+         flags |= LocaleData::Flag::ShowBase;
+         flags |= LocaleData::Flag::AddTrailingZeroes;
+         flags|= LocaleData::Flag::ForcePoint;
+         break;
+      case '0': flags |= LocaleData::Flag::ZeroPadded; break;
+      case '-': flags |= LocaleData::Flag::LeftAdjusted; break;
+      case ' ': flags |= LocaleData::Flag::BlankBeforePositive; break;
+      case '+': flags |= LocaleData::Flag::AlwaysShowSign; break;
+      case '\'': flags |= LocaleData::Flag::ThousandsGroup; break;
+      default: return flags;
+      }
+      ++c;
+   }
+}
+
+//int parse_field_width(const char * &c)
+//{
+//   Q_ASSERT(qIsDigit(*c));
+
+//   // can't be negative - started with a digit
+//   // contains at least one digit
+//   const char *endp;
+//   bool ok;
+//   const qulonglong result = qstrtoull(c, &endp, 10, &ok);
+//   c = endp;
+//   while (qIsDigit(*c)) // preserve Qt 5.5 behavior of consuming all digits, no matter how many
+//      ++c;
+//   return ok && result < qulonglong(std::numeric_limits<int>::max()) ? int(result) : 0;
+//}
+
+//enum LengthMod { lm_none, lm_hh, lm_h, lm_l, lm_ll, lm_L, lm_j, lm_z, lm_t };
+
+//inline bool can_consume(const char * &c, char ch) Q_DECL_NOTHROW
+//{
+//   if (*c == ch) {
+//      ++c;
+//      return true;
+//   }
+//   return false;
+//}
+
+//LengthMod parse_length_modifier(const char * &c) Q_DECL_NOTHROW
+//{
+//   switch (*c++) {
+//   case 'h': return can_consume(c, 'h') ? lm_hh : lm_h;
+//   case 'l': return can_consume(c, 'l') ? lm_ll : lm_l;
+//   case 'L': return lm_L;
+//   case 'j': return lm_j;
+//   case 'z':
+//   case 'Z': return lm_z;
+//   case 't': return lm_t;
+//   }
+//   --c; // don't consume *c - it wasn't a flag
+//   return lm_none;
+//}
+
+} // anonymous namespace
 
 String String::vasprintf(const char *format, va_list ap)
 {}

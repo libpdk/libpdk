@@ -1131,20 +1131,20 @@ double Locale::toDouble(StringView str, bool *ok) const
 
 String Locale::toString(pdk::plonglong i) const
 {
-   unsigned flags = pdk::as_integer<LocaleData::Flags>
-         (m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
-          ? LocaleData::Flags::NoFlags
-          : LocaleData::Flags::ThousandsGroup);
+   LocaleData::Flags flags = 
+         m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
+         ? LocaleData::Flag::NoFlags
+         : LocaleData::Flag::ThousandsGroup;
    
    return m_implPtr->m_data->longLongToString(i, -1, 10, -1, flags);
 }
 
 String Locale::toString(pdk::pulonglong i) const
 {
-   int flags = pdk::as_integer<LocaleData::Flags>
-         (m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
-          ? LocaleData::Flags::NoFlags
-          : LocaleData::Flags::ThousandsGroup);
+   LocaleData::Flags flags =
+         m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator
+         ? LocaleData::Flag::NoFlags
+         : LocaleData::Flag::ThousandsGroup;
    
    return m_implPtr->m_data->unsLongLongToString(i, -1, 10, -1, flags);
 }
@@ -1467,9 +1467,9 @@ char pdk_to_lower(char c)
 String Locale::toString(double i, char f, int prec) const
 {
    LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
-   uint flags = 0;
+   LocaleData::Flags flags = 0;
    if (pdk_is_upper(f)) {
-      flags = pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::CapitalEorX);
+      flags = LocaleData::Flag::CapitalEorX;
    }
    f = pdk_to_lower(f);
    
@@ -1487,13 +1487,13 @@ String Locale::toString(double i, char f, int prec) const
       break;
    }
    if (!(m_implPtr->m_numberOptions & NumberOption::OmitGroupSeparator)) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ThousandsGroup);
+      flags |= LocaleData::Flag::ThousandsGroup;
    }
    if (!(m_implPtr->m_numberOptions & NumberOption::OmitLeadingZeroInExponent)) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadExponent);
+      flags |= LocaleData::Flag::ZeroPadExponent;
    }
    if (m_implPtr->m_numberOptions & NumberOption::IncludeTrailingZeroesAfterDot) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AddTrailingZeroes);
+      flags |= LocaleData::Flag::AddTrailingZeroes;
    }
    return m_implPtr->m_data->doubleToString(i, prec, form, -1, flags);
 }
@@ -1898,12 +1898,12 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                const int yr = date.getYear();
                const int len = (yr < 0) ? 5 : 4;
                result.append(m_data->longLongToString(yr, -1, 10, len,
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             }
             case 2:
                result.append(m_data->longLongToString(date.getYear() % 100, -1, 10, 2,
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             default:
                repeat = 1;
@@ -1921,7 +1921,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(date.getMonth(), -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             case 3:
                result.append(q->getMonthName(date.getMonth(), Locale::FormatType::ShortFormat));
@@ -1941,7 +1941,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(date.getDay(), -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             case 3:
                result.append(q->getDayName(date.getDayOfWeek(), Locale::FormatType::ShortFormat));
@@ -1976,7 +1976,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(hour, -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             }
             break;
@@ -1990,7 +1990,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(time.getHour(), -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             }
             break;
@@ -2004,7 +2004,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(time.getMinute(), -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             }
             break;
@@ -2018,7 +2018,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
                break;
             case 2:
                result.append(m_data->longLongToString(time.getSecond(), -1, 10, 2, 
-                                                      pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                      LocaleData::Flag::ZeroPadded));
                break;
             }
             break;
@@ -2054,7 +2054,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
             // note: the millisecond component is treated like the decimal part of the seconds
             // so ms == 2 is always printed as "002", but ms == 200 can be either "2" or "200"
             result.append(m_data->longLongToString(time.getMsec(), -1, 10, 3, 
-                                                   pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadded)));
+                                                   LocaleData::Flag::ZeroPadded));
             if (repeat == 1) {
                if (result.endsWith(zero())) {
                   result.chop(1);
@@ -2093,7 +2093,7 @@ String LocalePrivate::dateTimeToString(StringView format, const DateTime &dateti
 } // internal
 
 String LocaleData::doubleToString(double d, int precision, DoubleForm form,
-                                  int width, unsigned flags) const
+                                  int width, Flags flags) const
 {
    return doubleToString(m_zero, m_plus, m_minus, m_exponential, m_group, m_decimal,
                          d, precision, form, width, flags);
@@ -2101,21 +2101,22 @@ String LocaleData::doubleToString(double d, int precision, DoubleForm form,
 
 String LocaleData::doubleToString(const Character _zero, const Character plus, const Character minus,
                                   const Character exponential, const Character group, const Character decimal,
-                                  double d, int precision, DoubleForm form, int width, unsigned flags)
+                                  double d, int precision, DoubleForm form, int width, Flags flags)
 {
-   if (precision != Locale::FloatingPointShortest && precision < 0)
+   if (precision != Locale::FloatingPointShortest && precision < 0) {
       precision = 6;
-   if (width < 0)
+   }  
+   if (width < 0) {
       width = 0;
-   
+   }
    bool negative = false;
    String num_str;
    
    int decpt;
    int bufSize = 1;
-   if (precision == Locale::FloatingPointShortest)
+   if (precision == Locale::FloatingPointShortest) {
       bufSize += DoubleMaxSignificant;
-   else if (form == DoubleForm::DFDecimal) {// optimize for numbers between -512k and 512k
+   } else if (form == DoubleForm::DFDecimal) {// optimize for numbers between -512k and 512k
       bufSize += ((d > (1 << 19) || d < -(1 << 19)) ? DoubleMaxDigitsBeforeDecimal : 6) +
             precision;  
    } else {// Add extra digit due to different interpretations of precision. Also, "nan" has to fit.
@@ -2135,22 +2136,22 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
             reinterpret_cast<ushort *>(digits.getRawData())[i] += z;
       }
       
-      bool always_show_decpt = (flags & pdk::as_integer<Flags>(Flags::ForcePoint));
+      bool always_show_decpt = (flags & Flag::ForcePoint);
       switch (form) {
       case DoubleForm::DFExponent: {
          num_str = internal::exponent_form(_zero, decimal, exponential, group, plus, minus,
                                            digits, decpt, precision, internal::PrecisionMode::PMDecimalDigits,
-                                           always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ZeroPadExponent));
+                                           always_show_decpt, flags & Flag::ZeroPadExponent);
          break;
       }
       case DoubleForm::DFDecimal: {
          num_str = internal::decimal_form(_zero, decimal, group,
                                           digits, decpt, precision, internal::PrecisionMode::PMDecimalDigits,
-                                          always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ThousandsGroup));
+                                          always_show_decpt, flags & Flag::ThousandsGroup);
          break;
       }
       case DoubleForm::DFSignificantDigits: {
-         internal::PrecisionMode mode = (flags & pdk::as_integer<Flags>(Flags::AddTrailingZeroes)) ?
+         internal::PrecisionMode mode = (flags & Flag::AddTrailingZeroes) ?
                   internal::PrecisionMode::PMSignificantDigits : internal::PrecisionMode::PMChopTrailingZeros;
          
          int cutoff = precision < 0 ? 6 : precision;
@@ -2170,11 +2171,11 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
          if (decpt != digits.length() && (decpt <= -4 || decpt > cutoff)) {
             num_str = internal::exponent_form(_zero, decimal, exponential, group, plus, minus,
                                               digits, decpt, precision, mode,
-                                              always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ZeroPadExponent));
+                                              always_show_decpt, flags & Flag::ZeroPadExponent);
          } else {
             num_str = internal::decimal_form(_zero, decimal, group,
                                              digits, decpt, precision, mode,
-                                             always_show_decpt, flags & pdk::as_integer<Flags>(Flags::ThousandsGroup));
+                                             always_show_decpt, flags & Flag::ThousandsGroup);
          }
          break;
       }
@@ -2185,12 +2186,12 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
       }
       // pad with zeros. LeftAdjusted overrides this flag). Also, we don't
       // pad special numbers
-      if (flags & pdk::as_integer<Flags>(Flags::ZeroPadded) && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))) {
+      if (flags & Flag::ZeroPadded && !(flags & Flag::LeftAdjusted)) {
          int num_pad_chars = width - num_str.length();
          // leave space for the sign
          if (negative
-             || flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)
-             || flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+             || flags & Flag::AlwaysShowSign
+             || flags & Flag::BlankBeforePositive) {
             --num_pad_chars;
          }
          for (int i = 0; i < num_pad_chars; ++i) {
@@ -2202,12 +2203,12 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
    // add sign
    if (negative) {
       num_str.prepend(minus);
-   } else if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+   } else if (flags & Flag::AlwaysShowSign) {
       num_str.prepend(plus);
-   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+   } else if (flags & Flag::BlankBeforePositive) {
       num_str.prepend(Latin1Character(' '));
    }
-   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+   if (flags & Flag::CapitalEorX) {
       num_str = std::move(num_str).toUpper();
    }
    return num_str;
@@ -2215,7 +2216,7 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
 
 String LocaleData::longLongToString(pdk::plonglong l, int precision,
                                     int base, int width,
-                                    unsigned flags) const
+                                    Flags flags) const
 {
    return longLongToString(m_zero, m_group, m_plus, m_minus,
                            l, precision, base, width, flags);
@@ -2225,7 +2226,7 @@ String LocaleData::longLongToString(const Character zero, const Character group,
                                     const Character plus, const Character minus,
                                     pdk::plonglong l, int precision,
                                     int base, int width,
-                                    unsigned flags)
+                                    Flags flags)
 {
    bool precision_not_specified = false;
    if (precision == -1) {
@@ -2236,8 +2237,8 @@ String LocaleData::longLongToString(const Character zero, const Character group,
    bool negative = l < 0;
    if (base != 10) {
       // these are not supported by sprintf for octal and hex
-      flags &= ~pdk::as_integer<Flags>(Flags::AlwaysShowSign);
-      flags &= ~pdk::as_integer<Flags>(Flags::BlankBeforePositive);
+      flags &= ~pdk::as_integer<Flag>(Flag::AlwaysShowSign);
+      flags &= ~pdk::as_integer<Flag>(Flag::BlankBeforePositive);
       negative = false; // neither are negative numbers
    }
    
@@ -2248,7 +2249,7 @@ String LocaleData::longLongToString(const Character zero, const Character group,
       num_str = internal::pdk_ulltoa(l, base, zero);
    }
    uint cnt_thousand_sep = 0;
-   if (flags & pdk::as_integer<Flags>(Flags::ThousandsGroup) && base == 10) {
+   if (flags & Flag::ThousandsGroup && base == 10) {
       for (int i = num_str.length() - 3; i > 0; i -= 3) {
          num_str.insert(i, group);
          ++cnt_thousand_sep;
@@ -2259,7 +2260,7 @@ String LocaleData::longLongToString(const Character zero, const Character group,
       num_str.prepend(base == 10 ? zero : Character::fromLatin1('0'));
    }
    
-   if ((flags & pdk::as_integer<Flags>(Flags::ShowBase))
+   if ((flags & Flag::ShowBase)
        && base == 8
        && (num_str.isEmpty() || num_str[0].unicode() != Latin1Character('0'))) {
       num_str.prepend(Latin1Character('0'));
@@ -2268,8 +2269,8 @@ String LocaleData::longLongToString(const Character zero, const Character group,
    
    // LeftAdjusted overrides this flag ZeroPadded. sprintf only padds
    // when precision is not specified in the format string
-   bool zero_padded = flags & pdk::as_integer<Flags>(Flags::ZeroPadded)
-         && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))
+   bool zero_padded = flags & Flag::ZeroPadded
+         && !(flags & Flag::LeftAdjusted)
          && precision_not_specified;
    
    if (zero_padded) {
@@ -2277,16 +2278,16 @@ String LocaleData::longLongToString(const Character zero, const Character group,
       
       // leave space for the sign
       if (negative
-          || flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)
-          || flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+          || flags & Flag::AlwaysShowSign
+          || flags & Flag::BlankBeforePositive) {
          --num_pad_chars;
       }
       
       
       // leave space for optional '0x' in hex form
-      if (base == 16 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+      if (base == 16 && (flags & Flag::ShowBase)) {
          num_pad_chars -= 2;
-      } else if (base == 2 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
+      } else if (base == 2 && (flags & Flag::ShowBase)) {
          // leave space for optional '0b' in binary form
          num_pad_chars -= 2;
       }
@@ -2295,24 +2296,24 @@ String LocaleData::longLongToString(const Character zero, const Character group,
       }   
    }
    
-   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+   if (flags & Flag::CapitalEorX) {
       num_str = std::move(num_str).toUpper();
    }
    
-   if (base == 16 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
-      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0X" : "0x"));
+   if (base == 16 && (flags & Flag::ShowBase)) {
+      num_str.prepend(Latin1String(flags & Flag::UppercaseBase ? "0X" : "0x"));
    }
    
-   if (base == 2 && (flags & pdk::as_integer<Flags>(Flags::ShowBase))) {
-      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0B" : "0b"));
+   if (base == 2 && (flags & Flag::ShowBase)) {
+      num_str.prepend(Latin1String(flags & Flag::UppercaseBase ? "0B" : "0b"));
    }
    
    // add sign
    if (negative) {
       num_str.prepend(minus);
-   } else if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+   } else if (flags & Flag::AlwaysShowSign) {
       num_str.prepend(plus);
-   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+   } else if (flags & Flag::BlankBeforePositive) {
       num_str.prepend(Latin1Character(' '));
    }
    return num_str;
@@ -2320,7 +2321,7 @@ String LocaleData::longLongToString(const Character zero, const Character group,
 
 String LocaleData::unsLongLongToString(pdk::pulonglong l, int precision,
                                        int base, int width,
-                                       unsigned flags) const
+                                       Flags flags) const
 {
    return unsLongLongToString(m_zero, m_group, m_plus,
                               l, precision, base, width, flags);
@@ -2330,14 +2331,14 @@ String LocaleData::unsLongLongToString(const Character zero, const Character gro
                                        const Character plus,
                                        pdk::pulonglong l, int precision,
                                        int base, int width,
-                                       unsigned flags)
+                                       Flags flags)
 {
    const Character resultZero = base == 10 ? zero : Character(Latin1Character('0'));
    String num_str = l ? internal::pdk_ulltoa(l, base, zero) : String(resultZero);
    
    bool precision_not_specified = false;
    if (precision == -1) {
-      if (flags == pdk::as_integer<Flags>(Flags::NoFlags)) {
+      if (flags == Flag::NoFlags) {
          return num_str; // fast-path: nothing below applies, so we're done.
       }
       precision_not_specified = true;
@@ -2345,7 +2346,7 @@ String LocaleData::unsLongLongToString(const Character zero, const Character gro
    }
    
    uint cnt_thousand_sep = 0;
-   if (flags & pdk::as_integer<Flags>(Flags::ThousandsGroup) && base == 10) {
+   if (flags & Flag::ThousandsGroup && base == 10) {
       for (int i = num_str.length() - 3; i > 0; i -=3) {
          num_str.insert(i, group);
          ++cnt_thousand_sep;
@@ -2356,24 +2357,24 @@ String LocaleData::unsLongLongToString(const Character zero, const Character gro
    if (zeroPadding > 0)
       num_str.prepend(String(zeroPadding, resultZero));
    
-   if ((flags & pdk::as_integer<Flags>(Flags::ShowBase))
+   if ((flags & Flag::ShowBase)
        && base == 8
        && (num_str.isEmpty() || num_str.at(0).unicode() != Latin1Character('0'))) {
       num_str.prepend(Latin1Character('0'));
    }
    // LeftAdjusted overrides this flag ZeroPadded. sprintf only padds
    // when precision is not specified in the format string
-   bool zero_padded = flags & pdk::as_integer<Flags>(Flags::ZeroPadded)
-         && !(flags & pdk::as_integer<Flags>(Flags::LeftAdjusted))
+   bool zero_padded = flags & Flag::ZeroPadded
+         && !(flags & Flag::LeftAdjusted)
          && precision_not_specified;
    
    if (zero_padded) {
       int num_pad_chars = width - num_str.length();
       
       // leave space for optional '0x' in hex form
-      if (base == 16 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+      if (base == 16 && flags & Flag::ShowBase) {
          num_pad_chars -= 2;
-      } else if (base == 2 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
+      } else if (base == 2 && flags & Flag::ShowBase) {
          // leave space for optional '0b' in binary form
          num_pad_chars -= 2;
       }
@@ -2382,18 +2383,18 @@ String LocaleData::unsLongLongToString(const Character zero, const Character gro
       }
    }
    
-   if (flags & pdk::as_integer<Flags>(Flags::CapitalEorX)) {
+   if (flags & Flag::CapitalEorX) {
       num_str = std::move(num_str).toUpper();
    }
-   if (base == 16 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
-      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0X" : "0x"));
-   } else if (base == 2 && flags & pdk::as_integer<Flags>(Flags::ShowBase)) {
-      num_str.prepend(Latin1String(flags & pdk::as_integer<Flags>(Flags::UppercaseBase) ? "0B" : "0b"));
+   if (base == 16 && flags & Flag::ShowBase) {
+      num_str.prepend(Latin1String(flags & Flag::UppercaseBase ? "0X" : "0x"));
+   } else if (base == 2 && flags & Flag::ShowBase) {
+      num_str.prepend(Latin1String(flags & Flag::UppercaseBase ? "0B" : "0b"));
    }
    // add sign
-   if (flags & pdk::as_integer<Flags>(Flags::AlwaysShowSign)) {
+   if (flags & Flag::AlwaysShowSign) {
       num_str.prepend(plus);
-   } else if (flags & pdk::as_integer<Flags>(Flags::BlankBeforePositive)) {
+   } else if (flags & Flag::BlankBeforePositive) {
       num_str.prepend(Latin1Character(' '));
    }
    return num_str;

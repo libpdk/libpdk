@@ -354,7 +354,7 @@ void TextStreamPrivate::flushWriteBuffer()
    pdk::pint64 bytesWritten = m_device->write(data);
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStreamPrivate::flushWriteBuffer(), m_device->write(\"%s\") == %d",
-          pdk_pretty_debug(data.getConstRawData(), std::min(data.size(),32), data.size()).getConstRawData(), int(bytesWritten));
+                pdk_pretty_debug(data.getConstRawData(), std::min(data.size(),32), data.size()).getConstRawData(), int(bytesWritten));
 #endif
    
 #if defined (PDK_OS_WIN)
@@ -380,7 +380,7 @@ void TextStreamPrivate::flushWriteBuffer()
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStreamPrivate::flushWriteBuffer() wrote %d bytes",
-          int(bytesWritten));
+                int(bytesWritten));
 #endif
    if (!flushed || bytesWritten != pdk::pint64(data.size())) {
       m_status = TextStream::Status::WriteFailed;
@@ -493,7 +493,7 @@ bool TextStreamPrivate::scan(const Character **ptr, int *length, int maxlen, Tok
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStreamPrivate::scan(%p, %p, %d, %x) token length = %d, delimiter = %d",
-          ptr, length, maxlen, (int)delimiter, totalSize - delimSize, delimSize);
+                ptr, length, maxlen, (int)delimiter, totalSize - delimSize, delimSize);
 #endif
    return true;
 }
@@ -1057,24 +1057,24 @@ void TextStreamPrivate::putNumber(pdk::pulonglong number, bool negative)
 {
    String result;
    
-   unsigned flags = 0;
+   LocaleData::Flags flags = 0;
    const TextStream::NumberFlags numberFlags = m_params.m_numberFlags;
    if (numberFlags & TextStream::NumberFlag::ShowBase) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ShowBase);
+      flags |= LocaleData::Flag::ShowBase;
    }
    if (numberFlags & TextStream::NumberFlag::ForceSign) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AlwaysShowSign);
+      flags |= LocaleData::Flag::AlwaysShowSign;
    }
    if (numberFlags & TextStream::NumberFlag::UppercaseBase) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::UppercaseBase);
+      flags |= LocaleData::Flag::UppercaseBase;
    }
    if (numberFlags & TextStream::NumberFlag::UppercaseDigits) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::CapitalEorX);
+      flags |= LocaleData::Flag::CapitalEorX;
    }
    // add thousands group separators. For backward compatibility we
    // don't add a group separator for C locale.
    if (m_locale != Locale::c() && !m_locale.numberOptions().testFlag(Locale::NumberOption::OmitGroupSeparator)) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ThousandsGroup);
+      flags |= LocaleData::Flag::ThousandsGroup;
    }
    
    const LocaleData *dd = m_locale.m_implPtr->m_data;
@@ -1118,7 +1118,7 @@ TextStream::TextStream(IoDevice *device)
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStream::TextStream(IoDevice *device == *%p)",
-          device);
+                device);
 #endif
    PDK_D(TextStream);
    implPtr->m_device = device;
@@ -1131,7 +1131,7 @@ TextStream::TextStream(String *string, IoDevice::OpenMode openMode)
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStream::TextStream(String *string == *%p, openMode = %d)",
-          string, int(openMode));
+                string, int(openMode));
 #endif
    PDK_D(TextStream);
    implPtr->m_string = string;
@@ -1144,7 +1144,7 @@ TextStream::TextStream(ByteArray *array, IoDevice::OpenMode openMode)
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStream::TextStream(ByteArray *array == *%p, openMode = %d)",
-          array, int(openMode));
+                array, int(openMode));
 #endif
    PDK_D(TextStream);
    implPtr->m_device = new Buffer(array);
@@ -1159,7 +1159,7 @@ TextStream::TextStream(const ByteArray &array, IoDevice::OpenMode openMode)
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStream::TextStream(const ByteArray &array == *(%p), openMode = %d)",
-          &array, int(openMode));
+                &array, int(openMode));
 #endif
    Buffer *buffer = new Buffer;
    buffer->setData(array);
@@ -1177,7 +1177,7 @@ TextStream::TextStream(FILE *fileHandle, IoDevice::OpenMode openMode)
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStream::TextStream(FILE *fileHandle = %p, openMode = %d)",
-          fileHandle, int(openMode));
+                fileHandle, int(openMode));
 #endif
    File *file = new File;
    file->open(fileHandle, openMode);
@@ -1328,8 +1328,8 @@ void TextStream::setString(String *string, IoDevice::OpenMode openMode)
    flush();
    if (implPtr->m_deleteDevice) {
       // @TODO review
-//       implPtr->m_deviceClosedNotifier.disconnect();
-//       implPtr->m_device->blockSignals(true);
+      //       implPtr->m_deviceClosedNotifier.disconnect();
+      //       implPtr->m_device->blockSignals(true);
       delete implPtr->m_device;
       implPtr->m_deleteDevice = false;
    }
@@ -1484,7 +1484,7 @@ bool TextStream::readLineInto(String *line, pdk::pint64 maxlen)
    PDK_D(TextStream);
    // keep in sync with CHECK_VALID_STREAM
    if (!implPtr->m_string && !implPtr->m_device) {
-       warning_stream("TextStream: No device");
+      warning_stream("TextStream: No device");
       if (line && !line->isNull()) {
          line->resize(0);
       }
@@ -1759,34 +1759,34 @@ TextStream &TextStream::operator<<(double f)
       break;
    }
    
-   uint flags = 0;
+   LocaleData::Flags flags = LocaleData::Flag::NoFlags;
    const Locale::NumberOptions numberOptions = getLocale().numberOptions();
    if (getNumberFlags() & NumberFlag::ShowBase) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ShowBase);
+      flags |= LocaleData::Flag::ShowBase;
    }
    if (getNumberFlags() & NumberFlag::ForceSign) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AlwaysShowSign);
+      flags |= LocaleData::Flag::AlwaysShowSign;
    }
    if (getNumberFlags() & NumberFlag::UppercaseBase) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::UppercaseBase);
+      flags |= LocaleData::Flag::UppercaseBase;
    }
    if (getNumberFlags() & NumberFlag::UppercaseDigits) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::CapitalEorX);
+      flags |= LocaleData::Flag::CapitalEorX;
    }
    if (getNumberFlags() & NumberFlag::ForcePoint) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ForcePoint);
+      flags |= LocaleData::Flag::ForcePoint;
       // Only for backwards compatibility
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AddTrailingZeroes) |
-            pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ShowBase);
+      flags |= LocaleData::Flag::AddTrailingZeroes;
+      flags |= LocaleData::Flag::ShowBase;
    }
    if (getLocale() != Locale::c() && !(numberOptions & Locale::NumberOption::OmitGroupSeparator)) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ThousandsGroup);
+      flags |= LocaleData::Flag::ThousandsGroup;
    }
    if (!(numberOptions & Locale::NumberOption::OmitLeadingZeroInExponent)) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::ZeroPadExponent);
+      flags |= LocaleData::Flag::ZeroPadExponent;
    }
    if (numberOptions & Locale::NumberOption::IncludeTrailingZeroesAfterDot) {
-      flags |= pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AddTrailingZeroes);
+      flags |= LocaleData::Flag::AddTrailingZeroes;
    }
    const LocaleData *dd = implPtr->m_locale.m_implPtr->m_data;
    String num = dd->doubleToString(f, implPtr->m_params.m_realNumberPrecision, form, -1, flags);

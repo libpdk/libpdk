@@ -503,8 +503,6 @@ public:
                                   const String &a4, const String &a5, const String &a6,
                                   const String &a7, const String &a8, const String &a9) const;
    
-   String &vsprintf(const char *format, va_list ap) PDK_ATTRIBUTE_FORMAT_PRINTF(2, 0);
-   String &sprintf(const char *format, ...) PDK_ATTRIBUTE_FORMAT_PRINTF(2, 3);
    static String vasprintf(const char *format, va_list ap) PDK_ATTRIBUTE_FORMAT_PRINTF(1, 0);
    static String asprintf(const char *format, ...) PDK_ATTRIBUTE_FORMAT_PRINTF(1, 2);
    

@@ -461,7 +461,7 @@ String &exponent_form(Character zero, Character decimal, Character exponential,
    digits.append(exponential);
    digits.append(LocaleData::longLongToString(zero, group, plus, minus,
                                               exp, leading_zero_in_exponent ? 2 : 1, 10, -1, 
-                                              pdk::as_integer<LocaleData::Flags>(LocaleData::Flags::AlwaysShowSign)));
+                                              LocaleData::Flag::AlwaysShowSign));
    
    return digits;
 }
