@@ -49,13 +49,13 @@
 #endif
 
 #ifndef LLONG_MAX
-#define LLONG_MAX qint64_C(9223372036854775807)
+#define LLONG_MAX pdk::pint64_C(9223372036854775807)
 #endif
 #ifndef LLONG_MIN
-#define LLONG_MIN (-LLONG_MAX - qint64_C(1))
+#define LLONG_MIN (-LLONG_MAX - pdk::pint64_C(1))
 #endif
 #ifndef ULLONG_MAX
-#define ULLONG_MAX quint64_C(18446744073709551615)
+#define ULLONG_MAX pdk::puint64_C(18446744073709551615)
 #endif
 
 #define IS_RAW_DATA(d) ((d)->m_offset != sizeof(StringData))
@@ -2510,51 +2510,294 @@ LocaleData::Flags parse_flag_characters(const char * &c) noexcept
    }
 }
 
-//int parse_field_width(const char * &c)
-//{
-//   Q_ASSERT(qIsDigit(*c));
+int parse_field_width(const char * &c)
+{
+   PDK_ASSERT(internal::is_digit(*c));
+   
+   // can't be negative - started with a digit
+   // contains at least one digit
+   char *endp;
+   bool ok = true;
+   const pdk::pulonglong result = std::strtoull(c, &endp, 10);
+   if (errno == ERANGE){
+      errno = 0;
+      ok = false;
+   }
+   c = endp;
+   while (internal::is_digit(*c)) {// preserve the behavior of consuming all digits, no matter how many
+      ++c;
+   }
+   return ok && result < pdk::pulonglong(std::numeric_limits<int>::max()) ? int(result) : 0;
+}
 
-//   // can't be negative - started with a digit
-//   // contains at least one digit
-//   const char *endp;
-//   bool ok;
-//   const qulonglong result = qstrtoull(c, &endp, 10, &ok);
-//   c = endp;
-//   while (qIsDigit(*c)) // preserve Qt 5.5 behavior of consuming all digits, no matter how many
-//      ++c;
-//   return ok && result < qulonglong(std::numeric_limits<int>::max()) ? int(result) : 0;
-//}
+enum class LengthMod { lm_none, lm_hh, lm_h, lm_l, lm_ll, lm_L, lm_j, lm_z, lm_t };
 
-//enum LengthMod { lm_none, lm_hh, lm_h, lm_l, lm_ll, lm_L, lm_j, lm_z, lm_t };
+inline bool can_consume(const char * &c, char ch) noexcept
+{
+   if (*c == ch) {
+      ++c;
+      return true;
+   }
+   return false;
+}
 
-//inline bool can_consume(const char * &c, char ch) Q_DECL_NOTHROW
-//{
-//   if (*c == ch) {
-//      ++c;
-//      return true;
-//   }
-//   return false;
-//}
-
-//LengthMod parse_length_modifier(const char * &c) Q_DECL_NOTHROW
-//{
-//   switch (*c++) {
-//   case 'h': return can_consume(c, 'h') ? lm_hh : lm_h;
-//   case 'l': return can_consume(c, 'l') ? lm_ll : lm_l;
-//   case 'L': return lm_L;
-//   case 'j': return lm_j;
-//   case 'z':
-//   case 'Z': return lm_z;
-//   case 't': return lm_t;
-//   }
-//   --c; // don't consume *c - it wasn't a flag
-//   return lm_none;
-//}
+LengthMod parse_length_modifier(const char * &c) noexcept
+{
+   switch (*c++) {
+   case 'h': return can_consume(c, 'h') ? LengthMod::lm_hh : LengthMod::lm_h;
+   case 'l': return can_consume(c, 'l') ? LengthMod::lm_ll : LengthMod::lm_l;
+   case 'L': return LengthMod::lm_L;
+   case 'j': return LengthMod::lm_j;
+   case 'z':
+   case 'Z': return LengthMod::lm_z;
+   case 't': return LengthMod::lm_t;
+   }
+   --c; // don't consume *c - it wasn't a flag
+   return LengthMod::lm_none;
+}
 
 } // anonymous namespace
 
 String String::vasprintf(const char *format, va_list ap)
-{}
+{
+   if (!format || !*format) {
+      return fromLatin1("");
+   }
+   
+   // Parse format
+   
+   String result;
+   const char *c = format;
+   for (;;) {
+      // Copy non-escape chars to result
+      const char *cb = c;
+      while (*c != '\0' && *c != '%') {
+         c++;
+      }
+      append_utf8(result, cb, int(c - cb));
+      if (*c == '\0') {
+         break;
+      }
+      // Found '%'
+      const char *escapeStart = c;
+      ++c;
+      
+      if (*c == '\0') {
+         result.append(Latin1Character('%')); // a % at the end of the string - treat as non-escape text
+         break;
+      }
+      if (*c == '%') {
+         result.append(Latin1Character('%')); // %%
+         ++c;
+         continue;
+      }
+      
+      LocaleData::Flags flags = parse_flag_characters(c);
+      
+      if (*c == '\0') {
+         result.append(Latin1String(escapeStart)); // incomplete escape, treat as non-escape text
+         break;
+      }
+      
+      // Parse field width
+      int width = -1; // -1 means unspecified
+      if (internal::is_digit(*c)) {
+         width = parse_field_width(c);
+      } else if (*c == '*') { // can't parse this in another function, not portably, at least
+         width = va_arg(ap, int);
+         if (width < 0) {
+            width = -1; // treat all negative numbers as unspecified
+         }
+         ++c;
+      }
+      
+      if (*c == '\0') {
+         result.append(Latin1String(escapeStart)); // incomplete escape, treat as non-escape text
+         break;
+      }
+      
+      // Parse precision
+      int precision = -1; // -1 means unspecified
+      if (*c == '.') {
+         ++c;
+         if (internal::is_digit(*c)) {
+            precision = parse_field_width(c);
+         } else if (*c == '*') { // can't parse this in another function, not portably, at least
+            precision = va_arg(ap, int);
+            if (precision < 0) {
+               precision = -1; // treat all negative numbers as unspecified
+            }
+            ++c;
+         }
+      }
+      if (*c == '\0') {
+         result.append(Latin1String(escapeStart)); // incomplete escape, treat as non-escape text
+         break;
+      }
+      const LengthMod length_mod = parse_length_modifier(c);
+      if (*c == '\0') {
+         result.append(Latin1String(escapeStart)); // incomplete escape, treat as non-escape text
+         break;
+      }
+      
+      // Parse the conversion specifier and do the conversion
+      String subst;
+      switch (*c) {
+      case 'd':
+      case 'i': {
+         pdk::pint64 i;
+         switch (length_mod) {
+         case LengthMod::lm_none: i = va_arg(ap, int); break;
+         case LengthMod::lm_hh: i = va_arg(ap, int); break;
+         case LengthMod::lm_h: i = va_arg(ap, int); break;
+         case LengthMod::lm_l: i = va_arg(ap, long int); break;
+         case LengthMod::lm_ll: i = va_arg(ap, pdk::pint64); break;
+         case LengthMod::lm_j: i = va_arg(ap, long int); break;
+         case LengthMod::lm_z: i = va_arg(ap, size_t); break;
+         case LengthMod::lm_t: i = va_arg(ap, int); break;
+         default: i = 0; break;
+         }
+         subst = LocaleData::c()->longLongToString(i, precision, 10, width, flags);
+         ++c;
+         break;
+      }
+      case 'o':
+      case 'u':
+      case 'x':
+      case 'X': {
+         pdk::puint64 u;
+         switch (length_mod) {
+         case LengthMod::lm_none: u = va_arg(ap, uint); break;
+         case LengthMod::lm_hh: u = va_arg(ap, uint); break;
+         case LengthMod::lm_h: u = va_arg(ap, uint); break;
+         case LengthMod::lm_l: u = va_arg(ap, ulong); break;
+         case LengthMod::lm_ll: u = va_arg(ap, pdk::puint64); break;
+         case LengthMod::lm_z: u = va_arg(ap, size_t); break;
+         default: u = 0; break;
+         }
+         
+         if (internal::is_upper(*c)) {
+            flags |= LocaleData::Flag::CapitalEorX;
+         } 
+         
+         int base = 10;
+         switch (internal::to_lower(*c)) {
+         case 'o':
+            base = 8; break;
+         case 'u':
+            base = 10; break;
+         case 'x':
+            base = 16; break;
+         default: break;
+         }
+         subst = LocaleData::c()->unsLongLongToString(u, precision, base, width, flags);
+         ++c;
+         break;
+      }
+      case 'E':
+      case 'e':
+      case 'F':
+      case 'f':
+      case 'G':
+      case 'g':
+      case 'A':
+      case 'a': {
+         double d;
+         if (length_mod == LengthMod::lm_L) {
+            d = va_arg(ap, long double); // not supported - converted to a double
+         } else {
+            d = va_arg(ap, double);
+         }
+         if (internal::is_upper(*c)) {
+            flags |= LocaleData::Flag::CapitalEorX;
+         }
+         LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
+         switch (internal::to_lower(*c)) {
+         case 'e': form = LocaleData::DoubleForm::DFExponent; break;
+         case 'a':                             // not supported - decimal form used instead
+         case 'f': form = LocaleData::DoubleForm::DFDecimal; break;
+         case 'g': form = LocaleData::DoubleForm::DFSignificantDigits; break;
+         default: break;
+         }
+         subst = LocaleData::c()->doubleToString(d, precision, form, width, flags);
+         ++c;
+         break;
+      }
+      case 'c': {
+         if (length_mod == LengthMod::lm_l)
+            subst = Character((ushort) va_arg(ap, int));
+         else
+            subst = Latin1Character((uchar) va_arg(ap, int));
+         ++c;
+         break;
+      }
+      case 's': {
+         if (length_mod == LengthMod::lm_l) {
+            const char16_t *buff = va_arg(ap, const char16_t*);
+            const char16_t *ch = buff;
+            while (*ch != 0)
+               ++ch;
+            subst.setUtf16(buff, ch - buff);
+         } else
+            subst = String::fromUtf8(va_arg(ap, const char*));
+         if (precision != -1)
+            subst.truncate(precision);
+         ++c;
+         break;
+      }
+      case 'p': {
+         void *arg = va_arg(ap, void*);
+         const pdk::puint64 i = reinterpret_cast<pdk::uintptr>(arg);
+         flags |= LocaleData::Flag::ShowBase;
+         subst = LocaleData::c()->unsLongLongToString(i, precision, 16, width, flags);
+         ++c;
+         break;
+      }
+      case 'n':
+         switch (length_mod) {
+         case LengthMod::lm_hh: {
+            signed char *n = va_arg(ap, signed char*);
+            *n = result.length();
+            break;
+         }
+         case LengthMod::lm_h: {
+            short int *n = va_arg(ap, short int*);
+            *n = result.length();
+            break;
+         }
+         case LengthMod::lm_l: {
+            long int *n = va_arg(ap, long int*);
+            *n = result.length();
+            break;
+         }
+         case LengthMod::lm_ll: {
+            pdk::pint64 *n = va_arg(ap, pdk::pint64*);
+            *n = result.length();
+            break;
+         }
+         default: {
+            int *n = va_arg(ap, int*);
+            *n = result.length();
+            break;
+         }
+         }
+         ++c;
+         break;
+         
+      default: // bad escape, treat as non-escape text
+         for (const char *cc = escapeStart; cc != c; ++cc)
+            result.append(Latin1Character(*cc));
+         continue;
+      }
+      
+      if (flags & LocaleData::Flag::LeftAdjusted)
+         result.append(subst.leftJustified(width));
+      else
+         result.append(subst.rightJustified(width));
+   }
+   
+   return result;
+}
 
 pdk::pint64 String::toLongLong(bool *ok, int base) const
 {}
