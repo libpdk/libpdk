@@ -242,7 +242,6 @@ PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
 
 }
 
-
 namespace internal {
 
 char32_t fold_case(const char16_t *ch, const char16_t *start) noexcept

@@ -193,6 +193,8 @@ int StringMatcher::indexIn(const Character *str, int length, int from) const
                   m_p.m_skiptable, m_cs);
 }
 
+namespace internal {
+
 int find_string_boyer_moore(
       const Character *haystack, int haystackLen, int haystackOffset,
       const Character *needle, int needleLen, pdk::CaseSensitivity cs)
@@ -204,6 +206,7 @@ int find_string_boyer_moore(
    return bm_find(reinterpret_cast<const char16_t *>(haystack), haystackLen, haystackOffset,
                   reinterpret_cast<const char16_t *>(needle), needleLen, skiptable, cs);
 }
+} // internal
 
 } // lang
 } // pdk

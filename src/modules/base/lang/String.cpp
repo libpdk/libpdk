@@ -59,8 +59,8 @@
 #define IS_RAW_DATA(d) ((d)->m_offset != sizeof(StringData))
 
 #define REHASH(a) \
-   if (sl_minus_1 < sizeof(uint) * CHAR_BIT)  \
-   hashHaystack -= uint(a) << sl_minus_1; \
+   if (slminus1 < sizeof(uint) * CHAR_BIT)  \
+   hashHaystack -= uint(a) << slminus1; \
    hashHaystack <<= 1
 
 namespace pdk {
@@ -82,6 +82,22 @@ void utf16_to_latin1(uchar *dest, const char16_t *src, int length);
 
 namespace
 {
+
+inline int lastIndexndex_of(const Character *haystack, int haystackLen, Character needle,
+                            int from, pdk::CaseSensitivity cs);
+inline int string_count(const Character *haystack, int haystackLen,
+                        const Character *needle, int needleLen,
+                        pdk::CaseSensitivity cs);
+inline int string_count(const Character *haystack, int haystackLen,
+                        Character needle, pdk::CaseSensitivity cs);
+int find_latin1_string(const Character *hay, int size, Latin1String needle,
+                       int from, pdk::CaseSensitivity cs);
+inline bool starts_with(StringView haystack, StringView needle, pdk::CaseSensitivity cs);
+inline bool starts_with(StringView haystack, Latin1String needle, pdk::CaseSensitivity cs);
+inline bool starts_with(StringView haystack, Character needle, pdk::CaseSensitivity cs);
+static inline bool ends_with(StringView haystack, StringView needle, pdk::CaseSensitivity cs);
+static inline bool ends_with(StringView haystack, Latin1String needle, pdk::CaseSensitivity cs);
+static inline bool ends_with(StringView haystack, Character needle, pdk::CaseSensitivity cs);
 
 #if !defined(__OPTIMIZE_SIZE__)
 
@@ -131,7 +147,6 @@ inline RetType UnrollTailLoop<0>::exec(int, RetType returnIfExited, Functor1, Fu
 }
 
 #endif
-
 
 // Unicode case-insensitive comparison
 int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd, 
@@ -678,6 +693,12 @@ inline char to_lower(char ch)
    }
 }
 
+int find_string(const Character *haystack, int haystackLen, int from,
+                const Character *needle, int needleLen, pdk::CaseSensitivity cs);
+
+int find_string_boyer_moore(const Character *haystack, int haystackLen, int from,
+                            const Character *needle, int needleLen, pdk::CaseSensitivity cs);
+
 } // internal
 
 
@@ -770,29 +791,117 @@ StringView stringprivate::trimmed(StringView str) noexcept
    return pdk_trimmed(str);
 }
 
+template <typename Haystack, typename Needle>
+bool starts_with_impl(Haystack haystack, Needle needle, pdk::CaseSensitivity cs) noexcept
+{
+   if (haystack.isNull()) {
+      return needle.isNull(); // historical behavior, consider changing in ### @todo.
+   }
+   const auto haystackLen = haystack.size();
+   const auto needleLen = needle.size();
+   if (haystackLen == 0) {
+      return needleLen == 0;
+   }
+   if ((pdk::pulonglong)needleLen > (pdk::pulonglong)haystackLen) {
+      return false;
+   }
+   return pdk_compare_strings(haystack.left(needleLen), needle, cs) == 0;
+}
+
+namespace {
+
+inline bool starts_with(StringView haystack, StringView needle, pdk::CaseSensitivity cs)
+{
+   return starts_with_impl(haystack, needle, cs);
+}
+
+inline bool starts_with(StringView haystack, Latin1String needle, pdk::CaseSensitivity cs)
+{
+   return starts_with_impl(haystack, needle, cs);
+}
+
+inline bool starts_with(StringView haystack, Character needle, pdk::CaseSensitivity cs)
+{
+   return haystack.size()
+         && (cs == pdk::CaseSensitivity::Sensitive ? haystack.front() == needle
+                                                   : internal::fold_case(haystack.front()) == internal::fold_case(needle));
+}
+
+template <typename Haystack, typename Needle>
+bool ends_with_impl(Haystack haystack, Needle needle, pdk::CaseSensitivity cs) noexcept
+{
+   if (haystack.isNull()) {
+      return needle.isNull(); // historical behavior, consider changing in ###  @todo.
+   }
+   const auto haystackLen = haystack.size();
+   const auto needleLen = needle.size();
+   if (haystackLen == 0) {
+      return needleLen == 0;
+   }
+   if ((pdk::pulonglong)haystackLen < (pdk::pulonglong)needleLen) {
+      return false;
+   }
+   return pdk_compare_strings(haystack.right(needleLen), needle, cs) == 0;
+}
+
+inline bool ends_with(StringView haystack, StringView needle, pdk::CaseSensitivity cs)
+{
+   return ends_with_impl(haystack, needle, cs);
+}
+
+inline bool ends_with(StringView haystack, Latin1String needle, pdk::CaseSensitivity cs)
+{
+   return ends_with_impl(haystack, needle, cs);
+}
+
+inline bool ends_with(StringView haystack, Character needle, pdk::CaseSensitivity cs)
+{
+   return haystack.size()
+         && (cs == pdk::CaseSensitivity::Sensitive ? haystack.back() == needle
+                                                   : internal::fold_case(haystack.back()) == internal::fold_case(needle));
+}
+
+} // anonymous namespace
+
 bool stringprivate::starts_with(Latin1String haystack, Latin1String needle, CaseSensitivity cs) noexcept
-{}
+{
+   return starts_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::starts_with(Latin1String haystack, StringView needle, CaseSensitivity cs) noexcept
-{}
+{
+   return starts_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::starts_with(StringView haystack, Latin1String needle, CaseSensitivity cs) noexcept
-{}
+{
+   return starts_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::starts_with(StringView haystack, StringView needle, CaseSensitivity cs) noexcept
-{}
+{
+   return starts_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::ends_with(Latin1String haystack, Latin1String needle, CaseSensitivity cs) noexcept
-{}
+{
+   return ends_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::ends_with(Latin1String haystack, StringView needle, CaseSensitivity cs) noexcept
-{}
+{
+   return ends_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::ends_with(StringView haystack, Latin1String needle, CaseSensitivity cs) noexcept
-{}
+{
+   return ends_with_impl(haystack, needle, cs);
+}
 
 bool stringprivate::ends_with(StringView haystack, StringView needle, CaseSensitivity cs) noexcept
-{}
+{
+   return ends_with_impl(haystack, needle, cs);
+}
 
 int String::toUcs4Helper(const char16_t *str, int length, char32_t *out)
 {
@@ -835,7 +944,7 @@ String::String(int size, Character c)
    m_data->getData()[size] = '\0';
 }
 
-String::String(int size, Initialization)
+String::String(int size, pdk::Initialization)
 {
    m_data = Data::allocate(size + 1);
    PDK_CHECK_ALLOC_PTR(m_data);
@@ -1078,7 +1187,7 @@ String &String::remove(int pos, int length)
    return *this;
 }
 
-String &String::remove(const String &str, CaseSensitivity cs)
+String &String::remove(const String &str, pdk::CaseSensitivity cs)
 {
    if (str.m_data->m_size) {
       int i = 0;
@@ -1089,7 +1198,7 @@ String &String::remove(const String &str, CaseSensitivity cs)
    return *this;
 }
 
-String &String::remove(Character ch, CaseSensitivity cs)
+String &String::remove(Character ch, pdk::CaseSensitivity cs)
 {
    const int idx = indexOf(ch, 0, cs);
    if (idx != -1) {
@@ -1132,7 +1241,7 @@ String &String::replace(int pos, int length, Character after)
    return replace(pos, length, &after, 1);
 }
 
-String &String::replace(const String &before, const String &after, CaseSensitivity cs)
+String &String::replace(const String &before, const String &after, pdk::CaseSensitivity cs)
 {
    return replace(before.getConstRawData(), before.size(), after.getConstRawData(), after.size(), cs);
 }
@@ -1220,7 +1329,7 @@ void String::replaceHelper(uint *indices, int nIndices, int blength,
 }
 
 String &String::replace(const Character *before, int blength, 
-                        const Character *after, int alength, CaseSensitivity cs)
+                        const Character *after, int alength, pdk::CaseSensitivity cs)
 {
    if (m_data->m_size == 0) {
       if (blength) {
@@ -1280,7 +1389,7 @@ String &String::replace(const Character *before, int blength,
    return *this;
 }
 
-String &String::replace(Character ch, const String &after, CaseSensitivity cs)
+String &String::replace(Character ch, const String &after, pdk::CaseSensitivity cs)
 {
    if (after.m_data->m_size == 0) {
       return remove(ch, cs);
@@ -1325,7 +1434,7 @@ String &String::replace(Character ch, const String &after, CaseSensitivity cs)
    return *this;
 }
 
-String &String::replace(Character before, Character after, CaseSensitivity cs)
+String &String::replace(Character before, Character after, pdk::CaseSensitivity cs)
 {
    if (m_data->m_size) {
       const int idx = indexOf(before, 0, cs);
@@ -1356,7 +1465,7 @@ String &String::replace(Character before, Character after, CaseSensitivity cs)
    return *this;
 }
 
-String &String::replace(Latin1String before, Latin1String after, CaseSensitivity cs)
+String &String::replace(Latin1String before, Latin1String after, pdk::CaseSensitivity cs)
 {
    int alen = after.size();
    int blen = before.size();
@@ -1368,7 +1477,7 @@ String &String::replace(Latin1String before, Latin1String after, CaseSensitivity
                   reinterpret_cast<const Character *>(a.getRawData()), alen, cs);
 }
 
-String &String::replace(Latin1String before, const String &after, CaseSensitivity cs)
+String &String::replace(Latin1String before, const String &after, pdk::CaseSensitivity cs)
 {
    int blen = before.size();
    VarLengthArray<char16_t> b(blen);
@@ -1377,7 +1486,7 @@ String &String::replace(Latin1String before, const String &after, CaseSensitivit
                   after.getConstRawData(), after.m_data->m_size, cs);
 }
 
-String &String::replace(const String &before, Latin1String after, CaseSensitivity cs)
+String &String::replace(const String &before, Latin1String after, pdk::CaseSensitivity cs)
 {
    int alen = after.size();
    VarLengthArray<char16_t> a(alen);
@@ -1386,7 +1495,7 @@ String &String::replace(const String &before, Latin1String after, CaseSensitivit
                   reinterpret_cast<const Character *>(a.getRawData()), alen, cs);
 }
 
-String &String::replace(Character c, Latin1String after, CaseSensitivity cs)
+String &String::replace(Character c, Latin1String after, pdk::CaseSensitivity cs)
 {
    int alen = after.size();
    VarLengthArray<char16_t> a(alen);
@@ -1412,98 +1521,465 @@ bool String::operator ==(Latin1String other) const noexcept
 
 bool operator<(const String &lhs, const String &rhs) noexcept
 {
+   return pdk_compare_strings(lhs, rhs, pdk::CaseSensitivity::Sensitive) < 0;
 }
 
 bool String::operator <(Latin1String other) const noexcept
-{}
+{
+   return pdk_compare_strings(*this, other, pdk::CaseSensitivity::Sensitive) < 0;
+}
 
 bool String::operator >(Latin1String other) const noexcept
-{}
+{
+   return pdk_compare_strings(*this, other, pdk::CaseSensitivity::Sensitive) > 0;
+}
 
 int String::indexOf(const String &needle, int from, CaseSensitivity cs) const
-{}
+{
+   return internal::find_string(unicode(), length(), from, needle.unicode(), needle.length(), cs);
+}
 
 int String::indexOf(Latin1String needle, int from, CaseSensitivity cs) const
-{}
+{
+   return find_latin1_string(unicode(), size(), needle, from, cs);
+}
+
+int internal::find_string(
+      const Character *haystack0, int haystackLen, int from,
+      const Character *needle0, int needleLen, pdk::CaseSensitivity cs)
+{
+   const int l = haystackLen;
+   const int sl = needleLen;
+   if (from < 0)
+      from += l;
+   if (uint(sl + from) > (uint)l) {
+      return -1;
+   }
+   if (!sl) {
+      return from;
+   }
+   if (!l) {
+      return -1;
+   }
+   if (sl == 1) {
+      return find_char(haystack0, haystackLen, needle0[0], from, cs);
+   }
+   /*
+        We use the Boyer-Moore algorithm in cases where the overhead
+        for the skip table should pay off, otherwise we use a simple
+        hash function.
+    */
+   if (l > 500 && sl > 5) {
+      return internal::find_string_boyer_moore(haystack0, haystackLen, from,
+                                               needle0, needleLen, cs);
+   }
+   
+   
+   auto sv = [sl](const char16_t *v) { return StringView(v, sl); };
+   /*
+        We use some hashing for efficiency's sake. Instead of
+        comparing strings, we compare the hash value of str with that
+        of a part of this String. Only if that matches, we call
+        pdk_string_compare().
+    */
+   const char16_t *needle = (const char16_t *)needle0;
+   const char16_t *haystack = (const char16_t *)haystack0 + from;
+   const char16_t *end = (const char16_t *)haystack0 + (l-sl);
+   const uint slminus1 = sl - 1;
+   uint hashNeedle = 0, hashHaystack = 0;
+   int idx;
+   
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      for (idx = 0; idx < sl; ++idx) {
+         hashNeedle = ((hashNeedle<<1) + needle[idx]);
+         hashHaystack = ((hashHaystack<<1) + haystack[idx]);
+      }
+      hashHaystack -= haystack[slminus1];
+      
+      while (haystack <= end) {
+         hashHaystack += haystack[slminus1];
+         if (hashHaystack == hashNeedle
+             && pdk_compare_strings(sv(needle), sv(haystack), pdk::CaseSensitivity::Sensitive) == 0) {
+            return haystack - (const char16_t *)haystack0;
+         }
+         REHASH(*haystack);
+         ++haystack;
+      }
+   } else {
+      const char16_t *haystackStart = (const char16_t *)haystack0;
+      for (idx = 0; idx < sl; ++idx) {
+         hashNeedle = (hashNeedle<<1) + internal::fold_case(needle + idx, needle);
+         hashHaystack = (hashHaystack<<1) + internal::fold_case(haystack + idx, haystackStart);
+      }
+      hashHaystack -= internal::fold_case(haystack + slminus1, haystackStart);
+      
+      while (haystack <= end) {
+         hashHaystack += internal::fold_case(haystack + slminus1, haystackStart);
+         if (hashHaystack == hashNeedle
+             && pdk_compare_strings(sv(needle), sv(haystack), pdk::CaseSensitivity::Insensitive) == 0)
+            return haystack - (const char16_t *)haystack0;
+         
+         REHASH(internal::fold_case(haystack, haystackStart));
+         ++haystack;
+      }
+   }
+   return -1;
+}
 
 int String::indexOf(Character needle, int from, CaseSensitivity cs) const
-{}
+{
+   return find_char(unicode(), length(), needle, from, cs);
+}
 
 int String::indexOf(const StringRef &needle, int from, CaseSensitivity cs) const
-{}
+{
+   return internal::find_string(unicode(), length(), from, needle.unicode(), needle.length(), cs);
+}
+
+namespace {
+
+int lastIndexndexof_helper(const char16_t *haystack, int from, const char16_t *needle, int sl, pdk::CaseSensitivity cs)
+{
+   /*
+        See indexOf() for explanations.
+    */
+   
+   auto sv = [sl](const char16_t *v) { return StringView(v, sl); };
+   
+   const char16_t *end = haystack;
+   haystack += from;
+   const uint slminus1 = sl - 1;
+   const char16_t *n = needle+slminus1;
+   const char16_t *h = haystack+slminus1;
+   uint hashNeedle = 0, hashHaystack = 0;
+   int idx;
+   
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      for (idx = 0; idx < sl; ++idx) {
+         hashNeedle = ((hashNeedle<<1) + *(n-idx));
+         hashHaystack = ((hashHaystack<<1) + *(h-idx));
+      }
+      hashHaystack -= *haystack;
+      while (haystack >= end) {
+         hashHaystack += *haystack;
+         if (hashHaystack == hashNeedle
+             && pdk_compare_strings(sv(needle), sv(haystack), pdk::CaseSensitivity::Sensitive) == 0) {
+            return haystack - end;
+         }
+         --haystack;
+         REHASH(haystack[sl]);
+      }
+   } else {
+      for (idx = 0; idx < sl; ++idx) {
+         hashNeedle = ((hashNeedle<<1) + internal::fold_case(n-idx, needle));
+         hashHaystack = ((hashHaystack<<1) + internal::fold_case(h-idx, end));
+      }
+      hashHaystack -= internal::fold_case(haystack, end);
+      
+      while (haystack >= end) {
+         hashHaystack += internal::fold_case(haystack, end);
+         if (hashHaystack == hashNeedle
+             && pdk_compare_strings(sv(haystack), sv(needle), pdk::CaseSensitivity::Insensitive) == 0) {
+            return haystack - end;
+         }
+         --haystack;
+         REHASH(internal::fold_case(haystack + sl, end));
+      }
+   }
+   return -1;
+}
+
+inline int lastIndexndexof_helper(
+      const StringRef &haystack, int from, const StringRef &needle, pdk::CaseSensitivity cs)
+{
+   return lastIndexndexof_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
+                                 reinterpret_cast<const char16_t*>(needle.unicode()), needle.size(), cs);
+}
+
+inline int lastIndexndexof_helper(
+      const StringRef &haystack, int from, Latin1String needle, pdk::CaseSensitivity cs)
+{
+   const int size = needle.size();
+   VarLengthArray<char16_t> s(size);
+   internal::utf16_from_latin1(s.getRawData(), needle.latin1(), size);
+   return lastIndexndexof_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
+                                 s.getRawData(), size, cs);
+}
+
+inline int find_latin1_string(const Character *haystack, int size,
+                              Latin1String needle,
+                              int from, pdk::CaseSensitivity cs)
+{
+   if (size < needle.size()) {
+      return -1;
+   }
+   const char *latin1 = needle.latin1();
+   int len = needle.size();
+   VarLengthArray<char16_t> s(len);
+   internal::utf16_from_latin1(s.getRawData(), latin1, len);
+   return internal::find_string(haystack, size, from,
+                                reinterpret_cast<const Character*>(s.getConstRawData()), len, cs);
+}
+
+} // anonymous namespace
 
 int String::lastIndexOf(const String &needle, int from, CaseSensitivity cs) const
-{}
+{
+   return StringRef(this).lastIndexOf(StringRef(&needle), from, cs);
+}
 
 int String::lastIndexOf(Latin1String needle, int from, CaseSensitivity cs) const
-{}
+{
+   return StringRef(this).lastIndexOf(needle, from, cs);
+}
 
 int String::lastIndexOf(Character needle, int from, CaseSensitivity cs) const
-{}
+{
+   return lastIndexndex_of(unicode(), size(), needle, from, cs);
+}
 
 int String::lastIndexOf(const StringRef &needle, int from, CaseSensitivity cs) const
-{}
+{
+   return StringRef(this).lastIndexOf(needle, from, cs);
+}
+
+namespace {
+
+inline int lastIndexndex_of(const Character *haystack, int haystackLen, Character needle,
+                            int from, pdk::CaseSensitivity cs)
+{
+   ushort c = needle.unicode();
+   if (from < 0) {
+      from += haystackLen;
+   }
+   if (uint(from) >= uint(haystackLen)) {
+      return -1;
+   }
+   if (from >= 0) {
+      const char16_t *b = reinterpret_cast<const char16_t*>(haystack);
+      const char16_t *n = b + from;
+      if (cs == pdk::CaseSensitivity::Sensitive) {
+         for (; n >= b; --n) {
+            if (*n == c) {
+               return n - b;
+            }
+         } 
+      } else {
+         c = internal::fold_case(c);
+         for (; n >= b; --n) {
+            if (internal::fold_case(*n) == c) {
+               return n - b;
+            }
+         }   
+      }
+   }
+   return -1;
+}
+
+inline int string_count(const Character *haystack, int haystackLen,
+                        const Character *needle, int needleLen,
+                        pdk::CaseSensitivity cs)
+{
+   int num = 0;
+   int i = -1;
+   if (haystackLen > 500 && needleLen > 5) {
+      StringMatcher matcher(needle, needleLen, cs);
+      while ((i = matcher.indexIn(haystack, haystackLen, i + 1)) != -1) {
+         ++num;
+      }
+   } else {
+      while ((i = internal::find_string(haystack, haystackLen, i + 1, needle, needleLen, cs)) != -1) {
+         ++num;
+      }
+   }
+   return num;
+}
+
+inline int string_count(const Character *unicode, int size, Character ch,
+                        pdk::CaseSensitivity cs)
+{
+   ushort c = ch.unicode();
+   int num = 0;
+   const ushort *b = reinterpret_cast<const ushort*>(unicode);
+   const ushort *i = b + size;
+   if (cs == pdk::CaseSensitivity::Sensitive) {
+      while (i != b)
+         if (*--i == c) {
+            ++num;
+         }
+   } else {
+      c = internal::fold_case(c);
+      while (i != b)
+         if (internal::fold_case(*(--i)) == c) {
+            ++num;
+         }
+   }
+   return num;
+}
+
+} // anonymous namespace
 
 int String::count(const String &needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle.unicode(), needle.size(), cs);
+}
 
 int String::count(Character needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle, cs);
+}
 
 int String::count(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle.unicode(), needle.size(), cs);
+}
 
 String String::section(const String &separator, int start, int end, SectionFlags flags) const
-{}
+{
+   const std::vector<StringRef> sections = splitRef(separator, SplitBehavior::KeepEmptyParts,
+                                                    (flags & SectionFlag::CaseInsensitiveSeps) 
+                                                    ? pdk::CaseSensitivity::Insensitive 
+                                                    : pdk::CaseSensitivity::Sensitive);
+   const int sectionsSize = sections.size();
+   if (!(flags & SectionFlag::SkipEmpty)) {
+      if (start < 0) {
+         start += sectionsSize;
+      } 
+      if (end < 0) {
+         end += sectionsSize;
+      }
+   } else {
+      int skip = 0;
+      for (int k = 0; k < sectionsSize; ++k) {
+         if (sections.at(k).isEmpty()) {
+            skip++;
+         }
+      }
+      if (start < 0) {
+         start += sectionsSize - skip;
+      }
+      if (end < 0) {
+         end += sectionsSize - skip;
+      }
+   }
+   if (start >= sectionsSize || end < 0 || start > end)
+      return String();
+   
+   String ret;
+   int firstIndex = start, lastIndex = end;
+   for (int x = 0, i = 0; x <= end && i < sectionsSize; ++i) {
+      const StringRef &section = sections.at(i);
+      const bool empty = section.isEmpty();
+      if (x >= start) {
+         if(x == start) {
+            firstIndex = i;
+         }
+         if(x == end) {
+            lastIndex = i;
+         }
+         if (x > start && i > 0) {
+            ret += separator;
+         }
+         ret += section;
+      }
+      if (!empty || !(flags & SectionFlag::SkipEmpty))
+         x++;
+   }
+   if ((flags & SectionFlag::IncludeLeadingSep) && firstIndex > 0) {
+      ret.prepend(separator);
+   }
+   if ((flags & SectionFlag::IncludeTrailingSep) && lastIndex < sectionsSize - 1) {
+      ret += separator;
+   }
+   return ret;
+}
 
 String String::left(int n) const
 {
-   
+   if (static_cast<uint>(n) >= static_cast<uint>(m_data->m_size)) {
+      return *this;
+   }  
+   return String(reinterpret_cast<const Character*>(m_data->getData()), n);
 }
 
 String String::right(int n) const
-{}
+{
+   if (static_cast<uint>(n) >= static_cast<uint>(m_data->m_size))
+      return *this;
+   return String(reinterpret_cast<const Character*>(m_data->getData() + m_data->m_size - n), n);
+}
 
 String String::substring(int pos, int n) const
 {
-   
+   using pdk::ds::internal::ContainerImplHelper;
+   switch (ContainerImplHelper::mid(m_data->m_size, &pos, &n)) {
+   case ContainerImplHelper::CutResult::Null:
+      return String();
+   case ContainerImplHelper::CutResult::Empty:
+   {
+      StringDataPtr empty = { Data::allocate(0) };
+      return String(empty);
+   }
+   case ContainerImplHelper::CutResult::Full:
+      return *this;
+   case ContainerImplHelper::CutResult::Subset:
+      return String((const Character*)m_data->getData() + pos, n);
+   }
+   PDK_UNREACHABLE();
+   return String();
 }
 
 #if PDK_STRINGVIEW_LEVEL < 2
 
 bool String::startsWith(const String &needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);
+}
 
 #endif
 
 bool String::startsWith(Latin1String needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);  
+}
 
 bool String::startsWith(Character needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);  
+}
 
 #if PDK_STRINGVIEW_LEVEL < 2
 
 bool String::startsWith(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);  
+}
 
 #endif
 
 #if PDK_STRINGVIEW_LEVEL < 2
 
 bool String::endsWith(const String &needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);  
+}
 
 bool String::endsWith(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 #endif
 
 bool String::endsWith(Latin1String needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 bool String::endsWith(Character needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 ByteArray String::toLatin1Helper(const String &str)
 {}

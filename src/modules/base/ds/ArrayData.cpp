@@ -76,7 +76,7 @@ ArrayData *ArrayData::allocate(size_t objectSize, size_t alignment,
       return const_cast<ArrayData *>(&pdkArrayEmpty);
    }
    size_t headerSize = sizeof(ArrayData);
-   // Allocate extra (alignment - Q_ALIGNOF(QArrayData)) padding bytes so we
+   // Allocate extra (alignment - PDK_ALIGNOF(ArrayData)) padding bytes so we
    // can properly align the data array. This assumes malloc is able to
    // provide appropriate alignment for the header -- as it should!
    // Padding is skipped when allocating a header for RawData.
