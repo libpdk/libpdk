@@ -455,13 +455,13 @@ public:
    const Character operator [](uint i) const;
    CharacterRef operator [](uint i);
    
-   PDK_REQUIRED_RESULT String arg(pdk::plonglong a, int fieldwidth=0, int base=10,
+   PDK_REQUIRED_RESULT String arg(pdk::plonglong a, int fieldWidth = 0, int base = 10,
                                   Character fillChar = Latin1Character(' ')) const;
-   PDK_REQUIRED_RESULT String arg(pdk::pulonglong a, int fieldwidth=0, int base=10,
+   PDK_REQUIRED_RESULT String arg(pdk::pulonglong a, int fieldWidth = 0, int base = 10,
                                   Character fillChar = Latin1Character(' ')) const;
-   PDK_REQUIRED_RESULT String arg(long a, int fieldwidth=0, int base=10,
+   PDK_REQUIRED_RESULT String arg(long a, int fieldWidth = 0, int base=10,
                                   Character fillChar = Latin1Character(' ')) const;
-   PDK_REQUIRED_RESULT String arg(ulong a, int fieldwidth=0, int base=10,
+   PDK_REQUIRED_RESULT String arg(ulong a, int fieldWidth = 0, int base=10,
                                   Character fillChar = Latin1Character(' ')) const;
    PDK_REQUIRED_RESULT String arg(int a, int fieldWidth = 0, int base = 10,
                                   Character fillChar = Latin1Character(' ')) const;

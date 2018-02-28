@@ -832,6 +832,21 @@ constexpr inline bool operator<=(std::nullptr_t, Character rhs) noexcept
    return !operator< (rhs, nullptr);
 }
 
+namespace internal {
+// constants for Hangul (de)composition, see UAX #15
+enum {
+   Hangul_SBase = 0xac00,
+   Hangul_LBase = 0x1100,
+   Hangul_VBase = 0x1161,
+   Hangul_TBase = 0x11a7,
+   Hangul_LCount = 19,
+   Hangul_VCount = 21,
+   Hangul_TCount = 28,
+   Hangul_NCount = Hangul_VCount * Hangul_TCount,
+   Hangul_SCount = Hangul_LCount * Hangul_NCount
+};
+} // internal
+
 } // lang
 } // pdk
 

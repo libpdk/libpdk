@@ -32,6 +32,7 @@
 #include "pdk/utils/Locale.h"
 #include "pdk/utils/internal/LocalePrivate.h"
 #include "pdk/global/Logging.h"
+#include "pdk/base/io/Debug.h"
 #include <cstring>
 
 #include <limits.h>
@@ -2385,7 +2386,7 @@ String detach_and_convert_case(T &str, StringIterator it)
       signed short caseDiff = Traits::caseDiff(prop);
       
       if (PDK_UNLIKELY(Traits::caseSpecial(prop))) {
-         const ushort *specialCase = special_case_map + caseDiff;
+         const char16_t *specialCase = special_case_map + caseDiff;
          ushort length = *specialCase++;
          
          if (PDK_LIKELY(length == 1)) {
@@ -3018,38 +3019,450 @@ std::vector<StringRef> StringRef::split(Character separator, String::SplitBehavi
 }
 
 String String::repeated(int times) const
-{}
+{
+   if (m_data->m_size == 0) {
+      return *this;
+   }
+   if (times <= 1) {
+      if (times == 1) {
+         return *this;
+      }
+      return String();
+   }
+   const int resultSize = times * m_data->m_size;
+   String result;
+   result.reserve(resultSize);
+   if (result.m_data->m_alloc != uint(resultSize) + 1u) {
+      return String(); // not enough memory
+   }
+   memcpy(result.m_data->getData(), m_data->getData(), m_data->m_size * sizeof(char16_t));
+   int sizeSoFar = m_data->m_size;
+   char16_t *end = result.m_data->getData() + sizeSoFar;
+   const int halfResultSize = resultSize >> 1;
+   while (sizeSoFar <= halfResultSize) {
+      memcpy(end, result.m_data->getData(), sizeSoFar * sizeof(char16_t));
+      end += sizeSoFar;
+      sizeSoFar <<= 1;
+   }
+   memcpy(end, result.m_data->getData(), (resultSize - sizeSoFar) * sizeof(char16_t));
+   result.m_data->getData()[resultSize] = '\0';
+   result.m_data->m_size = resultSize;
+   return result;
+}
+
+namespace internal {
+bool normalization_quick_check_helper(String *str, String::NormalizationForm mode, int from, int *lastStable);
+void compose_helper(String *str, Character::UnicodeVersion version, int from);
+void canonical_order_helper(String *str, Character::UnicodeVersion version, int from);
+void decompose_helper(String *str, bool canonical, Character::UnicodeVersion version, int from);
+
+} // internal
+
+namespace {
+
+using internal::normalization_quick_check_helper;
+using internal::compose_helper;
+using internal::canonical_order_helper;
+using internal::decompose_helper;
+
+void string_normalize(String *data, String::NormalizationForm mode, Character::UnicodeVersion version, int from)
+{
+   using namespace pdk::lang::internal::unicodetables;
+   bool simple = true;
+   const Character *p = data->getConstRawData();
+   int len = data->length();
+   for (int i = from; i < len; ++i) {
+      if (p[i].unicode() >= 0x80) {
+         simple = false;
+         if (i > from) {
+            from = i - 1;
+         }
+         break;
+      }
+   }
+   if (simple) {
+      return;
+   }
+   if (version == Character::UnicodeVersion::Unicode_Unassigned) {
+      version = Character::getCurrentUnicodeVersion();
+   } else if (int(version) <= NormalizationCorrectionsVersionMax) {
+      const String &s = *data;
+      Character *d = 0;
+      for (int i = 0; i < NumNormalizationCorrections; ++i) {
+         const NormalizationCorrection &n = uc_normalization_corrections[i];
+         if (n.m_version > pdk::as_integer<pdk::lang::Character::UnicodeVersion>(version)) {
+            int pos = from;
+            if (Character::requiresSurrogates(n.m_ucs4)) {
+               ushort ucs4High = Character::getHighSurrogate(n.m_ucs4);
+               ushort ucs4Low = Character::getLowSurrogate(n.m_ucs4);
+               ushort oldHigh = Character::getHighSurrogate(n.m_oldMapping);
+               ushort oldLow = Character::getLowSurrogate(n.m_oldMapping);
+               while (pos < s.length() - 1) {
+                  if (s.at(pos).unicode() == ucs4High && s.at(pos + 1).unicode() == ucs4Low) {
+                     if (!d) {
+                        d = data->getRawData();
+                     }
+                     d[pos] = Character(oldHigh);
+                     d[++pos] = Character(oldLow);
+                  }
+                  ++pos;
+               }
+            } else {
+               while (pos < s.length()) {
+                  if (s.at(pos).unicode() == n.m_ucs4) {
+                     if (!d) {
+                        d = data->getRawData();
+                     }
+                     d[pos] = Character(n.m_oldMapping);
+                  }
+                  ++pos;
+               }
+            }
+         }
+      }
+   }
+   
+   if (normalization_quick_check_helper(data, mode, from, &from)) {
+      return;
+   }
+   decompose_helper(data, mode < String::NormalizationForm::Form_KD, version, from);
+   canonical_order_helper(data, version, from);
+   if (mode == String::NormalizationForm::Form_D || mode == String::NormalizationForm::Form_KD) {
+      return;
+   }
+   compose_helper(data, version, from);
+}
+
+} // anonymous namespace
 
 String String::normalized(NormalizationForm mode, Character::UnicodeVersion version) const
-{}
+{
+   String copy = *this;
+   string_normalize(&copy, mode, version, 0);
+   return copy;
+}
+
+namespace {
+
+struct ArgEscapeData
+{
+   int m_minEscape;            // lowest escape sequence number
+   int m_occurrences;           // number of m_occurrences of the lowest escape sequence number
+   int m_localeOccurrences;    // number of m_occurrences of the lowest escape sequence number that
+   // contain 'L'
+   int m_escapeLen;            // total length of escape sequences which will be replaced
+};
+
+ArgEscapeData find_arg_escapes(StringView s)
+{
+   const Character *ucBegin = s.begin();
+   const Character *ucEnd = s.end();
+   
+   ArgEscapeData d;
+   
+   d.m_minEscape = INT_MAX;
+   d.m_occurrences = 0;
+   d.m_escapeLen = 0;
+   d.m_localeOccurrences = 0;
+   
+   const Character *c = ucBegin;
+   while (c != ucEnd) {
+      while (c != ucEnd && c->unicode() != '%') {
+         ++c;
+      }
+      if (c == ucEnd) {
+         break;
+      }
+      const Character *escapeStart = c;
+      if (++c == ucEnd) {
+         break;
+      }
+      bool localeArg = false;
+      if (c->unicode() == 'L') {
+         localeArg = true;
+         if (++c == ucEnd) {
+            break;
+         }
+      }
+      
+      int escape = c->getDigitValue();
+      if (escape == -1) {
+         continue;
+      }
+      ++c;
+      
+      if (c != ucEnd) {
+         int nextEscape = c->getDigitValue();
+         if (nextEscape != -1) {
+            escape = (10 * escape) + nextEscape;
+            ++c;
+         }
+      }
+      if (escape > d.m_minEscape)
+         continue;
+      
+      if (escape < d.m_minEscape) {
+         d.m_minEscape = escape;
+         d.m_occurrences = 0;
+         d.m_escapeLen = 0;
+         d.m_localeOccurrences = 0;
+      }
+      
+      ++d.m_occurrences;
+      if (localeArg) {
+         ++d.m_localeOccurrences;
+      } 
+      d.m_escapeLen += c - escapeStart;
+   }
+   return d;
+}
+
+String replace_arg_escapes(StringView s, const ArgEscapeData &d, int field_width,
+                           StringView arg, StringView larg, Character fillChar)
+{
+   const Character *ucBegin = s.begin();
+   const Character *ucEnd = s.end();
+   
+   int absfieldWidth = std::abs(field_width);
+   int resultLen = s.length()
+         - d.m_escapeLen
+         + (d.m_occurrences - d.m_localeOccurrences)
+         *std::max(absfieldWidth, arg.length())
+         + d.m_localeOccurrences
+         *std::max(absfieldWidth, larg.length());
+   
+   String result(resultLen, pdk::Uninitialized);
+   Character *resultBuff = const_cast<Character *>(result.unicode());
+   
+   Character *rc = resultBuff;
+   const Character *c = ucBegin;
+   int replCnt = 0;
+   while (c != ucEnd) {
+      /* We don't have to check if we run off the end of the string with c,
+           because as long as d.m_occurrences > 0 we KNOW there are valid escape
+           sequences. */
+      
+      const Character *textStart = c;
+      while (c->unicode() != '%') {
+         ++c;
+      }
+      const Character *escapeStart = c++;
+      bool localeArg = false;
+      if (c->unicode() == 'L') {
+         localeArg = true;
+         ++c;
+      }
+      
+      int escape = c->getDigitValue();
+      if (escape != -1) {
+         if (c + 1 != ucEnd && (c + 1)->getDigitValue() != -1) {
+            escape = (10 * escape) + (c + 1)->getDigitValue();
+            ++c;
+         }
+      }
+      
+      if (escape != d.m_minEscape) {
+         memcpy(rc, textStart, (c - textStart)*sizeof(Character));
+         rc += c - textStart;
+      }
+      else {
+         ++c;
+         
+         memcpy(rc, textStart, (escapeStart - textStart)*sizeof(Character));
+         rc += escapeStart - textStart;
+         
+         uint pad_chars;
+         if (localeArg)
+            pad_chars = std::max(absfieldWidth, larg.length()) - larg.length();
+         else
+            pad_chars = std::max(absfieldWidth, arg.length()) - arg.length();
+         
+         if (field_width > 0) { // left padded
+            for (uint i = 0; i < pad_chars; ++i) {
+               (rc++)->unicode() = fillChar.unicode();
+            }
+         }
+         
+         if (localeArg) {
+            memcpy(rc, larg.data(), larg.length()*sizeof(Character));
+            rc += larg.length();
+         }
+         else {
+            memcpy(rc, arg.data(), arg.length()*sizeof(Character));
+            rc += arg.length();
+         }
+         
+         if (field_width < 0) { // right padded
+            for (uint i = 0; i < pad_chars; ++i) {
+               (rc++)->unicode() = fillChar.unicode();
+            }
+         }
+         
+         if (++replCnt == d.m_occurrences) {
+            memcpy(rc, c, (ucEnd - c)*sizeof(Character));
+            rc += ucEnd - c;
+            PDK_ASSERT(rc - resultBuff == resultLen);
+            c = ucEnd;
+         }
+      }
+   }
+   PDK_ASSERT(rc == resultBuff + resultLen);
+   return result;
+}
+
+
+} // anonymous namespace
 
 #if PDK_STRINGVIEW_LEVEL < 2
 String String::arg(const String &a, int fieldWidth, Character fillChar) const
-{}
+{
+   return arg(to_string_view_ignoring_null(a), fieldWidth, fillChar);
+}
 #endif
 
 String String::arg(StringView a, int fieldWidth, Character fillChar) const
-{}
+{
+   ArgEscapeData d = find_arg_escapes(*this);
+   if (PDK_UNLIKELY(d.m_occurrences == 0)) {
+      warning_stream("String::arg: Argument missing: %ls, %ls", pdk_utf16_printable(*this),
+                     pdk_utf16_printable(a.toString()));
+      return *this;
+   }
+   return replace_arg_escapes(*this, d, fieldWidth, a, a, fillChar);
+}
 
 String String::arg(Latin1String a, int fieldWidth, Character fillChar) const
-{}
+{
+   VarLengthArray<char16_t> utf16(a.size());
+   internal::utf16_from_latin1(utf16.getRawData(), a.getRawData(), a.size());
+   return arg(StringView(utf16.getRawData(), utf16.size()), fieldWidth, fillChar);
+}
 
-String String::arg(pdk::plonglong a, int fieldwidth, int base, Character fillChar) const
-{}
+String String::arg(pdk::plonglong a, int fieldWidth, int base, Character fillChar) const
+{
+   ArgEscapeData d = find_arg_escapes(*this);
+   if (d.m_occurrences == 0) {
+      warning_stream() << "String::arg: Argument missing:" << *this << ',' << a;
+      return *this;
+   }
+   LocaleData::Flags flags = LocaleData::Flag::NoFlags;
+   if (fillChar == Latin1Character('0')) {
+      flags = LocaleData::Flag::ZeroPadded;
+   }
+   String arg;
+   if (d.m_occurrences > d.m_localeOccurrences) {
+      arg = LocaleData::c()->longLongToString(a, -1, base, fieldWidth, flags);
+   }
+   String localeArg;
+   if (d.m_localeOccurrences > 0) {
+      Locale locale;
+      if (!(locale.numberOptions() & Locale::NumberOption::OmitGroupSeparator)) {
+         flags |= LocaleData::Flag::ThousandsGroup;
+      }
+      
+      localeArg = locale.m_implPtr->m_data->longLongToString(a, -1, base, fieldWidth, flags);
+   }
+   
+   return replace_arg_escapes(*this, d, fieldWidth, arg, localeArg, fillChar);
+}
 
-String String::arg(pdk::pulonglong a, int fieldwidth, int base, Character fillChar) const
-{}
+String String::arg(pdk::pulonglong a, int fieldWidth, int base, Character fillChar) const
+{
+   ArgEscapeData d = find_arg_escapes(*this);
+   if (d.m_occurrences == 0) {
+      warning_stream() << "String::arg: Argument missing:" << *this << ',' << a;
+      return *this;
+   }
+   LocaleData::Flags flags = LocaleData::Flag::NoFlags;
+   if (fillChar == Latin1Character('0')) {
+      flags = LocaleData::Flag::ZeroPadded;
+   }
+   
+   String arg;
+   if (d.m_occurrences > d.m_localeOccurrences) {
+      arg = LocaleData::c()->unsLongLongToString(a, -1, base, fieldWidth, flags);
+   }
+   String localeArg;
+   if (d.m_localeOccurrences > 0) {
+      Locale locale;
+      if (!(locale.numberOptions() & Locale::NumberOption::OmitGroupSeparator)) {
+         flags |= LocaleData::Flag::ThousandsGroup;
+      }
+      localeArg = locale.m_implPtr->m_data->unsLongLongToString(a, -1, base, fieldWidth, flags);
+   }
+   
+   return replace_arg_escapes(*this, d, fieldWidth, arg, localeArg, fillChar);
+}
 
 String String::arg(Character a, int fieldWidth, Character fillChar) const
-{}
+{
+   String c;
+   c += a;
+   return arg(c, fieldWidth, fillChar);
+}
 
 String String::arg(char a, int fieldWidth, Character fillChar) const
 {
-   
+   String c;
+   c += Latin1Character(a);
+   return arg(c, fieldWidth, fillChar);
 }
 
 String String::arg(double a, int fieldWidth, char fmt, int prec, Character fillChar) const
-{}
+{
+   ArgEscapeData d = find_arg_escapes(*this);
+   
+   if (d.m_occurrences == 0) {
+      warning_stream("String::arg: Argument missing: %s, %g", toLocal8Bit().getRawData(), a);
+      return *this;
+   }
+   
+   LocaleData::Flags flags = LocaleData::Flag::NoFlags;
+   if (fillChar == Latin1Character('0')) {
+      flags = LocaleData::Flag::ZeroPadded;
+   }
+   if (internal::is_upper(fmt)) {
+      flags |= LocaleData::Flag::CapitalEorX;
+   }
+   fmt = internal::to_lower(fmt);   
+   LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
+   switch (fmt) {
+   case 'f':
+      form = LocaleData::DoubleForm::DFDecimal;
+      break;
+   case 'e':
+      form = LocaleData::DoubleForm::DFExponent;
+      break;
+   case 'g':
+      form = LocaleData::DoubleForm::DFSignificantDigits;
+      break;
+   default:
+#if defined(PDK_CHECK_RANGE)
+      warning_stream("String::arg: Invalid format char '%c'", fmt);
+#endif
+      break;
+   }
+   String arg;
+   if (d.m_occurrences > d.m_localeOccurrences) {
+      arg = LocaleData::c()->doubleToString(a, prec, form, fieldWidth, flags);
+   }
+   String localeArg;
+   if (d.m_localeOccurrences > 0) {
+      Locale locale;
+      const Locale::NumberOptions numberOptions = locale.numberOptions();
+      if (!(numberOptions & Locale::NumberOption::OmitGroupSeparator)) {
+         flags |= LocaleData::Flag::ThousandsGroup;
+      }
+      if (!(numberOptions & Locale::NumberOption::OmitLeadingZeroInExponent)) {
+         flags |= LocaleData::Flag::ZeroPadExponent;
+      }
+      if (numberOptions & Locale::NumberOption::IncludeTrailingZeroesAfterDot)
+         flags |= LocaleData::Flag::AddTrailingZeroes;
+      localeArg = locale.m_implPtr->m_data->doubleToString(a, prec, form, fieldWidth, flags);
+   }
+   
+   return replace_arg_escapes(*this, d, fieldWidth, arg, localeArg, fillChar);
+}
 
 String String::multiArg(int numArgs, const String **args) const
 {}

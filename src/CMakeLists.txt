@@ -198,8 +198,6 @@ else()
       ${KERNEL_BASE_DIR}/_platform/ElapsedTimerGeneric.cpp)
 endif()
 
-list(REMOVE_ITEM PDK_BASE_MODULE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/modules/base/lang/UnicodeTables.cpp)
-
 pdk_add_library(libpdk 
    ${PDK_HEADER_FILES} 
    ${PDK_BASE_SOURCES}

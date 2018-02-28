@@ -50,44 +50,56 @@ namespace unicodetables {
 
 struct Properties 
 {
-   ushort category             : 8; /* 5 used */
-   ushort direction           : 8; /* 5 used */
-   ushort combiningClass      : 8;
-   ushort joining             : 3;
-   signed short digitValue    : 5;
-   signed short mirrorDiff    : 16;
-   ushort lowerCaseSpecial    : 1;
-   signed short lowerCaseDiff : 15;
-   ushort upperCaseSpecial    : 1;
-   signed short upperCaseDiff : 15;
-   ushort titleCaseSpecial    : 1;
-   signed short titleCaseDiff : 15;
-   ushort caseFoldSpecial     : 1;
-   signed short caseFoldDiff  : 15;
-   ushort unicodeVersion      : 8; /* 5 used */
-   ushort nfQuickCheck        : 8;
-   ushort graphemeBreakClass  : 4; /* 4 used */
-   ushort wordBreakClass      : 4; /* 4 used */
-   ushort sentenceBreakClass  : 8; /* 4 used */
-   ushort lineBreakClass      : 8; /* 6 used */
-   ushort script              : 8;
+   ushort m_category             : 8; /* 5 used */
+   ushort m_direction           : 8; /* 5 used */
+   ushort m_combiningClass      : 8;
+   ushort m_joining             : 3;
+   signed short m_digitValue    : 5;
+   signed short m_mirrorDiff    : 16;
+   ushort m_lowerCaseSpecial    : 1;
+   signed short m_lowerCaseDiff : 15;
+   ushort m_upperCaseSpecial    : 1;
+   signed short m_upperCaseDiff : 15;
+   ushort m_titleCaseSpecial    : 1;
+   signed short m_titleCaseDiff : 15;
+   ushort m_caseFoldSpecial     : 1;
+   signed short m_caseFoldDiff  : 15;
+   ushort m_unicodeVersion      : 8; /* 5 used */
+   ushort m_nfQuickCheck        : 8;
+   ushort m_graphemeBreakClass  : 4; /* 4 used */
+   ushort m_wordBreakClass      : 4; /* 4 used */
+   ushort m_sentenceBreakClass  : 8; /* 4 used */
+   ushort m_lineBreakClass      : 8; /* 6 used */
+   ushort m_script              : 8;
+};
+
+struct NormalizationCorrection
+{
+   uint m_ucs4;
+   uint m_oldMapping;
+   int m_version;
 };
 
 PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char32_t ucs4) noexcept;
 PDK_CORE_EXPORT const Properties * PDK_FASTCALL get_unicode_properties(char16_t ucs4) noexcept;
 
-extern const unsigned short special_case_map[];
+extern const char16_t special_case_map[];
+extern const char16_t uc_decomposition_trie[];
+extern const char16_t uc_ligature_trie[];
+extern const char16_t uc_ligature_map[];
+extern const NormalizationCorrection uc_normalization_corrections[];
+extern const char16_t uc_decomposition_map[];
 
 struct LowercaseTraits
 {
    static inline signed short caseDiff(const Properties *prop)
    {
-      return prop->lowerCaseDiff;
+      return prop->m_lowerCaseDiff;
    }
    
    static inline bool caseSpecial(const Properties *prop)
    {
-      return prop->lowerCaseSpecial;
+      return prop->m_lowerCaseSpecial;
    }
 };
 
@@ -95,12 +107,12 @@ struct UppercaseTraits
 {
    static inline signed short caseDiff(const Properties *prop)
    {
-      return prop->upperCaseDiff;
+      return prop->m_upperCaseDiff;
    }
    
    static inline bool caseSpecial(const Properties *prop)
    {
-      return prop->upperCaseSpecial;
+      return prop->m_upperCaseSpecial;
    }
 };
 
@@ -109,12 +121,12 @@ struct TitlecaseTraits
 {
    static inline signed short caseDiff(const Properties *prop)
    { 
-      return prop->titleCaseDiff; 
+      return prop->m_titleCaseDiff; 
    }
    
    static inline bool caseSpecial(const Properties *prop)
    { 
-      return prop->titleCaseSpecial; 
+      return prop->m_titleCaseSpecial; 
    }
 };
 
@@ -122,12 +134,12 @@ struct CasefoldTraits
 {
    static inline signed short caseDiff(const Properties *prop)
    { 
-      return prop->caseFoldDiff;
+      return prop->m_caseFoldDiff;
    }
    
    static inline bool caseSpecial(const Properties *prop)
    { 
-      return prop->caseFoldSpecial; 
+      return prop->m_caseFoldSpecial; 
    }
 };
 
@@ -199,6 +211,9 @@ enum class LineBreakClass
    LineBreak_SA, LineBreak_SG, LineBreak_SP, LineBreak_CR, LineBreak_LF,
    LineBreak_BK
 };
+
+enum { NumNormalizationCorrections = 6 };
+enum { NormalizationCorrectionsVersionMax = 7 };
 
 PDK_CORE_EXPORT GraphemeBreakClass PDK_FASTCALL grapheme_break_class(char32_t ucs4) noexcept;
 inline GraphemeBreakClass grapheme_break_class(Character ch) noexcept
