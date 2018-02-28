@@ -88,8 +88,8 @@ void utf16_to_latin1(uchar *dest, const char16_t *src, int length);
 namespace
 {
 
-inline int lastIndexndex_of(const Character *haystack, int haystackLen, Character needle,
-                            int from, pdk::CaseSensitivity cs);
+inline int last_index_of(const Character *haystack, int haystackLen, Character needle,
+                         int from, pdk::CaseSensitivity cs);
 inline int string_count(const Character *haystack, int haystackLen,
                         const Character *needle, int needleLen,
                         pdk::CaseSensitivity cs);
@@ -1643,7 +1643,7 @@ int String::indexOf(const StringRef &needle, int from, CaseSensitivity cs) const
 
 namespace {
 
-int lastIndexndexof_helper(const char16_t *haystack, int from, const char16_t *needle, int sl, pdk::CaseSensitivity cs)
+int last_index_of_helper(const char16_t *haystack, int from, const char16_t *needle, int sl, pdk::CaseSensitivity cs)
 {
    /*
         See indexOf() for explanations.
@@ -1694,21 +1694,21 @@ int lastIndexndexof_helper(const char16_t *haystack, int from, const char16_t *n
    return -1;
 }
 
-inline int lastIndexndexof_helper(
+inline int last_index_of_helper(
       const StringRef &haystack, int from, const StringRef &needle, pdk::CaseSensitivity cs)
 {
-   return lastIndexndexof_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
-                                 reinterpret_cast<const char16_t*>(needle.unicode()), needle.size(), cs);
+   return last_index_of_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
+                               reinterpret_cast<const char16_t*>(needle.unicode()), needle.size(), cs);
 }
 
-inline int lastIndexndexof_helper(
+inline int last_index_of_helper(
       const StringRef &haystack, int from, Latin1String needle, pdk::CaseSensitivity cs)
 {
    const int size = needle.size();
    VarLengthArray<char16_t> s(size);
    internal::utf16_from_latin1(s.getRawData(), needle.latin1(), size);
-   return lastIndexndexof_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
-                                 s.getRawData(), size, cs);
+   return last_index_of_helper(reinterpret_cast<const char16_t*>(haystack.unicode()), from,
+                               s.getRawData(), size, cs);
 }
 
 inline int find_latin1_string(const Character *haystack, int size,
@@ -1740,7 +1740,7 @@ int String::lastIndexOf(Latin1String needle, int from, CaseSensitivity cs) const
 
 int String::lastIndexOf(Character needle, int from, CaseSensitivity cs) const
 {
-   return lastIndexndex_of(unicode(), size(), needle, from, cs);
+   return last_index_of(unicode(), size(), needle, from, cs);
 }
 
 int String::lastIndexOf(const StringRef &needle, int from, CaseSensitivity cs) const
@@ -1750,8 +1750,8 @@ int String::lastIndexOf(const StringRef &needle, int from, CaseSensitivity cs) c
 
 namespace {
 
-inline int lastIndexndex_of(const Character *haystack, int haystackLen, Character needle,
-                            int from, pdk::CaseSensitivity cs)
+inline int last_index_of(const Character *haystack, int haystackLen, Character needle,
+                         int from, pdk::CaseSensitivity cs)
 {
    ushort c = needle.unicode();
    if (from < 0) {
@@ -1780,6 +1780,8 @@ inline int lastIndexndex_of(const Character *haystack, int haystackLen, Characte
    }
    return -1;
 }
+
+
 
 inline int string_count(const Character *haystack, int haystackLen,
                         const Character *needle, int needleLen,
@@ -3784,177 +3786,353 @@ DataStream &operator>>(DataStream &in, String &str)
 
 bool operator==(const StringRef &lhs,const StringRef &rhs) noexcept
 {
-   
+   return lhs.size() == rhs.size() && pdk_compare_strings(lhs, rhs, pdk::CaseSensitivity::Sensitive) == 0;
 }
 
 bool operator==(const String &lhs,const StringRef &rhs) noexcept
 {
+   return lhs.size() == rhs.size() && pdk_compare_strings(lhs, rhs, pdk::CaseSensitivity::Sensitive) == 0;
 }
 
 bool operator==(Latin1String lhs, const StringRef &rhs) noexcept
 {
+   if (lhs.size() != rhs.size()) {
+      return false;
+   }
+   return pdk_compare_strings(rhs, lhs, pdk::CaseSensitivity::Sensitive) == 0;
 }
 
 bool operator<(const StringRef &lhs,const StringRef &rhs) noexcept
 {
+   return pdk_compare_strings(lhs, rhs, pdk::CaseSensitivity::Sensitive) < 0;
 }
 
 StringRef StringRef::appendTo(String *string) const
 {
+   if (!string) {
+      return StringRef();
+   }
+   int pos = string->size();
+   string->insert(pos, unicode(), size());
+   return StringRef(string, pos, size());
 }
 
 String &String::append(const StringRef &str)
-{}
+{
+   if (str.getStr() == this) {
+      str.appendTo(this);
+   } else if (!str.isNull()) {
+      int oldSize = size();
+      resize(oldSize + str.size());
+      memcpy(getRawData() + oldSize, str.unicode(), str.size() * sizeof(Character));
+   }
+   return *this;
+}
 
 StringRef StringRef::left(int n) const
-{}
+{
+   if (uint(n) >= uint(m_size)) {
+      return *this;
+   }
+   return StringRef(m_str, m_position, n);
+}
 
 StringRef String::leftRef(int n) const
-{}
+{
+   return StringRef(this).left(n);
+}
 
 StringRef StringRef::right(int n) const
-{}
+{
+   if (uint(n) >= uint(m_size)) {
+      return *this;
+   }
+   return StringRef(m_str, m_size - n + m_position, n);
+}
 
 StringRef String::rightRef(int n) const
-{}
+{
+   return StringRef(this).right(n);
+}
 
 StringRef StringRef::substring(int pos, int n) const
-{}
+{
+   using pdk::ds::internal::ContainerImplHelper;
+   switch (ContainerImplHelper::mid(m_size, &pos, &n)) {
+   case ContainerImplHelper::CutResult::Null:
+      return StringRef();
+   case ContainerImplHelper::CutResult::Empty:
+      return StringRef(m_str, 0, 0);
+   case ContainerImplHelper::CutResult::Full:
+      return *this;
+   case ContainerImplHelper::CutResult::Subset:
+      return StringRef(m_str, pos + m_position, n);
+   }
+   PDK_UNREACHABLE();
+   return StringRef();
+}
 
 StringRef String::substringRef(int pos, int n) const
-{}
+{
+   return StringRef(this).substring(pos, n);
+}
 
 int StringRef::indexOf(const String &str, int from, CaseSensitivity cs) const
-{}
+{
+   return internal::find_string(unicode(), length(), from, str.unicode(), str.length(), cs);
+}
 
 int StringRef::indexOf(Character c, int from, CaseSensitivity cs) const
 {
-   
+   return find_char(unicode(), length(), c, from, cs);
 }
 
 int StringRef::indexOf(Latin1String str, int from, CaseSensitivity cs) const
-{}
+{
+   return find_latin1_string(unicode(), size(), str, from, cs);
+}
 
 int StringRef::indexOf(const StringRef &str, int from, CaseSensitivity cs) const
 {
-   
+   return internal::find_string(unicode(), size(), from, str.unicode(), str.size(), cs);
 }
 
 int StringRef::lastIndexOf(const String &str, int from, CaseSensitivity cs) const
-{}
+{
+   return lastIndexOf(StringRef(&str), from, cs);
+}
 
 int StringRef::lastIndexOf(Character c, int from, CaseSensitivity cs) const
-{}
+{
+   return last_index_of(unicode(), size(), c, from, cs);
+}
+
+namespace {
+
+template<typename T>
+int last_index_of_impl(const StringRef &haystack, int from, const T &needle, pdk::CaseSensitivity cs)
+{
+   const int sl = needle.size();
+   if (sl == 1) {
+      return haystack.lastIndexOf(needle.at(0), from, cs);
+   }
+   const int l = haystack.size();
+   if (from < 0) {
+      from += l;
+   }
+   
+   int delta = l - sl;
+   if (from == l && sl == 0) {
+      return from;
+   }
+   
+   if (uint(from) >= uint(l) || delta < 0) {
+      return -1;
+   }
+   
+   if (from > delta) {
+      from = delta;
+   }
+   return last_index_of_helper(haystack, from, needle, cs);
+}
+
+} // anonymous namespace
 
 int StringRef::lastIndexOf(Latin1String str, int from, CaseSensitivity cs) const
-{}
+{
+   return last_index_of_impl(*this, from, str, cs);
+}
 
 int StringRef::lastIndexOf(const StringRef &str, int from, CaseSensitivity cs) const
-{}
+{
+   return last_index_of_impl(*this, from, str, cs);
+}
 
 int StringRef::count(const String &needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle.unicode(), needle.size(), cs);
+}
 
 int StringRef::count(Character needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle, cs);
+}
 
 int StringRef::count(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return string_count(unicode(), size(), needle.unicode(), needle.size(), cs);
+}
 
 bool StringRef::isRightToLeft() const
 {
-   
+   const ushort *p = reinterpret_cast<const ushort*>(unicode());
+   const ushort * const end = p + size();
+   while (p < end) {
+      uint ucs4 = *p;
+      if (Character::isHighSurrogate(ucs4) && p < end - 1) {
+         ushort low = p[1];
+         if (Character::isLowSurrogate(low)) {
+            ucs4 = Character::surrogateToUcs4(ucs4, low);
+            ++p;
+         }
+      }
+      switch (Character::getDirection(ucs4))
+      {
+      case Character::Direction::DirL:
+         return false;
+      case Character::Direction::DirR:
+      case Character::Direction::DirAL:
+         return true;
+      default:
+         break;
+      }
+      ++p;
+   }
+   return false;  
 }
 
 bool StringRef::startsWith(const String &needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);
+}
 
 bool StringRef::startsWith(Latin1String needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);
+}
 
 bool StringRef::startsWith(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);
+}
 
 bool StringRef::startsWith(Character needle, CaseSensitivity cs) const
-{}
+{
+   return starts_with(*this, needle, cs);
+}
 
 bool StringRef::endsWith(const String &needle, CaseSensitivity cs) const
 {
-   
+   return ends_with(*this, needle, cs);
 }
 
 bool StringRef::endsWith(Character needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 bool StringRef::endsWith(Latin1String needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 bool StringRef::endsWith(const StringRef &needle, CaseSensitivity cs) const
-{}
+{
+   return ends_with(*this, needle, cs);
+}
 
 ByteArray StringRef::toLatin1() const
 {
-   
+   return pdk_convert_to_latin1(*this);
 }
 
 ByteArray StringRef::toLocal8Bit() const
-{}
+{
+   return pdk_convert_to_local_8bit(*this);
+}
 
 ByteArray StringRef::toUtf8() const
-{}
+{
+   return pdk_convert_to_utf8(*this);
+}
 
 std::vector<char32_t> StringRef::toUcs4() const
 {
-   
+   return pdk_convert_to_ucs4(*this);
 }
 
 StringRef StringRef::trimmed() const
-{}
+{
+   const Character *begin = cbegin();
+   const Character *end = cend();
+   internal::StringAlgorithms<const StringRef>::trimmedHelperPositions(begin, end);
+   if (begin == cbegin() && end == cend()) {
+      return *this;
+   }
+   int position = m_position + (begin - cbegin());
+   return StringRef(m_str, position, end - begin);
+}
 
 pdk::plonglong StringRef::toLongLong(bool *ok, int base) const
-{}
+{
+   return String::toIntegralHelper<pdk::pint64>(getConstRawData(), size(), ok, base);
+}
 
 pdk::pulonglong StringRef::toULongLong(bool *ok, int base) const
-{}
+{
+   return String::toIntegralHelper<pdk::puint64>(getConstRawData(), size(), ok, base);
+}
 
 long StringRef::toLong(bool *ok, int base) const
-{}
+{
+   return String::toIntegralHelper<long>(getConstRawData(), size(), ok, base);
+}
 
 ulong StringRef::toULong(bool *ok, int base) const
-{}
+{
+   return String::toIntegralHelper<ulong>(getConstRawData(), size(), ok, base);
+}
 
 int StringRef::toInt(bool *ok, int base) const
 {
-   
+   return String::toIntegralHelper<int>(getConstRawData(), size(), ok, base);
 }
 
 uint StringRef::toUInt(bool *ok, int base) const
 {
-   
+   return String::toIntegralHelper<uint>(getConstRawData(), size(), ok, base);
 }
 
 short StringRef::toShort(bool *ok, int base) const
 {
-   
+   return String::toIntegralHelper<short>(getConstRawData(), size(), ok, base);
 }
 
 ushort StringRef::toUShort(bool *ok, int base) const
 {
-   
+   return String::toIntegralHelper<ushort>(getConstRawData(), size(), ok, base);
 }
 
 double StringRef::toDouble(bool *ok) const
 {
-   
+   return LocaleData::c()->stringToDouble(*this, ok, Locale::NumberOption::RejectGroupSeparator);
 }
 
 float StringRef::toFloat(bool *ok) const
 {
+   return LocaleData::convertDoubleToFloat(toDouble(ok), ok);
 }
 
 String String::toHtmlEscaped() const
 {
-   
+   String rich;
+   const int len = length();
+   rich.reserve(int(len * 1.1));
+   for (int i = 0; i < len; ++i) {
+      if (at(i) == Latin1Character('<')) {
+         rich += Latin1String("&lt;");
+      } else if (at(i) == Latin1Character('>')) {
+         rich += Latin1String("&gt;");
+      } else if (at(i) == Latin1Character('&')) {
+         rich += Latin1String("&amp;");
+      } else if (at(i) == Latin1Character('"')) {
+         rich += Latin1String("&quot;");
+      } else {
+         rich += at(i);
+      }   
+   }
+   rich.squeeze();
+   return rich;
 }
 
 void AbstractConcatenable::appendLatin1To(const char *a, int len, Character *out) noexcept
