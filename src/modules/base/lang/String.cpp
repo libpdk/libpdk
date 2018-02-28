@@ -31,6 +31,7 @@
 #include "pdk/base/io/DataStream.h"
 #include "pdk/utils/Locale.h"
 #include "pdk/utils/internal/LocalePrivate.h"
+#include "pdk/global/Logging.h"
 #include <cstring>
 
 #include <limits.h>
@@ -75,6 +76,7 @@ using pdk::ds::VarLengthArray;
 using pdk::lang::StringIterator;
 using pdk::text::codecs::TextCodec;
 using pdk::io::DataStream;
+using pdk::utils::Locale;
 
 // forward declare with namespace
 namespace internal {
@@ -2800,107 +2802,219 @@ String String::vasprintf(const char *format, va_list ap)
 }
 
 pdk::pint64 String::toLongLong(bool *ok, int base) const
-{}
-
-pdk::plonglong String::toIntegralHelper(const Character *data, int len, bool *ok, int base)
-{}
+{
+   return toIntegralHelper<pdk::pint64>(getConstRawData(), size(), ok, base);
+}
 
 pdk::puint64 String::toULongLong(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<pdk::puint64>(getConstRawData(), size(), ok, base);
+}
+
+pdk::plonglong String::toIntegralHelper(const Character *data, int len, bool *ok, int base)
+{
+#if defined(PDK_CHECK_RANGE)
+   if (base != 0 && (base < 2 || base > 36)) {
+      warning_stream("String::toULongLong: Invalid base (%d)", base);
+      base = 10;
+   }
+#endif
+   return LocaleData::c()->stringToLongLong(StringView(data, len), base, ok, Locale::NumberOption::RejectGroupSeparator);
+}
 
 pdk::pulonglong String::toIntegralHelper(const Character *data, uint len, bool *ok, int base)
-{}
+{
+#if defined(PDK_CHECK_RANGE)
+   if (base != 0 && (base < 2 || base > 36)) {
+      warning_stream("String::toULongLong: Invalid base (%d)", base);
+      base = 10;
+   }
+#endif
+   return LocaleData::c()->stringToUnsLongLong(StringView(data, len), base, ok,
+                                               Locale::NumberOption::RejectGroupSeparator);
+}
 
 long String::toLong(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<long>(getConstRawData(), size(), ok, base);
+}
 
 ulong String::toULong(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<ulong>(getConstRawData(), size(), ok, base);
+}
 
 int String::toInt(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<int>(getConstRawData(), size(), ok, base);
+}
 
 uint String::toUInt(bool *ok, int base) const
 {
-   
+   return toIntegralHelper<uint>(getConstRawData(), size(), ok, base);
 }
 
 short String::toShort(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<short>(getConstRawData(), size(), ok, base);
+}
 
 ushort String::toUShort(bool *ok, int base) const
-{}
+{
+   return toIntegralHelper<ushort>(getConstRawData(), size(), ok, base);
+}
 
 double String::toDouble(bool *ok) const
-{}
+{
+   return LocaleData::c()->stringToDouble(*this, ok, Locale::NumberOption::RejectGroupSeparator);
+}
 
 float String::toFloat(bool *ok) const
-{}
-
-String &String::setNum(pdk::plonglong, int base)
-{}
-
-String &String::setNum(pdk::pulonglong, int base)
-{}
-
-String &String::setNum(double, char f, int prec)
-{}
-
-String String::number(long, int base)
-{}
-
-String String::number(ulong, int base)
-{}
-
-String String::number(int, int base)
-{}
-
-String String::number(uint, int base)
-{}
-
-String String::number(pdk::plonglong, int base)
 {
-   
+   return LocaleData::convertDoubleToFloat(toDouble(ok), ok);
 }
 
-String String::number(pdk::pulonglong, int base)
+String &String::setNum(pdk::plonglong n, int base)
 {
-   
+   return *this = number(n, base);
 }
 
-String String::number(double, char f, int prec)
-{}
+String &String::setNum(pdk::pulonglong n, int base)
+{
+   return *this = number(n, base);
+}
+
+String &String::setNum(double n, char f, int prec)
+{
+   return *this = number(n, f, prec);
+}
+
+String String::number(long n, int base)
+{
+   return number(pdk::plonglong(n), base);
+}
+
+String String::number(ulong n, int base)
+{
+   return number(pdk::pulonglong(n), base);
+}
+
+String String::number(int n, int base)
+{
+   return number(pdk::plonglong(n), base);
+}
+
+String String::number(uint n, int base)
+{
+   return number(pdk::pulonglong(n), base);
+}
+
+String String::number(pdk::plonglong n, int base)
+{
+#if defined(PDK_CHECK_RANGE)
+   if (base < 2 || base > 36) {
+      warning_stream("String::setNum: Invalid base (%d)", base);
+      base = 10;
+   }
+#endif
+   return LocaleData::c()->longLongToString(n, -1, base);
+}
+
+String String::number(pdk::pulonglong n, int base)
+{
+#if defined(PDK_CHECK_RANGE)
+   if (base < 2 || base > 36) {
+      warning_stream("String::setNum: Invalid base (%d)", base);
+      base = 10;
+   }
+#endif
+   return LocaleData::c()->unsLongLongToString(n, -1, base);
+}
+
+String String::number(double n, char f, int prec)
+{
+   LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
+   LocaleData::Flags flags = 0;
+   if (internal::is_upper(f)) {
+      flags = LocaleData::Flag::CapitalEorX;
+   }   
+   f = internal::to_lower(f);
+   switch (f) {
+   case 'f':
+      form = LocaleData::DoubleForm::DFDecimal;
+      break;
+   case 'e':
+      form = LocaleData::DoubleForm::DFExponent;
+      break;
+   case 'g':
+      form = LocaleData::DoubleForm::DFSignificantDigits;
+      break;
+   default:
+#if defined(PDK_CHECK_RANGE)
+      warning_stream("String::setNum: Invalid format char '%c'", f);
+#endif
+      break;
+   }
+   
+   return LocaleData::c()->doubleToString(n, prec, form, -1, flags);
+}
+
+namespace {
+template<class ResultList, class StringSource>
+static ResultList split_string(const StringSource &source, const Character *sep,
+                               String::SplitBehavior behavior, pdk::CaseSensitivity cs, const int separatorSize)
+{
+   ResultList list;
+   int start = 0;
+   int end;
+   int extra = 0;
+   while ((end = internal::find_string(source.getConstRawData(), source.size(), start + extra, sep, separatorSize, cs)) != -1) {
+      if (start != end || behavior == String::SplitBehavior::KeepEmptyParts) {
+         list.push_back(source.substring(start, end - start));
+      }
+      start = end + separatorSize;
+      extra = (separatorSize == 0 ? 1 : 0);
+   }
+   if (start != source.size() || behavior == String::SplitBehavior::KeepEmptyParts) {
+      list.push_back(source.substring(start, -1));
+   }
+   return list;
+}
+
+} // namespace
 
 StringList String::split(const String &separator, SplitBehavior behavior, 
                          CaseSensitivity cs) const
 {
-   
+   return split_string<StringList>(*this, separator.getConstRawData(), behavior, cs, separator.size());
 }
 
 std::vector<StringRef> String::splitRef(const String &separator, SplitBehavior behavior,
                                         CaseSensitivity cs) const
 {
-   
+   return split_string<std::vector<StringRef> >(StringRef(this), separator.getConstRawData(), behavior, cs, separator.size());
 }
 
 StringList String::split(Character separator, SplitBehavior behavior, CaseSensitivity cs) const
-{}
+{
+   return split_string<StringList>(*this, &separator, behavior, cs, 1);
+}
 
 std::vector<StringRef> String::splitRef(Character separator, SplitBehavior behavior, CaseSensitivity cs) const
 {
-   
+   return split_string<std::vector<StringRef>>(StringRef(this), &separator, behavior, cs, 1);
 }
 
 std::vector<StringRef> StringRef::split(const String &separator, String::SplitBehavior behavior, 
                                         CaseSensitivity cs) const
 {
-   
+   return split_string<std::vector<StringRef>>(*this, separator.getConstRawData(), behavior, cs, separator.size());
 }
 
 std::vector<StringRef> StringRef::split(Character separator, String::SplitBehavior behavior, 
                                         CaseSensitivity cs) const
 {
-   
+   return split_string<std::vector<StringRef>>(*this, &separator, behavior, cs, 1);
 }
 
 String String::repeated(int times) const

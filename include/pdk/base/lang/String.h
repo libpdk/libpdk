@@ -963,6 +963,22 @@ private:
    static pdk::pulonglong toIntegralHelper(const Character *data, uint len, bool *ok, int base);
    void replaceHelper(uint *indices, int nIndices, int blength, const Character *after, int alength);
    
+   template <typename T> static
+   T toIntegralHelper(const Character *data, int len, bool *ok, int base)
+   {
+      using Int64 = typename std::conditional<std::is_unsigned<T>::value, pdk::pulonglong, pdk::plonglong>::type;
+      using Int32 = typename std::conditional<std::is_unsigned<T>::value, uint, int>::type;
+      // we select the right overload by casting size() to int or uint
+      Int64 val = toIntegralHelper(data, Int32(len), ok, base);
+      if (T(val) != val) {
+         if (ok) {
+            *ok = false;
+         }
+         val = 0;
+      }
+      return T(val);
+   }
+   
    friend class CharacterRef;
    friend class StringRef;
    friend class ByteArray;
