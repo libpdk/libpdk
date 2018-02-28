@@ -3464,11 +3464,212 @@ String String::arg(double a, int fieldWidth, char fmt, int prec, Character fillC
    return replace_arg_escapes(*this, d, fieldWidth, arg, localeArg, fillChar);
 }
 
+namespace {
+
+int get_escape(const Character *uc, int *pos, int len, int maxNumber = 999)
+{
+   int i = *pos;
+   ++i;
+   if (i < len && uc[i] == Latin1Character('L')) {
+      ++i;
+   }
+   if (i < len) {
+      int escape = uc[i].unicode() - '0';
+      if (uint(escape) >= 10U) {
+         return -1;
+      }
+      ++i;
+      while (i < len) {
+         int digit = uc[i].unicode() - '0';
+         if (uint(digit) >= 10U) {
+            break;
+         }
+         escape = (escape * 10) + digit;
+         ++i;
+      }
+      if (escape <= maxNumber) {
+         *pos = i;
+         return escape;
+      }
+   }
+   return -1;
+}
+
+/*
+    Algorithm for multiArg:
+    
+    1. Parse the string as a sequence of verbatim text and placeholders (%L?\d{,3}).
+       The L is parsed and accepted for compatibility with non-multi-arg, but since
+       multiArg only accepts strings as replacements, the localization request can
+       be safely ignored.
+    2. The result of step (1) is a list of (string-ref,int)-tuples. The string-ref
+       either points at text to be copied verbatim (in which case the int is -1),
+       or, initially, at the textual representation of the placeholder. In that case,
+       the int contains the numerical number as parsed from the placeholder.
+    3. Next, collect all the non-negative ints found, sort them in ascending order and
+       remove duplicates.
+       3a. If the result has more entires than multiArg() was given replacement strings,
+           we have found placeholders we can't satisfy with replacement strings. That is
+           fine (there could be another .arg() call coming after this one), so just
+           truncate the result to the number of actual multiArg() replacement strings.
+       3b. If the result has less entries than multiArg() was given replacement strings,
+           the string is missing placeholders. This is an error that the user should be
+           warned about.
+    4. The result of step (3) is a mapping from the index of any replacement string to
+       placeholder number. This is the wrong way around, but since placeholder
+       numbers could get as large as 999, while we typically don't have more than 9
+       replacement strings, we trade 4K of sparsely-used memory for doing a reverse lookup
+       each time we need to map a placeholder number to a replacement string index
+       (that's a linear search; but still *much* faster than using an associative container).
+    5. Next, for each of the tuples found in step (1), do the following:
+       5a. If the int is negative, do nothing.
+       5b. Otherwise, if the int is found in the result of step (3) at index I, replace
+           the string-ref with a string-ref for the (complete) I'th replacement string.
+       5c. Otherwise, do nothing.
+    6. Concatenate all string refs into a single result string.
+*/
+
+struct Part
+{
+   Part() 
+      : m_stringRef(),
+        m_number(0)
+   {}
+   
+   Part(const String &s, int pos, int len, int num = -1) noexcept
+      : m_stringRef(&s, pos, len),
+        m_number(num)
+   {}
+   
+   StringRef m_stringRef;
+   int m_number;
+};
+
+} // anonymous namespace
+
+} // lang
+
+template <>
+class TypeInfo<lang::Part> : public TypeInfoMerger<lang::Part, lang::StringRef, int>
+{};
+
+namespace lang {
+
+namespace {
+
+enum { ExpectedParts = 32 };
+
+typedef VarLengthArray<Part, ExpectedParts> ParseResult;
+typedef VarLengthArray<int, ExpectedParts/2> ArgIndexToPlaceholderMap;
+
+static ParseResult parse_multi_arg_format_string(const String &s)
+{
+   ParseResult result;
+   
+   const Character *uc = s.getConstRawData();
+   const int len = s.size();
+   const int end = len - 1;
+   int i = 0;
+   int last = 0;
+   
+   while (i < end) {
+      if (uc[i] == Latin1Character('%')) {
+         int percent = i;
+         int number = get_escape(uc, &i, len);
+         if (number != -1) {
+            if (last != percent) {
+               result.push_back(Part(s, last, percent - last)); // literal text (incl. failed placeholders)
+            }
+            result.push_back(Part(s, percent, i - percent, number));  // parsed placeholder
+            last = i;
+            continue;
+         }
+      }
+      ++i;
+   }
+   
+   if (last < len)
+      result.push_back(Part(s, last, len - last)); // trailing literal text
+   
+   return result;
+}
+
+ArgIndexToPlaceholderMap make_arg_index_to_placeholder_map(const ParseResult &parts)
+{
+   ArgIndexToPlaceholderMap result;
+   for (ParseResult::const_iterator iter = parts.begin(), end = parts.end(); iter != end; ++iter) {
+      if (iter->m_number >= 0) {
+         result.push_back(iter->m_number);
+      }
+   }
+   std::sort(result.begin(), result.end());
+   result.erase(std::unique(result.begin(), result.end()),
+                result.end());
+   return result;
+}
+
+int resolveStringRefsAndReturnTotalSize(ParseResult &parts, const ArgIndexToPlaceholderMap &argIndexToPlaceholderMap, const String *args[])
+{
+   int totalSize = 0;
+   for (ParseResult::iterator piter = parts.begin(), end = parts.end(); piter != end; ++piter) {
+      if (piter->m_number != -1) {
+         const ArgIndexToPlaceholderMap::const_iterator aiter
+               = std::find(argIndexToPlaceholderMap.begin(), argIndexToPlaceholderMap.end(), piter->m_number);
+         if (aiter != argIndexToPlaceholderMap.end()) {
+            piter->m_stringRef = StringRef(args[aiter - argIndexToPlaceholderMap.begin()]);
+         }
+      }
+      totalSize += piter->m_stringRef.size();
+   }
+   return totalSize;
+}
+
+} // anonymous namespace
+
 String String::multiArg(int numArgs, const String **args) const
-{}
+{
+   // Step 1-2 above
+   ParseResult parts = parse_multi_arg_format_string(*this);
+   
+   // 3-4
+   ArgIndexToPlaceholderMap argIndexToPlaceholderMap = make_arg_index_to_placeholder_map(parts);
+   if (argIndexToPlaceholderMap.size() > numArgs) {// 3a
+      argIndexToPlaceholderMap.resize(numArgs);
+   } else if (argIndexToPlaceholderMap.size() < numArgs) {// 3b
+      warning_stream("String::arg: %d argument(s) missing in %s",
+                     numArgs - argIndexToPlaceholderMap.size(), toLocal8Bit().getRawData());  
+   }
+   // 5
+   const int totalSize = resolveStringRefsAndReturnTotalSize(parts, argIndexToPlaceholderMap, args);
+   
+   // 6:
+   String result(totalSize, pdk::Uninitialized);
+   Character *out = result.getRawData();
+   
+   for (ParseResult::const_iterator iter = parts.begin(), end = parts.end(); iter != end; ++iter) {
+      if (const int sz = iter->m_stringRef.size()) {
+         memcpy(out, iter->m_stringRef.getConstRawData(), sz * sizeof(Character));
+         out += sz;
+      }
+   }
+   
+   return result;
+}
 
 bool String::isSimpleText() const
-{}
+{
+   const char16_t *p = m_data->getData();
+   const char16_t * const end = p + m_data->m_size;
+   while (p < end) {
+      char16_t uc = *p;
+      // sort out regions of complex text formatting
+      if (uc > 0x058f && (uc < 0x1100 || uc > 0xfb0f)) {
+         return false;
+      }
+      p++;
+   }
+   return true;
+}
 
 bool String::isRightToLeft() const
 {}
