@@ -3672,16 +3672,51 @@ bool String::isSimpleText() const
 }
 
 bool String::isRightToLeft() const
-{}
+{
+   return StringRef(this).isRightToLeft();
+}
 
 String String::fromRawData(const Character *str, int size)
-{}
+{
+   Data *x;
+   if (!str) {
+      x = Data::getSharedNull();
+   } else if (!size) {
+      x = Data::allocate(0);
+   } else {
+      x = Data::fromRawData(reinterpret_cast<const char16_t *>(str), size);
+      PDK_CHECK_ALLOC_PTR(x);
+   }
+   StringDataPtr dataPtr = { x };
+   return String(dataPtr);
+}
 
-String &String::setRawData(const Character *unicode, int size)
-{}
+String &String::setRawData(const Character *str, int size)
+{
+   if (m_data->m_ref.isShared() || m_data->m_alloc) {
+      *this = fromRawData(str, size);
+   } else {
+      if (str) {
+         m_data->m_size = size;
+         m_data->m_offset = reinterpret_cast<const char *>(str) - reinterpret_cast<char *>(m_data);
+      } else {
+         m_data->m_offset = sizeof(StringData);
+         m_data->m_size = 0;
+      }
+   }
+   return *this;
+}
 
 String StringRef::toString() const
-{}
+{
+   if (!m_str) {
+      return String();
+   }
+   if (m_size && m_position == 0 && m_size == m_str->size()) {
+      return *m_str;
+   }
+   return String(m_str->unicode() + m_position, m_size);
+}
 
 #if !defined(PDK_NO_DATASTREAM)
 DataStream &operator<<(DataStream &out, const String &str)

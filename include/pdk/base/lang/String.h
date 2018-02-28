@@ -755,8 +755,8 @@ public:
    inline int toWCharArray(wchar_t *array) const;
    PDK_REQUIRED_RESULT static inline String fromWCharArray(const wchar_t *string, int size = -1);
    
-   String &setRawData(const Character *unicode, int size);
-   String &setUnicode(const Character *unicode, int size);
+   String &setRawData(const Character *str, int size);
+   String &setUnicode(const Character *str, int size);
    inline String &setUtf16(const char16_t *utf16, int size);
    
    int compare(const String &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
