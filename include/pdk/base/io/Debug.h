@@ -522,21 +522,6 @@ inline Debug operator<<(Debug debug, const std::set<Key, Compare, Alloc> &set)
    return internal::print_sequential_container(debug, "std::set", set);
 }
 
-//template <class T>
-//inline Debug operator<<(Debug debug, const ContiguousCache<T> &cache)
-//{
-//   const bool oldSetting = debug.autoInsertSpaces();
-//   debug.nospace() << "ContiguousCache(";
-//   for (int i = cache.firstIndex(); i <= cache.lastIndex(); ++i) {
-//      debug << cache[i];
-//      if (i != cache.lastIndex())
-//         debug << ", ";
-//   }
-//   debug << ')';
-//   debug.setAutoInsertSpaces(oldSetting);
-//   return debug.maybeSpace();
-//}
-
 template <class T>
 inline Debug operator<<(Debug debug, const std::shared_ptr<T> &ptr)
 {

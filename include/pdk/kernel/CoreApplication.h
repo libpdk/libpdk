@@ -25,9 +25,12 @@
 #include <string>
 
 #define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance();
+#define PDK_DECLARE_TR_FUNCTIONS(context) \
+public: \
+    static inline String tr(const char *sourceText, const char *disambiguation = nullptr, int n = -1) \
+        { return CoreApplication::translate(#context, sourceText, disambiguation, n); } \
 
 namespace pdk {
-
 namespace kernel {
 
 // forward declare class with namespace
