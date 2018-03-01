@@ -60,7 +60,7 @@ public:
    
    void swap(CommandLineOption &other) noexcept
    {
-      std::swap(other, other.m_implPtr);
+      std::swap(m_implPtr, other.m_implPtr);
    }
    
    StringList getNames() const;

@@ -116,7 +116,9 @@ int stringlist_remove_duplicates(StringList *that)
       ++j;
    }
    if (n != j) {
-      that->erase(that->begin() + j, that->end());
+      auto iter = that->begin();
+      std::advance(iter, j);
+      that->erase(iter, that->end());
    }
    return n - j;
 }

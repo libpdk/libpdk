@@ -27,7 +27,7 @@ using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Character;
 
-class StringList : public std::vector<String>
+class StringList : public std::list<String>
 {
 public:
    inline StringList() noexcept
@@ -38,26 +38,26 @@ public:
       push_back(string);
    }
    
-   inline StringList(const std::vector<String> &lits) : std::vector<String>(lits)
+   inline StringList(const std::list<String> &lits) : std::list<String>(lits)
    {}
    
-   inline StringList(std::vector<String> &&list) noexcept 
-      : std::vector<String>(std::move(list))
+   inline StringList(std::list<String> &&list) noexcept 
+      : std::list<String>(std::move(list))
    {}
    
    inline StringList(std::initializer_list<String> args) 
-      : std::vector<String>(args)
+      : std::list<String>(args)
    {}
    
-   StringList &operator=(const std::vector<String> &other)
+   StringList &operator=(const std::list<String> &other)
    { 
-      std::vector<String>::operator=(other);
+      std::list<String>::operator=(other);
       return *this;
    }
    
-   StringList &operator=(std::vector<String> &&other) noexcept
+   StringList &operator=(std::list<String> &&other) noexcept
    {
-      std::vector<String>::operator=(std::move(other));
+      std::list<String>::operator=(std::move(other));
       return *this;
    }
    
@@ -82,7 +82,7 @@ public:
       pop_back();
       return t;
    }
-   
+   using std::list<String>::swap;
    void swap(int i, int j);
    inline bool contains(const_reference value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    inline bool contains(Latin1String value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
@@ -102,7 +102,7 @@ public:
       return *this;
    }
    
-   inline StringList &operator +=(const std::vector<String> &other)
+   inline StringList &operator +=(const std::list<String> &other)
    {
       const_iterator iter = other.cbegin();
       const_iterator cend = other.cend();
@@ -131,7 +131,7 @@ public:
       return *this;
    }
    
-   inline StringList &operator<<(const std::vector<String> &list)
+   inline StringList &operator<<(const std::list<String> &list)
    { 
       *this += list;
       return *this;

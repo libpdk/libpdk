@@ -165,7 +165,7 @@ String StandardPaths::findExecutable(const String &executableName, const StringL
       
       // Remove trailing slashes, which occur on Windows.
       const StringList rawPaths = String::fromLocal8Bit(pEnv.getConstRawData()).split(Dir::getListSeparator(),                                                                           String::SplitBehavior::SkipEmptyParts);
-      searchPaths.reserve(rawPaths.size());
+      searchPaths.resize(rawPaths.size());
       for (const String &rawPath : rawPaths) {
          String cleanPath = Dir::cleanPath(rawPath);
          if (cleanPath.size() > 1 && cleanPath.endsWith(Latin1Character('/'))) {

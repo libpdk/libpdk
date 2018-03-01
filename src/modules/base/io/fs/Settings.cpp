@@ -1234,7 +1234,7 @@ StringList ConfFileSettingsPrivate::getChildren(const String &prefix, ChildSpec 
          break;
       }
    }
-   std::sort(result.begin(), result.end());
+   result.sort();
    result.erase(std::unique(result.begin(), result.end()),
                 result.end());
    return result;

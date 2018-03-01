@@ -464,7 +464,7 @@ std::any SystemLocale::query(QueryType type, std::any in = std::any()) const
       CFTypeID typeId = CFGetTypeID(languages);
       if (typeId == CFArrayGetTypeID()) {
          const int cnt = CFArrayGetCount(languages.as<CFArrayRef>());
-         result.reserve(cnt);
+         result.resize(cnt);
          for (int i = 0; i < cnt; ++i) {
             const String lang = String::fromCFString(
                      static_cast<CFStringRef>(CFArrayGetValueAtIndex(languages.as<CFArrayRef>(), i)));

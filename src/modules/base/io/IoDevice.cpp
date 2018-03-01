@@ -1237,7 +1237,7 @@ Debug operator<<(Debug debug, IoDevice::OpenModes modes)
          modeList << Latin1String("Unbuffered");
       }
    }
-   std::sort(modeList.begin(), modeList.end());
+   modeList.sort();
    debug << modeList.join(Latin1Character('|'));
    debug << ')';
    return debug;
