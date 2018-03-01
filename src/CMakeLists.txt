@@ -186,6 +186,7 @@ if(UNIX)
          ${KERNEL_BASE_DIR}/_platform/CoreMac.cpp
          ${KERNEL_BASE_DIR}/_platform/CoreFoundationMac.mm
          ${KERNEL_BASE_DIR}/_platform/CoreMacObjc.mm
+         ${KERNEL_BASE_DIR}/_platform/CfSocketNotifier.cpp
          ${KERNEL_BASE_DIR}/_platform/EventDispatcherCf.mm)
    else()
       list(APPEND PDK_BASE_SOURCES
