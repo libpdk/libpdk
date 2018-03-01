@@ -984,7 +984,7 @@ bool Resource::registerResource(const uchar *rccData, const String &resourceRoot
    String r = resource_fix_resource_root(resourceRoot);
    if(!r.isEmpty() && r[0] != Latin1Character('/')) {
       warning_stream("Dir::registerResource: Registering a resource [%p] must be rooted in an absolute path (start with /) [%s]",
-                     rccData, resourceRoot.toLocal8Bit().getRawData());
+                     (void *)rccData, resourceRoot.toLocal8Bit().getRawData());
       return false;
    }
    

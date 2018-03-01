@@ -149,10 +149,16 @@ public:
       return at(size() - 1);
    }
    
+   PDK_REQUIRED_RESULT bool startsWith(StringView s, 
+                                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      return stringprivate::starts_with(*this, s, cs);
+   }
+   
    PDK_REQUIRED_RESULT bool startsWith(Latin1String s, 
                                        pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
    {
-      //return QtPrivate::startsWith(*this, s, cs);
+      return stringprivate::starts_with(*this, s, cs);
    }
    
    PDK_REQUIRED_RESULT constexpr bool startsWith(Character c) const noexcept
@@ -162,12 +168,18 @@ public:
    
    PDK_REQUIRED_RESULT inline bool startsWith(Character c, pdk::CaseSensitivity cs) const noexcept
    {
-      //return QtPrivate::startsWith(*this, StringView(&c, 1), cs);
+      return stringprivate::starts_with(*this, StringView(&c, 1), cs);
+   }
+   
+   PDK_REQUIRED_RESULT bool endsWith(StringView s,
+                                     pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      return stringprivate::ends_with(*this, s, cs); 
    }
    
    PDK_REQUIRED_RESULT bool endsWith(Latin1String s, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
    {
-      //return QtPrivate::endsWith(*this, s, cs);
+      return stringprivate::ends_with(*this, s, cs);
    }
    
    PDK_REQUIRED_RESULT constexpr bool endsWith(Character c) const noexcept
@@ -177,7 +189,7 @@ public:
    
    PDK_REQUIRED_RESULT inline bool endsWith(Character c, pdk::CaseSensitivity cs) const noexcept
    {
-      //return QtPrivate::endsWith(*this, StringView(&c, 1), cs);
+      return stringprivate::ends_with(*this, StringView(&c, 1), cs);
    }
    
    constexpr const_iterator begin() const noexcept
@@ -272,7 +284,7 @@ public:
    
    PDK_REQUIRED_RESULT Latin1String trimmed() const noexcept
    {
-      //return QtPrivate::trimmed(*this);
+      return stringprivate::trimmed(*this);
    }
    
    inline bool operator==(const String &s) const noexcept;
@@ -531,6 +543,14 @@ public:
    PDK_REQUIRED_RESULT String left(int n) const;
    PDK_REQUIRED_RESULT String right(int n) const;
    PDK_REQUIRED_RESULT String substring(int pos, int n = -1) const;
+   
+   PDK_REQUIRED_RESULT String chopped(int n) const
+   { 
+      PDK_ASSERT(n >= 0); 
+      PDK_ASSERT(n <= size()); 
+      return left(size() - n); 
+   }
+   
    PDK_REQUIRED_RESULT StringRef leftRef(int n) const;
    PDK_REQUIRED_RESULT StringRef rightRef(int n) const;
    PDK_REQUIRED_RESULT StringRef substringRef(int pos, int n = -1) const;
@@ -538,12 +558,23 @@ public:
    bool startsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
 #endif
+   PDK_REQUIRED_RESULT bool startsWith(StringView s, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      return stringprivate::starts_with(*this, s, cs);
+   }
+   
    bool startsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool startsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
 #if PDK_STRINGVIEW_LEVEL < 2
    bool endsWith(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool endsWith(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
 #endif
+   PDK_REQUIRED_RESULT bool endsWith(StringView s, 
+                                     pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept
+   {
+      return stringprivate::ends_with(*this, s, cs);
+   }
+   
    bool endsWith(Latin1String needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    bool endsWith(Character needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
@@ -559,34 +590,54 @@ public:
 #endif
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toLower() const &
-   {}
+   {
+      return toLowerHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toLower() &&
-   {}
+   {
+      return toLowerHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toUpper() const &
-   {}
+   {
+      return toUpperHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toUpper() &&
-   {}
+   {
+      return toUpperHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toCaseFolded() const &
-   {}
+   {
+      return toCaseFoldedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String toCaseFolded() &&
-   {}
+   {
+      return toCaseFoldedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String trimmed() const &
-   {}
+   {
+      return trimmedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String trimmed() &&
-   {}
+   {
+      return trimmedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String simplified() const &
-   {}
+   {
+      return simplifiedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT PDK_ALWAYS_INLINE String simplified() &&
-   {}
+   {
+      return simplifiedHelper(*this);
+   }
    
    PDK_REQUIRED_RESULT String toHtmlEscaped() const;
 #ifdef PDK_REQUIRED_RESULT_PUSHED
@@ -596,7 +647,10 @@ public:
    String &insert(int i, Character c);
    String &insert(int i, const Character *str, int length);
    inline String &insert(int i, const String &str)
-   {}
+   {
+      return insert(i, str.getConstRawData(), str.length());
+   }
+   
    inline String &insert(int i, const StringRef &str);
    String &insert(int i, Latin1String str);
    
@@ -633,20 +687,33 @@ public:
    
    inline String &operator +=(Character c)
    {
-      
+      if (m_data->m_ref.isShared() || uint(m_data->m_size) + 2u > m_data->m_alloc) {
+         reallocData(uint(m_data->m_size) + 2u, true);
+      }
+      m_data->getData()[m_data->m_size++] = c.unicode();
+      m_data->getData()[m_data->m_size] = '\0';
+      return *this;
    }
    
    inline String &operator +=(Character::SpecialCharacter c)
-   {}
+   {
+      return append(Character(c));
+   }
    
    inline String &operator +=(const String &str)
-   {}
+   {
+      return append(str);
+   }
    
    inline String &operator +=(const StringRef &str)
-   {}
+   {
+      return append(str);
+   }
    
    inline String &operator +=(Latin1String str)
-   {}
+   {
+      return insert(0, str);
+   }
    
    String &remove(int pos, int length);
    String &remove(Character c, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
@@ -724,7 +791,7 @@ public:
    
    static inline String fromLocal8Bit(const char *str, int size = -1)
    {
-      
+      return fromLocal8BitHelper(str, (str && size == -1) ? int(std::strlen(str)) : size);
    }
    
    static inline String fromLatin1(const ByteArray &str)
@@ -737,12 +804,16 @@ public:
    
    static inline String fromUtf8(const ByteArray &str)
    {
-      
+      return str.isNull() 
+            ? String() 
+            : fromUtf8(str.getRawData(), pdk::strnlen(str.getConstRawData(), str.size()));
    }
    
    static inline String fromLocal8Bit(const ByteArray &str)
    {
-      
+      return str.isNull() 
+            ? String() 
+            : fromLocal8Bit(str.getRawData(), pdk::strnlen(str.getConstRawData(), str.size()));
    }
    
    static String fromUtf16(const char16_t *str, int size = -1);
@@ -777,7 +848,7 @@ public:
    static int localeAwareCompare(const StringRef &lhs, const String &rhs);
    static int localeAwareCompare(const StringRef &lhs, const StringRef &rhs);
    
-   short  toShort(bool *ok = nullptr, int base = 10) const;
+   short toShort(bool *ok = nullptr, int base = 10) const;
    ushort toUShort(bool *ok = nullptr, int base = 10) const;
    int toInt(bool *ok = nullptr, int base = 10) const;
    uint toUInt(bool *ok = nullptr, int base = 10) const;
@@ -892,17 +963,23 @@ public:
    // STL compatibility interfaces
    inline void push_back(Character c)
    {
-      
+      append(c);
    }
    
    inline void push_back(const String &str)
-   {}
+   {
+      append(str);
+   }
    
    inline void push_front(Character c)
-   {}
+   {
+      prepend(c);
+   }
    
    inline void push_front(const String &str)
-   {}
+   {
+      prepend(str);
+   }
    
    static inline String fromStdString(const std::string &str);
    inline std::string toStdString() const;
@@ -2291,22 +2368,34 @@ inline bool operator >=(Latin1String lhs, Character rhs) noexcept
 }
 
 inline bool operator==(StringView lhs, StringView rhs) noexcept
-{}
+{
+   return lhs.size() == rhs.size() && stringprivate::compare_strings(lhs, rhs) == 0;
+}
 
 inline bool operator!=(StringView lhs, StringView rhs) noexcept
-{}
+{
+   return !(lhs == rhs);
+}
 
 inline bool operator< (StringView lhs, StringView rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) < 0;
+}
 
 inline bool operator<=(StringView lhs, StringView rhs) noexcept
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) <= 0;
+}
 
 inline bool operator> (StringView lhs, StringView rhs) noexcept
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) > 0;
+}
 
 inline bool operator>=(StringView lhs, StringView rhs) noexcept
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) >= 0;
+}
 
 // StringView <> Char
 inline bool operator==(StringView lhs, Character rhs) noexcept
@@ -2350,46 +2439,86 @@ inline bool operator!=(Character lhs, StringView rhs) noexcept
 
 inline bool operator< (Character lhs, StringView rhs) noexcept
 {
-   return StringView(&lhs, 1) <  rhs;
+   return StringView(&lhs, 1) < rhs;
 }
 
 inline bool operator<=(Character lhs, StringView rhs) noexcept
-{}
+{
+   return StringView(&lhs, 1) <= rhs;
+}
 
 inline bool operator> (Character lhs, StringView rhs) noexcept 
-{}
+{
+   return StringView(&lhs, 1) > rhs;
+}
 
 inline bool operator>=(Character lhs, StringView rhs) noexcept 
-{}
+{
+   return StringView(&lhs, 1) >= rhs;
+}
 
 // StringView <> Latin1String
 inline bool operator==(StringView lhs, Latin1String rhs) noexcept
-{}
+{
+   return lhs.size() == static_cast<StringView::size_type>(rhs.size()) 
+         && stringprivate::compare_strings(lhs, rhs) == 0;
+}
+
 inline bool operator!=(StringView lhs, Latin1String rhs) noexcept
-{}
+{
+   return !(lhs == rhs);
+}
+
 inline bool operator< (StringView lhs, Latin1String rhs) noexcept 
 {
-   
+   return stringprivate::compare_strings(lhs, rhs) <  0;
 }
+
 inline bool operator<=(StringView lhs, Latin1String rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) <= 0;
+}
+
 inline bool operator> (StringView lhs, Latin1String rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) > 0;
+}
+
 inline bool operator>=(StringView lhs, Latin1String rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) >= 0;
+}
 
 inline bool operator==(Latin1String lhs, StringView rhs) noexcept 
-{}
+{
+   return static_cast<StringView::size_type>(lhs.size()) == rhs.size()
+         && stringprivate::compare_strings(lhs, rhs) == 0;
+}
+
 inline bool operator!=(Latin1String lhs, StringView rhs) noexcept
-{}
+{
+   return !(lhs == rhs);
+}
+
 inline bool operator< (Latin1String lhs, StringView rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) < 0;
+}
+
 inline bool operator<=(Latin1String lhs, StringView rhs) noexcept 
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) <= 0;
+}
+
 inline bool operator> (Latin1String lhs, StringView rhs) noexcept
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) > 0;
+}
+
 inline bool operator>=(Latin1String lhs, StringView rhs) noexcept
-{}
+{
+   return stringprivate::compare_strings(lhs, rhs) >= 0;
+}
 
 inline bool StringRef::contains(const String &str, CaseSensitivity cs) const
 {
