@@ -156,7 +156,7 @@ void ThreadStorageData::finish(void **p)
          }
       }
       destructor(q); //crash here might mean the thread exited after threadstorage was destroyed
-      if (tls->size() > i) {
+      if (tls->size() > static_cast<size_t>(i)) {
          //re reset the tls in case it has been recreated by its own destructor.
          (*tls)[i] = 0;
       }

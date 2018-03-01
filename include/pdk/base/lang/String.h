@@ -1069,6 +1069,11 @@ private:
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(String::SectionFlags)
 
+inline String String::section(Character asep, int astart, int aend, SectionFlags aflags) const
+{
+   return section(String(asep), astart, aend, aflags);
+}
+
 String StringView::toString() const
 {
    PDK_ASSERT(size() == static_cast<size_t>(length()));

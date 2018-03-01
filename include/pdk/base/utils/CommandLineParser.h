@@ -71,7 +71,7 @@ public:
     void process(const CoreApplication &app);
 
     bool parse(const StringList &arguments);
-    String errorText() const;
+    String getErrorText() const;
 
     bool isSet(const String &name) const;
     String getValue(const String &name) const;
