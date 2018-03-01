@@ -19,6 +19,7 @@
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/EventLoop.h"
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
+#include "pdk/global/Logging.h"
 
 namespace pdk {
 namespace os {
@@ -100,7 +101,7 @@ AdoptedThread::~AdoptedThread()
 void AdoptedThread::run()
 {
    // this function should never be called
-   // qFatal("AdoptedThread::run(): Internal error, this implementation should never be called.");
+   fatal_stream("AdoptedThread::run(): Internal error, this implementation should never be called.");
 }
 
 ThreadPrivate::ThreadPrivate(ThreadData *d)
@@ -166,7 +167,7 @@ Thread::~Thread()
          locker.lock();
       }
       if (implPtr->m_running && !implPtr->m_finished && !implPtr->m_data->m_isAdopted) {
-         // qFatal("Thread: Destroyed while thread is still running");
+         fatal_stream("Thread: Destroyed while thread is still running");
       }
       implPtr->m_data->m_thread = nullptr;
    }
@@ -248,7 +249,7 @@ void Thread::setPriority(Priority priority)
    PDK_D(Thread);
    std::scoped_lock locker(implPtr->m_mutex);
    if (!implPtr->m_running) {
-      // warning_stream("Thread::setPriority: Cannot set priority, thread is not running");
+      warning_stream("Thread::setPriority: Cannot set priority, thread is not running");
       return;
    }
    implPtr->setPriority(priority);
@@ -277,13 +278,13 @@ void Thread::setEventDispatcher(AbstractEventDispatcher *eventDispatcher)
 {
    PDK_D(Thread);
    if (implPtr->m_data->hasEventDispatcher()) {
-      // warning_stream("Thread::setEventDispatcher: An event dispatcher has already been created for this thread");
+      warning_stream("Thread::setEventDispatcher: An event dispatcher has already been created for this thread");
    } else {
       eventDispatcher->moveToThread(this);
       if (eventDispatcher->getThread() == this) {
          implPtr->m_data->m_eventDispatcher = eventDispatcher;
       } else {
-         // warning_stream("Thread::setEventDispatcher: Could not move event dispatcher to target thread");
+         warning_stream("Thread::setEventDispatcher: Could not move event dispatcher to target thread");
       }
    }
 }
@@ -306,7 +307,7 @@ void Thread::requestInterruption()
       return;
    }
    if (this == CoreApplicationPrivate::sm_theMainThread) {
-      // warning_stream("Thread::requestInterruption has no effect on the main thread");
+      warning_stream("Thread::requestInterruption has no effect on the main thread");
       return;
    }
    implPtr->m_interruptionRequested = true;
@@ -322,17 +323,35 @@ bool Thread::isInterruptionRequested() const
    return implPtr->m_interruptionRequested;
 }
 
+class ThreadCreateThread : public Thread
+{
+public:
+   explicit ThreadCreateThread(std::future<void> &&future)
+      : m_future(std::move(future))
+   {}
+   
+private:
+   void run() override
+   {
+      m_future.get();
+   }
+   
+   std::future<void> m_future;
+};
+
+Thread *Thread::createThreadImpl(std::future<void> &&future)
+{
+   return new ThreadCreateThread(std::move(future));
+}
+
 namespace internal {
 
 DaemonThread::DaemonThread(Object *parent)
    : Thread(parent)
-{
-   
-}
+{}
 
 DaemonThread::~DaemonThread()
-{
-}
+{}
 
 } // internal
 

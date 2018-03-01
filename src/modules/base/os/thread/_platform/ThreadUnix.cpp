@@ -16,6 +16,7 @@
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/kernel/EventDispatcherUnix.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
+#include "pdk/base/io/Debug.h"
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
 
@@ -35,9 +36,26 @@
 #  endif
 #endif // PDK_OS_VXWORKS
 
+#ifdef __GLIBCXX__
+#include <cxxabi.h>
+#endif
+
 #ifdef PDK_OS_HPUX
 #include <sys/pstat.h>
 #endif // PDK_OS_HPUX
+
+#if defined(PDK_OS_MAC)
+# ifdef warning_stream
+#   define old_warning_stream warning_stream
+#   undef warning_stream
+# endif
+
+# ifdef old_warning_stream
+#   undef warning_stream
+#   define warning_stream PDK_NO_QDEBUG_MACRO
+#   undef old_warning_stream
+# endif
+#endif
 
 #if defined(PDK_OS_LINUX) && !defined(PDK_LINUXBASE)
 #include <sys/prctl.h>
@@ -103,7 +121,7 @@ void destroy_current_thread_data(void *p)
    // called again (POSIX allows implementations to call destructor
    // functions repeatedly until all values are zero)
    pthread_setspecific(sg_currentThreadDataKey,
-#if defined(PDK_OS_VXWORKS)
+                    #if defined(PDK_OS_VXWORKS)
                        (void *)1);
 #else
                        nullptr);
@@ -227,24 +245,24 @@ static bool calculate_unix_priority(int priority, int *schedPolicy, int *schedPr
    int priorityMin;
    int priorityMax;
 #if defined(PDK_OS_VXWORKS) && defined(VXWORKS_DKM)
-    // for other scheduling policies than SCHED_RR or SCHED_FIFO
-    priorityMin = SCHED_FIFO_LOW_PRI;
-    priorityMax = SCHED_FIFO_HIGH_PRI;
-
-    if ((*schedPolicy == SCHED_RR) || (*schedPolicy == SCHED_FIFO))
+   // for other scheduling policies than SCHED_RR or SCHED_FIFO
+   priorityMin = SCHED_FIFO_LOW_PRI;
+   priorityMax = SCHED_FIFO_HIGH_PRI;
+   
+   if ((*schedPolicy == SCHED_RR) || (*schedPolicy == SCHED_FIFO))
 #endif
-    {
-       priorityMin = sched_get_priority_min(*schedPolicy);
-       priorityMax = sched_get_priority_max(*schedPolicy);
-    }
-    if (priorityMin == -1 || priorityMax == -1) {
-       return false;
-    }
-    int calculatedPriority;
-    calculatedPriority = ((priority - lowestPriority) * (priorityMax - priorityMin) / highestPriority) + priorityMin;
-    calculatedPriority = std::max(priorityMin, std::min(priorityMax, calculatedPriority));
-    *schedPriority = calculatedPriority;
-    return true;
+   {
+      priorityMin = sched_get_priority_min(*schedPolicy);
+      priorityMax = sched_get_priority_max(*schedPolicy);
+   }
+   if (priorityMin == -1 || priorityMax == -1) {
+      return false;
+   }
+   int calculatedPriority;
+   calculatedPriority = ((priority - lowestPriority) * (priorityMax - priorityMin) / highestPriority) + priorityMin;
+   calculatedPriority = std::max(priorityMin, std::min(priorityMax, calculatedPriority));
+   *schedPriority = calculatedPriority;
+   return true;
 }
 #endif
 
@@ -282,9 +300,7 @@ ThreadData *ThreadData::current(bool createIfNecessary)
 }
 
 void AdoptedThread::init()
-{
-   
-}
+{}
 
 extern "C" {
 using PdkThreadCallback = void* (*)(void *);
@@ -294,10 +310,9 @@ void ThreadPrivate::createEventDispatcher(ThreadData *data)
 {
 #if defined(PDK_OS_DARWIN)
    bool ok = false;
-   // int value = environment_variable_int_value("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
-   int value = 0;
-   if (ok && value) {
-//      data->m_eventDispatcher.storeRelease(new EventDispatcherCoreFoundation);
+   int value = pdk::env_var_intval("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
+   if (ok && value > 0) {
+      //data->m_eventDispatcher.storeRelease(new EventDispatcherCoreFoundation);
    } else {
       data->m_eventDispatcher.storeRelease(new EventDispatcherUNIX);
    }
@@ -398,17 +413,17 @@ void ThreadPrivate::setPriority(Thread::Priority priority)
       return;
    }
    param.sched_priority = calculatedPriority;
-   int code = pthread_setschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), schedPolicy, &param);
+   int status = pthread_setschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), schedPolicy, &param);
 # ifdef SCHED_IDLE
-    // were we trying to set to idle priority and failed?
-    if (code == -1 && schedPolicy == SCHED_IDLE && errno == EINVAL) {
-        // reset to lowest priority possible
-        pthread_getschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), &schedPolicy, &param);
-        param.sched_priority = sched_get_priority_min(schedPolicy);
-        pthread_setschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), schedPolicy, &param);
-    }
+   // were we trying to set to idle priority and failed?
+   if (status == -1 && schedPolicy == SCHED_IDLE && errno == EINVAL) {
+      // reset to lowest priority possible
+      pthread_getschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), &schedPolicy, &param);
+      param.sched_priority = sched_get_priority_min(schedPolicy);
+      pthread_setschedparam(from_pdk_handle_type<pthread_t>(m_data->m_threadId), schedPolicy, &param);
+   }
 # else
-    PDK_UNUSED(code);
+   PDK_UNUSED(status);
 # endif // SCHED_IDLE
 }
 
@@ -483,14 +498,14 @@ void Thread::start(Priority priority)
       if (pthread_attr_getschedpolicy(&attr, &schedPolicy) != 0) {
          // failed to get the scheduling policy, don't bother
          // setting the priority
-         // warning_stream("Thread::start: Cannot determine default scheduler policy");
+         warning_stream("Thread::start: Cannot determine default scheduler policy");
          break;
       }
       int calculatedPriority;
       if (!calculate_unix_priority(priority, &schedPolicy, &calculatedPriority)) {
          // failed to get the scheduling parameters, don't
          // bother setting the priority
-         // warning_stream("Thread::start: Cannot determine scheduler priority range");
+         warning_stream("Thread::start: Cannot determine scheduler priority range");
          break;
       }
       sched_param sp;
@@ -514,8 +529,8 @@ void Thread::start(Priority priority)
       int code = ENOSYS; // stack size not supported, automatically fail
 #endif // _POSIX_THREAD_ATTR_STACKSIZE
       if (code) {
-//         warning_stream("Thread::start: Thread stack size error: %s",
-//                              qPrintable(pdk_error_string(code)));
+         warning_stream("Thread::start: Thread stack size error: %s",
+                        pdk_printable(pdk_error_string(code)));
          // we failed to set the stacksize, and as the documentation states,
          // the thread will fail to run...
          implPtr->m_running = false;
@@ -536,7 +551,7 @@ void Thread::start(Priority priority)
    implPtr->m_data->m_threadId = to_pdk_handle_type(threadId);
    pthread_attr_destroy(&attr);
    if (code) {
-      // warning_stream("Thread::start: Thread creation error: %s", qPrintable(pdk_error_string(code)));
+      warning_stream("Thread::start: Thread creation error: %s", pdk_printable(pdk_error_string(code)));
       implPtr->m_running = false;
       implPtr->m_finished = false;
       implPtr->m_data->m_threadId = 0;
@@ -552,8 +567,8 @@ void Thread::terminate()
    }
    int code = pthread_cancel(from_pdk_handle_type<pthread_t>(implPtr->m_data->m_threadId));
    if (code) {
-      //          warning_stream("Thread::start: Thread termination error: %s",
-      //                   qPrintable(pdk_error_string((code))));
+      warning_stream("Thread::start: Thread termination error: %s",
+                     pdk_printable(pdk_error_string((code))));
    }
 }
 
@@ -562,7 +577,7 @@ bool Thread::wait(unsigned long time)
    PDK_D(Thread);
    std::unique_lock locker(implPtr->m_mutex);
    if (from_pdk_handle_type<pthread_t>(implPtr->m_data->m_threadId) == pthread_self()) {
-      // warning_stream("Thread::wait: Thread tried to wait on itself");
+      warning_stream("Thread::wait: Thread tried to wait on itself");
       return false;
    }
    if (implPtr->m_finished || !implPtr->m_running) {

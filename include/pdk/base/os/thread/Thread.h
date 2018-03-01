@@ -17,6 +17,7 @@
 #define PDK_M_BASE_OS_THREAD_THREAD_H
 
 #include <limits.h>
+#include <future>
 #include "pdk/kernel/Object.h"
 
 namespace pdk {
@@ -107,6 +108,7 @@ protected:
    Thread(ThreadPrivate &dd, Object *parent = nullptr);
    
 private:
+   static Thread *createThreadImpl(std::future<void> &&future);
    PDK_DECLARE_PRIVATE(Thread);
    friend class CoreApplication;
    friend class ThreadData;
