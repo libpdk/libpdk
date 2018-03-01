@@ -23,6 +23,7 @@
 
 namespace pdk {
 namespace kernel {
+namespace internal {
 
 // internal timer info
 struct TimerInfo {
@@ -72,6 +73,7 @@ private:
    TimerInfo *m_firstTimerInfo;
 };
 
+} // internal
 } // kernel
 } // pdk
 

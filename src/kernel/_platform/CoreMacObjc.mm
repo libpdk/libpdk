@@ -70,7 +70,7 @@ using pdk::MessageLogger;
 
 @interface PdkMacAutoReleasePoolTracker : NSObject
 {
-                                             NSAutoreleasePool **m_pool;
+   NSAutoreleasePool **m_pool;
 }
 -(id)initWithPool:(NSAutoreleasePool**)pool;
 @end

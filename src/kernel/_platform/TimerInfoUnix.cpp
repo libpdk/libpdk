@@ -15,7 +15,7 @@
 
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/CoreUnix.h"
-#include "pdk/kernel/TimerInfoUnix.h"
+#include "pdk/kernel/internal/TimerInfoUnixPrivate.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
 
@@ -27,6 +27,7 @@
 
 namespace pdk {
 namespace kernel {
+namespace internal {
 
 PDK_CORE_EXPORT bool sg_pdkDisableLowpriorityTimers = false;
 
@@ -132,5 +133,6 @@ int TimerInfoList::getActivateTimers()
 {
 }
 
+} // internal
 } // kernel
 } // pdk
