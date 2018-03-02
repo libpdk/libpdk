@@ -140,22 +140,22 @@ public:
    explicit EventDispatcherCoreFoundation(Object *parent = 0);
    ~EventDispatcherCoreFoundation();
    
-   bool processEvents(EventLoop::ProcessEventsFlags flags);
-   bool hasPendingEvents();
+   bool processEvents(EventLoop::ProcessEventsFlags flags) override;
+   bool hasPendingEvents() override;
    
-   void registerSocketNotifier(SocketNotifier *notifier);
-   void unregisterSocketNotifier(SocketNotifier *notifier);
+   void registerSocketNotifier(SocketNotifier *notifier) override;
+   void unregisterSocketNotifier(SocketNotifier *notifier) override;
    
-   void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object);
-   bool unregisterTimer(int timerId);
-   bool unregisterTimers(Object *object);
-   std::list<AbstractEventDispatcher::TimerInfo> registeredTimers(Object *object) const;
+   void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object) override;
+   bool unregisterTimer(int timerId) override;
+   bool unregisterTimers(Object *object) override;
+   std::list<AbstractEventDispatcher::TimerInfo> getRegisteredTimers(Object *object) const override;
    
-   int remainingTime(int timerId);
+   int remainingTime(int timerId) override;
    
-   void wakeUp();
-   void interrupt();
-   void flush();
+   void wakeUp() override;
+   void interrupt() override;
+   void flush() override;
    
 protected:
    EventLoop *currentEventLoop() const;

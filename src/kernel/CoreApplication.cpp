@@ -41,13 +41,9 @@
 #include <algorithm>
 
 #if defined(PDK_OS_UNIX)
-//# if defined(PDK_OS_DARWIN)
-//#  include "pdk/kernel/EventDispatcherCf.h"
-//# else
-//#  if !defined(PDK_NO_GLIB)
-//#   include "pdk/kernel/EventDispatcherGlib.h"
-//#  endif
-//# endif
+# if defined(PDK_OS_DARWIN)
+#  include "pdk/kernel/EventDispatcherCf.h"
+# endif
 # include "pdk/kernel/EventDispatcherUnix.h"
 #endif
 
@@ -61,6 +57,10 @@ using pdk::os::thread::internal::PostEvent;
 using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
+
+#if defined(PDK_OS_DARWIN)
+using pdk::kernel::EventDispatcherCoreFoundation;
+#endif
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
 {
@@ -329,10 +329,9 @@ void CoreApplicationPrivate::createEventDispatcher()
 #if defined(PDK_OS_UNIX)
 #  if defined(PDK_OS_DARWIN)
    bool ok = false;
-   // int value = environment_variable_int_value("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
-   int value = 0;
+   int value = pdk::env_var_intval("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
    if (ok && value > 0) {
-      // m_eventDispatcher = new QEventDispatcherCoreFoundation(apiPtr);
+      sm_eventDispatcher = new EventDispatcherCoreFoundation(apiPtr);
    } else {
       sm_eventDispatcher = new EventDispatcherUNIX(apiPtr);
    }

@@ -20,6 +20,10 @@
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
 
+#if defined(PDK_OS_DARWIN)
+#  include "pdk/kernel/EventDispatcherCf.h"
+#endif
+
 #include <thread>
 
 #include <sched.h>
@@ -79,6 +83,9 @@ using internal::ThreadPrivate;
 using pdk::kernel::internal::ObjectPrivate;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::kernel::EventDispatcherUNIX;
+#ifdef PDK_OS_DARWIN
+using pdk::kernel::EventDispatcherCoreFoundation;
+#endif
 
 PDK_STATIC_ASSERT(sizeof(pthread_t) <= sizeof(pdk::HANDLE));
 constexpr int THREAD_PRIORITY_RESET_FLAG = 0x80000000;
@@ -312,7 +319,7 @@ void ThreadPrivate::createEventDispatcher(ThreadData *data)
    bool ok = false;
    int value = pdk::env_var_intval("PDK_EVENT_DISPATCHER_CORE_FOUNDATION", &ok);
    if (ok && value > 0) {
-      //data->m_eventDispatcher.storeRelease(new EventDispatcherCoreFoundation);
+      data->m_eventDispatcher.storeRelease(new EventDispatcherCoreFoundation);
    } else {
       data->m_eventDispatcher.storeRelease(new EventDispatcherUNIX);
    }
