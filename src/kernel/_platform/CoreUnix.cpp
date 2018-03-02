@@ -14,7 +14,7 @@
 // Created by softboy on 2018/01/30.
 
 #include "pdk/global/Global.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/kernel/ElapsedTimer.h"
 
 #include <cstdlib>

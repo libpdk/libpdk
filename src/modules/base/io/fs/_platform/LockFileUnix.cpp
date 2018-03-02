@@ -21,7 +21,7 @@
 #include "pdk/base/io/Debug.h"
 #include "pdk/base/time/DateTime.h"
 #include "pdk/utils/Cache.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/kernel/internal/SystemErrorPrivate.h"
 
 #include "pdk/global/GlobalStatic.h"

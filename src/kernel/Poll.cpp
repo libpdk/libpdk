@@ -13,7 +13,7 @@
 //
 // Created by softboy on 2018/01/30.
 
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 
 namespace pdk {
 namespace kernel {

@@ -14,7 +14,7 @@
 // Created by softboy on 2018/01/25.
 
 #include "pdk/kernel/CoreApplication.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/kernel/internal/TimerInfoUnixPrivate.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"

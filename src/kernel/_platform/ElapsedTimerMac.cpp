@@ -20,7 +20,7 @@
 #include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/kernel/DeadlineTimer.h"
 #include "pdk/kernel/internal/DeadlineTimerPrivate.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>

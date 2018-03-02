@@ -34,7 +34,7 @@
 
 #ifdef PDK_OS_UNIX
 #include <sys/utsname.h>
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #endif
 
 #ifdef PDK_OS_BSD4

@@ -27,7 +27,7 @@
 
 #include <errno.h>
 #if defined(PDK_OS_UNIX)
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #endif
 
 #include <cstdio>

@@ -34,7 +34,7 @@
 
 #ifdef PDK_OS_UNIX
 #  include <fcntl.h>
-#  include "pdk/kernel/CoreUnix.h"
+#  include "pdk/kernel/internal/CoreUnixPrivate.h"
 #else
 #  include "pdk/global/Windows.h"
 

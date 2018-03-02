@@ -19,7 +19,7 @@
 #include "pdk/kernel/SocketNotifier.h"
 #include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/kernel/EventDispatcherUnix.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/stdext/utility/Algorithms.h"

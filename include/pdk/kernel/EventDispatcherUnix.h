@@ -18,7 +18,7 @@
 
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/kernel/internal/TimerInfoUnixPrivate.h"
 #include "pdk/base/os/thread/Atomic.h"

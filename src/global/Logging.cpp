@@ -50,7 +50,7 @@
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <unistd.h>
-# include "pdk/kernel/CoreUnix.h"
+# include "pdk/kernel/internal/CoreUnixPrivate.h"
 #endif
 
 #if !defined PDK_NO_REGULAREXPRESSION

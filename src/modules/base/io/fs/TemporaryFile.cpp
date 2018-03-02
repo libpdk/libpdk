@@ -22,7 +22,7 @@
 #include "pdk/kernel/internal/SystemErrorPrivate.h"
 
 #if !defined(PDK_OS_WIN)
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include <errno.h>
 #endif
 

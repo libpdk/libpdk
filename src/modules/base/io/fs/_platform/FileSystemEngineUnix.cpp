@@ -16,7 +16,7 @@
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/io/fs/internal/FileSystemEnginePrivate.h"
 #include "pdk/base/io/fs/File.h"
-#include "pdk/kernel/CoreUnix.h"
+#include "pdk/kernel/internal/CoreUnixPrivate.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/global/Logging.h"
 #include "pdk/base/os/thread/Atomic.h"
