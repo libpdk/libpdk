@@ -59,11 +59,15 @@ public:
    Object *m_apiPtr;
    Object *m_parent;
    ObjectList m_children;
+   uint m_isWidget : 1;
+   uint m_blockSig : 1;
    uint m_wasDeleted : 1;
    uint m_isDeletingChildren : 1;
    uint m_sendChildEvents : 1;
    uint m_receiveChildEvents : 1;
-   uint m_unused : 28;
+   uint m_isWindow : 1; //for Window
+   uint m_deleteLaterCalled : 1;
+   uint m_unused : 24;
    int m_postedEvents;
 };
 
@@ -78,6 +82,16 @@ public:
    }
    String getObjectName() const;
    void setObjectName(const String &name);
+   
+   inline bool isWidgetType() const
+   {
+      return m_implPtr->m_isWidget;
+   }
+   
+   inline bool isWindowType() const
+   {
+      return m_implPtr->m_isWindow;
+   }
    
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);

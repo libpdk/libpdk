@@ -31,6 +31,16 @@ public: \
         { return CoreApplication::translate(#context, sourceText, disambiguation, n); } \
 
 namespace pdk {
+
+// forward declare class with namespace
+namespace os {
+namespace thread {
+namespace internal {
+class PostEventList;
+} // internal
+} // thread
+} // os
+
 namespace kernel {
 
 // forward declare class with namespace
@@ -39,13 +49,13 @@ class CoreApplicationPrivate;
 class EventDispatcherUNIXPrivate;
 } // internal
 
-class PostEventList;
 class AbstractEventDispatcher;
 class AbstractNativeEventFilter;
 
 using internal::CoreApplicationPrivate;
 using pdk::ds::StringList;
 using pdk::lang::String;
+using pdk::os::thread::internal::PostEventList;
 
 class PDK_CORE_EXPORT CoreApplication : public Object
 {

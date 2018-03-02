@@ -59,7 +59,7 @@ public:
    static void removePostedEvent(Event *);
    static Thread *getMainThread();
    static bool threadRequiresCoreApplication();
-   static void sendPostedEvents(Object *receiver, int eventType, ThreadData *data);
+   static void sendPostedEvents(Object *receiver, Event::Type eventType, ThreadData *data);
    static void checkReceiverThread(Object *receiver);
    
    virtual void createEventDispatcher();

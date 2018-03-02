@@ -138,7 +138,7 @@ public:
    
    ~DeferredDeleteEvent();
    
-   int loopLevel() const
+   int getLoopLevel() const
    {
       return m_level;
    }

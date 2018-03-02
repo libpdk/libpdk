@@ -56,6 +56,7 @@ using pdk::utils::ScopedPointer;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 using pdk::os::thread::internal::PostEvent;
+using pdk::os::thread::internal::PostEventList;
 using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
@@ -136,8 +137,19 @@ inline bool contains(int argc, char **argv, const char *needle)
 }
 #endif // PDK_OS_WIN
 
-bool do_notify(Object *, Event *)
-{}
+bool do_notify(Object *receiver, Event *event)
+{
+   if (receiver == 0) {                        // serious error
+      warning_stream("CoreApplication::notify: Unexpected null receiver");
+      return true;
+   }
+#ifndef PDK_NO_DEBUG
+   CoreApplicationPrivate::checkReceiverThread(receiver);
+#endif
+   return receiver->isWidgetType() 
+         ? false 
+         : CoreApplicationPrivate::notifyHelper(receiver, event);
+}
 
 }
 
@@ -555,16 +567,64 @@ void CoreApplicationPrivate::init()
 
 bool CoreApplicationPrivate::sendThroughApplicationEventFilters(Object *receiver, Event *event)
 {
-   
+   // We can't access the application event filters outside of the main thread (race conditions)
+   PDK_ASSERT(receiver->getImplPtr()->m_threadData->m_thread == getMainThread());
+   if (m_extraData) {
+      // application event filters are only called for objects in the GUI thread
+      for (size_t i = 0; i < m_extraData->m_eventFilters.size(); ++i) {
+         auto iter = m_extraData->m_eventFilters.begin();
+         std::advance(iter, i);
+         Object *obj = *iter;
+         if (!obj) {
+            continue;
+         }
+         if (obj->getImplPtr()->m_threadData != m_threadData) {
+            warning_stream("CoreApplication: Application event filter cannot be in a different thread.");
+            continue;
+         }
+         if (obj->eventFilter(receiver, event)) {
+            return true;
+         }
+      }
+   }
+   return false;
 }
 
 bool CoreApplicationPrivate::sendThroughObjectEventFilters(Object *receiver, Event *event)
 {
-   
+   if (receiver != CoreApplication::getInstance() && receiver->getImplPtr()->m_extraData) {
+      for (size_t i = 0; i < receiver->getImplPtr()->m_extraData->m_eventFilters.size(); ++i) {
+         auto iter = receiver->getImplPtr()->m_extraData->m_eventFilters.begin();
+         std::advance(iter, i);
+         Object *obj = *iter;
+         if (!obj) {
+            continue;
+         }
+         if (obj->getImplPtr()->m_threadData != receiver->getImplPtr()->m_threadData) {
+            warning_stream("CoreApplication: Object event filter cannot be in a different thread.");
+            continue;
+         }
+         if (obj->eventFilter(receiver, event)) {
+            return true;
+         }
+      }
+   }
+   return false;
 }
 
 bool CoreApplicationPrivate::notifyHelper(Object *receiver, Event *event)
 {
+   // send to all application event filters (only does anything in the main thread)
+   if (CoreApplication::sm_self
+       && receiver->getImplPtr()->m_threadData->m_thread == getMainThread()
+       && CoreApplication::sm_self->getImplPtr()->sendThroughApplicationEventFilters(receiver, event))
+      return true;
+   // send to all receiver event filters
+   if (sendThroughObjectEventFilters(receiver, event)) {
+      return true;
+   }
+   // deliver the event
+   return receiver->event(event);
 }
 
 // Cleanup after eventLoop is done executing in CoreApplication::exec().
@@ -574,6 +634,14 @@ bool CoreApplicationPrivate::notifyHelper(Object *receiver, Event *event)
 
 void CoreApplicationPrivate::execCleanup()
 {
+   m_threadData->m_quitNow = false;
+   m_inExec = false;
+   if (!m_aboutToQuitEmitted) {
+      // @TODO emit signal
+      //      emit getImplPtr()->aboutToQuit(CoreApplication::PrivateSignal());
+   }
+   m_aboutToQuitEmitted = true;
+   CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
 }
 
 } // internal
@@ -698,9 +766,148 @@ void CoreApplication::sendPostedEvents(Object *receiver, Event::Type eventType)
 
 namespace internal {
 
-void CoreApplicationPrivate::sendPostedEvents(Object *receiver, int eventType,
+void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type eventType,
                                               ThreadData *data)
 {
+   if (receiver && receiver->getImplPtr()->m_threadData != data) {
+      warning_stream("CoreApplication::sendPostedEvents: Cannot send "
+                     "posted events for objects in another thread");
+      return;
+   }
+   ++data->m_postEventList.m_recursion;
+   std::unique_lock<std::mutex> locker(data->m_postEventList.m_mutex);
+   // by default, we assume that the event dispatcher can go to sleep after
+   // processing all events. if any new events are posted while we send
+   // events, canWait will be set to false.
+   data->m_canWait = (data->m_postEventList.size() == 0);
+   if (data->m_postEventList.size() == 0 || (receiver && !receiver->getImplPtr()->m_postedEvents)) {
+      --data->m_postEventList.m_recursion;
+      return;
+   }
+   data->m_canWait = true;
+   // okay. here is the tricky loop. be careful about optimizing
+   // this, it looks the way it does for good reasons.
+   int startOffset = data->m_postEventList.m_startOffset;
+   int &i = (eventType == Event::Type::None && !receiver) ? data->m_postEventList.m_startOffset : startOffset;
+   data->m_postEventList.m_insertionOffset = data->m_postEventList.size();
+   // Exception-safe cleaning up without the need for a try/catch block
+   struct CleanUp {
+      Object *m_receiver;
+      Event::Type m_eventType;
+      ThreadData *m_data;
+      bool m_exceptionCaught;
+      
+      inline CleanUp(Object *receiver, Event::Type eventType, ThreadData *data) 
+         : m_receiver(receiver),
+           m_eventType(eventType),
+           m_data(data),
+           m_exceptionCaught(true)
+      {}
+      inline ~CleanUp()
+      {
+         if (m_exceptionCaught) {
+            // since we were interrupted, we need another pass to make sure we clean everything up
+            m_data->m_canWait = false;
+         }
+         --m_data->m_postEventList.m_recursion;
+         if (!m_data->m_postEventList.m_recursion && !m_data->m_canWait && m_data->hasEventDispatcher()) {
+            m_data->m_eventDispatcher.load()->wakeUp();
+         }
+         // clear the global list, i.e. remove everything that was
+         // delivered.
+         if (Event::Type::None == m_eventType && !m_receiver &&
+             m_data->m_postEventList.m_startOffset >= 0) {
+            const PostEventList::iterator iter = m_data->m_postEventList.begin();
+            m_data->m_postEventList.erase(iter, iter + m_data->m_postEventList.m_startOffset);
+            m_data->m_postEventList.m_insertionOffset -= m_data->m_postEventList.m_startOffset;
+            PDK_ASSERT(m_data->m_postEventList.m_insertionOffset >= 0);
+            m_data->m_postEventList.m_startOffset = 0;
+         }
+      }
+   };
+   CleanUp cleanup(receiver, eventType, data);
+   
+   while ((size_t)i < data->m_postEventList.size()) {
+      // avoid live-lock
+      if (i >= data->m_postEventList.m_insertionOffset) {
+          break;
+      }
+      const PostEvent &pe = data->m_postEventList.at(i);
+      ++i;
+      
+      if (!pe.m_event) {
+         continue;
+      }
+      if ((receiver && receiver != pe.m_receiver) || eventType != pe.m_event->getType()) {
+         data->m_canWait = false;
+         continue;
+      }
+      
+      if (pe.m_event->getType() == Event::Type::DeferredDelete) {
+         // DeferredDelete events are sent either
+         // 1) when the event loop that posted the event has returned; or
+         // 2) if explicitly requested (with QEvent::DeferredDelete) for
+         //    events posted by the current event loop; or
+         // 3) if the event was posted before the outermost event loop.
+         
+         int eventLevel = static_cast<DeferredDeleteEvent *>(pe.m_event)->getLoopLevel();
+         int loopLevel = data->m_loopLevel + data->m_scopeLevel;
+         const bool allowDeferredDelete =
+               (eventLevel > loopLevel
+                || (!eventLevel && loopLevel > 0)
+                || (eventType == Event::Type::DeferredDelete
+                    && eventLevel == loopLevel));
+         if (!allowDeferredDelete) {
+            // cannot send deferred delete
+            if (eventType == Event::Type::None && !receiver) {
+               // we must copy it first; we want to re-post the event
+               // with the event pointer intact, but we can't delay
+               // nulling the event ptr until after re-posting, as
+               // addEvent may invalidate pe.
+               PostEvent pecopy = pe;
+               // null out the event so if sendPostedEvents recurses, it
+               // will ignore this one, as it's been re-posted.
+               const_cast<PostEvent &>(pe).m_event = 0;
+               // re-post the copied event so it isn't lost
+               data->m_postEventList.addEvent(pecopy);
+            }
+            continue;
+         }
+      }
+      
+      // first, we diddle the event so that we can deliver
+      // it, and that no one will try to touch it later.
+      pe.m_event->m_posted = false;
+      Event *e = pe.m_event;
+      Object * r = pe.m_receiver;
+      
+      --r->getImplPtr()->m_postedEvents;
+      PDK_ASSERT(r->getImplPtr()->m_postedEvents >= 0);
+      // next, update the data structure so that we're ready
+      // for the next event.
+      const_cast<PostEvent &>(pe).m_event = 0;
+      struct MutexUnlocker
+      {
+         std::unique_lock<std::mutex> &m_locker;
+         MutexUnlocker(std::unique_lock<std::mutex> &m) 
+            : m_locker(m)
+         {
+            m_locker.unlock(); 
+         }
+         ~MutexUnlocker() { m_locker.lock(); }
+      };
+      MutexUnlocker unlocker(locker);
+      
+      ScopedPointer<Event> eventDeleter(e); // will delete the event (with the mutex unlocked)
+      
+      // after all that work, it's time to deliver the event.
+      CoreApplication::sendEvent(r, e);
+      
+      // careful when adding anything below this point - the
+      // sendEvent() call might invalidate any invariants this
+      // function depends on.
+   }
+   cleanup.m_exceptionCaught = false;
 }
 
 void CoreApplicationPrivate::removePostedEvent(Event * event)

@@ -45,6 +45,18 @@ ObjectPrivate::ObjectPrivate(int version)
     : m_currentChildBeingDeleted(0),
       m_threadData(0)
 {
+   PDK_UNUSED(version);
+   m_apiPtr = nullptr;
+   m_parent = nullptr;                                 // no parent yet. It is set by setParent()
+   m_isWidget = false;                           // assume not a widget object
+   m_wasDeleted = false;                         // double-delete catcher
+   m_isDeletingChildren = false;                 // set by deleteChildren()
+   m_sendChildEvents = true;                     // if we should send ChildAdded and ChildRemoved events to parent
+   m_receiveChildEvents = true;
+   m_postedEvents = 0;
+   m_extraData = 0;
+   m_isWindow = false;
+   m_deleteLaterCalled = false;
 }
 
 ObjectPrivate::~ObjectPrivate()

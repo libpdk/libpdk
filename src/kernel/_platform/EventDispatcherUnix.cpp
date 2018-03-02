@@ -419,7 +419,7 @@ bool EventDispatcherUNIX::processEvents(EventLoop::ProcessEventsFlags flags)
    implPtr->m_interrupt.store(0);
    // we are awake, broadcast it
    // emit awake() signal;
-   CoreApplicationPrivate::sendPostedEvents(0, 0, implPtr->m_threadData);
+   CoreApplicationPrivate::sendPostedEvents(0, Event::Type::None, implPtr->m_threadData);
    const bool includeTimers = (flags & EventLoop::X11ExcludeTimers) == 0;
    const bool includeNotifiers = (flags & EventLoop::ExcludeSocketNotifiers) == 0;
    const bool waitForEvents = flags & EventLoop::WaitForMoreEvents;
