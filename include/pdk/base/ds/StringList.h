@@ -82,6 +82,12 @@ public:
       pop_back();
       return t;
    }
+   
+   void push_front(const String &value)
+   {
+      insert(cbegin(), value);
+   }
+   
    using std::list<String>::swap;
    void swap(int i, int j);
    inline bool contains(const_reference value, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;

@@ -461,7 +461,6 @@ private:
 
 #endif // PDK_OS_DARWIN
 } // kernel
-
 } // pdk
 
 #include "pdk/global/TypeInfo.h"

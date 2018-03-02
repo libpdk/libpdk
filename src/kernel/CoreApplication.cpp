@@ -25,6 +25,8 @@
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
 #include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/io/fs/Dir.h"
+#include "pdk/base/io/fs/File.h"
 
 #include <cstdlib>
 #include <list>
@@ -57,6 +59,12 @@ using pdk::os::thread::internal::PostEvent;
 using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
+using pdk::lang::String;
+using pdk::lang::Latin1String;
+using pdk::lang::Latin1Character;
+using pdk::lang::StringList;
+using pdk::io::fs::File;
+using pdk::io::fs::Dir;
 
 #if defined(PDK_OS_WIN) || defined(PDK_OS_MAC)
 extern String retrieve_app_filename();
@@ -288,6 +296,7 @@ struct CoreApplicationData {
    CoreApplicationData() noexcept
    {
       m_appNameSet = false;
+      m_appVersionSet = false;
    }
    ~CoreApplicationData()
    {
@@ -302,8 +311,8 @@ struct CoreApplicationData {
    String m_orgDomain;
    String m_appName; // application name, initially from argv[0], can then be modified.
    String m_appVersion;
-   bool m_appNameSet; // true if setApplicationName was called
-   
+   bool m_appNameSet; // true if setAppName was called
+   bool m_appVersionSet; // true if setAppVersion was called
 #if PDK_CONFIG(library)
    ScopedPointer<StringList> m_appLibpaths;
    ScopedPointer<StringList> m_manualLibpaths;
@@ -408,8 +417,7 @@ void CoreApplicationPrivate::createEventDispatcher()
 }
 
 void CoreApplicationPrivate::eventDispatcherReady()
-{
-}
+{}
 
 BasicAtomicPointer<Thread> CoreApplicationPrivate::sm_theMainThread = PDK_BASIC_ATOMIC_INITIALIZER(0);
 
@@ -432,15 +440,15 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 {
    Thread *currentThread = Thread::getCurrentThread();
    Thread *thread = receiver->getThread();
-   //   PDK_ASSERT_X(currentThread == thr || !thr,
-   //              "CoreApplication::sendEvent",
-   //              String::fromLatin1("Cannot send events to objects owned by a different thread. "
-   //                                  "Current thread %1. Receiver '%2' (of type '%3') was created in thread %4")
-   //              .arg(String::number((quintptr) currentThread, 16))
-   //              .arg(receiver->objectName())
-   //              .arg(QLatin1String(receiver->metaObject()->className()))
-   //              .arg(String::number((quintptr) thr, 16))
-   //              .toLocal8Bit().data());
+   PDK_ASSERT_X(currentThread == thread || !thread,
+                "CoreApplication::sendEvent",
+                String::fromLatin1("Cannot send events to objects owned by a different thread. "
+                                   "Current thread %1. Receiver '%2' (of type '%3') was created in thread %4")
+                .arg(String::number((pdk::uintptr) currentThread, 16))
+                .arg(receiver->getObjectName())
+                .arg(Latin1String(typeid(receiver).name()))
+                .arg(String::number((pdk::uintptr) thread, 16))
+                .toLocal8Bit().getRawData());
    PDK_ASSERT_X(currentThread == thread || !thread,
                 "CoreApplication::sendEvent",
                 "Cannot send events to objects owned by a different thread.");
@@ -450,19 +458,19 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 
 void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
-   //#ifndef PDK_NO_LIBRARY
-   //   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
-   //   if (!appLibPaths) {
-   //      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
-   //   }
-   //   String appLocation = CoreApplication::getAppFilePath();
-   //   appLocation.erase(appLocation.find_last_of('/'));
-   //   // TODO we need check exist
-   //   auto iter = std::find(appLibPaths->cbegin(), appLibPaths->cend(), appLocation);
-   //   if(iter == appLibPaths->cend()) {
-   //      appLibPaths->push_back(appLocation);
-   //   }
-   //#endif
+#if PDK_CONFIG(library)
+   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
+   if (!appLibPaths) {
+      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
+   }
+   String appLocation = CoreApplication::getAppFilePath();
+   appLocation.truncate(appLocation.lastIndexOf(Latin1Character('/')));
+   // TODO we need check exist
+   appLocation = Dir(appLocation).getCanonicalPath();
+   if (File::exists(appLocation) && !appLibPaths->contains(appLocation)) {
+      appLibPaths->push_back(appLocation);
+   }  
+#endif
 }
 
 void CoreApplicationPrivate::initLocale()
@@ -478,10 +486,76 @@ void CoreApplicationPrivate::initLocale()
 
 void CoreApplicationPrivate::init()
 {
+#if defined(PDK_OS_MACOS)
+   MacAutoReleasePool pool;
+#endif
+   PDK_Q(CoreApplication);
+   initLocale();
+   PDK_ASSERT_X(!CoreApplication::sm_self, "CoreApplication", "there should be only one application object");
+   CoreApplication::sm_self = apiPtr;
+   // Store app name/version (so they're still available after QCoreApplication is destroyed)
+   if (!sg_coreAppData()->m_appNameSet) {
+      sg_coreAppData()->m_appName = retrieve_app_name();
+   }
+   if (!sg_coreAppData()->m_appVersionSet) {
+      sg_coreAppData()->m_appVersion = getAppVersion();
+   }
+#if PDK_CONFIG(library)
+   // Reset the lib paths, so that they will be recomputed, taking the availability of argv[0]
+   // into account. If necessary, recompute right away and replay the manual changes on top of the
+   // new lib paths.
+   StringList *appPaths = sg_coreAppData()->m_appLibpaths.take();
+   StringList *manualPaths = sg_coreAppData()->m_manualLibpaths.take();
+   if (appPaths) {
+      if (manualPaths) {
+         // Replay the delta. As paths can only be prepended to the front or removed from
+         // anywhere in the list, we can just linearly scan the lists and find the items that
+         // have been removed. Once the original list is exhausted we know all the remaining
+         // items have been added.
+         StringList newPaths(apiPtr->getLibraryPaths());
+         for (int i = manualPaths->size(), j = appPaths->size(); i > 0 || j > 0; pdk_noop()) {
+            if (--j < 0) {
+               newPaths.insert(newPaths.begin(), (*manualPaths)[--i]);
+            } else if (--i < 0) {
+               newPaths.remove((*appPaths)[j]);
+            } else if ((*manualPaths)[i] != (*appPaths)[j]) {
+               newPaths.remove((*appPaths)[j]);
+               ++i; // try again with next item.
+            }
+         }
+         delete manualPaths;
+         sg_coreAppData()->m_manualLibpaths.reset(new StringList(newPaths));
+      }
+      delete appPaths;
+   }
+#endif
+   // use the event dispatcher created by the app programmer (if any)
+   if (!sm_eventDispatcher) {
+      sm_eventDispatcher = m_threadData->m_eventDispatcher.load();
+   }
+   // otherwise we create one
+   if (!sm_eventDispatcher) {
+      createEventDispatcher();
+   }
+   PDK_ASSERT(sm_eventDispatcher);
+   if (!sm_eventDispatcher->getParent()) {
+      sm_eventDispatcher->moveToThread(m_threadData->m_thread);
+      sm_eventDispatcher->setParent(apiPtr);
+   }
+   m_threadData->m_eventDispatcher = sm_eventDispatcher;
+   eventDispatcherReady();
+   processCommandLineArguments();
+   call_pre_routines();
+   startup_hook();
+   if (PDK_UNLIKELY(pdk::sg_pdkHookData[pdk::hooks::Startup])) {
+      reinterpret_cast<pdk::hooks::StartupCallback>(pdk::sg_pdkHookData[pdk::hooks::Startup])();
+   }
+   sm_isAppRunning = true; // No longer starting up.
 }
 
 bool CoreApplicationPrivate::sendThroughApplicationEventFilters(Object *receiver, Event *event)
 {
+   
 }
 
 bool CoreApplicationPrivate::sendThroughObjectEventFilters(Object *receiver, Event *event)
@@ -501,7 +575,6 @@ bool CoreApplicationPrivate::notifyHelper(Object *receiver, Event *event)
 void CoreApplicationPrivate::execCleanup()
 {
 }
-
 
 } // internal
 

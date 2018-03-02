@@ -55,7 +55,7 @@ public:
       ExtraData() {}
       std::vector<int> m_runningTimers;
       std::list<Pointer<Object>> m_eventFilters;
-      std::string m_objectName;
+      String m_objectName;
    };
    
    static ObjectPrivate *get(Object *o)

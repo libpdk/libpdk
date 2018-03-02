@@ -353,12 +353,12 @@ void *ThreadPrivate::start(void *arg)
 #if (defined(PDK_OS_LINUX) || defined(PDK_OS_MAC))
    {
       // sets the name of the current thread.
-      std::string objectName = thread->getObjectName();
+      String objectName = thread->getObjectName();
       pthread_t threadId = from_pdk_handle_type<pthread_t>(data->m_threadId);
-      if (PDK_LIKELY(objectName.empty())) {
+      if (PDK_LIKELY(objectName.isEmpty())) {
          set_current_thread_name(threadId, typeid(thread).name());
       } else {
-         set_current_thread_name(threadId, objectName.c_str());
+         set_current_thread_name(threadId, objectName.toLocal8Bit());
       }
    }
 #endif

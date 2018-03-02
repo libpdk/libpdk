@@ -71,13 +71,13 @@ Object::~Object()
 {
 }
 
-std::string Object::getObjectName() const
+String Object::getObjectName() const
 {
    PDK_D(const Object);
-   return implPtr->m_extraData ? implPtr->m_extraData->m_objectName : std::string();
+   return implPtr->m_extraData ? implPtr->m_extraData->m_objectName : String();
 }
 
-void Object::setObjectName(const std::string &name)
+void Object::setObjectName(const String &name)
 {
    PDK_D(Object);
    if (!implPtr->m_extraData) {

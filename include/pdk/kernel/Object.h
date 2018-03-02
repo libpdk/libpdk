@@ -76,8 +76,8 @@ public:
    {
       return String::fromUtf8(sourceText);
    }
-   std::string getObjectName() const;
-   void setObjectName(const std::string &name);
+   String getObjectName() const;
+   void setObjectName(const String &name);
    
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
@@ -87,7 +87,7 @@ public:
    
    int startTimer(int interval, pdk::TimerType timerType = pdk::TimerType::CoarseTimer);
    void killTimer(int id);
-   inline Object *parent() const
+   inline Object *getParent() const
    { 
       return m_implPtr->m_parent;
    }
