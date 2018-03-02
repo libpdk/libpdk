@@ -19,9 +19,11 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/base/os/thread/Atomic.h"
+#include "pdk/base/os/thread/ReadWriteLock.h"
 
 namespace pdk {
 
+// forward declare class with namespace
 namespace os {
 namespace thread {
 namespace internal {
@@ -30,7 +32,14 @@ class ThreadData;
 } // thread
 } // os
 
+namespace utils {
+class Translator;
+} // utils
+
 namespace kernel {
+
+using pdk::utils::Translator;
+using TranslatorList = std::list<Translator *>;
 
 class AbstractEventDispatcher;
 
@@ -39,6 +48,7 @@ namespace internal {
 using pdk::os::thread::AtomicInt;
 using pdk::os::thread::BasicAtomicPointer;
 using pdk::os::thread::internal::ThreadData;
+using pdk::os::thread::ReadWriteLock;
 
 class PDK_CORE_EXPORT CoreApplicationPrivate : public ObjectPrivate
 {
@@ -89,9 +99,9 @@ public:
    void appendAppPathToLibPaths(void);
    
 #ifndef PDK_NO_TRANSLATION
-   //    TranslatorList m_translators;
-   //    ReadWriteLock m_translateMutex;
-   //    static bool isTranslatorInstalled(Translator *translator);
+   TranslatorList m_translators;
+   ReadWriteLock m_translateMutex;
+   static bool isTranslatorInstalled(Translator *translator);
 #endif
    
    static void setAppFilePath(const String &path);

@@ -21,6 +21,7 @@
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
 #include "pdk/utils/ScopedPointer.h"
+#include "pdk/utils/Translator.h"
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
@@ -53,6 +54,7 @@ namespace pdk {
 namespace kernel {
 
 using pdk::utils::ScopedPointer;
+using pdk::utils::Translator;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 using pdk::os::thread::internal::PostEvent;
@@ -60,6 +62,7 @@ using pdk::os::thread::internal::PostEventList;
 using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
+using pdk::os::thread::WriteLocker;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
@@ -505,7 +508,7 @@ void CoreApplicationPrivate::init()
    initLocale();
    PDK_ASSERT_X(!CoreApplication::sm_self, "CoreApplication", "there should be only one application object");
    CoreApplication::sm_self = apiPtr;
-   // Store app name/version (so they're still available after QCoreApplication is destroyed)
+   // Store app name/version (so they're still available after CoreApplication is destroyed)
    if (!sg_coreAppData()->m_appNameSet) {
       sg_coreAppData()->m_appName = retrieve_app_name();
    }
@@ -669,34 +672,150 @@ void CoreApplication::flush()
 {
 }
 
+#ifndef PDK_NO_TRANSLATION
+bool CoreApplication::installTranslator(Translator *translationFile)
+{
+   if (!translationFile) {
+      return false;
+   }
+   if (!CoreApplicationPrivate::checkInstance("installTranslator")) {
+      return false;
+   }
+   CoreApplicationPrivate *d = sm_self->getImplPtr();
+   {
+      WriteLocker locker(&d->m_translateMutex);
+      d->m_translators.insert(d->m_translators.begin(), translationFile);
+   }
+   
+#ifndef PDK_NO_TRANSLATION_BUILDER
+   if (translationFile->isEmpty()) {
+      return false;
+   }
+#endif
+   
+#ifndef PDK_NO_QOBJECT
+   Event ev(Event::Type::LanguageChange);
+   CoreApplication::sendEvent(sm_self, &ev);
+#endif
+   return true;
+}
+
+bool CoreApplication::removeTranslator(Translator *translationFile)
+{
+   if (!translationFile) {
+      return false;
+   }
+   if (!CoreApplicationPrivate::checkInstance("removeTranslator")) {
+      return false;
+   }
+   CoreApplicationPrivate *d = sm_self->getImplPtr();
+   WriteLocker locker(&d->m_translateMutex);
+   int removedCount = 0;
+   d->m_translators.remove_if(
+            [&removedCount, translationFile](const Translator *item)->bool{
+      if (translationFile == item) {
+         ++removedCount;
+         return true;
+      }
+      return false;
+   });
+   if (removedCount) {
+#ifndef PDK_NO_QOBJECT
+      locker.unlock();
+      if (!sm_self->closingDown()) {
+         Event ev(Event::Type::LanguageChange);
+         CoreApplication::sendEvent(sm_self, &ev);
+      }
+#endif
+      return true;
+   }
+   return false;
+}
+
+namespace {
+
+void replace_percent_n(String *result, int n)
+{
+   if (n >= 0) {
+      int percentPos = 0;
+      int len = 0;
+      while ((percentPos = result->indexOf(Latin1Character('%'), percentPos + len)) != -1) {
+         len = 1;
+         String fmt;
+         if (result->at(percentPos + len) == Latin1Character('L')) {
+            ++len;
+            fmt = Latin1String("%L1");
+         } else {
+            fmt = Latin1String("%1");
+         }
+         if (result->at(percentPos + len) == Latin1Character('n')) {
+            fmt = fmt.arg(n);
+            ++len;
+            result->replace(percentPos, len, fmt);
+            len = fmt.length();
+         }
+      }
+   }
+}
+
+
+} // anonymous namespace
+
 String CoreApplication::translate(const char *context, const char *sourceText,
                                   const char *disambiguation, int n)
 {
    String result;
-   //   if (!sourceText) {
-   //      return result;
-   //   }
-   //   if (sm_self) {
-   //      CoreApplicationPrivate *d = sm_self->getImplPtr();
-   //      ReadLocker locker(&d->translateMutex);
-   //      if (!d->translators.isEmpty()) {
-   //         std::list<QTranslator*>::const_iterator it;
-   //         Translator *translationFile;
-   //         for (it = d->translators.constBegin(); it != d->translators.constEnd(); ++it) {
-   //            translationFile = *it;
-   //            result = translationFile->translate(context, sourceText, disambiguation, n);
-   //            if (!result.isNull())
-   //               break;
-   //         }
-   //      }
-   //   }
    
-   //   if (result.isNull())
-   //      result = String::fromUtf8(sourceText);
+   if (!sourceText)
+      return result;
    
-   //   replacePercentN(&result, n);
+   if (sm_self) {
+      CoreApplicationPrivate *d = sm_self->getImplPtr();
+      ReadLocker locker(&d->m_translateMutex);
+      if (!d->m_translators.empty()) {
+         std::list<Translator *>::const_iterator iter;
+         Translator *translationFile;
+         for (iter = d->m_translators.cbegin(); iter != d->m_translators.cend(); ++iter) {
+            translationFile = *iter;
+            result = translationFile->translate(context, sourceText, disambiguation, n);
+            if (!result.isNull()) {
+               break;
+            }   
+         }
+      }
+   }
+   
+   if (result.isNull()) {
+      result = String::fromUtf8(sourceText);
+   }
+   replace_percent_n(&result, n);
    return result;
 }
+
+bool CoreApplicationPrivate::isTranslatorInstalled(Translator *translator)
+{
+   if (!CoreApplication::sm_self) {
+      return false;
+   }
+   
+   CoreApplicationPrivate *d = CoreApplication::sm_self->getImplPtr();
+   ReadLocker locker(&d->m_translateMutex);
+   return std::find(d->m_translators.begin(), d->m_translators.end(), translator) != d->m_translators.end();
+}
+
+#else
+String CoreApplication::translate(const char *context, const char *sourceText,
+                                  const char *disambiguation, int n)
+{
+   PDK_UNUSED(context);
+   PDK_UNUSED(disambiguation);
+   String ret = String::fromUtf8(sourceText);
+   if (n >= 0) {
+      ret.replace(Latin1String("%n"), String::number(n));
+   }
+   return ret;
+}
+#endif
 
 
 CoreApplication::~CoreApplication()
@@ -830,7 +949,7 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
    while ((size_t)i < data->m_postEventList.size()) {
       // avoid live-lock
       if (i >= data->m_postEventList.m_insertionOffset) {
-          break;
+         break;
       }
       const PostEvent &pe = data->m_postEventList.at(i);
       ++i;
@@ -846,7 +965,7 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
       if (pe.m_event->getType() == Event::Type::DeferredDelete) {
          // DeferredDelete events are sent either
          // 1) when the event loop that posted the event has returned; or
-         // 2) if explicitly requested (with QEvent::DeferredDelete) for
+         // 2) if explicitly requested (with Event::Type::DeferredDelete) for
          //    events posted by the current event loop; or
          // 3) if the event was posted before the outermost event loop.
          
@@ -912,18 +1031,54 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
 
 void CoreApplicationPrivate::removePostedEvent(Event * event)
 {
+   if (!event || !event->m_posted) {
+      return;
+   }
+   ThreadData *data = ThreadData::current();
+   std::lock_guard<std::mutex> locker(data->m_postEventList.m_mutex);
+   if (data->m_postEventList.size() == 0) {
+#if defined(PDK_DEBUG)
+      debug_stream("CoreApplication::removePostedEvent: Internal error: %p %d is posted",
+                   (void*)event, event->getType());
+      return;
+#endif
+   }
+   
+   for (size_t i = 0; i < data->m_postEventList.size(); ++i) {
+      const PostEvent & pe = data->m_postEventList.at(i);
+      if (pe.m_event == event) {
+#ifndef PDK_NO_DEBUG
+         warning_stream("CoreApplication::removePostedEvent: Event of type %d deleted while posted to %s %s",
+                        event->getType(),
+                        typeid(pe.m_receiver).name(),
+                        pe.m_receiver->getObjectName().toLocal8Bit().getRawData());
+#endif
+         --pe.m_receiver->getImplPtr()->m_postedEvents;
+         pe.m_event->m_posted = false;
+         delete pe.m_event;
+         const_cast<PostEvent &>(pe).m_event = nullptr;
+         return;
+      }
+   }
 }
 
 void CoreApplicationPrivate::ref()
 {
+   m_quitLockRef.ref();
 }
 
 void CoreApplicationPrivate::deref()
 {
+   if (!m_quitLockRef.deref()) {
+      maybeQuit();
+   }    
 }
 
 void CoreApplicationPrivate::maybeQuit()
 {
+   if (m_quitLockRef.load() == 0 && m_inExec && sg_quitLockRefEnabled && shouldQuit()) {
+      CoreApplication::postEvent(CoreApplication::getInstance(), new Event(Event::Type::Quit));
+   }
 }
 
 // Makes it possible to point CoreApplication to a custom location to ensure
@@ -934,8 +1089,8 @@ void CoreApplicationPrivate::maybeQuit()
 
 void CoreApplicationPrivate::setAppFilePath(const String &path)
 {
+   
 }
-
 
 }
 
@@ -1026,7 +1181,7 @@ void CoreApplication::removeNativeEventFilter(AbstractNativeEventFilter *filterO
 {
 }
 
-AbstractEventDispatcher *CoreApplication::eventDispatcher()
+AbstractEventDispatcher *CoreApplication::getEventDispatcher()
 {
 }
 

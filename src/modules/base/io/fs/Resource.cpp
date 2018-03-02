@@ -401,9 +401,9 @@ inline uint ResourceRoot::hash(int node) const
       return 0;
    }
    const int offset = findOffset(node);
-   pdk::pint32 nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+   pdk::pint32 nameOffset = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
    nameOffset += 2; //jump past name length
-   return pdk::pdk_from_big_endian<pdk::puint32>(m_names + nameOffset);
+   return pdk::from_big_endian<pdk::puint32>(m_names + nameOffset);
 }
 
 inline String ResourceRoot::getName(int node) const
@@ -414,8 +414,8 @@ inline String ResourceRoot::getName(int node) const
    }
    const int offset = findOffset(node);
    String ret;
-   pdk::pint32 nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
-   const pdk::pint16 nameLength = pdk::pdk_from_big_endian<pdk::pint16>(m_names + nameOffset);
+   pdk::pint32 nameOffset = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
+   const pdk::pint16 nameLength = pdk::from_big_endian<pdk::pint16>(m_names + nameOffset);
    nameOffset += 2;
    nameOffset += 4; //jump past hash
    
@@ -458,8 +458,8 @@ int ResourceRoot::findNode(const String &path, const Locale &locale) const
       return 0;
    
    //the root node is always first
-   pdk::pint32 childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + 6);
-   pdk::pint32 child       = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + 10);
+   pdk::pint32 childCount = pdk::from_big_endian<pdk::pint32>(m_tree + 6);
+   pdk::pint32 child       = pdk::from_big_endian<pdk::pint32>(m_tree + 10);
    
    //now iterate up the tree
    int node = -1;
@@ -506,14 +506,14 @@ int ResourceRoot::findNode(const String &path, const Locale &locale) const
 #endif
                offset += 4;  //jump past name
                
-               const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+               const pdk::pint16 flags = pdk::from_big_endian<pdk::pint16>(m_tree + offset);
                offset += 2;
                
                if(!splitter.hasNext()) {
                   if(!(flags & pdk::as_integer<Flags>(Flags::Directory))) {
-                     const pdk::pint16 country = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+                     const pdk::pint16 country = pdk::from_big_endian<pdk::pint16>(m_tree + offset);
                      offset += 2;
-                     const pdk::pint16 language = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+                     const pdk::pint16 language = pdk::from_big_endian<pdk::pint16>(m_tree + offset);
                      offset += 2;
 #ifdef DEBUG_RESOURCE_MATCH
                      qDebug() << "    " << "LOCALE" << country << language;
@@ -545,9 +545,9 @@ int ResourceRoot::findNode(const String &path, const Locale &locale) const
                }
                
                
-               childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+               childCount = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
                offset += 4;
-               child = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+               child = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
                break;
             }
          }
@@ -568,7 +568,7 @@ short ResourceRoot::getFlags(int node) const
    if(node == -1)
       return 0;
    const int offset = findOffset(node) + 4; //jump past name
-   return pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+   return pdk::from_big_endian<pdk::pint16>(m_tree + offset);
 }
 
 const uchar *ResourceRoot::getData(int node, pdk::pint64 *size) const
@@ -579,14 +579,14 @@ const uchar *ResourceRoot::getData(int node, pdk::pint64 *size) const
    }
    int offset = findOffset(node) + 4; //jump past name
    
-   const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+   const pdk::pint16 flags = pdk::from_big_endian<pdk::pint16>(m_tree + offset);
    offset += 2;
    
    offset += 4; //jump past locale
    
    if(!(flags & pdk::as_integer<Flags>(Flags::Directory))) {
-      const pdk::pint32 dataOffset = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
-      const pdk::puint32 dataLength = pdk::pdk_from_big_endian<pdk::puint32>(m_payloads + dataOffset);
+      const pdk::pint32 dataOffset = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
+      const pdk::puint32 dataLength = pdk::from_big_endian<pdk::puint32>(m_payloads + dataOffset);
       const uchar *ret = m_payloads + dataLength + 4;
       *size = dataLength;
       return ret;
@@ -603,7 +603,7 @@ DateTime ResourceRoot::lastModified(int node) const
    
    const int offset = findOffset(node) + 14;
    
-   const pdk::puint64 timeStamp = pdk::pdk_from_big_endian<pdk::puint64>(m_tree + offset);
+   const pdk::puint64 timeStamp = pdk::from_big_endian<pdk::puint64>(m_tree + offset);
    if (timeStamp == 0) {
       return DateTime();
    }
@@ -616,14 +616,14 @@ StringList ResourceRoot::getChildren(int node) const
       return StringList();
    int offset = findOffset(node) + 4; //jump past name
    
-   const pdk::pint16 flags = pdk::pdk_from_big_endian<pdk::pint16>(m_tree + offset);
+   const pdk::pint16 flags = pdk::from_big_endian<pdk::pint16>(m_tree + offset);
    offset += 2;
    
    StringList ret;
    if(flags & pdk::as_integer<Flags>(Flags::Directory)) {
-      const pdk::pint32 childCount = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+      const pdk::pint32 childCount = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
       offset += 4;
-      const pdk::pint32 childOff = pdk::pdk_from_big_endian<pdk::pint32>(m_tree + offset);
+      const pdk::pint32 childOff = pdk::from_big_endian<pdk::pint32>(m_tree + offset);
       ret.resize(childCount);
       for(int i = childOff; i < childOff + childCount; ++i) {
          ret.push_back(getName(i));
@@ -752,13 +752,13 @@ public:
          return false;
       }
       offset += 4;
-      const int version = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      const int version = pdk::from_big_endian<pdk::pint32>(buffer + offset);
       offset += 4;
-      const int treeOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      const int treeOffset = pdk::from_big_endian<pdk::pint32>(buffer + offset);
       offset += 4;
-      const int dataOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      const int dataOffset = pdk::from_big_endian<pdk::pint32>(buffer + offset);
       offset += 4;
-      const int nameOffset = pdk::pdk_from_big_endian<pdk::pint32>(buffer + offset);
+      const int nameOffset = pdk::from_big_endian<pdk::pint32>(buffer + offset);
       offset += 4;
       // Some sanity checking for sizes. This is _not_ a security measure.
       if (size >= 0 && (treeOffset >= size || dataOffset >= size || nameOffset >= size))

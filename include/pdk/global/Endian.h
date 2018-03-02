@@ -140,37 +140,37 @@ inline void bswap(const T src, void *dest)
 #if PDK_BYTE_ORDER == PDK_BIG_ENDIAN
 
 template <typename T>
-inline constexpr T pdk_to_big_endian(T source)
+inline constexpr T to_big_endian(T source)
 {
    return source;
 }
 
 template <typename T>
-inline constexpr T pdk_from_big_endian(T source)
+inline constexpr T from_big_endian(T source)
 {
    return source;
 }
 
 template <typename T>
-inline constexpr T pdk_to_little_endian(T source)
+inline constexpr T to_little_endian(T source)
 {
    return bswap<T>(source);
 }
 
 template <typename T>
-inline constexpr T pdk_from_little_endian(T source)
+inline constexpr T from_little_endian(T source)
 {
    return bswap<T>(source);
 }
 
 template <typename T>
-inline void pdk_to_big_endian(T src, void *dest)
+inline void to_big_endian(T src, void *dest)
 {
    to_unaligned<T>(src, dest);
 }
 
 template <typename T>
-inline void pdk_to_little_endian(T src, void *dest)
+inline void to_little_endian(T src, void *dest)
 {
    bswap<T>(src, dest);
 }
@@ -178,61 +178,61 @@ inline void pdk_to_little_endian(T src, void *dest)
 #else // PDK_LITTLE_ENDIAN
 
 template <typename T>
-inline constexpr T pdk_to_big_endian(T source)
+inline constexpr T to_big_endian(T source)
 {
    return bswap<T>(source);
 }
 
 template <typename T>
-inline constexpr T pdk_from_big_endian(T source)
+inline constexpr T from_big_endian(T source)
 {
    return bswap<T>(source);
 }
 
 template <typename T>
-inline constexpr T pdk_to_little_endian(T source)
+inline constexpr T to_little_endian(T source)
 {
    return source;
 }
 
 template <typename T>
-inline constexpr T pdk_from_little_endian(T source)
+inline constexpr T from_little_endian(T source)
 {
    return source;
 }
 
 template <typename T>
-inline void pdk_to_big_endian(T src, void *dest)
+inline void to_big_endian(T src, void *dest)
 {
    bswap<T>(src, dest);
 }
 
 template <typename T>
-inline void pdk_to_little_endian(T src, void *dest)
+inline void to_little_endian(T src, void *dest)
 {
    to_unaligned<T>(src, dest);
 }
 
 #endif // PDK_BYTE_ORDER == PDK_BIG_ENDIAN
 
-/* T pdk_from_little_endian(const void *src)
+/* T from_little_endian(const void *src)
  * This function will read a little-endian encoded value from \a src
  * and return the value in host-endian encoding.
  * There is no requirement that \a src must be aligned.
 */
-template <typename T> inline T pdk_from_little_endian(const void *src)
+template <typename T> inline T from_little_endian(const void *src)
 {
-    return pdk_from_little_endian(from_unaligned<T>(src));
+    return from_little_endian(from_unaligned<T>(src));
 }
 
 template <>
-inline puint8 pdk_from_little_endian<puint8>(const void *src)
+inline puint8 from_little_endian<puint8>(const void *src)
 {
    return static_cast<const puint8 *>(src)[0];
 }
 
 template <>
-inline pint8 pdk_from_little_endian<pint8>(const void *src)
+inline pint8 from_little_endian<pint8>(const void *src)
 {
    return static_cast<const pint8 *>(src)[0];
 }
@@ -242,19 +242,19 @@ inline pint8 pdk_from_little_endian<pint8>(const void *src)
  * There is no requirement that \a src must be aligned.
 */
 template <typename T>
-inline T pdk_from_big_endian(const void *src)
+inline T from_big_endian(const void *src)
 {
-    return pdk_from_big_endian(from_unaligned<T>(src));
+    return from_big_endian(from_unaligned<T>(src));
 }
 
 template <>
-inline puint8 pdk_from_big_endian<puint8>(const void *src)
+inline puint8 from_big_endian<puint8>(const void *src)
 {
    return static_cast<const puint8 *>(src)[0];
 }
 
 template <>
-inline pint8 pdk_from_big_endian<pint8>(const void *src)
+inline pint8 from_big_endian<pint8>(const void *src)
 {
    return static_cast<const pint8 *>(src)[0];
 }

@@ -53,6 +53,7 @@ public:
       ThreadChange,
       SocketActive,
       SocketClose,
+      LanguageChange,
       UpdateRequest = 77,                     // widget should be repainted
       UpdateLater = 78,                       // request update() later
       User = 1000, // first user event id

@@ -26,11 +26,16 @@
 
 #define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance();
 #define PDK_DECLARE_TR_FUNCTIONS(context) \
-public: \
-    static inline String tr(const char *sourceText, const char *disambiguation = nullptr, int n = -1) \
-        { return CoreApplication::translate(#context, sourceText, disambiguation, n); } \
-
+   public: \
+   static inline String tr(const char *sourceText, const char *disambiguation = nullptr, int n = -1) \
+{ return CoreApplication::translate(#context, sourceText, disambiguation, n); } \
+   
 namespace pdk {
+
+// forward declare class with namespace
+namespace utils {
+class Translator;
+} // utils
 
 // forward declare class with namespace
 namespace os {
@@ -56,6 +61,7 @@ using internal::CoreApplicationPrivate;
 using pdk::ds::StringList;
 using pdk::lang::String;
 using pdk::os::thread::internal::PostEventList;
+using pdk::utils::Translator;
 
 class PDK_CORE_EXPORT CoreApplication : public Object
 {
@@ -91,7 +97,7 @@ public:
    static void postEvent(Object *receiver, Event *event, pdk::EventPriority priority = pdk::EventPriority::NormalEventPriority);
    static void sendPostedEvents(Object *receiver = nullptr, Event::Type eventType = Event::Type::None);
    static void removePostedEvents(Object *receiver, int eventType = 0);
-   static AbstractEventDispatcher *eventDispatcher();
+   static AbstractEventDispatcher *getEventDispatcher();
    static void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);
    virtual bool notify(Object *, Event *);
    static bool startingUp();
@@ -106,12 +112,17 @@ public:
    static void addLibraryPath(const String &);
    static void removeLibraryPath(const String &);
    
+#ifndef PDK_NO_TRANSLATION
+   static bool installTranslator(Translator *messageFile);
+   static bool removeTranslator(Translator *messageFile);
+#endif   
+   
    static void flush();
    
    static String translate(const char * context,
-                            const char * key,
-                            const char * disambiguation = nullptr,
-                            int n = -1);
+                           const char * key,
+                           const char * disambiguation = nullptr,
+                           int n = -1);
    
    void installNativeEventFilter(AbstractNativeEventFilter *filterObj);
    void removeNativeEventFilter(AbstractNativeEventFilter *filterObj);

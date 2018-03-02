@@ -646,12 +646,12 @@ String Utf32::convertToUnicode(const char *chars, int len, TextCodec::ConverterS
                } else {
                   endian = LittleEndianness;
                }
-            } else if (((endian == BigEndianness) ? pdk::pdk_from_big_endian<pdk::puint32>(tuple) : pdk::pdk_from_little_endian<pdk::puint32>(tuple)) == Character::ByteOrderMark) {
+            } else if (((endian == BigEndianness) ? pdk::from_big_endian<pdk::puint32>(tuple) : pdk::from_little_endian<pdk::puint32>(tuple)) == Character::ByteOrderMark) {
                num = 0;
                continue;
             }
          }
-         uint code = (endian == BigEndianness) ? pdk::pdk_from_big_endian<pdk::puint32>(tuple) : pdk::pdk_from_little_endian<pdk::puint32>(tuple);
+         uint code = (endian == BigEndianness) ? pdk::from_big_endian<pdk::puint32>(tuple) : pdk::from_little_endian<pdk::puint32>(tuple);
          if (Character::requiresSurrogates(code)) {
             *qch++ = Character::getHighSurrogate(code);
             *qch++ = Character::getLowSurrogate(code);
