@@ -52,7 +52,7 @@
 
 # ifdef old_warning_stream
 #   undef warning_stream
-#   define warning_stream PDK_NO_QDEBUG_MACRO
+#   define warning_stream PDK_NO_DEBUG_MACRO
 #   undef old_warning_stream
 # endif
 #endif

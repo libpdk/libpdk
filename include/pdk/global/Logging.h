@@ -158,15 +158,15 @@ private:
 
 #if defined(PDK_NO_DEBUG_OUTPUT)
 #  undef debug_stream
-#  define debug_stream PDK_NO_QDEBUG_MACRO
+#  define debug_stream PDK_NO_DEBUG_MACRO
 #endif
 #if defined(PDK_NO_INFO_OUTPUT)
 #  undef info_stream
-#  define info_stream PDK_NO_QDEBUG_MACRO
+#  define info_stream PDK_NO_DEBUG_MACRO
 #endif
 #if defined(PDK_NO_WARNING_OUTPUT)
 #  undef warning_stream
-#  define warning_stream PDK_NO_QDEBUG_MACRO
+#  define warning_stream PDK_NO_DEBUG_MACRO
 #endif
 
 PDK_CORE_EXPORT void message_output(pdk::MsgType, const MessageLogContext &context,

@@ -157,15 +157,15 @@ private:
 
 #if defined(PDK_NO_DEBUG_OUTPUT)
 #  undef cdebug_stream
-#  define cdebug_stream(category) PDK_NO_QDEBUG_MACRO()
+#  define cdebug_stream(category) PDK_NO_DEBUG_MACRO()
 #endif
 #if defined(PDK_NO_INFO_OUTPUT)
 #  undef cinfo_stream
-#  define cinfo_stream(category) PDK_NO_QDEBUG_MACRO()
+#  define cinfo_stream(category) PDK_NO_DEBUG_MACRO()
 #endif
 #if defined(PDK_NO_WARNING_OUTPUT)
 #  undef cwarning_stream
-#  define cwarning_stream(category) PDK_NO_QDEBUG_MACRO()
+#  define cwarning_stream(category) PDK_NO_DEBUG_MACRO()
 #endif
 
 } // io

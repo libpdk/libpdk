@@ -92,7 +92,7 @@ public:
    {
       CFRunLoopObserverContext context = {};
       context.info = this;
-      m_observer = CFRunLoopObserverCreate(kCFAllocatorDefault, activities, true, nullptr, process, &context);
+      m_observer = CFRunLoopObserverCreate(kCFAllocatorDefault, activities, true, 0, process, &context);
       PDK_ASSERT(m_observer);
    }
    
