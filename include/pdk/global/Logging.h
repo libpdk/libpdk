@@ -70,8 +70,6 @@ private:
    friend class Debug;
 };
 
-
-
 class PDK_CORE_EXPORT MessageLogger
 {
    PDK_DISABLE_COPY(MessageLogger);
@@ -156,7 +154,7 @@ private:
 #define critical_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).critical
 #define fatal_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).fatal
 
-#define PDK_NO_QDEBUG_MACRO while (false) MessageLogger().noDebug
+#define PDK_NO_DEBUG_MACRO while (false) MessageLogger().noDebug
 
 #if defined(PDK_NO_DEBUG_OUTPUT)
 #  undef debug_stream

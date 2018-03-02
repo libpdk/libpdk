@@ -20,6 +20,7 @@
 #include "pdk/kernel/internal/TimerInfoUnixPrivate.h"
 #include "pdk/kernel/internal/CfSocketNotifierPrivate.h"
 #include "pdk/kernel/internal/CoreMacPrivate.h"
+#include "pdk/global/Logging.h"
 
 PDK_FORWARD_DECLARE_OBJC_CLASS(PdkRunLoopModeTracker);
 
@@ -54,15 +55,18 @@ public:
       CFRelease(m_source);
    }
    
-   void addToMode(CFStringRef mode, CFRunLoopRef runLoop = 0)
+   void addToMode(CFStringRef mode, CFRunLoopRef runLoop = nullptr)
    {
-      if (!runLoop)
+      if (!runLoop) {
          runLoop = CFRunLoopGetCurrent();
-      
+      }
       CFRunLoopAddSource(runLoop, m_source, mode);
    }
    
-   void signal() { CFRunLoopSourceSignal(m_source); }
+   void signal()
+   {
+      CFRunLoopSourceSignal(m_source);
+   }
    
 private:
    static void process(void *info)
@@ -76,8 +80,144 @@ private:
    CFRunLoopSourceRef m_source;
 };
 
+template <class T = EventDispatcherCoreFoundation>
+class RunLoopObserver
+{
+public:
+   using CallbackFunction = void (T::*) (CFRunLoopActivity activity);
+   
+   RunLoopObserver(T *delegate, CallbackFunction callback, CFOptionFlags activities)
+      : m_delegate(delegate),
+        m_callback(callback)
+   {
+      CFRunLoopObserverContext context = {};
+      context.info = this;
+      m_observer = CFRunLoopObserverCreate(kCFAllocatorDefault, activities, true, nullptr, process, &context);
+      PDK_ASSERT(m_observer);
+   }
+   
+   ~RunLoopObserver()
+   {
+      CFRunLoopObserverInvalidate(m_observer);
+      CFRelease(m_observer);
+   }
+   
+   void addToMode(CFStringRef mode, CFRunLoopRef runLoop = nullptr)
+   {
+      if (!runLoop) {
+         runLoop = CFRunLoopGetCurrent();
+      }
+      if (!CFRunLoopContainsObserver(runLoop, m_observer, mode)) {
+         CFRunLoopAddObserver(runLoop, m_observer, mode);
+      }
+   }
+   
+   void removeFromMode(CFStringRef mode, CFRunLoopRef runLoop = nullptr)
+   {
+      if (!runLoop) {
+         runLoop = CFRunLoopGetCurrent();
+      }
+      if (CFRunLoopContainsObserver(runLoop, m_observer, mode)) {
+         CFRunLoopRemoveObserver(runLoop, m_observer, mode);
+      }
+   }
+   
+private:
+   static void process(CFRunLoopObserverRef, CFRunLoopActivity activity, void *info)
+   {
+      RunLoopObserver *self = static_cast<RunLoopObserver *>(info);
+      ((self->m_delegate)->*(self->m_callback))(activity);
+   }
+   
+   T *m_delegate;
+   CallbackFunction m_callback;
+   CFRunLoopObserverRef m_observer;
+};
+
+class PDK_CORE_EXPORT EventDispatcherCoreFoundation : public AbstractEventDispatcher
+{
+public:
+   explicit EventDispatcherCoreFoundation(Object *parent = 0);
+   ~EventDispatcherCoreFoundation();
+   
+   bool processEvents(EventLoop::ProcessEventsFlags flags);
+   bool hasPendingEvents();
+   
+   void registerSocketNotifier(SocketNotifier *notifier);
+   void unregisterSocketNotifier(SocketNotifier *notifier);
+   
+   void registerTimer(int timerId, int interval, pdk::TimerType timerType, Object *object);
+   bool unregisterTimer(int timerId);
+   bool unregisterTimers(Object *object);
+   std::list<AbstractEventDispatcher::TimerInfo> registeredTimers(Object *object) const;
+   
+   int remainingTime(int timerId);
+   
+   void wakeUp();
+   void interrupt();
+   void flush();
+   
+protected:
+   EventLoop *currentEventLoop() const;
+   
+   virtual bool processPostedEvents();
+   
+   struct ProcessEventsState
+   {
+      ProcessEventsState(EventLoop::ProcessEventsFlags f)
+         : m_flags(f),
+           m_wasInterrupted(false),
+           m_processedPostedEvents(false), 
+           m_processedTimers(false), 
+           m_deferredWakeUp(false), 
+           m_deferredUpdateTimers(false)
+      {}
+      
+      EventLoop::ProcessEventsFlags m_flags;
+      bool m_wasInterrupted;
+      bool m_processedPostedEvents;
+      bool m_processedTimers;
+      bool m_deferredWakeUp;
+      bool m_deferredUpdateTimers;
+   };
+   
+   ProcessEventsState m_processEvents;
+   
+private:
+   RunLoopSource<> m_postedEventsRunLoopSource;
+   RunLoopObserver<> m_runLoopActivityObserver;
+   
+   PdkRunLoopModeTracker *m_runLoopModeTracker;
+   
+   internal::TimerInfoList m_timerInfoList;
+   CFRunLoopTimerRef m_runLoopTimer;
+   CFRunLoopTimerRef m_blockedRunLoopTimer;
+   bool m_overdueTimerScheduled;
+   
+   internal::CFSocketNotifier m_cfSocketNotifier;
+   
+   void processTimers(CFRunLoopTimerRef);
+   
+   void handleRunLoopActivity(CFRunLoopActivity activity);
+   
+   void updateTimers();
+   void invalidateTimer();
+};
 
 } // kernel
 } // pdk
+
+#if DEBUG_EVENT_DISPATCHER
+extern uint sg_eventDispatcherIndentationLevel;
+#define event_dispatcher_debug_stream() debug_stream().nospace() \
+            << pdk_printable(String(Latin1String("| ")).repeated(sg_eventDispatcherIndentationLevel)) \
+            << __FUNCTION__ << "(): "
+#define pdk_indent() ++sg_eventDispatcherIndentationLevel
+#define pdk_unindent() --sg_eventDispatcherIndentationLevel
+#else
+#define event_dispatcher_debug_stream() PDK_NO_DEBUG_MACRO()
+#define pdk_indent()
+#define pdk_unindent()
+#endif
 
 #endif // PDK_KERNEL_EVENT_DISPATCHER_CF_H
