@@ -659,18 +659,14 @@ String retrieve_app_name()
 
 CoreApplication::CoreApplication(CoreApplicationPrivate &p)
    : Object(p, 0)
-{
-}
+{}
 
 CoreApplication::CoreApplication(int &argc, char **argv, int internal)
    : Object(*new CoreApplicationPrivate(argc, argv, internal))
-{
-   
-}
+{}
 
 void CoreApplication::flush()
-{
-}
+{}
 
 #ifndef PDK_NO_TRANSLATION
 bool CoreApplication::installTranslator(Translator *translationFile)
@@ -820,6 +816,10 @@ String CoreApplication::translate(const char *context, const char *sourceText,
 
 CoreApplication::~CoreApplication()
 {
+   call_post_routines();
+   sm_self = nullptr;
+   CoreApplicationPrivate::sm_isAppClosing = true;
+   CoreApplicationPrivate::sm_isAppRunning = false;
 }
 
 void CoreApplication::setSetuidAllowed(bool allow)
@@ -1082,8 +1082,8 @@ void CoreApplicationPrivate::maybeQuit()
 }
 
 // Makes it possible to point CoreApplication to a custom location to ensure
-// the directory is added to the patch, and qt.conf and deployed plugins are
-// found from there. This is for use cases in which QGuiApplication is
+// the directory is added to the patch, and pdk.conf and deployed plugins are
+// found from there. This is for use cases in which GuiApplication is
 // instantiated by a library and not by an application executable, for example,
 // Active X servers.
 
