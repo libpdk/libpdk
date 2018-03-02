@@ -80,16 +80,19 @@ namespace {
 
 void call_pre_routines()
 {
-   StartupFuncList *list = sg_preRList();
-   if (!list) {
+   if (!sg_preRList.exists()) {
       return;
    }
-   std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
-   // Unlike pdk::kernel::call_post_routines, we don't empty the list, because
-   // PDK_COREAPP_STARTUP_FUNCTION is a macro, so the user expects
-   // the function to be executed every time CoreApplication is created.
-   auto iter = list->cbegin();
-   auto end = list->cend();
+   StartupFuncList list;
+   {
+      std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
+      // Unlike pdk::kernel::call_post_routines, we don't empty the list, because
+      // PDK_COREAPP_STARTUP_FUNCTION is a macro, so the user expects
+      // the function to be executed every time CoreApplication is created.
+      list = *sg_preRList;
+   }
+   auto iter = list.cbegin();
+   auto end = list.cend();
    while (iter != end) {
       (*iter)();
       ++iter;
@@ -126,32 +129,57 @@ inline bool contains(int argc, char **argv, const char *needle)
 #endif // PDK_OS_WIN
 
 bool do_notify(Object *, Event *)
-{
-   
-}
+{}
+
 }
 
 namespace internal {
 
 bool CoreApplicationPrivate::sm_setuidAllowed = false;
 
+#ifdef PDK_OS_DARWIN
+String CoreApplicationPrivate::infoDictionaryStringProperty(const String &propertyName)
+{
+   String bundleName;
+   CFString cfPropertyName = propertyName.toCFString();
+   CFTypeRef string = CFBundleGetValueForInfoDictionaryKey(CFBundleGetMainBundle(),
+                                                           cfPropertyName);
+   if (string) {
+      bundleName = String::fromCFString(static_cast<CFStringRef>(string));
+   }
+   return bundleName;
+}
+#endif
+
 String CoreApplicationPrivate::getAppName() const
 {
-   //   String appName;
-   //   if (m_argv[0]) {
-   //      char *p = std::strrchr(m_argv[0], '/');
-   //      appName = p ? (p + 1) : m_argv[0];
-   //   }
-   //   return appName;
+   String appName;
+#ifdef PDK_OS_DARWIN
+   appName = infoDictionaryStringProperty(StringLiteral("CFBundleName"));
+#endif
+   if (m_argv[0]) {
+      char *p = std::strrchr(m_argv[0], '/');
+      appName = String::fromLocal8Bit(p ? (p + 1) : m_argv[0]);
+   }
+   return appName;
 }
 
-String *CoreApplicationPrivate::m_cachedAppFilePath = nullptr;
+String CoreApplicationPrivate::getAppVersion() const
+{
+   String applicationVersion;
+#ifdef PDK_OS_DARWIN
+   applicationVersion = infoDictionaryStringProperty(StringLiteral("CFBundleVersion"));
+#endif
+   return applicationVersion;
+}
+
+String *CoreApplicationPrivate::sm_cachedAppFilePath = nullptr;
 
 bool CoreApplicationPrivate::checkInstance(const char *method)
 {
    bool flag = (CoreApplication::sm_self != nullptr);
    if (!flag) {
-      // warning_stream("CoreApplication::%s: Please instantiate the CoreApplication object first", method);
+      warning_stream("CoreApplication::%s: Please instantiate the CoreApplication object first", method);
    }
    return flag;
 }
@@ -203,6 +231,7 @@ void add_post_routine(CleanUpFunction func)
    if (!list) {
       return;
    }
+   std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
    list->push_front(func);
 }
 
@@ -212,25 +241,28 @@ void remove_post_routine(CleanUpFunction func)
    if (!list) {
       return;
    }
+   std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
    list->remove(func);
 }
 
 void call_post_routines()
 {
-   ShutdownFuncList *list = nullptr;
-   try {
-      list = sg_postRList();
-   } catch (const std::bad_alloc &) {
-      // ignore - if we can't allocate a post routine list,
-      // there's a high probability that there's no post
-      // routine to be executed :)
-   }
-   if (!list) {
+   if (!sg_postRList.exists()) {
       return;
    }
-   while (!list->empty()) {
-      (list->front())();
-      list->pop_front();
+   while (true) {
+      ShutdownFuncList list;
+      {
+         std::lock_guard<std::mutex> locker(sg_preRoutinesMutex);
+         std::swap(*sg_postRList, list);
+      }
+      if (list.empty()) {
+         break;
+      }
+      
+      for (CleanUpFunction func : std::as_const(list)) {
+         func();
+      }
    }
 }
 
@@ -466,31 +498,31 @@ void CoreApplication::flush()
 }
 
 String CoreApplication::translate(const char *context, const char *sourceText,
-                                    const char *disambiguation, int n)
+                                  const char *disambiguation, int n)
 {
    String result;
-//   if (!sourceText) {
-//      return result;
-//   }
-//   if (sm_self) {
-//      CoreApplicationPrivate *d = sm_self->getImplPtr();
-//      ReadLocker locker(&d->translateMutex);
-//      if (!d->translators.isEmpty()) {
-//         std::list<QTranslator*>::const_iterator it;
-//         Translator *translationFile;
-//         for (it = d->translators.constBegin(); it != d->translators.constEnd(); ++it) {
-//            translationFile = *it;
-//            result = translationFile->translate(context, sourceText, disambiguation, n);
-//            if (!result.isNull())
-//               break;
-//         }
-//      }
-//   }
+   //   if (!sourceText) {
+   //      return result;
+   //   }
+   //   if (sm_self) {
+   //      CoreApplicationPrivate *d = sm_self->getImplPtr();
+   //      ReadLocker locker(&d->translateMutex);
+   //      if (!d->translators.isEmpty()) {
+   //         std::list<QTranslator*>::const_iterator it;
+   //         Translator *translationFile;
+   //         for (it = d->translators.constBegin(); it != d->translators.constEnd(); ++it) {
+   //            translationFile = *it;
+   //            result = translationFile->translate(context, sourceText, disambiguation, n);
+   //            if (!result.isNull())
+   //               break;
+   //         }
+   //      }
+   //   }
    
-//   if (result.isNull())
-//      result = String::fromUtf8(sourceText);
+   //   if (result.isNull())
+   //      result = String::fromUtf8(sourceText);
    
-//   replacePercentN(&result, n);
+   //   replacePercentN(&result, n);
    return result;
 }
 

@@ -73,6 +73,10 @@ public:
    ~CoreApplicationPrivate();
    void init();
    String getAppName() const;
+   String getAppVersion() const;
+#ifdef PDK_OS_DARWIN
+   static String infoDictionaryStringProperty(const String &propertyName);
+#endif
    bool sendThroughApplicationEventFilters(Object *, Event *);
 #ifdef PDK_OS_WIN
    static void removePostedTimerEvent(Object *object, int timerId);
@@ -85,29 +89,30 @@ public:
    void appendAppPathToLibPaths(void);
    
 #ifndef PDK_NO_TRANSLATION
-//    TranslatorList m_translators;
-//    ReadWriteLock m_translateMutex;
-//    static bool isTranslatorInstalled(Translator *translator);
+   //    TranslatorList m_translators;
+   //    ReadWriteLock m_translateMutex;
+   //    static bool isTranslatorInstalled(Translator *translator);
 #endif
    
-   static String *m_cachedAppFilePath;
    static void setAppFilePath(const String &path);
    static inline void clearAppFilePath()
    {
-      delete m_cachedAppFilePath;
-      m_cachedAppFilePath = nullptr;
+      delete sm_cachedAppFilePath;
+      sm_cachedAppFilePath = nullptr;
    }
    void execCleanup();
    void processCommandLineArguments();
-
+   
    static AbstractEventDispatcher *sm_eventDispatcher;
    static bool sm_isAppRunning;
    static bool sm_isAppClosing;
    static bool sm_setuidAllowed;
+   static uint sm_attribs;
    static BasicAtomicPointer<Thread> sm_theMainThread;
+   static String *sm_cachedAppFilePath;
    
    CoreApplicationPrivate::Type m_applicationType;
-   String m_cachedApplicationDirPath;
+   String m_cachedAppDirPath;
    bool m_inExec;
    bool m_aboutToQuitEmitted;
    bool m_threadDataClean;
