@@ -172,6 +172,8 @@ private:
 Debug operator<<(Debug debug, const MacAutoReleasePool *pool);
 #endif
 
+PDK_CORE_EXPORT void apple_check_os_version();
+
 } // kernel
 } // pdk
 

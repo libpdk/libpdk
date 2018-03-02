@@ -38,6 +38,7 @@
 #define PDK_FEATURE_datestring -1
 #define PDK_FEATURE_getentropy 1
 #define PDK_FEATURE_getauxval -1
+#define PDK_FEATURE_library 1
 
 #define PDK_NO_DOUBLECONVERSION
 

@@ -135,6 +135,7 @@ bool do_notify(Object *, Event *)
 
 namespace internal {
 
+uint CoreApplicationPrivate::sm_appCompileVersion = 0x010000;
 bool CoreApplicationPrivate::sm_setuidAllowed = false;
 
 #ifdef PDK_OS_DARWIN
@@ -279,6 +280,10 @@ uint global_posted_events_count()
 }
 
 CoreApplication *CoreApplication::sm_self = nullptr;
+
+// current pdk does not support GUI programming
+uint CoreApplicationPrivate::sm_attribs = 0;
+
 struct CoreApplicationData {
    CoreApplicationData() noexcept
    {
@@ -299,7 +304,7 @@ struct CoreApplicationData {
    String m_appVersion;
    bool m_appNameSet; // true if setApplicationName was called
    
-#ifndef PDK_NO_LIBRARY
+#if PDK_CONFIG(library)
    ScopedPointer<StringList> m_appLibpaths;
    ScopedPointer<StringList> m_manualLibpaths;
 #endif
@@ -317,15 +322,41 @@ CoreApplicationPrivate::CoreApplicationPrivate(int &aargc, char **aargv, uint fl
    : ObjectPrivate(),
      #if defined(PDK_OS_WIN)
      m_origArgc(0),
-     m_origArgv(Q_NULLPTR),
+     m_origArgv(nullptr),
      #endif
-     m_applicationType(CoreApplicationPrivate::Type::Tty),
+     m_appType(CoreApplicationPrivate::Type::Tty),
      m_inExec(false),
      m_aboutToQuitEmitted(false),
      m_threadDataClean(false),
      m_argc(aargc),
      m_argv(aargv)
 {
+#if defined(PDK_OS_DARWIN)
+   apple_check_os_version();
+#endif
+   sm_appCompileVersion = flags & 0xffffff;
+   static const char *const empty = "";
+   if (m_argc == 0 || m_argv == nullptr) {
+      m_argc = 0;
+      m_argv = const_cast<char **>(&empty);
+   }
+#if defined(PDK_OS_WIN)
+   if (!is_argv_modified(argc, argv)) {
+      m_origArgc = argc;
+      m_origArgv = new char *[argc];
+      std::copy(argv, argv + argc, PDK_MAKE_CHECKED_ARRAY_ITERATOR(origArgv, argc));
+   }
+#endif // PDK_OS_WIN
+   CoreApplicationPrivate::sm_isAppClosing = false;
+   
+#if defined(PDK_OS_UNIX)
+   if (PDK_UNLIKELY(!sm_setuidAllowed && (geteuid() != getuid())))
+      fatal_stream("FATAL: The application binary appears to be running setuid, this is a security hole.");
+#endif // PDK_OS_UNIX
+   Thread *cur = Thread::getCurrentThread(); // note: this may end up setting theMainThread!
+   if (cur != sm_theMainThread) {
+      warning_stream("WARNING: Application was not created in the main() thread.");
+   }
 }
 
 CoreApplicationPrivate::~CoreApplicationPrivate()

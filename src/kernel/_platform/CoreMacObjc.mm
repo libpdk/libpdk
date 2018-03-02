@@ -180,6 +180,29 @@ MacRootLevelAutoReleasePool::MacRootLevelAutoReleasePool()
 MacRootLevelAutoReleasePool::~MacRootLevelAutoReleasePool()
 {}
 
+void apple_check_os_version()
+{
+#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED)
+    const char *os = "macOS";
+    const int version = __MAC_OS_X_VERSION_MIN_REQUIRED;
+#endif
+    NSOperatingSystemVersion required;
+    required.majorVersion = version / 10000;
+    required.minorVersion = version / 100 % 100;
+    required.patchVersion = version % 100;
+    const NSOperatingSystemVersion current = NSProcessInfo.processInfo.operatingSystemVersion;
+    if (![NSProcessInfo.processInfo isOperatingSystemAtLeastVersion:required]) {
+        fprintf(stderr, "You can't use this version of %s with this version of %s. "
+                "You have %s %ld.%ld.%ld. Qt requires %s %ld.%ld.%ld or later.\n",
+                (reinterpret_cast<const NSString *>(
+                    NSBundle.mainBundle.infoDictionary[@"CFBundleName"]).UTF8String),
+                os,
+                os, long(current.majorVersion), long(current.minorVersion), long(current.patchVersion),
+                os, long(required.majorVersion), long(required.minorVersion), long(required.patchVersion));
+        abort();
+    }
+}
+
 } // kernel
 } // pdk
 

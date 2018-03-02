@@ -110,8 +110,9 @@ public:
    static uint sm_attribs;
    static BasicAtomicPointer<Thread> sm_theMainThread;
    static String *sm_cachedAppFilePath;
+   static uint sm_appCompileVersion;
    
-   CoreApplicationPrivate::Type m_applicationType;
+   CoreApplicationPrivate::Type m_appType;
    String m_cachedAppDirPath;
    bool m_inExec;
    bool m_aboutToQuitEmitted;
