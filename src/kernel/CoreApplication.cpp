@@ -58,13 +58,16 @@ using pdk::os::thread::ThreadStorageData;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
 
+#if defined(PDK_OS_WIN) || defined(PDK_OS_MAC)
+extern String retrieve_app_filename();
+#endif
+
 #if defined(PDK_OS_DARWIN)
 using pdk::kernel::EventDispatcherCoreFoundation;
 #endif
 
 extern "C" void PDK_CORE_EXPORT startup_hook()
-{
-}
+{}
 
 using StartupFuncList = std::list<StartUpFunction>;
 PDK_GLOBAL_STATIC(StartupFuncList, sg_preRList);

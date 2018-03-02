@@ -187,7 +187,8 @@ if(UNIX)
          ${KERNEL_BASE_DIR}/_platform/CoreFoundationMac.mm
          ${KERNEL_BASE_DIR}/_platform/CoreMacObjc.mm
          ${KERNEL_BASE_DIR}/_platform/CfSocketNotifier.cpp
-         ${KERNEL_BASE_DIR}/_platform/EventDispatcherCf.mm)
+         ${KERNEL_BASE_DIR}/_platform/EventDispatcherCf.mm
+         ${KERNEL_BASE_DIR}/_platform/CoreApplicationMac.cpp)
    else()
       list(APPEND PDK_BASE_SOURCES
          ${KERNEL_BASE_DIR}/_platform/ElapsedTimerUnix.cpp)
