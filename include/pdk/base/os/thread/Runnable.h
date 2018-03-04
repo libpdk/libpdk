@@ -22,6 +22,15 @@ namespace pdk {
 namespace os {
 namespace thread {
 
+// forward declare class with namespace
+namespace internal {
+class ThreadPoolPrivate;
+class ThreadPoolThread;
+} // internal
+
+using internal::ThreadPoolPrivate;
+using internal::ThreadPoolThread;
+
 class PDK_CORE_EXPORT Runnable
 {
 public:
@@ -39,7 +48,7 @@ public:
    
    void setAutoDelete(bool autoDelete)
    {
-      ref = autoDelete ? 0 : -1;
+      m_ref = autoDelete ? 0 : -1;
    }
 private:
    int m_ref;

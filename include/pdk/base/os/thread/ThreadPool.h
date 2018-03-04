@@ -18,6 +18,48 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/base/os/thread/Thread.h"
-#include 
+#include "pdk/base/os/thread/Runnable.h"
+#include "pdk/kernel/Object.h"
+
+namespace pdk {
+namespace os {
+namespace thread {
+
+namespace internal {
+class ThreadPoolPrivate;
+} // internal
+
+using internal::ThreadPoolPrivate;
+using pdk::kernel::Object;
+
+class PDK_CORE_EXPORT ThreadPool : public Object
+{
+public:
+   ThreadPool(Object *parent = nullptr);
+   ~ThreadPool();
+   static ThreadPool *globalInstance();
+   void start(Runnable *runnable, int priority = 0);
+   bool tryStart(Runnable *runnable);
+   int getExpiryTimeout() const;
+   void setExpiryTimeout(int expiryTimeout);
+   int getMaxThreadCount() const;
+   void setMaxThreadCount(int maxThreadCount);
+   int getActiveThreadCount() const;
+   void setStackSize(uint stackSize);
+   uint getStackSize() const;
+   void reserveThread();
+   void releaseThread();
+   bool waitForDone(int msecs = -1);
+   void clear();
+   
+   PDK_REQUIRED_RESULT bool tryTake(Runnable *runnable);
+private:
+   friend class FutureInterfaceBase;
+   PDK_DECLARE_PRIVATE(ThreadPool);
+};
+
+} // thread
+} // os
+} // pdk
 
 #endif // PDK_M_BASE_OS_THREAD_THREAD_POOL_H
