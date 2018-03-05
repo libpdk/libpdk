@@ -3,6 +3,7 @@
 set(MODULE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/base)
 set(KERNEL_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 set(UTILS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/utils)
+set(DLL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dll)
 
 set(PDK_HAS_FEATURE_TIMEZONE TRUE)
 
@@ -23,6 +24,21 @@ pdk_collect_files(
 
 pdk_collect_files(
    TYPE_SOURCE
+   DIR dll
+   OUTPUT_VAR PDK_BASE_SOURCES)
+
+if (WIN32)
+   #   list(APPEND PDK_BASE_SOURCES
+   #            ${DLL_DIR}/_platform/LibraryWin.cpp)
+elseif(UNIX)
+   list(APPEND PDK_BASE_SOURCES
+      ${DLL_DIR}/_platform/LibraryWin.cpp
+      ${DLL_DIR}/_platform/SystemLibraryWin.cpp
+      ${DLL_DIR}/_platform/LibraryUnix.cpp)
+endif()
+
+pdk_collect_files(
+   TYPE_SOURCE
    DIR utils
    OUTPUT_VAR PDK_BASE_SOURCES)
 
@@ -40,11 +56,6 @@ elseif(UNIX)
          ${UTILS_DIR}/_platform/LocaleUnix.cpp)
    endif()
 endif()
-
-pdk_collect_files(
-   TYPE_SOURCE
-   DIR stdext
-   OUTPUT_VAR PDK_BASE_SOURCES)
 
 pdk_collect_files(
    TYPE_SOURCE
