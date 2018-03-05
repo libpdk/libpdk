@@ -22,6 +22,7 @@
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
 #include "pdk/kernel/ElapsedTimer.h"
+#include "pdk/kernel/internal/CoreCommandLineArgsPrivate.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/utils/Translator.h"
 #include "pdk/base/os/thread/Thread.h"
@@ -34,6 +35,7 @@
 #include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/io/fs/StandardPaths.h"
+#include "pdk/global/LibraryInfo.h"
 
 #include <cstdlib>
 #include <list>
@@ -79,6 +81,7 @@ using pdk::io::fs::File;
 using pdk::io::fs::Dir;
 using pdk::io::fs::FileInfo;
 using pdk::io::fs::StandardPaths;
+using pdk::LibraryInfo;
 using pdk::ds::VarLengthArray;
 
 #if defined(PDK_OS_WIN) || defined(PDK_OS_MAC)
@@ -1521,7 +1524,7 @@ StringList CoreApplication::getArguments()
 {
    StringList list;
    if (!sm_self) {
-      warning_stream("CoreApplication::arguments: Please instantiate the QApplication object first");
+      warning_stream("CoreApplication::arguments: Please instantiate the Application object first");
       return list;
    }
    const int ac = sm_self->getImplPtr()->m_argc;
@@ -1536,7 +1539,7 @@ StringList CoreApplication::getArguments()
    String cmdline = String::fromWCharArray(GetCommandLine());
    const CoreApplicationPrivate *d = sm_self->getImplPtr();
    if (d->m_origArgv) {
-      const StringList allArguments = qWinCmdArgs(cmdline);
+      const StringList allArguments = pdk::kernel::internal::win_cmd_args(cmdline);
       PDK_ASSERT(allArguments.size() == d->origArgc);
       for (int i = 0; i < d->origArgc; ++i) {
          if (contains(ac, av, d->origArgv[i])) {
@@ -1555,45 +1558,154 @@ StringList CoreApplication::getArguments()
 
 void CoreApplication::setOrgName(const String &orgName)
 {
+   if (sg_coreAppData()->m_orgName == orgName) {
+      return;
+   }
+   sg_coreAppData()->m_orgName = orgName;
+#ifndef PDK_NO_QOBJECT
+   if (CoreApplication::sm_self) {
+      // @TODO emit signal
+      // emit CoreApplication::sm_self->orgNameChanged();
+   }      
+#endif
 }
 
 String CoreApplication::getOrgName()
 {
+   return sg_coreAppData()->m_orgName;
 }
 
 void CoreApplication::setOrgDomain(const String &orgDomain)
 {
+   if (sg_coreAppData()->m_orgDomain == orgDomain) {
+      return;
+   }
+   sg_coreAppData()->m_orgDomain = orgDomain;
+#ifndef PDK_NO_QOBJECT
+   if (CoreApplication::sm_self) {
+      // @TODO emit signal
+      // emit CoreApplication::sm_self->orgDomainChanged();
+   }
+#endif
 }
 
 String CoreApplication::getOrgDomain()
 {
+   return sg_coreAppData()->m_orgDomain;
 }
 
 void CoreApplication::setAppName(const String &application)
 {
+   sg_coreAppData()->m_appNameSet = !application.isEmpty();
+   String newAppName = application;
+   if (newAppName.isEmpty() && CoreApplication::sm_self) {
+      newAppName = CoreApplication::sm_self->getImplPtr()->getAppName();
+   }
+   if (sg_coreAppData()->m_appName == newAppName) {
+      return;
+   }
+   sg_coreAppData()->m_appName = newAppName;
+#ifndef PDK_NO_QOBJECT
+   if (CoreApplication::sm_self) {
+      // @TODO emit signal
+      // emit CoreApplication::sm_self->applicationNameChanged();
+   }
+#endif
 }
 
 String CoreApplication::getAppName()
 {
+   return sg_coreAppData() ? sg_coreAppData()->m_appName : String();
 }
 
 void CoreApplication::setAppVersion(const String &version)
 {
+   sg_coreAppData()->m_appVersionSet = !version.isEmpty();
+   String newVersion = version;
+   if (newVersion.isEmpty() && CoreApplication::sm_self) {
+      newVersion = CoreApplication::sm_self->getImplPtr()->getAppVersion();
+   }
+   if (sg_coreAppData()->m_appVersion == newVersion) {
+      return;
+   }
+   sg_coreAppData()->m_appVersion = newVersion;
+#ifndef PDK_NO_QOBJECT
+   if (CoreApplication::sm_self) {
+      // @TODO emit signal
+      // emit CoreApplication::sm_self->appVersionChanged();
+   }
+#endif
 }
 
 String CoreApplication::getAppVersion()
 {
-   
+   return sg_coreAppData() ? sg_coreAppData()->m_appVersion : String();
 }
+
+#if PDK_CONFIG(library)
 
 PDK_GLOBAL_STATIC(std::recursive_mutex, sg_libraryPathMutex);
 
 StringList CoreApplication::getLibraryPaths()
 {
+   std::lock_guard<std::recursive_mutex> locker(*sg_libraryPathMutex());
+   if (sg_coreAppData()->m_manualLibPaths) {
+      return *(sg_coreAppData()->m_manualLibPaths);
+   }
+   if (!sg_coreAppData()->m_appLibPaths) {
+      StringList *appLibPaths = new StringList;
+      sg_coreAppData()->m_appLibPaths.reset(appLibPaths);
+      const ByteArray libPathEnv = pdk::pdk_getenv("PDK_PLUGIN_PATH");
+      if (!libPathEnv.isEmpty()) {
+         StringList paths = File::decodeName(libPathEnv).split(Dir::getListSeparator(), String::SplitBehavior::SkipEmptyParts);
+         for (StringList::const_iterator iter = paths.cbegin(); iter != paths.cend(); ++iter) {
+            String canonicalPath = Dir(*iter).getCanonicalPath();
+            if (!canonicalPath.isEmpty()
+                && !appLibPaths->contains(canonicalPath)) {
+               appLibPaths->push_back(canonicalPath);
+            }
+         }
+      }
+      
+#ifdef PDK_OS_DARWIN
+      // Check the main bundle's PlugIns directory as this is a standard location for Apple OSes.
+      // Note that the LibraryInfo::PluginsPath below will coincidentally be the same as this value
+      // but with a different casing, so it can't be relied upon when the underlying filesystem
+      // is case sensitive (and this is always the case on newer OSes like iOS).
+      if (CFBundleRef bundleRef = CFBundleGetMainBundle()) {
+         if (CFType<CFURLRef> urlRef = CFBundleCopyBuiltInPlugInsURL(bundleRef)) {
+            if (CFType<CFURLRef> absoluteUrlRef = CFURLCopyAbsoluteURL(urlRef)) {
+               if (CFString path = CFURLCopyFileSystemPath(absoluteUrlRef, kCFURLPOSIXPathStyle)) {
+                  if (File::exists(path)) {
+                     path = Dir(path).getCanonicalPath();
+                     if (!appLibPaths->contains(path)) {
+                        appLibPaths->push_back(path);
+                     }
+                  }
+               }
+            }
+         }
+      }
+#endif // PDK_OS_DARWIN
+      String installPathPlugins =  LibraryInfo::getPath(LibraryInfo::LibraryLocation::PluginsPath);
+      if (File::exists(installPathPlugins)) {
+         // Make sure we convert from backslashes to slashes.
+         installPathPlugins = Dir(installPathPlugins).getCanonicalPath();
+         if (!appLibPaths->contains(installPathPlugins))
+            appLibPaths->push_back(installPathPlugins);
+      }
+      // If CoreApplication is not yet instantiated,
+      // make sure we add the application path when we construct the CoreApplication
+      if (sm_self) {
+         sm_self->getImplPtr()->appendAppPathToLibPaths();
+      }
+   }
+   return *(sg_coreAppData()->m_appLibPaths);
 }
 
 void CoreApplication::setLibraryPaths(const StringList &paths)
 {
+  
 }
 
 void CoreApplication::addLibraryPath(const String &path)
@@ -1603,6 +1715,8 @@ void CoreApplication::addLibraryPath(const String &path)
 void CoreApplication::removeLibraryPath(const String &path)
 {
 }
+
+#endif
 
 void CoreApplication::installNativeEventFilter(AbstractNativeEventFilter *filterObj)
 {
