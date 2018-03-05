@@ -63,7 +63,7 @@ constexpr T bswap(T source);
 // These definitions are written so that they are recognized by most compilers
 // as bswap and replaced with single instruction builtins if available.
 template <>
-inline constexpr puint64 bswap<puint64>(puint64 source)
+inline constexpr pdk::puint64 bswap<pdk::puint64>(pdk::puint64 source)
 {
    return 0
          | ((source & PDK_UINT64_C(0x00000000000000ff)) << 56)
@@ -77,7 +77,7 @@ inline constexpr puint64 bswap<puint64>(puint64 source)
 }
 
 template <>
-inline constexpr puint32 bswap< puint32>(puint32 source)
+inline constexpr pdk::puint32 bswap<pdk::puint32>(pdk::puint32 source)
 {
    return 0
          | ((source & 0x000000ff) << 24)
@@ -87,36 +87,36 @@ inline constexpr puint32 bswap< puint32>(puint32 source)
 }
 
 template <>
-inline constexpr puint16 bswap<puint16>(puint16 source)
+inline constexpr pdk::puint16 bswap<pdk::puint16>(pdk::puint16 source)
 {
-   return puint16( 0
+   return pdk::puint16( 0
                         | ((source & 0x00ff) << 8)
                         | ((source & 0xff00) >> 8) );
 }
 
 template <>
-inline constexpr puint8 bswap<puint8>(puint8 source)
+inline constexpr pdk::puint8 bswap<pdk::puint8>(pdk::puint8 source)
 {
     return source;
 }
 
 // signed specializations
 template <>
-inline constexpr pint64 bswap<pint64>(pint64 source)
+inline constexpr pdk::pint64 bswap<pdk::pint64>(pdk::pint64 source)
 {
-    return bswap<puint64>(static_cast<puint64>(source));
+    return bswap<pdk::puint64>(static_cast<pdk::puint64>(source));
 }
 
 template <>
 inline constexpr pint32 bswap<pint32>(pint32 source)
 {
-    return bswap<puint32>(static_cast<puint32>(source));
+    return bswap<pdk::puint32>(static_cast<pdk::puint32>(source));
 }
 
 template <>
 inline constexpr pint16 bswap<pint16>(pint16 source)
 {
-    return bswap<puint16>(static_cast<puint16>(source));
+    return bswap<pdk::puint16>(static_cast<pdk::puint16>(source));
 }
 
 template <>
@@ -134,7 +134,7 @@ inline constexpr pint8 bswap<pint8>(pint8 source)
 template <typename T>
 inline void bswap(const T src, void *dest)
 {
-    to_unaligned<T>(bswap<T>(src), dest);
+    to_unaligned<T>(dest, bswap<T>(src));
 }
 
 #if PDK_BYTE_ORDER == PDK_BIG_ENDIAN
@@ -166,7 +166,7 @@ inline constexpr T from_little_endian(T source)
 template <typename T>
 inline void to_big_endian(T src, void *dest)
 {
-   to_unaligned<T>(src, dest);
+   to_unaligned<T>(dest, src);
 }
 
 template <typename T>
@@ -210,7 +210,7 @@ inline void to_big_endian(T src, void *dest)
 template <typename T>
 inline void to_little_endian(T src, void *dest)
 {
-   to_unaligned<T>(src, dest);
+   to_unaligned<T>(dest, src);
 }
 
 #endif // PDK_BYTE_ORDER == PDK_BIG_ENDIAN
