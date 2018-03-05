@@ -95,6 +95,40 @@ enum class MsgType
    SystemMsg = CriticalMsg
 };
 
+enum class  AppAttribute
+{
+   AA_ImmediateWidgetCreation = 0,
+   AA_MSWindowsUseDirect3DByDefault = 1, // Win only
+   AA_DontShowIconsInMenus = 2,
+   AA_NativeWindows = 3,
+   AA_DontCreateNativeWidgetSiblings = 4,
+   AA_PluginApplication = 5,
+   AA_DontUseNativeMenuBar = 6,
+   AA_MacDontSwapCtrlAndMeta = 7,
+   AA_Use96Dpi = 8,
+   AA_X11InitThreads = 9,
+   AA_SynthesizeTouchForUnhandledMouseEvents = 10,
+   AA_SynthesizeMouseForUnhandledTouchEvents = 11,
+   AA_UseHighDpiPixmaps = 12,
+   AA_ForceRasterWidgets = 13,
+   AA_UseDesktopOpenGL = 14,
+   AA_UseOpenGLES = 15,
+   AA_UseSoftwareOpenGL = 16,
+   AA_ShareOpenGLContexts = 17,
+   AA_SetPalette = 18,
+   AA_EnableHighDpiScaling = 19,
+   AA_DisableHighDpiScaling = 20,
+   AA_DontUseNativeDialogs = 21,
+   AA_SynthesizeMouseForUnhandledTabletEvents = 22,
+   AA_CompressHighFrequencyEvents = 23,
+   AA_DontCheckOpenGLContextThreadAffinity = 24,
+   AA_DisableShaderDiskCache = 24,
+   AA_DontShowShortcutsInContextMenus = 26,
+   AA_CompressTabletEvents = 27,
+   // Add new attributes before this line
+   AA_AttributeCount
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H

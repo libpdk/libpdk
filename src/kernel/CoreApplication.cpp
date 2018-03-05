@@ -15,19 +15,25 @@
 
 #include "pdk/global/GlobalStatic.h"
 #include "pdk/global/internal/HooksPrivate.h"
+#include "pdk/global/internal/PdkInternal.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
+#include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/utils/Translator.h"
 #include "pdk/base/os/thread/Thread.h"
+#include "pdk/base/os/thread/ThreadPool.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
 #include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/base/io/fs/Dir.h"
 #include "pdk/base/io/fs/File.h"
+#include "pdk/base/io/fs/FileInfo.h"
+#include "pdk/base/io/fs/StandardPaths.h"
 
 #include <cstdlib>
 #include <list>
@@ -60,6 +66,8 @@ using pdk::os::thread::internal::ThreadData;
 using pdk::os::thread::internal::PostEvent;
 using pdk::os::thread::internal::PostEventList;
 using pdk::os::thread::ThreadStorageData;
+using pdk::os::thread::ThreadPool;
+using pdk::os::thread::internal::ScopedScopeLevelCounter;
 using pdk::kernel::internal::CoreApplicationPrivate;
 using pdk::os::thread::ReadLocker;
 using pdk::os::thread::WriteLocker;
@@ -69,6 +77,9 @@ using pdk::lang::Latin1Character;
 using pdk::lang::StringList;
 using pdk::io::fs::File;
 using pdk::io::fs::Dir;
+using pdk::io::fs::FileInfo;
+using pdk::io::fs::StandardPaths;
+using pdk::ds::VarLengthArray;
 
 #if defined(PDK_OS_WIN) || defined(PDK_OS_MAC)
 extern String retrieve_app_filename();
@@ -87,6 +98,29 @@ using ShutdownFuncList = std::list<CleanUpFunction>;
 PDK_GLOBAL_STATIC(ShutdownFuncList, sg_postRList);
 
 static std::mutex sg_preRoutinesMutex;
+
+class MutexUnlocker
+{
+public:
+   inline explicit MutexUnlocker(std::mutex *mutex)
+      : m_mutex(mutex)
+   { }
+   inline ~MutexUnlocker()
+   {
+      unlock();
+   }
+   inline void unlock()
+   {
+      if (m_mutex) {
+         m_mutex->unlock();
+      }
+      m_mutex = 0;
+   }
+   
+private:
+   PDK_DISABLE_COPY(MutexUnlocker);
+   std::mutex *m_mutex;
+};
 
 namespace {
 
@@ -329,8 +363,8 @@ struct CoreApplicationData {
    bool m_appNameSet; // true if setAppName was called
    bool m_appVersionSet; // true if setAppVersion was called
 #if PDK_CONFIG(library)
-   ScopedPointer<StringList> m_appLibpaths;
-   ScopedPointer<StringList> m_manualLibpaths;
+   ScopedPointer<StringList> m_appLibPaths;
+   ScopedPointer<StringList> m_manualLibPaths;
 #endif
 };
 
@@ -474,9 +508,9 @@ void CoreApplicationPrivate::checkReceiverThread(Object *receiver)
 void CoreApplicationPrivate::appendAppPathToLibPaths()
 {
 #if PDK_CONFIG(library)
-   StringList *appLibPaths = sg_coreAppData()->m_appLibpaths.getData();
+   StringList *appLibPaths = sg_coreAppData()->m_appLibPaths.getData();
    if (!appLibPaths) {
-      sg_coreAppData->m_appLibpaths.reset(appLibPaths = new StringList);
+      sg_coreAppData->m_appLibPaths.reset(appLibPaths = new StringList);
    }
    String appLocation = CoreApplication::getAppFilePath();
    appLocation.truncate(appLocation.lastIndexOf(Latin1Character('/')));
@@ -519,8 +553,8 @@ void CoreApplicationPrivate::init()
    // Reset the lib paths, so that they will be recomputed, taking the availability of argv[0]
    // into account. If necessary, recompute right away and replay the manual changes on top of the
    // new lib paths.
-   StringList *appPaths = sg_coreAppData()->m_appLibpaths.take();
-   StringList *manualPaths = sg_coreAppData()->m_manualLibpaths.take();
+   StringList *appPaths = sg_coreAppData()->m_appLibPaths.take();
+   StringList *manualPaths = sg_coreAppData()->m_manualLibPaths.take();
    if (appPaths) {
       if (manualPaths) {
          // Replay the delta. As paths can only be prepended to the front or removed from
@@ -539,7 +573,7 @@ void CoreApplicationPrivate::init()
             }
          }
          delete manualPaths;
-         sg_coreAppData()->m_manualLibpaths.reset(new StringList(newPaths));
+         sg_coreAppData()->m_manualLibPaths.reset(new StringList(newPaths));
       }
       delete appPaths;
    }
@@ -689,10 +723,8 @@ bool CoreApplication::installTranslator(Translator *translationFile)
    }
 #endif
    
-#ifndef PDK_NO_QOBJECT
    Event ev(Event::Type::LanguageChange);
    CoreApplication::sendEvent(sm_self, &ev);
-#endif
    return true;
 }
 
@@ -820,67 +852,303 @@ CoreApplication::~CoreApplication()
    sm_self = nullptr;
    CoreApplicationPrivate::sm_isAppClosing = true;
    CoreApplicationPrivate::sm_isAppRunning = false;
+   ThreadPool *globalThreadPool = nullptr;
+   try {
+      globalThreadPool = ThreadPool::getGlobalInstance();
+   } catch (...){
+      // swallow the exception, since destructors shouldn't throw
+   }
+   if (globalThreadPool) {
+      globalThreadPool->waitForDone();
+   }
+   getImplPtr()->m_threadData->m_eventDispatcher = 0;
+   if (CoreApplicationPrivate::sm_eventDispatcher) {
+      CoreApplicationPrivate::sm_eventDispatcher->closingDown();
+   }
+   CoreApplicationPrivate::sm_eventDispatcher = 0;
+#if PDK_CONFIG(library)
+   sg_coreAppData()->m_appLibPaths.reset();
+   sg_coreAppData()->m_manualLibPaths.reset();
+#endif
+}
+
+void CoreApplication::setAttribute(pdk::AppAttribute attribute, bool on)
+{
+   if (on) {
+      CoreApplicationPrivate::sm_attribs |= 1 << pdk::as_integer<pdk::AppAttribute>(attribute);
+   } else {
+      CoreApplicationPrivate::sm_attribs &= ~(1 << pdk::as_integer<pdk::AppAttribute>(attribute));
+   }
+}
+
+bool CoreApplication::testAttribute(pdk::AppAttribute attribute)
+{
+   return CoreApplicationPrivate::testAttribute(attribute);
 }
 
 void CoreApplication::setSetuidAllowed(bool allow)
 {
+   CoreApplicationPrivate::sm_setuidAllowed = allow;
 }
 
 bool CoreApplication::isSetuidAllowed()
 {
+   return CoreApplicationPrivate::sm_setuidAllowed;
 }
 
 bool CoreApplication::isQuitLockEnabled()
 {
+   return sg_quitLockRefEnabled;
 }
 
 void CoreApplication::setQuitLockEnabled(bool enabled)
 {
+   sg_quitLockRefEnabled = enabled;
 }
 
 bool CoreApplication::notifyInternal(Object *receiver, Event *event)
 {
+   bool selfRequired = CoreApplicationPrivate::threadRequiresCoreApplication();
+   if (!sm_self && selfRequired) {
+      return false;
+   }
+   // Make it possible for Qt Script to hook into events even
+   // though Application is subclassed...
+   bool result = false;
+   void *cbdata[] = { receiver, event, &result };
+   if (Internal::activateCallbacks(Internal::Callback::EventNotifyCallback, cbdata)) {
+      return result;
+   }
+   // pdk enforces the rule that events can only be sent to objects in
+   // the current thread, so receiver->d_func()->threadData is
+   // equivalent to ThreadData::current(), just without the function
+   // call overhead.
+   ObjectPrivate *d = receiver->getImplPtr();
+   ThreadData *threadData = d->m_threadData;
+   ScopedScopeLevelCounter scopeLevelCounter(threadData);
+   if (!selfRequired) {
+      return do_notify(receiver, event);
+   }
+   return sm_self->notify(receiver, event);
+}
+
+bool CoreApplication::forwardEvent(Object *receiver, Event *event, Event *originatingEvent)
+{
+   if (event && originatingEvent) {
+      event->m_spont = originatingEvent->m_spont;
+   }
+   return notifyInternal(receiver, event);
 }
 
 bool CoreApplication::notify(Object *receiver, Event *event)
 {
+   // no events are delivered after ~CoreApplication() has started
+   if (CoreApplicationPrivate::sm_isAppClosing) {
+      return true;
+   }
+   return do_notify(receiver, event);
 }
 
 bool CoreApplication::startingUp()
 {
+   return !CoreApplicationPrivate::sm_isAppRunning;
 }
 
 bool CoreApplication::closingDown()
 {
+   return CoreApplicationPrivate::sm_isAppClosing;
 }
 
 void CoreApplication::processEvents(EventLoop::ProcessEventsFlags flags)
 {
+   ThreadData *data = ThreadData::current();
+   if (!data->hasEventDispatcher()) {
+      return;
+   }
+   data->m_eventDispatcher.load()->processEvents(flags);
 }
 
 void CoreApplication::processEvents(EventLoop::ProcessEventsFlags flags, int maxtime)
 {
+   ThreadData *data = ThreadData::current();
+   if (!data->hasEventDispatcher()) {
+      return;
+   }
+   ElapsedTimer start;
+   start.start();
+   while (data->m_eventDispatcher.load()->processEvents(flags & ~EventLoop::WaitForMoreEvents)) {
+      if (start.elapsed() > maxtime) {
+         break;
+      }
+   }
 }
 
 int CoreApplication::exec()
 {
-   
+   if (!CoreApplicationPrivate::checkInstance("exec")) {
+      return -1;
+   }
+   ThreadData *threadData = sm_self->getImplPtr()->m_threadData;
+   if (threadData != ThreadData::current()) {
+      warning_stream("%s::exec: Must be called from the main thread", typeid(sm_self).name());
+      return -1;
+   }
+   if (!threadData->m_eventLoops.empty()) {
+      warning_stream("CoreApplication::exec: The event loop is already running");
+      return -1;
+   }
+   threadData->m_quitNow = false;
+   EventLoop eventLoop;
+   sm_self->getImplPtr()->m_inExec = true;
+   sm_self->getImplPtr()->m_aboutToQuitEmitted = false;
+   int returnCode = eventLoop.exec();
+   threadData->m_quitNow = false;
+   if (sm_self) {
+      sm_self->getImplPtr()->execCleanup();
+   }
+   return returnCode;
 }
 
 void CoreApplication::exit(int returnCode)
 {
+   if (!sm_self) {
+      return;
+   }
+   ThreadData *data = sm_self->getImplPtr()->m_threadData;
+   data->m_quitNow = true;
+   for (size_t i = 0; i < data->m_eventLoops.size(); ++i) {
+      EventLoop *eventLoop = data->m_eventLoops.at(i);
+      eventLoop->exit(returnCode);
+   }
 }
 
 void CoreApplication::postEvent(Object *receiver, Event *event, pdk::EventPriority priority)
 {
+   if (receiver == nullptr) {
+      warning_stream("CoreApplication::postEvent: Unexpected null receiver");
+      delete event;
+      return;
+   }
+   ThreadData * volatile * pdata = &receiver->getImplPtr()->m_threadData;
+   ThreadData *data = *pdata;
+   if (!data) {
+      // posting during destruction? just delete the event to prevent a leak
+      delete event;
+      return;
+   }
+   // lock the post event mutex
+   data->m_postEventList.m_mutex.lock();
+   // if object has moved to another thread, follow it
+   while (data != *pdata) {
+      data->m_postEventList.m_mutex.unlock();
+      data = *pdata;
+      if (!data) {
+         // posting during destruction? just delete the event to prevent a leak
+         delete event;
+         return;
+      }
+      data->m_postEventList.m_mutex.lock();
+   }
+   MutexUnlocker locker(&data->m_postEventList.m_mutex);
+   // if this is one of the compressible events, do compression
+   if (receiver->getImplPtr()->m_postedEvents
+       && sm_self && sm_self->compressEvent(event, receiver, &data->m_postEventList)) {
+      return;
+   }
+   if (event->getType() == Event::Type::DeferredDelete) {
+      receiver->m_implPtr->m_deleteLaterCalled = true;
+   }
+   if (event->getType() == Event::Type::DeferredDelete && data == ThreadData::current()) {
+      // remember the current running eventloop for DeferredDelete
+      // events posted in the receiver's thread.
+      
+      // Events sent by non-pdk event handlers (such as glib) may not
+      // have the scopeLevel set correctly. The scope level makes sure that
+      // code like this:
+      //     foo->deleteLater();
+      //     qApp->processEvents(); // without passing Event::Type::DeferredDelete
+      // will not cause "foo" to be deleted before returning to the event loop.
+      
+      // If the scope level is 0 while loopLevel != 0, we are called from a
+      // non-conformant code path, and our best guess is that the scope level
+      // should be 1. (Loop level 0 is special: it means that no event loops
+      // are running.)
+      int loopLevel = data->m_loopLevel;
+      int scopeLevel = data->m_scopeLevel;
+      if (scopeLevel == 0 && loopLevel != 0) {
+         scopeLevel = 1;
+      }
+      static_cast<DeferredDeleteEvent *>(event)->m_level = loopLevel + scopeLevel;
+   }
+   
+   // delete the event on exceptions to protect against memory leaks till the event is
+   // properly owned in the postEventList
+   pdk::utils::ScopedPointer<Event> eventDeleter(event);
+   data->m_postEventList.addEvent(PostEvent(receiver, event, pdk::as_integer<pdk::EventPriority>(priority)));
+   eventDeleter.take();
+   event->m_posted = true;
+   ++receiver->getImplPtr()->m_postedEvents;
+   data->m_canWait = false;
+   locker.unlock();
+   AbstractEventDispatcher* dispatcher = data->m_eventDispatcher.loadAcquire();
+   if (dispatcher) {
+      dispatcher->wakeUp();
+   }
 }
 
 bool CoreApplication::compressEvent(Event *event, Object *receiver, PostEventList *postedEvents)
 {
+#ifdef PDK_OS_WIN
+   PDK_ASSERT(event);
+   PDK_ASSERT(receiver);
+   PDK_ASSERT(postedEvents);
+   
+   // compress posted timers to this object.
+   if (event->getType() == Event::Type::Timer && receiver->getImplPtr()->m_postedEvents > 0) {
+      int timerId = ((TimerEvent *) event)->getTimerId();
+      for (size_t i = 0; i < postedEvents->size(); ++i) {
+         const PostEvent &e = postedEvents->at(i);
+         if (e.m_receiver == receiver && e.m_event && e.m_event->getType() == Event::Type::Timer
+             && ((TimerEvent *) e.m_event)->getTimerId() == timerId) {
+            delete event;
+            return true;
+         }
+      }
+      return false;
+   }
+#endif
+   if (event->getType() == Event::Type::DeferredDelete) {
+      if (receiver->m_implPtr->m_deleteLaterCalled) {
+         // there was a previous DeferredDelete event, so we can drop the new one
+         delete event;
+         return true;
+      }
+      // deleteLaterCalled is set to true in postedEvents when queueing the very first
+      // deferred deletion event.
+      return false;
+   }
+   if (event->getType() == Event::Type::Quit && receiver->getImplPtr()->m_postedEvents > 0) {
+      for (size_t i = 0; i < postedEvents->size(); ++i) {
+         const PostEvent &cur = postedEvents->at(i);
+         if (cur.m_receiver != receiver
+             || cur.m_event == 0
+             || cur.m_event->getType() != event->getType())
+            continue;
+         // found an event for this receiver
+         delete event;
+         return true;
+      }
+   }
+   return false;
 }
 
 void CoreApplication::sendPostedEvents(Object *receiver, Event::Type eventType)
 {
+   // ### @todo: consider splitting this method into a public and a private
+   //           one, so that a user-invoked sendPostedEvents can be detected
+   //           and handled properly.
+   ThreadData *data = ThreadData::current();
+   CoreApplicationPrivate::sendPostedEvents(receiver, eventType, data);
 }
 
 namespace internal {
@@ -945,7 +1213,6 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
       }
    };
    CleanUp cleanup(receiver, eventType, data);
-   
    while ((size_t)i < data->m_postEventList.size()) {
       // avoid live-lock
       if (i >= data->m_postEventList.m_insertionOffset) {
@@ -961,7 +1228,6 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
          data->m_canWait = false;
          continue;
       }
-      
       if (pe.m_event->getType() == Event::Type::DeferredDelete) {
          // DeferredDelete events are sent either
          // 1) when the event loop that posted the event has returned; or
@@ -993,7 +1259,6 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
             continue;
          }
       }
-      
       // first, we diddle the event so that we can deliver
       // it, and that no one will try to touch it later.
       pe.m_event->m_posted = false;
@@ -1005,23 +1270,21 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
       // next, update the data structure so that we're ready
       // for the next event.
       const_cast<PostEvent &>(pe).m_event = 0;
-      struct MutexUnlocker
+      struct LocalMutexUnlocker
       {
          std::unique_lock<std::mutex> &m_locker;
-         MutexUnlocker(std::unique_lock<std::mutex> &m) 
+         LocalMutexUnlocker(std::unique_lock<std::mutex> &m) 
             : m_locker(m)
          {
             m_locker.unlock(); 
          }
-         ~MutexUnlocker() { m_locker.lock(); }
+         ~LocalMutexUnlocker() { m_locker.lock(); }
       };
-      MutexUnlocker unlocker(locker);
+      LocalMutexUnlocker unlocker(locker);
       
       ScopedPointer<Event> eventDeleter(e); // will delete the event (with the mutex unlocked)
-      
       // after all that work, it's time to deliver the event.
       CoreApplication::sendEvent(r, e);
-      
       // careful when adding anything below this point - the
       // sendEvent() call might invalidate any invariants this
       // function depends on.
@@ -1089,37 +1352,205 @@ void CoreApplicationPrivate::maybeQuit()
 
 void CoreApplicationPrivate::setAppFilePath(const String &path)
 {
+   if (CoreApplicationPrivate::sm_cachedAppFilePath) {
+      *CoreApplicationPrivate::sm_cachedAppFilePath = path;
+   } else {
+      CoreApplicationPrivate::sm_cachedAppFilePath = new String(path);
+   }
+}
+
+}
+
+void CoreApplication::removePostedEvents(Object *receiver, Event::Type eventType)
+{
+   ThreadData *data = receiver ? receiver->getImplPtr()->m_threadData : ThreadData::current();
+   std::unique_lock<std::mutex> locker(data->m_postEventList.m_mutex);
+   // the Object destructor calls this function directly.  this can
+   // happen while the event loop is in the middle of posting events,
+   // and when we get here, we may not have any more posted events
+   // for this object.
+   if (receiver && !receiver->getImplPtr()->m_postedEvents) {
+      return;
+   }
+   //we will collect all the posted events for the QObject
+   //and we'll delete after the mutex was unlocked
+   VarLengthArray<Event*> events;
+   int n = data->m_postEventList.size();
+   int j = 0;
+   for (int i = 0; i < n; ++i) {
+      const PostEvent &pe = data->m_postEventList.at(i);
+      if ((!receiver || pe.m_receiver == receiver)
+          && (pe.m_event && (eventType == Event::Type::None || pe.m_event->getType() == eventType))) {
+         --pe.m_receiver->getImplPtr()->m_postedEvents;
+         pe.m_event->m_posted = false;
+         events.append(pe.m_event);
+         const_cast<PostEvent &>(pe).m_event = 0;
+      } else if (!data->m_postEventList.m_recursion) {
+         if (i != j) {
+            std::swap(data->m_postEventList[i], data->m_postEventList[j]);
+         }
+         ++j;
+      }
+   }
    
+#ifdef PDK_DEBUG
+   if (receiver && eventType == Event::Type::None) {
+      PDK_ASSERT(!receiver->getImplPtr()->m_postedEvents);
+   }
+#endif
+   if (!data->m_postEventList.m_recursion) {
+      // truncate list
+      data->m_postEventList.erase(data->m_postEventList.begin() + j, data->m_postEventList.end());
+   }
+   locker.unlock();
+   for (int i = 0; i < events.count(); ++i) {
+      delete events[i];
+   }
 }
 
-}
-
-void CoreApplication::removePostedEvents(Object *receiver, int eventType)
+bool CoreApplication::event(Event *event)
 {
-}
-
-bool CoreApplication::event(Event *e)
-{
+   if (event->getType() == Event::Type::Quit) {
+      quit();
+      return true;
+   }
+   return Object::event(event);
 }
 
 void CoreApplication::quit()
 {
+   exit(0);
 }
 
 String CoreApplication::getAppDirPath()
 {
+   if (!sm_self) {
+      warning_stream("CoreApplication::applicationDirPath: Please instantiate the Application object first");
+      return String();
+   }
+   CoreApplicationPrivate *implPtr = sm_self->getImplPtr();
+   if (implPtr->m_cachedAppDirPath.isNull()) {
+      implPtr->m_cachedAppDirPath = FileInfo(getAppFilePath()).getPath();
+   }
+   return implPtr->m_cachedAppDirPath;
 }
 
 String CoreApplication::getAppFilePath()
 {
+   if (!sm_self) {
+      warning_stream("CoreApplication::appFilePath: Please instantiate the Application object first");
+      return String();
+   }
+   CoreApplicationPrivate *implPtr = sm_self->getImplPtr();
+   if (implPtr->m_argc) {
+      static ByteArray procName = ByteArray(implPtr->m_argv[0]);
+      if (procName != implPtr->m_argv[0]) {
+         // clear the cache if the procname changes, so we reprocess it.
+         CoreApplicationPrivate::clearAppFilePath();
+         procName = ByteArray(implPtr->m_argv[0]);
+      }
+   }
+   
+   if (CoreApplicationPrivate::sm_cachedAppFilePath) {
+      return *CoreApplicationPrivate::sm_cachedAppFilePath;
+   }
+#if defined(PDK_OS_WIN)
+   CoreApplicationPrivate::setAppFilePath(FileInfo(retrieve_app_filename()).getFilePath());
+   return *CoreApplicationPrivate::sm_cachedAppFilePath;
+#elif defined(PDK_OS_MAC)
+   String appFilename = retrieve_app_filename();
+   if(!appFilename.isEmpty()) {
+      FileInfo fi(appFilename);
+      if (fi.exists()) {
+         CoreApplicationPrivate::setAppFilePath(fi.getCanonicalFilePath());
+         return *CoreApplicationPrivate::sm_cachedAppFilePath;
+      }
+   }
+#endif
+#if defined( PDK_OS_UNIX )
+#  if defined(PDK_OS_LINUX)
+   // Try looking for a /proc/<pid>/exe symlink first which points to
+   // the absolute path of the executable
+   FileInfo pfi(String::fromLatin1("/proc/%1/exe").arg(getpid()));
+   if (pfi.exists() && pfi.isSymLink()) {
+      CoreApplicationPrivate::setAppFilePath(pfi.getCanonicalFilePath());
+      return *CoreApplicationPrivate::sm_cachedAppFilePath;
+   }
+#  endif
+   if (!getArguments().empty()) {
+      String argv0 = File::decodeName(getArguments().at(0).toLocal8Bit());
+      String absPath;
+      
+      if (!argv0.isEmpty() && argv0.at(0) == Latin1Character('/')) {
+         // If argv0 starts with a slash, it is already an absolute
+         // file path.
+         absPath = argv0;
+      } else if (argv0.contains(Latin1Character('/'))) {
+         // If argv0 contains one or more slashes, it is a file path
+         // relative to the current directory.
+         absPath = Dir::getCurrent().getAbsoluteFilePath(argv0);
+      } else {
+         // Otherwise, the file path has to be determined using the
+         // PATH environment variable.
+         absPath = StandardPaths::findExecutable(argv0);
+      }
+      absPath = Dir::cleanPath(absPath);
+      FileInfo fi(absPath);
+      if (fi.exists()) {
+         CoreApplicationPrivate::setAppFilePath(fi.getCanonicalFilePath());
+         return *CoreApplicationPrivate::sm_cachedAppFilePath;
+      }
+   }
+   
+#endif
+   return String();
 }
 
 pdk::pint64 CoreApplication::getAppPid()
 {
+#if defined(PDK_OS_WIN)
+   return GetCurrentProcessId();
+#elif defined(PDK_OS_VXWORKS)
+   return (pid_t) taskIdCurrent;
+#else
+   return getpid();
+#endif
 }
 
 StringList CoreApplication::getArguments()
 {
+   StringList list;
+   if (!sm_self) {
+      warning_stream("CoreApplication::arguments: Please instantiate the QApplication object first");
+      return list;
+   }
+   const int ac = sm_self->getImplPtr()->m_argc;
+   char ** const av = sm_self->getImplPtr()->m_argv;
+   list.resize(ac);
+   
+#if defined(PDK_OS_WIN)
+   // On Windows, it is possible to pass Unicode arguments on
+   // the command line. To restore those, we split the command line
+   // and filter out arguments that were deleted by derived application
+   // classes by index.
+   String cmdline = String::fromWCharArray(GetCommandLine());
+   const CoreApplicationPrivate *d = sm_self->getImplPtr();
+   if (d->m_origArgv) {
+      const StringList allArguments = qWinCmdArgs(cmdline);
+      PDK_ASSERT(allArguments.size() == d->origArgc);
+      for (int i = 0; i < d->origArgc; ++i) {
+         if (contains(ac, av, d->origArgv[i])) {
+            list.append(allArguments.at(i));
+         }
+      }
+      return list;
+   } // Fall back to rebuilding from argv/argc when a modified argv was passed.
+#endif // defined(PDK_OS_WIN)
+   
+   for (int a = 0; a < ac; ++a) {
+      list << String::fromLocal8Bit(av[a]);
+   }
+   return list;
 }
 
 void CoreApplication::setOrgName(const String &orgName)

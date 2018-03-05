@@ -112,6 +112,10 @@ public:
    }
    void execCleanup();
    void processCommandLineArguments();
+   static inline bool testAttribute(pdk::AppAttribute flag)
+   {
+      return sm_attribs & (1 << pdk::as_integer<pdk::AppAttribute>(flag));
+   }
    
    static AbstractEventDispatcher *sm_eventDispatcher;
    static bool sm_isAppRunning;

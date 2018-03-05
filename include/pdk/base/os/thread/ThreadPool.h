@@ -37,7 +37,7 @@ class PDK_CORE_EXPORT ThreadPool : public Object
 public:
    ThreadPool(Object *parent = nullptr);
    ~ThreadPool();
-   static ThreadPool *globalInstance();
+   static ThreadPool *getGlobalInstance();
    void start(Runnable *runnable, int priority = 0);
    bool tryStart(Runnable *runnable);
    int getExpiryTimeout() const;

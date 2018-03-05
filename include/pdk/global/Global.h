@@ -235,9 +235,9 @@ using ulong = unsigned long;
 namespace pdk 
 {
 
-#ifndef PDK_CC_MSVC
-PDK_NORETURN
-#endif
+//#ifndef PDK_CC_MSVC
+//PDK_NORETURN
+//#endif
 PDK_CORE_EXPORT void pdk_assert(const char *assertion, const char *file, 
                                 int line) noexcept;
 
@@ -361,9 +361,9 @@ static inline T *get_ptr_helper(const std::unique_ptr<T> &p)
 #define PDK_TRANSLATE_NOOP3(scope, x, comment) {x, comment}
 #define PDK_TRANSLATE_NOOP3_UTF8(scope, x, comment) {x, comment}
 
-#ifndef PDK_CC_MSVC
-PDK_NORETURN
-#endif
+//#ifndef PDK_CC_MSVC
+//PDK_NORETURN
+//#endif
 PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what, 
                                   const char *file, int line) noexcept;
 

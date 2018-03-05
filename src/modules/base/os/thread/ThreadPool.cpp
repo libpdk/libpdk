@@ -351,7 +351,7 @@ ThreadPool::~ThreadPool()
    waitForDone();
 }
 
-ThreadPool *ThreadPool::globalInstance()
+ThreadPool *ThreadPool::getGlobalInstance()
 {
    return sg_theInstance();
 }

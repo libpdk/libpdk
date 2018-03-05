@@ -19,6 +19,8 @@
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/global/SysInfo.h"
+#include "pdk/global/internal/PdkInternal.h"
+#include "pdk/global/GlobalStatic.h"
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -267,6 +269,61 @@ String SysInfo::getMachineHostName()
    return String::fromLocal8Bit(hostName);
 #endif
    return String();
+}
+
+struct PdkInternalCallBackTable
+{
+   std::vector<std::list<InternalCallback>> m_callbacks;
+};
+
+PDK_GLOBAL_STATIC(PdkInternalCallBackTable, sg_globalCallbackTable);
+
+bool Internal::registerCallback(Callback cb, InternalCallback callback)
+{
+   size_t callbackIndex = pdk::as_integer<Callback>(cb);
+   if (callbackIndex < pdk::as_integer<Callback>(Callback::LastCallback)) {
+      PdkInternalCallBackTable *cbt = sg_globalCallbackTable();
+      cbt->m_callbacks.resize(callbackIndex + 1);
+      cbt->m_callbacks[callbackIndex].push_back(callback);
+      return true;
+   }
+   return false;
+}
+
+bool Internal::unregisterCallback(Callback cb, InternalCallback callback)
+{
+   size_t callbackIndex = pdk::as_integer<Callback>(cb);
+   if (callbackIndex < pdk::as_integer<Callback>(Callback::LastCallback)) {
+      if (sg_globalCallbackTable.exists()) {
+         PdkInternalCallBackTable *cbt = sg_globalCallbackTable();
+         std::list<InternalCallback> &callbacks = cbt->m_callbacks[callbackIndex];
+         size_t oldSize = callbacks.size();
+         callbacks.remove(callback);
+         return oldSize - callbacks.size() > 0;
+      }
+   }
+   return false;
+}
+
+bool Internal::activateCallbacks(Callback cb, void **parameters)
+{
+    PDK_ASSERT_X(pdk::as_integer<Callback>(cb) >= 0, "Internal::activateCallback()", "Callback id must be a valid id");
+    if (!sg_globalCallbackTable.exists()) {
+       return false;
+    }
+    size_t callbackIndex = pdk::as_integer<Callback>(cb);
+    PdkInternalCallBackTable *cbt = &(*sg_globalCallbackTable);
+    if (cbt && callbackIndex < cbt->m_callbacks.size()) {
+        std::list<InternalCallback> callbacks = cbt->m_callbacks[callbackIndex];
+        bool ret = false;
+        for (size_t i = 0; i < callbacks.size(); ++i) {
+           auto iter = callbacks.begin();
+           std::advance(iter, i);
+           ret |= (*iter)(parameters);
+        }
+        return ret;
+    }
+    return false;
 }
 
 } // pdk

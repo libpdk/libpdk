@@ -73,6 +73,9 @@ public:
    CoreApplication(int &argc, char **argv, int = ApplicationFlags);
    ~CoreApplication();
    
+   static void setAttribute(pdk::AppAttribute attribute, bool on = true);
+   static bool testAttribute(pdk::AppAttribute attribute);
+   
    static StringList getArguments();
    static void setOrgDomain(const String &domain);
    static String getOrgDomain();
@@ -96,7 +99,7 @@ public:
    static bool sendEvent(Object *receiver, Event *event);
    static void postEvent(Object *receiver, Event *event, pdk::EventPriority priority = pdk::EventPriority::NormalEventPriority);
    static void sendPostedEvents(Object *receiver = nullptr, Event::Type eventType = Event::Type::None);
-   static void removePostedEvents(Object *receiver, int eventType = 0);
+   static void removePostedEvents(Object *receiver, Event::Type eventType = Event::Type::None);
    static AbstractEventDispatcher *getEventDispatcher();
    static void setEventDispatcher(AbstractEventDispatcher *eventDispatcher);
    virtual bool notify(Object *, Event *);
@@ -145,6 +148,7 @@ protected:
 private:
    static bool sendSpontaneousEvent(Object *receiver, Event *event);
    static bool notifyInternal(Object *receiver, Event *);
+   static bool forwardEvent(Object *receiver, Event *event, Event *originatingEvent = nullptr);
    friend class internal::EventDispatcherUNIXPrivate;
    friend PDK_CORE_EXPORT String retrieve_app_name();
    friend class ClassFactory;
