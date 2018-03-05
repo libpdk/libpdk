@@ -215,5 +215,5 @@ endif()
 pdk_add_library(libpdk 
    ${PDK_HEADER_FILES} 
    ${PDK_BASE_SOURCES}
-   ${PDK_BASE_MODULE_SOURCES})
-
+   ${PDK_BASE_MODULE_SOURCES}
+   ${PDK_THIRDPARTY_SOURCES})

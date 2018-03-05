@@ -274,7 +274,11 @@ endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-include_directories(BEFORE ${PDK_INCLUDE_DIR} ${PDK_MAIN_INCLUDE_DIR} ${PDK_EXTRA_INCLUDE_DIR})
+include_directories(BEFORE 
+   ${PDK_INCLUDE_DIR}
+   ${PDK_MAIN_INCLUDE_DIR} 
+   ${PDK_EXTRA_INCLUDE_DIR}
+   ${PDK_THIRDPARTY_DIR})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
     include_directories(SYSTEM "/usr/local/include")
@@ -318,10 +322,11 @@ configure_file(
 
 set(PDK_HEADER_FILES "")
 set(PDK_EXT_HEADER_FILES "")
+set(PDK_THIRDPARTY_SOURCES "")
 
 # we include our project source directories
 add_subdirectory(include)
-
+add_subdirectory(thirdparty)
 add_subdirectory(pdkext)
 add_subdirectory(src)
 add_subdirectory(benchmarks)
