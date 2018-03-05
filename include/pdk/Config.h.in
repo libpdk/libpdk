@@ -43,5 +43,4 @@
 
 #define PDK_NO_DOUBLECONVERSION
 
-
 #endif // PDK_CONFIG_H

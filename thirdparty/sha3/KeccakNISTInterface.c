@@ -12,7 +12,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include <string.h>
-#include "KeccakNISTInterface.h"
+
 #include "KeccakF-1600-interface.h"
 
 static HashReturn Init(hashState *state, int hashbitlen)

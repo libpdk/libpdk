@@ -1,25 +1,25 @@
 pdk_collect_files(
-   TYPE_BOTH
+   TYPE_HEADER
    DIR md4
    OUTPUT_VAR MD4_SOURCES)
 
 pdk_collect_files(
-   TYPE_BOTH
+   TYPE_HEADER
    DIR md5
    OUTPUT_VAR MD5_SOURCES)
 
 pdk_collect_files(
-   TYPE_BOTH
+   TYPE_HEADER
    DIR rfc6234
    OUTPUT_VAR RFC6234_SOURCES)
 
 pdk_collect_files(
-   TYPE_BOTH
+   TYPE_HEADER
    DIR sha1
    OUTPUT_VAR SHA1_SOURCES)
 
 pdk_collect_files(
-   TYPE_BOTH
+   TYPE_HEADER
    DIR sha3
    OUTPUT_VAR SHA3_SOURCES)
 
