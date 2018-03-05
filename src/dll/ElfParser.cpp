@@ -33,187 +33,187 @@ using pdk::ds::ByteArray;
 
 const char *ElfParser::parseSectionHeader(const char *data, ElfSectionHeader *sh)
 {
-   sh->name = read<pelfword_t>(data);
+   sh->m_name = read<pelfword_t>(data);
    data += sizeof(pelfword_t); // sh_name
-   sh->type = read<pelfword_t>(data);
+   sh->m_type = read<pelfword_t>(data);
    data += sizeof(pelfword_t)  // sh_type
          + sizeof(pelfaddr_t)   // sh_flags
          + sizeof(pelfaddr_t);  // sh_addr
-   sh->offset = read<pelfoff_t>(data);
+   sh->m_offset = read<pelfoff_t>(data);
    data += sizeof(pelfoff_t);  // sh_offset
-   sh->size = read<pelfoff_t>(data);
+   sh->m_size = read<pelfoff_t>(data);
    data += sizeof(pelfoff_t);  // sh_size
    return data;
 }
 
-int ElfParser::parse(const char *dataStart, ulong fdlen, const String &library, LibraryPrivate *lib, long *pos, ulong *sectionlen)
-{
-#if defined(ELF_PARSER_DEBUG)
-   debug_stream() << "ElfParser::parse " << library;
-#endif
-   if (fdlen < 64){
-      if (lib) {
-         lib->m_errorString = Library::tr("'%1' is not an ELF object (%2)").arg(library, Library::tr("file too small"));
-      }
-      return NotElf;
-   }
-   const char *data = dataStart;
-   if (pdk::strncmp(data, "\177ELF", 4) != 0) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is not an ELF object").arg(library);
-      return NotElf;
-   }
-   // 32 or 64 bit
-   if (data[4] != 1 && data[4] != 2) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("odd cpu architecture"));
-      return Corrupt;
-   }
-   m_bits = (data[4] << 5);
+//int ElfParser::parse(const char *dataStart, ulong fdlen, const String &library, LibraryPrivate *lib, long *pos, ulong *sectionlen)
+//{
+//#if defined(ELF_PARSER_DEBUG)
+//   debug_stream() << "ElfParser::parse " << library;
+//#endif
+//   if (fdlen < 64){
+//      if (lib) {
+//         lib->m_errorString = Library::tr("'%1' is not an ELF object (%2)").arg(library, Library::tr("file too small"));
+//      }
+//      return NotElf;
+//   }
+//   const char *data = dataStart;
+//   if (pdk::strncmp(data, "\177ELF", 4) != 0) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is not an ELF object").arg(library);
+//      return NotElf;
+//   }
+//   // 32 or 64 bit
+//   if (data[4] != 1 && data[4] != 2) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("odd cpu architecture"));
+//      return Corrupt;
+//   }
+//   m_bits = (data[4] << 5);
    
-   /*  If you remove this check, to read ELF objects of a different arch, please make sure you modify the typedefs
-        to match the _plugin_ architecture.
-    */
-   if ((sizeof(void*) == 4 && m_bits != 32) || (sizeof(void*) == 8 && m_bits != 64)) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("wrong cpu architecture"));
-      return Corrupt;
-   }
-   // endian
-   if (data[5] == 0) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("odd endianness"));
-      return Corrupt;
-   }
-   m_endian = (data[5] == 1 ? ElfLittleEndian : ElfBigEndian);
+//   /*  If you remove this check, to read ELF objects of a different arch, please make sure you modify the typedefs
+//        to match the _plugin_ architecture.
+//    */
+//   if ((sizeof(void*) == 4 && m_bits != 32) || (sizeof(void*) == 8 && m_bits != 64)) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("wrong cpu architecture"));
+//      return Corrupt;
+//   }
+//   // endian
+//   if (data[5] == 0) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("odd endianness"));
+//      return Corrupt;
+//   }
+//   m_endian = (data[5] == 1 ? ElfLittleEndian : ElfBigEndian);
    
-   data += 16                  // e_ident
-         +  sizeof(pelfhalf_t)  // e_type
-         +  sizeof(pelfhalf_t)  // e_machine
-         +  sizeof(pelfword_t)  // e_version
-         +  sizeof(pelfaddr_t)  // e_entry
-         +  sizeof(pelfoff_t);  // e_phoff
+//   data += 16                  // e_ident
+//         +  sizeof(pelfhalf_t)  // e_type
+//         +  sizeof(pelfhalf_t)  // e_machine
+//         +  sizeof(pelfword_t)  // e_version
+//         +  sizeof(pelfaddr_t)  // e_entry
+//         +  sizeof(pelfoff_t);  // e_phoff
    
-   pelfoff_t e_shoff = read<pelfoff_t> (data);
-   data += sizeof(pelfoff_t)    // e_shoff
-         +  sizeof(pelfword_t);  // e_flags
+//   pelfoff_t e_shoff = read<pelfoff_t> (data);
+//   data += sizeof(pelfoff_t)    // e_shoff
+//         +  sizeof(pelfword_t);  // e_flags
    
-   pelfhalf_t e_shsize = read<pelfhalf_t> (data);
+//   pelfhalf_t e_shsize = read<pelfhalf_t> (data);
    
-   if (e_shsize > fdlen) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("unexpected e_shsize"));
-      return Corrupt;
-   }
+//   if (e_shsize > fdlen) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("unexpected e_shsize"));
+//      return Corrupt;
+//   }
    
-   data += sizeof(pelfhalf_t)  // e_ehsize
-         +  sizeof(pelfhalf_t)  // e_phentsize
-         +  sizeof(pelfhalf_t); // e_phnum
+//   data += sizeof(pelfhalf_t)  // e_ehsize
+//         +  sizeof(pelfhalf_t)  // e_phentsize
+//         +  sizeof(pelfhalf_t); // e_phnum
    
-   pelfhalf_t e_shentsize = read<pelfhalf_t> (data);
+//   pelfhalf_t e_shentsize = read<pelfhalf_t> (data);
    
-   if (e_shentsize % 4){
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("unexpected e_shentsize"));
-      return Corrupt;
-   }
-   data += sizeof(pelfhalf_t); // e_shentsize
-   pelfhalf_t e_shnum     = read<pelfhalf_t> (data);
-   data += sizeof(pelfhalf_t); // e_shnum
-   pelfhalf_t e_shtrndx   = read<pelfhalf_t> (data);
-   data += sizeof(pelfhalf_t); // e_shtrndx
+//   if (e_shentsize % 4){
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, Library::tr("unexpected e_shentsize"));
+//      return Corrupt;
+//   }
+//   data += sizeof(pelfhalf_t); // e_shentsize
+//   pelfhalf_t e_shnum     = read<pelfhalf_t> (data);
+//   data += sizeof(pelfhalf_t); // e_shnum
+//   pelfhalf_t e_shtrndx   = read<pelfhalf_t> (data);
+//   data += sizeof(pelfhalf_t); // e_shtrndx
    
-   if ((pdk::puint32)(e_shnum * e_shentsize) > fdlen) {
-      if (lib) {
-         const String message =
-               Library::tr("announced %n section(s), each %1 byte(s), exceed file size",
-                            nullptr, int(e_shnum)).arg(e_shentsize);
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, message);
-      }
-      return Corrupt;
-   }
+//   if ((pdk::puint32)(e_shnum * e_shentsize) > fdlen) {
+//      if (lib) {
+//         const String message =
+//               Library::tr("announced %n section(s), each %1 byte(s), exceed file size",
+//                            nullptr, int(e_shnum)).arg(e_shentsize);
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)").arg(library, message);
+//      }
+//      return Corrupt;
+//   }
    
-#if defined(ELF_PARSER_DEBUG)
-   debug_stream() << e_shnum << "sections starting at " << ("0x" + ByteArray::number(e_shoff, 16)).data() << "each" << e_shentsize << "bytes";
-#endif
+//#if defined(ELF_PARSER_DEBUG)
+//   debug_stream() << e_shnum << "sections starting at " << ("0x" + ByteArray::number(e_shoff, 16)).data() << "each" << e_shentsize << "bytes";
+//#endif
    
-   ElfSectionHeader strtab;
-   qulonglong soff = e_shoff + pelfword_t(e_shentsize) * pelfword_t(e_shtrndx);
+//   ElfSectionHeader strtab;
+//   qulonglong soff = e_shoff + pelfword_t(e_shentsize) * pelfword_t(e_shtrndx);
    
-   if ((soff + e_shentsize) > fdlen || soff % 4 || soff == 0) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
-               .arg(library, Library::tr("shstrtab section header seems to be at %1")
-                    .arg(String::number(soff, 16)));
-      return Corrupt;
-   }
+//   if ((soff + e_shentsize) > fdlen || soff % 4 || soff == 0) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
+//               .arg(library, Library::tr("shstrtab section header seems to be at %1")
+//                    .arg(String::number(soff, 16)));
+//      return Corrupt;
+//   }
    
-   parseSectionHeader(dataStart + soff, &strtab);
-   m_stringTableFileOffset = strtab.offset;
+//   parseSectionHeader(dataStart + soff, &strtab);
+//   m_stringTableFileOffset = strtab.offset;
    
-   if ((pdk::puint32)(m_stringTableFileOffset + e_shentsize) >= fdlen || m_stringTableFileOffset == 0) {
-      if (lib)
-         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
-               .arg(library, Library::tr("string table seems to be at %1")
-                    .arg(String::number(soff, 16)));
-      return Corrupt;
-   }
-#if defined(ELF_PARSER_DEBUG)
-   debug_stream(".shstrtab at 0x%s", ByteArray::number(m_stringTableFileOffset, 16).data());
-#endif
+//   if ((pdk::puint32)(m_stringTableFileOffset + e_shentsize) >= fdlen || m_stringTableFileOffset == 0) {
+//      if (lib)
+//         lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
+//               .arg(library, Library::tr("string table seems to be at %1")
+//                    .arg(String::number(soff, 16)));
+//      return Corrupt;
+//   }
+//#if defined(ELF_PARSER_DEBUG)
+//   debug_stream(".shstrtab at 0x%s", ByteArray::number(m_stringTableFileOffset, 16).data());
+//#endif
    
-   const char *s = dataStart + e_shoff;
-   for (int i = 0; i < e_shnum; ++i) {
-      ElfSectionHeader sh;
-      parseSectionHeader(s, &sh);
-      if (sh.name == 0) {
-         s += e_shentsize;
-         continue;
-      }
-      const char *shnam = dataStart + m_stringTableFileOffset + sh.name;
+//   const char *s = dataStart + e_shoff;
+//   for (int i = 0; i < e_shnum; ++i) {
+//      ElfSectionHeader sh;
+//      parseSectionHeader(s, &sh);
+//      if (sh.name == 0) {
+//         s += e_shentsize;
+//         continue;
+//      }
+//      const char *shnam = dataStart + m_stringTableFileOffset + sh.name;
       
-      if (m_stringTableFileOffset + sh.name > fdlen) {
-         if (lib)
-            lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
-                  .arg(library, Library::tr("section name %1 of %2 behind end of file")
-                       .arg(i).arg(e_shnum));
-         return Corrupt;
-      }
+//      if (m_stringTableFileOffset + sh.name > fdlen) {
+//         if (lib)
+//            lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
+//                  .arg(library, Library::tr("section name %1 of %2 behind end of file")
+//                       .arg(i).arg(e_shnum));
+//         return Corrupt;
+//      }
       
-#if defined(ELF_PARSER_DEBUG)
-      qDebug() << "++++" << i << shnam;
-#endif
+//#if defined(ELF_PARSER_DEBUG)
+//      qDebug() << "++++" << i << shnam;
+//#endif
       
-      if (qstrcmp(shnam, ".qtmetadata") == 0 || qstrcmp(shnam, ".rodata") == 0) {
-         if (!(sh.type & 0x1)) {
-            if (shnam[1] == 'r') {
-               if (lib)
-                  lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
-                        .arg(library, Library::tr("empty .rodata. not a library."));
-               return Corrupt;
-            }
-#if defined(ELF_PARSER_DEBUG)
-            qDebug()<<"section is not program data. skipped.";
-#endif
-            s += e_shentsize;
-            continue;
-         }
+//      if (qstrcmp(shnam, ".qtmetadata") == 0 || qstrcmp(shnam, ".rodata") == 0) {
+//         if (!(sh.type & 0x1)) {
+//            if (shnam[1] == 'r') {
+//               if (lib)
+//                  lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
+//                        .arg(library, Library::tr("empty .rodata. not a library."));
+//               return Corrupt;
+//            }
+//#if defined(ELF_PARSER_DEBUG)
+//            qDebug()<<"section is not program data. skipped.";
+//#endif
+//            s += e_shentsize;
+//            continue;
+//         }
          
-         if (sh.offset == 0 || (sh.offset + sh.size) > fdlen || sh.size < 1) {
-            if (lib)
-               lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
-                     .arg(library, Library::tr("missing section data. This is not a library."));
-            return Corrupt;
-         }
-         *pos = sh.offset;
-         *sectionlen = sh.size - 1;
-         if (shnam[1] == 'q')
-            return QtMetaDataSection;
-      }
-      s += e_shentsize;
-   }
-   return NoQtSection;
-}
+//         if (sh.offset == 0 || (sh.offset + sh.size) > fdlen || sh.size < 1) {
+//            if (lib)
+//               lib->errorString = Library::tr("'%1' is an invalid ELF object (%2)")
+//                     .arg(library, Library::tr("missing section data. This is not a library."));
+//            return Corrupt;
+//         }
+//         *pos = sh.offset;
+//         *sectionlen = sh.size - 1;
+//         if (shnam[1] == 'q')
+//            return QtMetaDataSection;
+//      }
+//      s += e_shentsize;
+//   }
+//   return NoQtSection;
+//}
 
 } // internal
 } // dll
