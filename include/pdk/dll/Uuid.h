@@ -90,7 +90,12 @@ public:
       Sha1                 = 5 // 0 1 0 1
    };
    
-   constexpr Uuid() noexcept : data1(0), data2(0), data3(0), data4{0,0,0,0,0,0,0,0} {}
+   constexpr Uuid() noexcept 
+      : m_data1(0),
+        m_data2(0),
+        m_data3(0),
+        m_data4{0,0,0,0,0,0,0,0}
+   {}
    
    constexpr Uuid(uint l, ushort w1, ushort w2, uchar b1, uchar b2, uchar b3,
                   uchar b4, uchar b5, uchar b6, uchar b7, uchar b8) noexcept
