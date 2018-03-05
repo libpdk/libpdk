@@ -16,10 +16,16 @@
 #ifndef PDK_GLOBAL_GLOBAL_H
 #define PDK_GLOBAL_GLOBAL_H
 
-#include <type_traits>
-#include <cstddef>
-#include <memory>
-#include <algorithm>
+#ifdef __cplusplus
+#  include <type_traits>
+#  include <cstddef>
+#  include <utility>
+#  include <algorithm>
+#  include <memory>
+#endif
+#ifndef __ASSEMBLER__
+#  include <stddef.h>
+#endif
 
 #include "pdk/Version.h"
 #include "pdk/Config.h"
@@ -120,6 +126,8 @@
 
 #define PDK_TERMINATE_ON_EXCEPTION(expr) do { expr; } while (false)
 
+#if defined(__cplusplus)
+
 namespace pdk { 
 namespace lang {
 class String;
@@ -128,6 +136,8 @@ class String;
 PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
 
 } // pdk
+
+#endif
 
 #if !defined(PDK_NO_DEBUG) && !defined(PDK_DEBUG)
 #  define PDK_DEBUG
@@ -198,6 +208,8 @@ PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
 # define PDK_DESTRUCTOR_FUNCTION(AFUNC) PDK_DESTRUCTOR_FUNCTION0(AFUNC)
 #endif
 
+#ifndef __ASSEMBLER__
+#  ifdef __cplusplus
 namespace pdk 
 {
 
@@ -227,11 +239,14 @@ inline void pdk_noop(void) {}
 
 } // pdk
 
-using uchar = unsigned char;
-using ushort = unsigned short;
-using uint = unsigned int;
-using ulong = unsigned long;
+#  endif // __cplusplus
 
+typedef unsigned char uchar;
+typedef unsigned short ushort;
+typedef unsigned int uint;
+typedef unsigned long ulong;
+
+#  ifdef __cplusplus
 namespace pdk 
 {
 
@@ -468,5 +483,8 @@ private:
 #include "pdk/global/Numeric.h"
 #include "pdk/global/EnumDefs.h"
 #include "pdk/utils/Funcs.h"
+
+#  endif // __cplusplus
+#endif // __ASSEMBLER__
 
 #endif // PDK_GLOBAL_GLOBAL_H
