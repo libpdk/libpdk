@@ -460,6 +460,7 @@ template <typename T>
 void as_const(const T &&) = delete;
 
 using HANDLE = void *;
+using FuncPointer = void (*)();
 
 namespace kernel {
 #ifdef PDK_OS_DARWIN
