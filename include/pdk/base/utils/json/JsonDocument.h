@@ -13,4 +13,7 @@
 //
 // Created by softboy on 2018/03/05.
 
+#ifndef PDK_M_BASE_JSON_JSON_DOCUMENT_H
+#define PDK_M_BASE_JSON_JSON_DOCUMENT_H
 
+#endif // PDK_M_BASE_JSON_JSON_DOCUMENT_H
