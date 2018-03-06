@@ -13,4 +13,87 @@
 //
 // Created by softboy on 2018/03/05.
 
+#ifndef PDK_M_BASE_JSON_INTERNAL_JSON_PARSER_PRIVATE_H
+#define PDK_M_BASE_JSON_INTERNAL_JSON_PARSER_PRIVATE_H
 
+#include "pdk/global/Global.h"
+#include "pdk/base/utils/json/JsonDocument.h"
+#include "pdk/base/ds/VarLengthArray.h"
+#include <vector>
+
+namespace pdk {
+namespace utils {
+namespace json {
+namespace jsonprivate {
+
+class Parser
+{
+public:
+   Parser(const char *json, int length);
+   
+   JsonDocument parse(JsonParseError *error);
+   
+   class ParsedObject
+   {
+   public:
+      ParsedObject(Parser *parser, int pos) 
+         : m_parser(parser),
+           m_objectPosition(pos)
+      {
+         m_offsets.reserve(64);
+      }
+      void insert(uint offset);
+      
+      Parser *m_parser;
+      int m_objectPosition;
+      std::vector<uint> m_offsets;
+      
+      inline jsonprivate::Entry *entryAt(int i) const
+      {
+         return reinterpret_cast<jsonprivate::LocalEntry *>(m_parser->m_data + m_objectPosition + m_offsets[i]);
+      }
+   };
+private:
+   inline void eatBOM();
+   inline bool eatSpace();
+   inline char nextToken();
+   
+   bool parseObject();
+   bool parseArray();
+   bool parseMember(int baseOffset);
+   bool parseString(bool *latin1);
+   bool parseValue(jsonprivate::Value *val, int baseOffset);
+   bool parseNumber(jsonprivate::Value *val, int baseOffset);
+   const char *m_head;
+   const char *m_json;
+   const char *m_end;
+   
+   char *m_data;
+   int m_dataLength;
+   int m_current;
+   int m_nestingLevel;
+   JsonParseError::ParseError m_lastError;
+   
+   inline int reserveSpace(int space)
+   {
+      if (m_current + space >= m_dataLength) {
+         m_dataLength = 2 * m_dataLength + space;
+         char *newData = (char *)realloc(m_data, m_dataLength);
+         if (!newData) {
+            m_lastError = JsonParseError::ParseError::DocumentTooLarge;
+            return -1;
+         }
+         m_data = newData;
+      }
+      int pos = m_current;
+      m_current += space;
+      return pos;
+   }
+};
+
+} // jsonprivate
+} // json
+} // utils
+} // pdk
+
+#endif // PDK_M_BASE_JSON_INTERNAL_JSON_PARSER_PRIVATE_H
