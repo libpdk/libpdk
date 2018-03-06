@@ -505,8 +505,7 @@ private:
    JsonArray(jsonprivate::Data *data, jsonprivate::LocalArray *array);
    void initialize();
    void compact();
-   void detach(uint reserve = 0);
-   
+   bool detach(uint reserve = 0);
    jsonprivate::Data *m_data;
    jsonprivate::LocalArray *m_array;
 };
