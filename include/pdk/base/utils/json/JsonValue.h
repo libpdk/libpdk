@@ -64,15 +64,15 @@ public:
       Undefined = 0x80
    };
    
-   JsonValue(Type = Type::Null);
-   JsonValue(bool b);
-   JsonValue(double n);
-   JsonValue(int n);
-   JsonValue(pdk::pint64 n);
-   JsonValue(const String &s);
-   JsonValue(Latin1String s);
-   JsonValue(const JsonArray &a);
-   JsonValue(const JsonObject &o);
+   JsonValue(Type type = Type::Null);
+   JsonValue(bool value);
+   JsonValue(double value);
+   JsonValue(int value);
+   JsonValue(pdk::pint64 value);
+   JsonValue(const String &value);
+   JsonValue(Latin1String value);
+   JsonValue(const JsonArray &value);
+   JsonValue(const JsonObject &value);
    
    ~JsonValue();
    
@@ -81,11 +81,11 @@ public:
    
    JsonValue(JsonValue &&other) noexcept
       : m_ui(other.m_ui),
-        m_d(other.m_d),
+        m_data(other.m_data),
         m_type(other.m_type)
    {
       other.m_ui = 0;
-      other.m_d = nullptr;
+      other.m_data = nullptr;
       other.m_type = Type::Null;
    }
    
@@ -98,11 +98,11 @@ public:
    void swap(JsonValue &other) noexcept
    {
       std::swap(m_ui, other.m_ui);
-      std::swap(m_d, other.m_d);
+      std::swap(m_data, other.m_data);
       std::swap(m_type, other.m_type);
    }
    
-   static JsonValue fromStdAny(const std::any &any);
+   static JsonValue fromStdAny(const std::any &anyValue);
    std::any toStdAny() const;
    
    Type getType() const;
@@ -180,7 +180,7 @@ private:
       StringData *m_stringData;
       jsonprivate::Base *m_base;
    };
-   jsonprivate::Data *m_d; // needed for Objects and Arrays
+   jsonprivate::Data *m_data; // needed for Objects and Arrays
    Type m_type;
 };
 

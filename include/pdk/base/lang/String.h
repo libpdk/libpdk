@@ -1062,7 +1062,10 @@ private:
    
 public:
    static const Null sm_null;
-   
+   inline DataPtr &getDataPtr()
+   {
+      return m_data;
+   }
 private:
    Data *m_data;
 };
