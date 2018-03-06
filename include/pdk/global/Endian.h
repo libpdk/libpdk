@@ -97,32 +97,32 @@ inline constexpr pdk::puint16 bswap<pdk::puint16>(pdk::puint16 source)
 template <>
 inline constexpr pdk::puint8 bswap<pdk::puint8>(pdk::puint8 source)
 {
-    return source;
+   return source;
 }
 
 // signed specializations
 template <>
 inline constexpr pdk::pint64 bswap<pdk::pint64>(pdk::pint64 source)
 {
-    return bswap<pdk::puint64>(static_cast<pdk::puint64>(source));
+   return bswap<pdk::puint64>(static_cast<pdk::puint64>(source));
 }
 
 template <>
 inline constexpr pint32 bswap<pint32>(pint32 source)
 {
-    return bswap<pdk::puint32>(static_cast<pdk::puint32>(source));
+   return bswap<pdk::puint32>(static_cast<pdk::puint32>(source));
 }
 
 template <>
 inline constexpr pint16 bswap<pint16>(pint16 source)
 {
-    return bswap<pdk::puint16>(static_cast<pdk::puint16>(source));
+   return bswap<pdk::puint16>(static_cast<pdk::puint16>(source));
 }
 
 template <>
 inline constexpr pint8 bswap<pint8>(pint8 source)
 {
-    return source;
+   return source;
 }
 
 /*
@@ -134,7 +134,7 @@ inline constexpr pint8 bswap<pint8>(pint8 source)
 template <typename T>
 inline void bswap(const T src, void *dest)
 {
-    to_unaligned<T>(dest, bswap<T>(src));
+   to_unaligned<T>(dest, bswap<T>(src));
 }
 
 #if PDK_BYTE_ORDER == PDK_BIG_ENDIAN
@@ -222,7 +222,7 @@ inline void to_little_endian(T src, void *dest)
 */
 template <typename T> inline T from_little_endian(const void *src)
 {
-    return from_little_endian(from_unaligned<T>(src));
+   return from_little_endian(from_unaligned<T>(src));
 }
 
 template <>
@@ -244,7 +244,7 @@ inline pint8 from_little_endian<pint8>(const void *src)
 template <typename T>
 inline T from_big_endian(const void *src)
 {
-    return from_big_endian(from_unaligned<T>(src));
+   return from_big_endian(from_unaligned<T>(src));
 }
 
 template <>
@@ -258,6 +258,152 @@ inline pint8 from_big_endian<pint8>(const void *src)
 {
    return static_cast<const pint8 *>(src)[0];
 }
+
+template<class S>
+class SpecialInteger
+{
+   using T = typename S::StorageType;
+   T m_val;
+public:
+   SpecialInteger() = default;
+   explicit constexpr SpecialInteger(T i)
+      : m_val(S::toSpecial(i))
+   {}
+   
+   SpecialInteger &operator =(T i)
+   {
+      m_val = S::toSpecial(i);
+      return *this;
+   }
+   
+   operator T() const
+   {
+      return S::fromSpecial(m_val);
+   }
+   
+   bool operator ==(SpecialInteger<S> i) const
+   {
+      return m_val == i.m_val;
+   }
+   
+   bool operator !=(SpecialInteger<S> i) const
+   {
+      return m_val != i.m_val; 
+   }
+   
+   SpecialInteger &operator +=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) + i);
+   }
+   
+   SpecialInteger &operator -=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) - i);
+   }
+   
+   SpecialInteger &operator *=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) * i);
+   }
+   
+   SpecialInteger &operator >>=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) >> i);
+   }
+   
+   SpecialInteger &operator <<=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) << i);
+   }
+   
+   SpecialInteger &operator /=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) / i);
+   }
+   
+   SpecialInteger &operator %=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) % i);
+   }
+   
+   SpecialInteger &operator |=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) | i);
+   }
+   
+   SpecialInteger &operator &=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) & i);
+   }
+   
+   SpecialInteger &operator ^=(T i)
+   {
+      return (*this = S::fromSpecial(m_val) ^ i);
+   }
+};
+
+
+template<typename T>
+class LittleEndianStorageType
+{
+public:
+   using StorageType = T;
+   static constexpr T toSpecial(T source)
+   {
+      return pdk::to_little_endian(source);
+   }
+   
+   static constexpr T fromSpecial(T source)
+   {
+      return pdk::from_little_endian(source);
+   }
+};
+
+template<typename T>
+class BigEndianStorageType {
+public:
+   using StorageType = T;
+   static constexpr T toSpecial(T source)
+   {
+      return pdk::to_big_endian(source);
+   }
+   
+   static constexpr T fromSpecial(T source)
+   {
+      return pdk::from_big_endian(source);
+   }
+};
+
+template<typename T>
+using LEInteger = SpecialInteger<LittleEndianStorageType<T>>;
+
+template<typename T>
+using BEInteger = SpecialInteger<BigEndianStorageType<T>>;
+
+
+template <typename T>
+class pdk::TypeInfo<LEInteger<T> >
+    : public TypeInfoMerger<LEInteger<T>, T>
+{};
+
+template <typename T>
+class pdk::TypeInfo<BEInteger<T>>
+    : public TypeInfoMerger<BEInteger<T>, T>
+{};
+
+typedef LEInteger<pdk::pint16> pint16_le;
+typedef LEInteger<pdk::pint32> pint32_le;
+typedef LEInteger<pdk::pint64> pint64_le;
+typedef LEInteger<pdk::puint16> puint16_le;
+typedef LEInteger<pdk::puint32> puint32_le;
+typedef LEInteger<pdk::puint64> puint64_le;
+
+typedef BEInteger<pdk::pint16> pint16_be;
+typedef BEInteger<pdk::pint32> pint32_be;
+typedef BEInteger<pdk::pint64> pint64_be;
+typedef BEInteger<pdk::puint16> puint16_be;
+typedef BEInteger<pdk::puint32> puint32_be;
+typedef BEInteger<pdk::puint64> puint64_be;
 
 } // pdk
 
