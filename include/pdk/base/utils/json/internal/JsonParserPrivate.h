@@ -48,7 +48,7 @@ public:
       int m_objectPosition;
       std::vector<uint> m_offsets;
       
-      inline jsonprivate::Entry *entryAt(int i) const
+      inline jsonprivate::LocalEntry *entryAt(int i) const
       {
          return reinterpret_cast<jsonprivate::LocalEntry *>(m_parser->m_data + m_objectPosition + m_offsets[i]);
       }
@@ -62,8 +62,8 @@ private:
    bool parseArray();
    bool parseMember(int baseOffset);
    bool parseString(bool *latin1);
-   bool parseValue(jsonprivate::Value *val, int baseOffset);
-   bool parseNumber(jsonprivate::Value *val, int baseOffset);
+   bool parseValue(jsonprivate::LocalValue *val, int baseOffset);
+   bool parseNumber(jsonprivate::LocalValue *val, int baseOffset);
    const char *m_head;
    const char *m_json;
    const char *m_end;

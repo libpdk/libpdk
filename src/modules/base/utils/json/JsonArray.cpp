@@ -65,7 +65,6 @@ JsonArray::JsonArray(const JsonArray &other)
    if (m_data) {
       m_data->m_ref.ref();
    }
-   
 }
 
 JsonArray &JsonArray::operator =(const JsonArray &other)
