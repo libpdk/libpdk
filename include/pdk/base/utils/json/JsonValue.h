@@ -53,7 +53,7 @@ class LocalEntry;
 class PDK_CORE_EXPORT JsonValue
 {
 public:
-   enum class Type
+   enum class Type : uint
    {
       Null =  0x0,
       Bool = 0x1,
