@@ -181,7 +181,10 @@ class LocalLatin1String;
 class LocalString
 {
 public:
-   explicit LocalString(const char *data) { d = (Data *)data; }
+   explicit LocalString(const char *data)
+   {
+      m_implPtr = (Data *)const_cast<char *>(data);
+   }
    
    struct Data {
       ple_uint m_length;
@@ -226,8 +229,8 @@ public:
       if (slen != l) {
          return false;
       }         
-      const char16_t *s = (const char16_t *)str.constData();
-      const ple_ushort *a = d->utf16;
+      const char16_t *s = (const char16_t *)str.getConstRawData();
+      const ple_ushort *a = m_implPtr->m_utf16;
       const char16_t *b = s;
       while (l-- && *a == *b) {
          a++,b++;
@@ -285,7 +288,10 @@ public:
 class LocalLatin1String
 {
 public:
-   explicit LocalLatin1String(const char *data) { d = (Data *)data; }
+   explicit LocalLatin1String(const char *data)
+   {
+      m_implPtr = reinterpret_cast<Data *>(const_cast<char *>(data));
+   }
    
    struct Data
    {
@@ -307,13 +313,13 @@ public:
    inline LocalLatin1String &operator=(const String &str)
    {
       int len = m_implPtr->m_length = str.length();
-      uchar *l = (uchar *)d->latin1;
+      uchar *l = (uchar *)m_implPtr->m_latin1;
       const char16_t *uc = (const char16_t *)str.unicode();
       int i = 0;
 #ifdef __SSE2__
       for ( ; i + 16 <= len; i += 16) {
-         __m128i chunk1 = _mm_loadu_si128((__m128i*)&uc[i]); // load
-         __m128i chunk2 = _mm_loadu_si128((__m128i*)&uc[i + 8]); // load
+         __m128i chunk1 = _mm_loadu_si128((__m128i*)const_cast<char16_t *>(&uc[i])); // load
+         __m128i chunk2 = _mm_loadu_si128((__m128i*)const_cast<char16_t *>(&uc[i + 8])); // load
          // pack the two vector to 16 x 8bits elements
          const __m128i result = _mm_packus_epi16(chunk1, chunk2);
          _mm_storeu_si128((__m128i*)&l[i], result); // store
@@ -321,11 +327,11 @@ public:
 #  ifdef PDK_PROCESSOR_X86_64
       // we can do one more round, of 8 characters
       if (i + 8 <= len) {
-         __m128i chunk = _mm_loadu_si128((__m128i*)&uc[i]); // load
+         __m128i chunk = _mm_loadu_si128((__m128i*)const_cast<char16_t *>(&uc[i])); // load
          // pack with itself, we'll discard the high part anyway
          chunk = _mm_packus_epi16(chunk, chunk);
          // unaligned 64-bit store
-         pdk::to_unaligned(_mm_cvtsi128_si64(chunk), l + i);
+         pdk::to_unaligned(l + i, _mm_cvtsi128_si64(chunk));
          i += 8;
       }
 #  endif
@@ -410,17 +416,18 @@ DEF_OP(<=)
 DEF_OP(>=)
 #undef DEF_OP
 
-inline bool LocalString::operator ==(const Latin1String &str) const
+inline bool LocalString::operator ==(const LocalLatin1String &str) const
 {
-   if ((int)d->length != (int)str.d->length)
+   if ((int)m_implPtr->m_length != (int)str.m_implPtr->m_length)
       return false;
-   const qle_ushort *uc = d->utf16;
-   const qle_ushort *e = uc + d->length;
-   const uchar *c = (uchar *)str.d->latin1;
+   const ple_ushort *uc = m_implPtr->m_utf16;
+   const ple_ushort *e = uc + m_implPtr->m_length;
+   const uchar *c = (uchar *)str.m_implPtr->m_latin1;
    
    while (uc < e) {
-      if (*uc != *c)
+      if (*uc != *c) {
          return false;
+      }
       ++uc;
       ++c;
    }
@@ -513,7 +520,7 @@ public:
    
    inline offset *getTable() const
    {
-      return (offset *) (((char *) this) + m_tableOffset);
+      return (offset *) (((char *) const_cast<Base *>(this)) + m_tableOffset);
    }
    
    int reserveSpace(uint dataSize, int posInTable, uint numItems, bool replace);
@@ -525,7 +532,7 @@ class LocalObject : public Base
 public:
    LocalEntry *entryAt(int i) const
    {
-      return reinterpret_cast<LocalEntry *>(((char *)this) + getTable()[i]);
+      return reinterpret_cast<LocalEntry *>(((char *)const_cast<LocalObject *>(this)) + getTable()[i]);
    }
    int indexOf(const String &key, bool *exists) const;
    int indexOf(Latin1String key, bool *exists) const;
@@ -536,8 +543,8 @@ public:
 class LocalArray : public Base
 {
 public:
-   inline Value at(int i) const;
-   inline Value &operator [](int i);
+   inline LocalValue at(int i) const;
+   inline LocalValue &operator [](int i);
    
    bool isValid(int maxSize) const;
 };
@@ -557,9 +564,9 @@ public:
       ple_signedbitfield<5, 27> m_intValue;
    };
    
-   inline char *getData(const Base *b) const
+   inline char *getData(const Base *base) const
    {
-      return ((char *)b) + value;
+      return ((char *)const_cast<Base *>(base)) + m_value;
    }
    
    int getUsedStorage(const Base *b) const;
@@ -611,13 +618,13 @@ public:
    LocalString getShallowKey() const
    {
       PDK_ASSERT(!m_value.m_latinKey);
-      return String((const char *)this + sizeof(LocalEntry));
+      return LocalString((const char *)this + sizeof(LocalEntry));
    }
    
    LocalLatin1String getShallowLatin1Key() const
    {
       PDK_ASSERT(m_value.m_latinKey);
-      return Latin1String((const char *)this + sizeof(LocalEntry));
+      return LocalLatin1String((const char *)this + sizeof(LocalEntry));
    }
    
    String getKey() const
@@ -701,47 +708,50 @@ public:
 
 inline bool LocalValue::toBoolean() const
 {
-   PDK_ASSERT(m_type == JsonValue::Type::Bool);
+   PDK_ASSERT(m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::Bool));
    return m_value != 0;
 }
 
-inline double LocalValue::toDouble(const Base *b) const
+inline double LocalValue::toDouble(const Base *base) const
 {
-   PDK_ASSERT(m_type == JsonValue::Type::Double);
+   PDK_ASSERT(m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::Double));
    if (m_latinOrIntValue) {
       return m_intValue;
    }
-   pdk::puint64 i = pdk::from_little_endian<pdk::puint64>((const uchar *)b + value);
+   pdk::puint64 i = pdk::from_little_endian<pdk::puint64>((const uchar *)base + m_value);
    double d;
    memcpy(&d, &i, sizeof(double));
    return d;
 }
 
-inline LocalString LocalValue::asString(const Base *b) const
+inline LocalString LocalValue::asString(const Base *base) const
 {
-   PDK_ASSERT(m_type == JsonValue::Type::String && !m_latinOrIntValue);
-   return LocalString(getData(b));
+   PDK_ASSERT(m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::String) && 
+              !m_latinOrIntValue);
+   return LocalString(getData(base));
 }
 
-inline LocalLatin1String LocalValue::asLatin1String(const Base *b) const
+inline LocalLatin1String LocalValue::asLatin1String(const Base *base) const
 {
-   PDK_ASSERT(type == JsonValue::Type::String && m_latinOrIntValue);
-   return LocalLatin1String(getData(b));
+   PDK_ASSERT(m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::String) && 
+              m_latinOrIntValue);
+   return LocalLatin1String(getData(base));
 }
 
-inline String LocalValue::toString(const Base *b) const
+inline String LocalValue::toString(const Base *base) const
 {
    if (m_latinOrIntValue) {
-      return asLatin1String(b).toString();
+      return asLatin1String(base).toString();
    } else {
-      return asString(b).toString();
+      return asString(base).toString();
    } 
 }
 
-inline Base *LocalValue::base(const Base *b) const
+inline Base *LocalValue::base(const Base *base) const
 {
-   PDK_ASSERT(m_type == JsonValue::Type::Array || m_type == JsonValue::Type::Object);
-   return reinterpret_cast<Base *>(getData(b));
+   PDK_ASSERT(m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::Array) || 
+              m_type == pdk::as_integer<JsonValue::Type>(JsonValue::Type::Object));
+   return reinterpret_cast<Base *>(getData(base));
 }
 
 class Data {
@@ -781,23 +791,23 @@ public:
       PDK_CHECK_ALLOC_PTR(m_header);
       m_header->m_tag = JsonDocument::BinaryFormatTag;
       m_header->m_version = 1;
-      Base *b = m_header->getRoot();
-      b->m_size = sizeof(Base);
-      b->m_isObject = (valueType == JsonValue::Type::Object);
-      b->m_tableOffset = sizeof(Base);
-      b->m_length = 0;
+      Base *base = m_header->getRoot();
+      base->m_size = sizeof(Base);
+      base->m_isObject = (valueType == JsonValue::Type::Object);
+      base->m_tableOffset = sizeof(Base);
+      base->m_length = 0;
    }
    
    inline ~Data()
    {
       if (m_ownsData) {
-         free(m_ownsData);
+         free(m_rawData);
       }
    }
    
    uint offsetOf(const void *ptr) const 
    {
-      return (uint)(((char *)ptr - m_rawData));
+      return (uint)(((char *)const_cast<void *>(ptr) - m_rawData));
    }
    
    JsonObject toObject(LocalObject *object) const
@@ -850,6 +860,5 @@ private:
 } // pdk
 
 PDK_DECLARE_TYPEINFO(pdk::utils::json::jsonprivate::LocalValue, PDK_PRIMITIVE_TYPE);
-
 
 #endif // PDK_M_BASE_JSON_INTERNAL_JSON_PRIVATE_H

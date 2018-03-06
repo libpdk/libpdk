@@ -33,16 +33,20 @@ class Debug;
 // forward declare class with namespace
 namespace lang {
 class String;
-class StringList;
 class Latin1String;
 } // lang
+
+// forward declare class with namespace
+namespace ds {
+class StringList;
+} // ds
 
 namespace utils {
 namespace json {
 
 using pdk::io::Debug;
 using AnyMap = std::map<String, std::any>;
-using pdk::lang::StringList;
+using pdk::ds::StringList;
 
 class PDK_CORE_EXPORT JsonObject
 {
@@ -144,7 +148,7 @@ public:
       
       inline String getKey() const 
       {
-         return m_object->keyAt(i);
+         return m_object->keyAt(m_index);
       }
       
       inline JsonValueRef getValue() const

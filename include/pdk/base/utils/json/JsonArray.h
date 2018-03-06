@@ -30,7 +30,7 @@ class Debug;
 } // io
 
 // forward declare class with namespace
-namespace lang {
+namespace ds {
 class StringList;
 } // lang
 
@@ -38,7 +38,7 @@ namespace utils {
 namespace json {
 
 using pdk::io::Debug;
-using pdk::lang::StringList;
+using pdk::ds::StringList;
 
 using AnyList = std::list<std::any>;
 
@@ -255,12 +255,12 @@ public:
       
       inline iterator operator+(int j) const
       {
-         return iterator(a, m_index + j);
+         return iterator(m_array, m_index + j);
       }
       
       inline iterator operator-(int j) const
       {
-         return iterator(a, m_index - j);
+         return iterator(m_array, m_index - j);
       }
       
       inline int operator-(iterator j) const
@@ -379,12 +379,12 @@ public:
       
       inline const_iterator operator+(int j) const
       {
-         return const_iterator(a, m_index + j);
+         return const_iterator(m_array, m_index + j);
       }
       
       inline const_iterator operator-(int j) const
       {
-         return const_iterator(a, m_index - j);
+         return const_iterator(m_array, m_index - j);
       }
       
       inline int operator-(const_iterator j) const

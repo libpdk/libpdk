@@ -18,6 +18,7 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/base/lang/String.h"
+#include <any>
 
 namespace pdk {
 
@@ -35,6 +36,7 @@ class JsonObject;
 using pdk::io::Debug;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
+using pdk::lang::StringData;
 
 // forward declare class with namespace
 namespace jsonprivate
@@ -161,7 +163,7 @@ private:
    inline JsonValue(const void *)
    {}
    
-   friend class jsonprivate::Value;
+   friend class jsonprivate::LocalValue;
    friend class JsonArray;
    friend class JsonObject;
    friend PDK_CORE_EXPORT Debug operator<<(Debug, const JsonValue &);
@@ -217,7 +219,7 @@ public:
       return getType() == JsonValue::Type::Null;
    }
    
-   inline bool getType() const 
+   inline bool isBool() const 
    {
       return getType() == JsonValue::Type::Bool;
    }
