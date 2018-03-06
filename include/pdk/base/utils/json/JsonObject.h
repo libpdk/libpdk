@@ -408,9 +408,9 @@ public:
    iterator insert(const String &key, const JsonValue &value);
    
    // STL compatibility
-   typedef JsonValue mapped_type;
-   typedef String key_type;
-   typedef int size_type;
+   using mapped_type = JsonValue;
+   using key_type = String;
+   using size_type = int;
    
    inline bool empty() const
    {
