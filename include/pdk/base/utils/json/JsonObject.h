@@ -431,7 +431,7 @@ private:
    
    JsonObject(jsonprivate::Data *data, jsonprivate::LocalObject *object);
    void initialize();
-   void detach(uint reserve = 0);
+   bool detach(uint reserve = 0);
    void compact();
    
    String keyAt(int i) const;
