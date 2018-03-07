@@ -20,10 +20,90 @@
 #include "pdk/dll/Library.h"
 #include "pdk/dll/Plugin.h"
 #include "pdk/utils/SharedPointer.h"
+#include "pdk/base/ds/StringList.h"
+#include "pdk/base/utils/json/JsonObject.h"
+#include "pdk/base/os/thread/Atomic.h"
+#include "pdk/kernel/Pointer.h"
 
 #ifdef PDK_OS_WIN
 #  include "pdk/global/Windows.h"
 #endif
 
+PDK_REQUIRE_CONFIG(library);
+
+namespace pdk {
+namespace dll {
+namespace internal {
+
+using pdk::utils::json::JsonObject;
+using pdk::os::thread::AtomicInt;
+using pdk::kernel::Pointer;
+
+bool pdk_debug_component();
+
+class LibraryStore;
+class LibraryPrivate
+{
+public:
+   
+#ifdef PDK_OS_WIN
+   HINSTANCE
+#else
+   void *
+#endif
+   m_handle;
+   enum class UnloadFlag
+   {
+      UnloadSys,
+      NoUnloadSys
+   };
+   String m_fileName;
+   String m_qualifiedFileName;
+   String m_fullVersion;
+   bool load();
+   bool loadPlugin(); // loads and resolves instance
+   bool unload(UnloadFlag flag = UnloadFlag::UnloadSys);
+   void release();
+   FuncPointer resolve(const char *);
+   Library::LoadHints getLoadHints() const
+   {
+      return Library::LoadHints(m_loadHintsInt.load());
+   }
+   
+   void setLoadHints(Library::LoadHints lh);
+   
+   static LibraryPrivate *findOrCreate(const String &fileName, const String &version = String(),
+                                       Library::LoadHints loadHints = 0);
+   static StringList suffixesSys(const String &fullVersion);
+   static StringList prefixesSys();
+   
+   Pointer<Object> m_inst;
+   PdkPluginInstanceFunc m_instance;
+   JsonObject m_metaData;
+   
+   String m_errorString;
+   
+   void updatePluginState();
+   bool isPlugin();
+   
+private:
+   explicit LibraryPrivate(const String &canonicalFileName, const String &version, Library::LoadHints loadHints);
+   ~LibraryPrivate();
+   void mergeLoadHints(Library::LoadHints loadHints);
+   bool loadSys();
+   bool unloadSys();
+   FuncPointer resolveSys(const char *);
+   AtomicInt m_loadHintsInt;
+   /// counts how many Library or PluginLoader are attached to us, plus 1 if it's loaded
+   AtomicInt m_libraryRefCount;
+   /// counts how many times load() or loadPlugin() were called
+   AtomicInt m_libraryUnloadCount;
+   enum { IsAPlugin, IsNotAPlugin, MightBeAPlugin } m_pluginState;
+   friend class LibraryStore;
+};
+
+} // internal
+} // dll
+} // pdk
 
 #endif // PDK_DLL_INTERNAL_LIBRARY_PRIVATE_H
