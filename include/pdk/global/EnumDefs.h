@@ -95,7 +95,7 @@ enum class MsgType
    SystemMsg = CriticalMsg
 };
 
-enum class  AppAttribute
+enum class AppAttribute
 {
    AA_ImmediateWidgetCreation = 0,
    AA_MSWindowsUseDirect3DByDefault = 1, // Win only

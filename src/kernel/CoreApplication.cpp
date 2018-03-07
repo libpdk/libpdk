@@ -36,6 +36,7 @@
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/io/fs/StandardPaths.h"
 #include "pdk/global/LibraryInfo.h"
+#include "pdk/dll/internal/FactoryLoaderPrivate.h"
 
 #include <cstdlib>
 #include <list>
@@ -83,6 +84,7 @@ using pdk::io::fs::FileInfo;
 using pdk::io::fs::StandardPaths;
 using pdk::LibraryInfo;
 using pdk::ds::VarLengthArray;
+using pdk::dll::internal::FactoryLoader;
 
 #if defined(PDK_OS_WIN) || defined(PDK_OS_MAC)
 extern String retrieve_app_filename();
@@ -1705,33 +1707,121 @@ StringList CoreApplication::getLibraryPaths()
 
 void CoreApplication::setLibraryPaths(const StringList &paths)
 {
-  
+   // setLibraryPaths() is considered a "remove everything and then add some new ones" operation.
+   // When the application is constructed it should still amend the paths. So we keep the originals
+   // around, and even create them if they don't exist, yet.
+   std::unique_lock<std::recursive_mutex> locker(*sg_libraryPathMutex());
+   if (!sg_coreAppData()->m_appLibPaths) {
+      getLibraryPaths();
+   }
+   if (sg_coreAppData()->m_manualLibPaths) {
+      *(sg_coreAppData()->m_manualLibPaths) = paths;
+   } else {
+      sg_coreAppData()->m_manualLibPaths.reset(new StringList(paths));
+   }
+   locker.unlock();
+   FactoryLoader::refreshAll();
 }
 
 void CoreApplication::addLibraryPath(const String &path)
 {
+   if (path.isEmpty()) {
+      return;
+   }
+   String canonicalPath = Dir(path).getCanonicalPath();
+   if (canonicalPath.isEmpty()) {
+      return;
+   }
+   std::unique_lock<std::recursive_mutex> locker(*sg_libraryPathMutex());
+   StringList *libpaths = sg_coreAppData()->m_manualLibPaths.getData();
+   if (libpaths) {
+      if (libpaths->contains(canonicalPath)) {
+         return;
+      }
+   } else {
+      // make sure that library paths are initialized
+      getLibraryPaths();
+      StringList *appLibPaths = sg_coreAppData()->m_appLibPaths.getData();
+      if (appLibPaths->contains(canonicalPath)) {
+         return;
+      }
+      sg_coreAppData()->m_manualLibPaths.reset(libpaths = new StringList(*appLibPaths));
+   }
+   libpaths->push_front(canonicalPath);
+   locker.unlock();
+   FactoryLoader::refreshAll();
 }
 
 void CoreApplication::removeLibraryPath(const String &path)
 {
+   if (path.isEmpty()) {
+      return;
+   }
+   String canonicalPath = Dir(path).getCanonicalPath();
+   if (canonicalPath.isEmpty()) {
+      return;
+   }
+   std::unique_lock<std::recursive_mutex> locker(*sg_libraryPathMutex());
+   StringList *libPaths = sg_coreAppData()->m_manualLibPaths.getData();
+   if (libPaths) {
+      int oldSize = libPaths->size();
+      libPaths->remove(canonicalPath);
+      if (libPaths - oldSize == 0) {
+         return;
+      }
+   } else {
+      // make sure that library paths is initialized
+      getLibraryPaths();
+      StringList *appLibPaths = sg_coreAppData()->m_appLibPaths.getData();
+      if (!appLibPaths->contains(canonicalPath)) {
+         return;
+      }
+      sg_coreAppData()->m_manualLibPaths.reset(libPaths = new StringList(*appLibPaths));
+      libPaths->remove(canonicalPath);
+   }
+   locker.unlock();
+   FactoryLoader::refreshAll();
 }
 
 #endif
 
 void CoreApplication::installNativeEventFilter(AbstractNativeEventFilter *filterObj)
 {
+   if (CoreApplication::testAttribute(pdk::AppAttribute::AA_PluginApplication)) {
+      warning_stream("Native event filters are not applied when the pdk::AppAttribute::AA_PluginApplication attribute is set");
+      return;
+   }
+   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance(CoreApplicationPrivate::sm_theMainThread);
+   if (!filterObj || !eventDispatcher) {
+      return;
+   }
+   eventDispatcher->installNativeEventFilter(filterObj);
 }
 
 void CoreApplication::removeNativeEventFilter(AbstractNativeEventFilter *filterObject)
 {
+   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
+   if (!filterObject || !eventDispatcher) {
+      return;
+   }
+   eventDispatcher->removeNativeEventFilter(filterObject);
 }
 
 AbstractEventDispatcher *CoreApplication::getEventDispatcher()
 {
+   if (CoreApplicationPrivate::sm_theMainThread) {
+      return CoreApplicationPrivate::sm_theMainThread.load()->getEventDispatcher();
+   }
+   return nullptr;
 }
 
 void CoreApplication::setEventDispatcher(AbstractEventDispatcher *eventDispatcher)
 {
+   Thread *mainThread = CoreApplicationPrivate::sm_theMainThread;
+   if (!mainThread) {
+      mainThread = Thread::getCurrentThread(); // will also setup theMainThread
+   }
+   mainThread->setEventDispatcher(eventDispatcher);
 }
 
 } // kernel
