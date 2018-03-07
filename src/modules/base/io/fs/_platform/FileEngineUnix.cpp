@@ -41,7 +41,7 @@ namespace internal {
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
-using pdk::pdk_error_string;
+using pdk::error_string;
 
 namespace {
 
@@ -97,7 +97,7 @@ bool FileEnginePrivate::nativeOpen(IoDevice::OpenModes openMode)
       // On failure, return and report the error.
       if (m_fd == -1) {
          apiPtr->setError(errno == EMFILE ? File::FileError::ResourceError : File::FileError::OpenError,
-                          pdk_error_string(errno));
+                          pdk::error_string(errno));
          return false;
       }
       
@@ -121,7 +121,7 @@ bool FileEnginePrivate::nativeOpen(IoDevice::OpenModes openMode)
          
          if (ret == -1) {
             apiPtr->setError(errno == EMFILE ? File::FileError::ResourceError : File::FileError::OpenError,
-                             pdk_error_string(int(errno)));
+                             pdk::error_string(int(errno)));
             return false;
          }
       }
@@ -152,7 +152,7 @@ bool FileEnginePrivate::nativeSyncToDisk()
    const int ret = fsync(getNativeHandle());
 #endif
    if (ret != 0)
-      apiPtr->setError(File::FileError::WriteError, pdk_error_string(errno));
+      apiPtr->setError(File::FileError::WriteError, pdk::error_string(errno));
    return ret == 0;
 }
 
@@ -205,7 +205,7 @@ pdk::pint64 FileEnginePrivate::nativeRead(char *data, pdk::pint64 len)
       }
       if (readBytes == 0 && !feof(m_fh)) {
          // if we didn't read anything and we're not at EOF, it must be an error
-         apiPtr->setError(File::FileError::ReadError, pdk_error_string(int(errno)));
+         apiPtr->setError(File::FileError::ReadError, pdk::error_string(int(errno)));
          return -1;
       }
       return readBytes;
@@ -553,7 +553,7 @@ bool FileEngine::setSize(pdk::pint64 size)
       ret = PDK_TRUNCATE(implPtr->m_fileEntry.getNativeFilePath().getConstRawData(), size) == 0;
    }
    if (!ret) {
-      setError(File::FileError::ResizeError, pdk_error_string(errno));
+      setError(File::FileError::ResizeError, pdk::error_string(errno));
    }
    return ret;
 }
@@ -563,7 +563,7 @@ bool FileEngine::setFileTime(const DateTime &newDate, FileTime time)
    PDK_D(FileEngine);
    
    if (implPtr->m_openMode == IoDevice::OpenMode::NotOpen) {
-      setError(File::FileError::PermissionsError, pdk_error_string(EACCES));
+      setError(File::FileError::PermissionsError, pdk::error_string(EACCES));
       return false;
    }
    
@@ -593,13 +593,13 @@ uchar *FileEnginePrivate::map(pdk::pint64 offset, pdk::pint64 size, File::Memory
    
    PDK_Q(FileEngine);
    if (m_openMode == IoDevice::OpenMode::NotOpen) {
-      apiPtr->setError(File::FileError::PermissionsError, pdk_error_string(int(EACCES)));
+      apiPtr->setError(File::FileError::PermissionsError, pdk::error_string(int(EACCES)));
       return 0;
    }
    
    if (offset < 0 || offset > MaxFileOffset
        || size < 0 || pdk::puint64(size) > pdk::puint64(size_t(-1))) {
-      apiPtr->setError(File::FileError::UnspecifiedError, pdk_error_string(int(EINVAL)));
+      apiPtr->setError(File::FileError::UnspecifiedError, pdk::error_string(int(EINVAL)));
       return 0;
    }
    
@@ -632,7 +632,7 @@ uchar *FileEnginePrivate::map(pdk::pint64 offset, pdk::pint64 size, File::Memory
    int extra = offset % pageSize;
    
    if (pdk::puint64(size + extra) > pdk::puint64((size_t)-1)) {
-      apiPtr->setError(File::FileError::UnspecifiedError, pdk_error_string(int(EINVAL)));
+      apiPtr->setError(File::FileError::UnspecifiedError, pdk::error_string(int(EINVAL)));
       return 0;
    }
    
@@ -649,16 +649,16 @@ uchar *FileEnginePrivate::map(pdk::pint64 offset, pdk::pint64 size, File::Memory
    
    switch(errno) {
    case EBADF:
-      apiPtr->setError(File::FileError::PermissionsError, pdk_error_string(int(EACCES)));
+      apiPtr->setError(File::FileError::PermissionsError, pdk::error_string(int(EACCES)));
       break;
    case ENFILE:
    case ENOMEM:
-      apiPtr->setError(File::FileError::ResourceError, pdk_error_string(int(errno)));
+      apiPtr->setError(File::FileError::ResourceError, pdk::error_string(int(errno)));
       break;
    case EINVAL:
       // size are out of bounds
    default:
-      apiPtr->setError(File::FileError::UnspecifiedError, pdk_error_string(int(errno)));
+      apiPtr->setError(File::FileError::UnspecifiedError, pdk::error_string(int(errno)));
       break;
    }
    return 0;
@@ -669,14 +669,14 @@ bool FileEnginePrivate::unmap(uchar *ptr)
 #if !defined(PDK_OS_INTEGRITY)
    PDK_Q(FileEngine);
    if (m_maps.find(ptr) != m_maps.end()) {
-      apiPtr->setError(File::FileError::PermissionsError, pdk_error_string(EACCES));
+      apiPtr->setError(File::FileError::PermissionsError, pdk::error_string(EACCES));
       return false;
    }
    
    uchar *start = ptr - m_maps[ptr].first;
    size_t len = m_maps[ptr].second;
    if (-1 == munmap(start, len)) {
-      apiPtr->setError(File::FileError::UnspecifiedError, pdk_error_string(errno));
+      apiPtr->setError(File::FileError::UnspecifiedError, pdk::error_string(errno));
       return false;
    }
    m_maps.erase(ptr);

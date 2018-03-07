@@ -112,7 +112,7 @@ void TemporaryDirPrivate::create(const String &templateName)
          break;
       }
    }
-   m_pathOrError = pdk::pdk_error_string();
+   m_pathOrError = pdk::error_string();
    m_success = false;
 }
 

@@ -537,7 +537,7 @@ void Thread::start(Priority priority)
 #endif // _POSIX_THREAD_ATTR_STACKSIZE
       if (code) {
          warning_stream("Thread::start: Thread stack size error: %s",
-                        pdk_printable(pdk_error_string(code)));
+                        pdk_printable(pdk::error_string(code)));
          // we failed to set the stacksize, and as the documentation states,
          // the thread will fail to run...
          implPtr->m_running = false;
@@ -558,7 +558,7 @@ void Thread::start(Priority priority)
    implPtr->m_data->m_threadId = to_pdk_handle_type(threadId);
    pthread_attr_destroy(&attr);
    if (code) {
-      warning_stream("Thread::start: Thread creation error: %s", pdk_printable(pdk_error_string(code)));
+      warning_stream("Thread::start: Thread creation error: %s", pdk_printable(pdk::error_string(code)));
       implPtr->m_running = false;
       implPtr->m_finished = false;
       implPtr->m_data->m_threadId = 0;
@@ -575,7 +575,7 @@ void Thread::terminate()
    int code = pthread_cancel(from_pdk_handle_type<pthread_t>(implPtr->m_data->m_threadId));
    if (code) {
       warning_stream("Thread::start: Thread termination error: %s",
-                     pdk_printable(pdk_error_string((code))));
+                     pdk_printable(pdk::error_string((code))));
    }
 }
 

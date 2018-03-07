@@ -69,7 +69,7 @@ public:
    static bool isLibrary(const String &fileName);
    
    void setFileName(const String &fileName);
-   String fileName() const;
+   String getFileName() const;
    
    void setFileNameAndVersion(const String &fileName, int verNum);
    void setFileNameAndVersion(const String &fileName, const String &version);

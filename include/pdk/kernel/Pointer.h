@@ -63,6 +63,12 @@ public:
       return *this;
    }
    
+   inline Pointer<T> &operator=(T* p)
+   {
+      m_wptr = std::shared_ptr<T>(static_cast<ObjectType*>(p));
+      return *this;
+   }
+   
    inline void swap(Pointer &other)
    { 
       m_wptr.swap(other.m_wptr); 

@@ -133,7 +133,7 @@ namespace lang {
 class String;
 } // lang
 
-PDK_CORE_EXPORT pdk::lang::String pdk_error_string(int errorCode = -1);
+PDK_CORE_EXPORT pdk::lang::String error_string(int errorCode = -1);
 
 } // pdk
 

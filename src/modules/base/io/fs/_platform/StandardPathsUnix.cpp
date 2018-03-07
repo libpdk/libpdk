@@ -128,7 +128,7 @@ String StandardPaths::writableLocation(StandardLocation type)
             if (!Dir().mkdir(xdgRuntimeDir)) {
                warning_stream("StandardPaths: error creating runtime directory %s: %s", 
                               pdk_printable(xdgRuntimeDir), 
-                              pdk_printable(pdk::pdk_error_string(errno)));
+                              pdk_printable(pdk::pdk::error_string(errno)));
                return String();
             }
          }

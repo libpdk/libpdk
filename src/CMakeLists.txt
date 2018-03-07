@@ -28,12 +28,10 @@ pdk_collect_files(
    OUTPUT_VAR PDK_BASE_SOURCES)
 
 if (WIN32)
-   #   list(APPEND PDK_BASE_SOURCES
-   #            ${DLL_DIR}/_platform/LibraryWin.cpp)
+   list(APPEND PDK_BASE_SOURCES
+      ${DLL_DIR}/_platform/LibraryWin.cpp)
 elseif(UNIX)
    list(APPEND PDK_BASE_SOURCES
-      ${DLL_DIR}/_platform/LibraryWin.cpp
-      ${DLL_DIR}/_platform/SystemLibraryWin.cpp
       ${DLL_DIR}/_platform/LibraryUnix.cpp)
 endif()
 

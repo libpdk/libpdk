@@ -155,12 +155,12 @@ String SystemError::getWindowsString(int errorCode)
    return windows_error_string(errorCode == -1 ? GetLastError() : errorCode);
 }
 
-String pdk_error_string(int code)
+String pdk::error_string(int code)
 {
    return windowsErrorString(code == -1 ? GetLastError() : code);
 }
 #else
-String pdk_error_string(int code)
+String pdk::error_string(int code)
 {
    return standard_library_error_string(code == -1 ? errno : code);
 }

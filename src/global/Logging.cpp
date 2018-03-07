@@ -1331,26 +1331,26 @@ void message_output(pdk::MsgType msgType, const MessageLogContext &context, cons
 
 void errno_warning(const char *msg, ...)
 {
-   // pdk_error_string() will allocate anyway, so we don't have
+   // pdk::error_string() will allocate anyway, so we don't have
    // to be careful here (like we do in plain warning_stream())
    va_list ap;
    va_start(ap, msg);
    String buf = String::vasprintf(msg, ap);
    va_end(ap);
-   buf += Latin1String(" (") + pdk_error_string(-1) + Latin1Character(')');
+   buf += Latin1String(" (") + pdk::error_string(-1) + Latin1Character(')');
    MessageLogContext context;
    message_output(pdk::MsgType::CriticalMsg, context, buf);
 }
 
 void errno_warning(int code, const char *msg, ...)
 {
-   // pdk_error_string() will allocate anyway, so we don't have
+   // pdk::error_string() will allocate anyway, so we don't have
    // to be careful here (like we do in plain warning_stream())
    va_list ap;
    va_start(ap, msg);
    String buf = String::vasprintf(msg, ap);
    va_end(ap);
-   buf += Latin1String(" (") + pdk_error_string(code) + Latin1Character(')');
+   buf += Latin1String(" (") + pdk::error_string(code) + Latin1Character(')');
    MessageLogContext context;
    message_output(pdk::MsgType::CriticalMsg, context, buf);
 }

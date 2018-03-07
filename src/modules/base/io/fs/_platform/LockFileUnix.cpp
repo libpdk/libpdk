@@ -147,7 +147,7 @@ LockFile::LockError LockFilePrivate::tryLockSys()
    // Ensure nobody else can delete the file while we have it
    if (!set_native_locks(fd)) {
       const int errnoSaved = errno;
-      warning_stream() << "set_native_locks failed:" << pdk::pdk_error_string(errnoSaved);
+      warning_stream() << "set_native_locks failed:" << pdk::error_string(errnoSaved);
    }
    ByteArray fileData = lockFileContents();
    if (pdk_write_loop(fd, fileData.getConstRawData(), fileData.size()) < fileData.size()) {
