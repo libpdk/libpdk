@@ -32,12 +32,19 @@
 PDK_REQUIRE_CONFIG(library);
 
 namespace pdk {
+
+// forward declare class with namespace
+namespace ds {
+class StringList;
+} // ds
+
 namespace dll {
 namespace internal {
 
 using pdk::utils::json::JsonObject;
 using pdk::os::thread::AtomicInt;
 using pdk::kernel::Pointer;
+using pdk::ds::StringList;
 
 bool pdk_debug_component();
 
