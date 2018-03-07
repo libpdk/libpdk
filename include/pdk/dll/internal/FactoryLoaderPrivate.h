@@ -68,7 +68,7 @@ public:
 #endif // PDK_OS_UNIX && !PDK_OS_MAC
 #endif // PDK_CONFIG(library)
    
-   std::multimap<int, String> keyMap() const;
+   std::multimap<int, String> getKeyMap() const;
    int indexOf(const String &needle) const;
    
    std::list<JsonObject> getMetaData() const;

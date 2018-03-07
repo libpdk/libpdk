@@ -208,8 +208,6 @@ void PluginLoader::setLoadHints(Library::LoadHints loadHints)
    m_implPtr->setLoadHints(loadHints);
 }
 
-
-
 Library::LoadHints PluginLoader::getLoadHints() const
 {
    return m_implPtr ? m_implPtr->getLoadHints() : Library::LoadHints();
