@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/01/30.
 
-#ifndef PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
-#define PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
+#ifndef PDK_KERNEL_INTERNAL_POLL_PRIVATE_H
+#define PDK_KERNEL_INTERNAL_POLL_PRIVATE_H
 
 #include "pdk/global/Global.h"
 #include <unistd.h>
@@ -50,4 +50,4 @@ typedef unsigned long int nfds_t;
 } // kernel
 } // pdk
 
-#endif // PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H
+#endif // PDK_KERNEL_INTERNAL_POLL_PRIVATE_H

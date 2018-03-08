@@ -41,6 +41,8 @@ namespace internal {
 using pdk::kernel::signal::Signal;
 using pdk::os::thread::internal::ThreadData;
 
+PDK_CORE_EXPORT void delete_in_event_handler(Object *);
+
 class PDK_CORE_EXPORT ObjectPrivate : public ObjectData
 {
    PDK_DECLARE_PUBLIC(Object);

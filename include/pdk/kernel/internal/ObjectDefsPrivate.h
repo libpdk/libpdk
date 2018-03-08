@@ -32,12 +32,6 @@ using pdk::kernel::Object;
 
 class SlotObjectBase
 {
-   AtomicInt m_ref;
-   // don't use virtual functions here; we don't want the
-   // compiler to create tons of per-polymorphic-class stuff that
-   // we'll never need. We just use one function pointer.
-   typedef void (*ImplFunc)(int which, SlotObjectBase* this_, Object *receiver, void **args, bool *ret);
-   const ImplFunc m_impl;
 protected:
    enum class Operation {
       Destroy,
@@ -45,6 +39,14 @@ protected:
       Compare,
       NumOperations
    };
+private:
+   AtomicInt m_ref;
+   // don't use virtual functions here; we don't want the
+   // compiler to create tons of per-polymorphic-class stuff that
+   // we'll never need. We just use one function pointer.
+   typedef void (*ImplFunc)(Operation which, SlotObjectBase* this_, Object *receiver, void **args, bool *ret);
+   const ImplFunc m_impl;
+   
 public:
    explicit SlotObjectBase(ImplFunc func)
       : m_ref(1),
@@ -78,7 +80,6 @@ protected:
    ~SlotObjectBase()
    {}
    
-private:
    PDK_DISABLE_COPY(SlotObjectBase);
 };
 
@@ -89,14 +90,14 @@ class SlotObject : public SlotObjectBase
 {
    using FuncType = pdk::stdext::FunctionPointer<Func>;
    Func m_function;
-   static void impl(int which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
+   static void impl(Operation which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
    {
       switch (which) {
       case Operation::Destroy:
          delete static_cast<SlotObject*>(this_);
          break;
       case Operation::Call:
-         FuncType::template call<Args, R>(static_cast<SlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(r), args);
+         FuncType::template call<Args, R>(static_cast<SlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(receiver), args);
          break;
       case Operation::Compare:
          *ret = *reinterpret_cast<Func *>(args) == static_cast<SlotObject *>(this_)->m_function;
@@ -119,7 +120,7 @@ class FunctorSlotObject : public SlotObjectBase
 {
    using FuncType = pdk::stdext::Functor<Func, N>;
    Func m_function;
-   static void impl(int which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
+   static void impl(Operation which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
    {
       switch (which) {
       case Operation::Destroy:
@@ -141,6 +142,7 @@ public:
 };
 
 } // internal
+
 } // kernel
 } // pdk
 

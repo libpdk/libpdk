@@ -42,8 +42,8 @@ ObjectData::~ObjectData()
 namespace internal {
 
 ObjectPrivate::ObjectPrivate(int version)
-    : m_currentChildBeingDeleted(0),
-      m_threadData(0)
+   : m_currentChildBeingDeleted(0),
+     m_threadData(0)
 {
    PDK_UNUSED(version);
    m_apiPtr = nullptr;
@@ -63,19 +63,21 @@ ObjectPrivate::~ObjectPrivate()
 {
 }
 
-} // internal
-
-namespace {
-
+void delete_in_event_handler(Object *object)
+{
+   delete object;
 }
 
+} // internal
+
+
 Object::Object(Object *parent)
-    : m_implPtr(new ObjectPrivate)
+   : m_implPtr(new ObjectPrivate)
 {
 }
 
 Object::Object(ObjectPrivate &dd, Object *parent)
-    : m_implPtr(&dd)
+   : m_implPtr(&dd)
 {
 }
 
@@ -119,7 +121,7 @@ void Object::customEvent(Event * /* event */)
 
 bool Object::eventFilter(Object * /* watched */, Event * /* event */)
 {
-    return false;
+   return false;
 }
 
 Thread *Object::getThread() const

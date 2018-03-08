@@ -283,14 +283,15 @@ struct FunctionPointer
 template<class Obj, typename Ret, typename... Args>
 struct FunctionPointer<Ret (Obj::*) (Args...)>
 {
-   typedef Obj Object;
-   typedef Ret ReturnType;
-   typedef Ret (Obj::*Function) (Args...);
+   using ObjectType = Obj;
+   using ReturnType = Ret;
+   using Function = Ret (Obj::*) (Args...);
+   using ArgTypes = std::tuple<Args...>;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    template <typename SignalArgs, typename R>
    static void call(Function func, Obj *object, void **args)
@@ -302,14 +303,15 @@ struct FunctionPointer<Ret (Obj::*) (Args...)>
 template<class Obj, typename Ret, typename... Args>
 struct FunctionPointer<Ret (Obj::*) (Args...) const>
 {
-   typedef Obj Object;
-   typedef Ret ReturnType;
-   typedef Ret (Obj::*Function) (Args...) const;
+   using ObjectType = Obj;
+   using ReturnType = Ret;
+   using Function = Ret (Obj::*) (Args...) const;
+   using ArgTypes = std::tuple<Args...>;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    
    template <typename SignalArgs, typename R>
@@ -322,13 +324,14 @@ struct FunctionPointer<Ret (Obj::*) (Args...) const>
 template<typename Ret, typename... Args>
 struct FunctionPointer<Ret (*) (Args...)>
 {
-   typedef Ret ReturnType;
-   typedef Ret (*Function) (Args...);
+   using ReturnType = Ret;
+   using Function = Ret (*) (Args...);
+   using ArgTypes = std::tuple<Args...>;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = false};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    
    template <typename SignalArgs, typename R>
@@ -341,14 +344,15 @@ struct FunctionPointer<Ret (*) (Args...)>
 template<class Obj, typename Ret, typename... Args>
 struct FunctionPointer<Ret (Obj::*) (Args...) noexcept>
 {
-   typedef Obj Object;
-   typedef Ret ReturnType;
-   typedef Ret (Obj::*Function) (Args...) noexcept;
+   using ObjectType = Obj;
+   using ReturnType = Ret;
+   using Function = Ret (Obj::*) (Args...) noexcept;
+   using ArgTypes = std::tuple<Args...>;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    
    template <typename SignalArgs, typename R>
@@ -361,14 +365,15 @@ struct FunctionPointer<Ret (Obj::*) (Args...) noexcept>
 template<class Obj, typename Ret, typename... Args>
 struct FunctionPointer<Ret (Obj::*) (Args...) const noexcept>
 {
-   typedef Obj Object;
-   typedef Ret ReturnType;
-   typedef Ret (Obj::*Function) (Args...) const noexcept;
+   using ObjectType = Obj;
+   using ReturnType = Ret;
+   using ArgTypes = std::tuple<Args...>;
+   using Function = Ret (Obj::*) (Args...) const noexcept;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = true};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    
    template <typename SignalArgs, typename R>
@@ -381,13 +386,14 @@ struct FunctionPointer<Ret (Obj::*) (Args...) const noexcept>
 template<typename Ret, typename... Args>
 struct FunctionPointer<Ret (*) (Args...) noexcept>
 {
-   typedef Ret ReturnType;
-   typedef Ret (*Function) (Args...) noexcept;
+   using ReturnType = Ret;
+   using Function = Ret (*) (Args...) noexcept;
+   using ArgTypes = std::tuple<Args...>;
    enum {ArgumentCount = sizeof...(Args), IsPointerToMemberFunction = false};
    template <size_t index>
    struct arg
    {
-      using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
+      using type = typename std::tuple_element<index, ArgTypes>::type;
    };
    
    template <typename SignalArgs, typename R>
