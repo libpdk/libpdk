@@ -24,10 +24,102 @@
 #define PDK_STDEXT_TYPE_TRAITS_FUNCTION_TRAITS_H
 
 #include <type_traits>
+#include <tuple>
 
 namespace pdk {
 namespace stdext {
 namespace internal {
+
+template <int...>
+struct IndexesList {};
+
+template <typename IndexList, int Right>
+struct IndexesAppend;
+
+template <int... Left, int Right>
+struct IndexesAppend<IndexesList<Left...>, Right>
+{
+   typedef IndexesList<Left..., Right> Value;
+};
+
+template <int N> struct Indexes
+{
+   typedef typename IndexesAppend<typename Indexes<N - 1>::Value, N - 1>::Value Value;
+};
+
+template <>
+struct Indexes<0>
+{
+   typedef IndexesList<> Value;
+};
+
+/*
+      trick to set the return value of a slot that works even if the signal or the slot returns void
+      to be used like     function(), ApplyReturnValue<ReturnType>(&return_value)
+      if function() returns a value, the operator,(T, ApplyReturnValue<ReturnType>) is called, but if it
+      returns void, the builtin one is used without an error.
+   */
+template <typename T>
+struct ApplyReturnValue {
+   void *m_data;
+   explicit ApplyReturnValue(void *data) 
+      : m_data(data)
+   {}
+};
+
+template<typename T, typename U>
+void operator,(T &&value, const ApplyReturnValue<U> &container)
+{
+   if (container.m_data) {
+      *reinterpret_cast<U *>(container.m_data) = std::forward<T>(value);
+   }
+}
+
+template<typename T>
+void operator,(T, const ApplyReturnValue<void> &)
+{}
+
+template <typename, typename, typename, typename> struct FunctorCall;
+template <int... ArgIndex, typename... SignalArgs, typename R, typename Function>
+struct FunctorCall<IndexesList<ArgIndex...>, std::tuple<SignalArgs...>, R, Function>
+{
+   static void call(Function &func, void **args)
+   {
+      func((*reinterpret_cast<typename std::remove_reference<SignalArgs>::type *>(args[ArgIndex + 1]))...), ApplyReturnValue<R>(args[0]);
+   }
+};
+
+template <int... ArgIndex, typename... SignalArgs, typename R, typename... SlotArgs, typename SlotRet, class Obj>
+struct FunctorCall<IndexesList<ArgIndex...>, std::tuple<SignalArgs...>, R, SlotRet (Obj::*)(SlotArgs...)>
+{
+   static void call(SlotRet (Obj::*func)(SlotArgs...), Obj *object, void **args) {
+      (object->*func)((*reinterpret_cast<typename std::remove_reference<SignalArgs>::type *>(args[ArgIndex + 1]))...), ApplyReturnValue<R>(args[0]);
+   }
+};
+
+template <int... ArgIndex, typename... SignalArgs, typename R, typename... SlotArgs, typename SlotRet, class Obj>
+struct FunctorCall<IndexesList<ArgIndex...>, std::tuple<SignalArgs...>, R, SlotRet (Obj::*)(SlotArgs...) const>
+{
+   static void call(SlotRet (Obj::*func)(SlotArgs...) const, Obj *object, void **args) {
+      (object->*func)((*reinterpret_cast<typename std::remove_reference<SignalArgs>::type *>(args[ArgIndex + 1]))...), ApplyReturnValue<R>(args[0]);
+   }
+};
+
+template <int... ArgIndex, typename... SignalArgs, typename R, typename... SlotArgs, typename SlotRet, class Obj>
+struct FunctorCall<IndexesList<ArgIndex...>, std::tuple<SignalArgs...>, R, SlotRet (Obj::*)(SlotArgs...) noexcept>
+{
+   static void call(SlotRet (Obj::*func)(SlotArgs...) noexcept, Obj *object, void **args) {
+      (object->*func)((*reinterpret_cast<typename std::remove_reference<SignalArgs>::type *>(args[ArgIndex + 1]))...), ApplyReturnValue<R>(args[0]);
+   }
+};
+
+template <int... ArgIndex, typename... SignalArgs, typename R, typename... SlotArgs, typename SlotRet, class Obj>
+struct FunctorCall<IndexesList<ArgIndex...>, std::tuple<SignalArgs...>, R, SlotRet (Obj::*)(SlotArgs...) const noexcept>
+{
+   static void call(SlotRet (Obj::*func)(SlotArgs...) const noexcept, Obj *object, void **args) {
+      (object->*func)((*reinterpret_cast<typename std::remove_reference<SignalArgs>::type *>(args[ArgIndex + 1]))...), ApplyReturnValue<R>(args[0]);
+   }
+};
 
 template<typename Function>
 struct FunctionTraitsHelper;
@@ -171,6 +263,9 @@ struct FunctionTraitsHelper<R (*)(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)>
 
 } // internal
 
+using internal::Indexes;
+using internal::FunctorCall;
+
 template<typename Function>
 struct FunctionTraits : 
       public internal::FunctionTraitsHelper<typename std::add_pointer<Function>::type>
@@ -185,7 +280,8 @@ struct FunctionPointer
    }; 
 };
 
-template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...)>
+template<class Obj, typename Ret, typename... Args>
+struct FunctionPointer<Ret (Obj::*) (Args...)>
 {
    typedef Obj Object;
    typedef Ret ReturnType;
@@ -196,9 +292,15 @@ template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   template <typename SignalArgs, typename R>
+   static void call(Function func, Obj *object, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, object, args);
+   }
 };
 
-template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) const>
+template<class Obj, typename Ret, typename... Args>
+struct FunctionPointer<Ret (Obj::*) (Args...) const>
 {
    typedef Obj Object;
    typedef Ret ReturnType;
@@ -209,9 +311,16 @@ template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   
+   template <typename SignalArgs, typename R>
+   static void call(Function func, Obj *object, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, object, args);
+   }
 };
 
-template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...)>
+template<typename Ret, typename... Args>
+struct FunctionPointer<Ret (*) (Args...)>
 {
    typedef Ret ReturnType;
    typedef Ret (*Function) (Args...);
@@ -221,9 +330,16 @@ template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   
+   template <typename SignalArgs, typename R>
+   static void call(Function func, void *, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, args);
+   }
 };
 
-template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) noexcept>
+template<class Obj, typename Ret, typename... Args>
+struct FunctionPointer<Ret (Obj::*) (Args...) noexcept>
 {
    typedef Obj Object;
    typedef Ret ReturnType;
@@ -234,8 +350,16 @@ template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   
+   template <typename SignalArgs, typename R>
+   static void call(Function func, Obj *object, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, object, args);
+   }
 };
-template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (Obj::*) (Args...) const noexcept>
+
+template<class Obj, typename Ret, typename... Args>
+struct FunctionPointer<Ret (Obj::*) (Args...) const noexcept>
 {
    typedef Obj Object;
    typedef Ret ReturnType;
@@ -246,9 +370,16 @@ template<class Obj, typename Ret, typename... Args> struct FunctionPointer<Ret (
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   
+   template <typename SignalArgs, typename R>
+   static void call(Function func, Obj *object, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, object, args);
+   }
 };
 
-template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...) noexcept>
+template<typename Ret, typename... Args>
+struct FunctionPointer<Ret (*) (Args...) noexcept>
 {
    typedef Ret ReturnType;
    typedef Ret (*Function) (Args...) noexcept;
@@ -258,6 +389,21 @@ template<typename Ret, typename... Args> struct FunctionPointer<Ret (*) (Args...
    {
       using type = typename std::tuple_element<index, std::tuple<Args...>>::type;
    };
+   
+   template <typename SignalArgs, typename R>
+   static void call(Function func, void *, void **args)
+   {
+      FunctorCall<typename Indexes<ArgumentCount>::Value, SignalArgs, R, Function>::call(func, args);
+   }
+};
+
+template<typename Function, int N> struct Functor
+{
+   template <typename SignalArgs, typename R>
+   static void call(Function &func, void *, void **args)
+   {
+      FunctorCall<typename Indexes<N>::Value, SignalArgs, R, Function>::call(func, args);
+   }
 };
 
 } // stdext

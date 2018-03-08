@@ -37,19 +37,31 @@ public:
    explicit Timer(Object *parent = nullptr);
    ~Timer();
    inline bool isActive() const
-   {}
+   {
+      return m_id >= 0;
+   }
+   
    int getTimerId() const
-   {}
+   {
+      return m_id;
+   }
+   
    void setInterval(int msec);
    int getInterval() const
-   {}
+   {
+      return m_interval;
+   }
    
    int getRemainingTime() const;
-   void setTimerType(pdk::TimerType atype)
-   {}
+   void setTimerType(pdk::TimerType type)
+   {
+      m_type = pdk::as_integer<pdk::TimerType>(type);
+   }
    
    pdk::TimerType getTimerType() const
-   {}
+   {
+      return pdk::TimerType(m_type);
+   }
    
    inline void setSingleShot(bool singleShot);
    inline bool isSingleShot() const
@@ -170,6 +182,12 @@ private:
    {
    }
    
+   int m_id;
+   int m_interval;
+   uint m_single : 1;
+   uint m_nullTimer : 1;
+   uint m_type : 2;
+   // uint m_reserved : 28
 };
 
 } // kernel
