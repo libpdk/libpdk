@@ -54,32 +54,74 @@ SocketNotifier::SocketNotifier(pdk::intptr socket, Type type, Object *parent)
    } else {
       implPtr->m_threadData->m_eventDispatcher.load()->registerSocketNotifier(this);
    }
-      
+   
 }
 
 SocketNotifier::~SocketNotifier()
 {
+   setEnabled(false);
 }
 
 pdk::intptr SocketNotifier::getSocket() const
 {
+   PDK_D(const SocketNotifier);
+   return implPtr->m_sockfd;
 }
 
 SocketNotifier::Type SocketNotifier::getType() const
 {
+   PDK_D(const SocketNotifier);
+   return implPtr->m_sntype;
 }
 
 bool SocketNotifier::isEnabled() const
 {
+   PDK_D(const SocketNotifier);
+   return implPtr->m_snenabled;
 }
 
 void SocketNotifier::setEnabled(bool enable)
 {
-   
+   PDK_D(SocketNotifier);
+   if (implPtr->m_sockfd < 0) {
+      return;
+   }
+   if (implPtr->m_snenabled == enable) {                       // no change
+      return;
+   }
+   implPtr->m_snenabled = enable;
+   if (!implPtr->m_threadData->m_eventDispatcher.load()) {// perhaps application/thread is shutting down
+      return;
+   }
+   if (PDK_UNLIKELY(getThread() != Thread::getCurrentThread())) {
+      warning_stream("SocketNotifier: Socket notifiers cannot be enabled or disabled from another thread");
+      return;
+   }
+   if (implPtr->m_snenabled)
+      implPtr->m_threadData->m_eventDispatcher.load()->registerSocketNotifier(this);
+   else
+      implPtr->m_threadData->m_eventDispatcher.load()->unregisterSocketNotifier(this);
 }
 
-bool SocketNotifier::event(Event *e)
+bool SocketNotifier::event(Event *event)
 {
+   PDK_D(SocketNotifier);
+   // Emits the activated() signal when a Event::SockAct or Event::SockClose is
+   // received.
+   if (event->getType() == Event::Type::ThreadChange) {
+      if (implPtr->m_snenabled) {
+//         MetaObject::invokeMethod(this, "setEnabled", Qt::QueuedConnection,
+//                                   Q_ARG(bool, d->snenabled));
+         setEnabled(false);
+      }
+   }
+   Object::event(event);                        // will activate filters
+   if ((event->getType() == Event::Type::SocketActive) || (event->getType() == Event::Type::SocketClose)) {
+      // @TODO emit signal
+      // emit activated(d->sockfd, PrivateSignal());
+      return true;
+   }
+   return false;
 }
 
 } // kernel
