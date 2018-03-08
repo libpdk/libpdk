@@ -52,6 +52,14 @@ class CoreApplicationPrivate;
 using internal::ObjectPrivate;
 using internal::CoreApplicationPrivate;
 
+#ifndef PDK_NO_USERDATA
+class PDK_CORE_EXPORT ObjectUserData
+{
+public:
+   virtual ~ObjectUserData();
+};
+#endif
+
 class PDK_CORE_EXPORT ObjectData
 {
 public:
@@ -109,6 +117,13 @@ public:
    void setParent(Object *parent);
    void installEventFilter(Object *filterObj);
    void removeEventFilter(Object *object);
+   
+#ifndef PDK_NO_USERDATA
+   static uint registerUserData();
+   void setUserData(uint id, ObjectUserData *data);
+   ObjectUserData *getUserData(uint id) const;
+#endif // PDK_NO_USERDATA
+   
 protected:
    virtual void timerEvent(TimerEvent *event);
    virtual void childEvent(ChildEvent *event);

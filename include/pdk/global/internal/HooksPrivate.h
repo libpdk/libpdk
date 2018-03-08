@@ -33,15 +33,15 @@ enum HookIndex {
    HookDataVersion = 0,
    HookDataSize = 1,
    PdkVersion = 2,
-   AddQObject = 3,
-   RemoveQObject = 4,
+   AddObject = 3,
+   RemoveObject = 4,
    Startup = 5,
    TypeInformationVersion = 6,
    LastHookIndex
 };
 
-using AddQObjectCallback = void(*)(Object*);
-using RemoveQObjectCallback = void(*)(Object*);
+using AddObjectCallback = void(*)(Object*);
+using RemoveObjectCallback = void(*)(Object*);
 using StartupCallback = void(*)();
 
 } // hooks

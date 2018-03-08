@@ -753,7 +753,7 @@ bool CoreApplication::removeTranslator(Translator *translationFile)
       return false;
    });
    if (removedCount) {
-#ifndef PDK_NO_QOBJECT
+#ifndef PDK_NO_Object
       locker.unlock();
       if (!sm_self->closingDown()) {
          Event ev(Event::Type::LanguageChange);
@@ -1377,7 +1377,7 @@ void CoreApplication::removePostedEvents(Object *receiver, Event::Type eventType
    if (receiver && !receiver->getImplPtr()->m_postedEvents) {
       return;
    }
-   //we will collect all the posted events for the QObject
+   //we will collect all the posted events for the Object
    //and we'll delete after the mutex was unlocked
    VarLengthArray<Event*> events;
    int n = data->m_postEventList.size();
@@ -1564,7 +1564,7 @@ void CoreApplication::setOrgName(const String &orgName)
       return;
    }
    sg_coreAppData()->m_orgName = orgName;
-#ifndef PDK_NO_QOBJECT
+#ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
       // @TODO emit signal
       // emit CoreApplication::sm_self->orgNameChanged();
@@ -1583,7 +1583,7 @@ void CoreApplication::setOrgDomain(const String &orgDomain)
       return;
    }
    sg_coreAppData()->m_orgDomain = orgDomain;
-#ifndef PDK_NO_QOBJECT
+#ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
       // @TODO emit signal
       // emit CoreApplication::sm_self->orgDomainChanged();
@@ -1607,7 +1607,7 @@ void CoreApplication::setAppName(const String &application)
       return;
    }
    sg_coreAppData()->m_appName = newAppName;
-#ifndef PDK_NO_QOBJECT
+#ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
       // @TODO emit signal
       // emit CoreApplication::sm_self->applicationNameChanged();
@@ -1631,7 +1631,7 @@ void CoreApplication::setAppVersion(const String &version)
       return;
    }
    sg_coreAppData()->m_appVersion = newVersion;
-#ifndef PDK_NO_QOBJECT
+#ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
       // @TODO emit signal
       // emit CoreApplication::sm_self->appVersionChanged();

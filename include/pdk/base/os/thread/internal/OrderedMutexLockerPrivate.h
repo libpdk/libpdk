@@ -13,8 +13,8 @@
 //
 // Created by softboy on 2018/01/27.
 
-#ifndef PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_H
-#define PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_H
+#ifndef PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_PRIVATE_H
+#define PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_PRIVATE_H
 
 #include "pdk/global/Global.h"
 
@@ -23,6 +23,7 @@
 namespace pdk {
 namespace os {
 namespace thread {
+namespace internal {
 
 // Locks 2 mutexes in a defined order, avoiding a recursive lock if
 // we're trying to lock the same mutex twice.
@@ -90,9 +91,9 @@ private:
    bool m_locked;
 };
 
+} // internal
 } // thread
 } // os
 } // pdk
 
-
-#endif // PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_H
+#endif // PDK_M_BASE_OS_THREAD_ORDERED_MUTEX_LOCKER_LOCK_PRIVATE_H
