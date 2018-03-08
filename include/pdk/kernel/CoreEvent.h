@@ -31,11 +31,14 @@ class ThreadData;
 
 namespace kernel {
 
+// forward declare class
+class Object;
+
 // forward declare class with namespace
 namespace internal {
 class EventPrivate;
 class CoreApplicationPrivate;
-}
+} // internal
 
 class CoreApplication;
 using pdk::os::thread::internal::ThreadData;
@@ -54,8 +57,11 @@ public:
       SocketActive,
       SocketClose,
       LanguageChange,
-      UpdateRequest = 77,                     // widget should be repainted
-      UpdateLater = 78,                       // request update() later
+      ChildAdded,                        // new child widget
+      ChildPolished,                     // polished child widget
+      ChildRemoved,                      // deleted child widget
+      UpdateRequest,                     // widget should be repainted
+      UpdateLater,                       // request update() later
       User = 1000, // first user event id
       MaxUser = 65535
    };
@@ -131,6 +137,36 @@ public:
 protected:
    int m_id;
 };
+
+class PDK_CORE_EXPORT ChildEvent : public Event
+{
+public:
+   ChildEvent(Type type, Object *child);
+   ~ChildEvent();
+   
+   Object *getChild() const
+   {
+      return m_child;
+   }
+   
+   bool added() const
+   {
+      return getType() == Type::ChildAdded;
+   }
+   
+   bool polished() const
+   {
+      return getType() == Type::ChildPolished;
+   }
+   
+   bool removed() const
+   {
+      return getType() == Type::ChildRemoved;
+   }
+protected:
+   Object *m_child;
+};
+
 
 class PDK_CORE_EXPORT DeferredDeleteEvent : public Event
 {

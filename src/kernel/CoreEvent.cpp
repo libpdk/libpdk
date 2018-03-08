@@ -145,6 +145,14 @@ TimerEvent::TimerEvent(int timerId)
 TimerEvent::~TimerEvent()
 {}
 
+ChildEvent::ChildEvent(Type type, Object *child)
+    : Event(type),
+      m_child(child)
+{}
+
+ChildEvent::~ChildEvent()
+{}
+
 DeferredDeleteEvent::DeferredDeleteEvent()
    : Event(Type::DeferredDelete),
      m_level(0)

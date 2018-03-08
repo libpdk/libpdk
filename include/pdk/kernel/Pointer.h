@@ -47,6 +47,10 @@ public:
    inline Pointer()
    {}
    
+   inline Pointer(T *p) 
+      : m_wptr(std::shared_ptr<T>(p))
+   {}
+   
    inline Pointer(const std::shared_ptr<T> &ptr)
       : m_wptr(ptr)
    {}
