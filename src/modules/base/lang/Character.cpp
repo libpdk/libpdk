@@ -200,7 +200,7 @@ enum {
 
 // buffer has to have a length of 3. It's needed for Hangul decomposition
 const char16_t * PDK_FASTCALL decomposition_helper(char32_t ucs4, int *length, int *tag, 
-                                                         char16_t *buffer)
+                                                   char16_t *buffer)
 {
    if (ucs4 >= Hangul_SBase && ucs4 < Hangul_SBase + Hangul_SCount) {
       // compute Hangul syllable decomposition as per UAX #15
@@ -239,7 +239,7 @@ PDK_DECL_CONST_FUNCTION inline T convert_case_helper(T ucs) noexcept
    return ucs + Traits::caseDiff(prop);
 }
 
-}
+} // anonymous namespace
 
 namespace internal {
 
@@ -272,7 +272,7 @@ Character fold_case(Character ch) noexcept
    return Character(fold_case(ch.unicode()));
 }
 
-}
+} // internal
 
 String Character::getDecomposition() const
 {
@@ -286,16 +286,18 @@ String Character::getDecomposition(char32_t ucs4)
    int length;
    int tag;
    const char16_t *d = decomposition_helper(ucs4, &length, &tag, buffer);
-   return String();
+   return String(reinterpret_cast<const Character *>(d), length);
 }
 
 Character::Decomposition Character::getDecompositionTag(char32_t ucs4) noexcept
 {
-   if (ucs4 >= Hangul_SBase && ucs4 < Hangul_SBase + Hangul_SCount)
+   if (ucs4 >= Hangul_SBase && ucs4 < Hangul_SBase + Hangul_SCount) {
       return Character::Decomposition::Canonical;
+   }
    const char16_t index = PDK_GET_DECOMPOSITION_INDEX(ucs4);
-   if (index == 0xffff)
+   if (index == 0xffff) {
       return Character::Decomposition::NoDecomposition;
+   }
    return static_cast<Character::Decomposition>(uc_decomposition_map[index] & 0xff);
 }
 
@@ -564,7 +566,6 @@ void compose_helper(String *str, Character::UnicodeVersion version, int from)
          next = pos + 1;
       }
       lastCombining = combining;
-      
       ++pos;
    }
 }
@@ -723,6 +724,22 @@ bool normalization_quick_check_helper(String *str, String::NormalizationForm mod
 }
 
 } // internal
+
+//#ifndef PDK_NO_DATASTREAM
+//DataStream &operator<<(DataStream &out, Character ch)
+//{
+//    out << pdk::puint16(ch.unicode());
+//    return out;
+//}
+
+//DataStream &operator>>(DataStream &in, Character &ch)
+//{
+//    char16_t u;
+//    in >> u;
+//    ch.unicode() = char16_t(u);
+//    return in;
+//}
+//#endif // PDK_NO_DATASTREAM
 
 } // lang
 } // pdk
