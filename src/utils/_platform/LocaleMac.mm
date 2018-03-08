@@ -147,7 +147,7 @@ static String mac_to_pdk_format(StringView sysFmt)
    String result;
    int i = 0;
    
-   while (static_cast<size_t>(i) < sysFmt.size()) {
+   while (i < sysFmt.size()) {
       if (sysFmt.at(i).unicode() == '\'') {
          String text = internal::read_escaped_format_string(sysFmt, &i);
          if (text == Latin1String("'")) {

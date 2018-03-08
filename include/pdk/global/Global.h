@@ -297,7 +297,7 @@ template <>
 struct IntegerForSize<8>
 {
    using Unsigned = puint64;
-   using Signed = puint64;
+   using Signed = pint64;
 };
 
 #if defined(PDK_CC_GNU) && defined(__SIZEOF_INT128__)

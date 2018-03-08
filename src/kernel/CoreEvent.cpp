@@ -15,6 +15,8 @@
 
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/base/os/thread/Atomic.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/internal/CoreApplicationPrivate.h"
 
 namespace pdk {
 namespace kernel {
@@ -22,6 +24,8 @@ namespace kernel {
 namespace {
 
 using pdk::os::thread::BasicAtomicInteger;
+using pdk::kernel::CoreApplication;
+using pdk::kernel::CoreApplicationPrivate;
 
 template <size_t N>
 struct BasicAtomicBitField
@@ -127,9 +131,9 @@ int Event::registerEventType(int hint) noexcept
 
 Event::~Event()
 {
-//   if (m_posted && CoreApplication::instance()) {
-//      CoreApplicationPrivate::removePostedEvent(this);  
-//   }
+   if (m_posted && CoreApplication::getInstance()) {
+      CoreApplicationPrivate::removePostedEvent(this);  
+   }
    PDK_ASSERT_X(!m_implPtr, "Event", "Impossible, this can't happen: EventPrivate isn't defined anywhere");
 }
 

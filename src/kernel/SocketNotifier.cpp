@@ -17,6 +17,8 @@
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
+#include "pdk/base/os/thread/internal/ThreadPrivate.h"
+#include "pdk/global/Logging.h"
 
 namespace pdk {
 namespace kernel {
@@ -25,19 +27,34 @@ namespace internal {
 
 class SocketNotifierPrivate : public ObjectPrivate
 {
-    PDK_DECLARE_PUBLIC(SocketNotifier);
+   PDK_DECLARE_PUBLIC(SocketNotifier);
 public:
-    pdk::intptr m_sockfd;
-    SocketNotifier::Type m_sntype;
-    bool m_snenabled;
+   pdk::intptr m_sockfd;
+   SocketNotifier::Type m_sntype;
+   bool m_snenabled;
 };
 
 } // internal
 
+using internal::SocketNotifierPrivate;
+using pdk::os::thread::internal::ThreadData;
 
 SocketNotifier::SocketNotifier(pdk::intptr socket, Type type, Object *parent)
-    : Object(*new SocketNotifierPrivate, parent)
+   : Object(*new SocketNotifierPrivate, parent)
 {
+   PDK_D(SocketNotifier);
+   implPtr->m_sockfd = socket;
+   implPtr->m_sntype = type;
+   implPtr->m_snenabled = true;
+   
+   if (socket < 0) {
+      warning_stream("SocketNotifier: Invalid socket specified");
+   } else if (!implPtr->m_threadData->m_eventDispatcher.load()) {
+      warning_stream("SocketNotifier: Can only be used with threads started with Thread");
+   } else {
+      implPtr->m_threadData->m_eventDispatcher.load()->registerSocketNotifier(this);
+   }
+      
 }
 
 SocketNotifier::~SocketNotifier()
@@ -58,7 +75,7 @@ bool SocketNotifier::isEnabled() const
 
 void SocketNotifier::setEnabled(bool enable)
 {
-
+   
 }
 
 bool SocketNotifier::event(Event *e)

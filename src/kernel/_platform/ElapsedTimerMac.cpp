@@ -59,7 +59,7 @@ pdk::pint64 absolute_to_msecs(pdk::pint64 cpuTime)
    return absolute_to_nsecs(cpuTime) / 1000000;
 }
 
-}
+} // anonymous namespace
 
 timespec get_time() noexcept
 {

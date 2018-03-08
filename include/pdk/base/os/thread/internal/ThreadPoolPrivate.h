@@ -116,10 +116,6 @@ private:
    int m_firstIndex = 0;
    int m_lastIndex = -1;
    Runnable *m_entries[MaxPageSize];
-   int m_expiryTimeout;
-   int m_maxThreadCount;
-   int m_activeThreadCount;
-   uint m_stackSize;
 };
 
 class ThreadPoolThread;

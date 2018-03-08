@@ -1079,7 +1079,7 @@ inline String String::section(Character asep, int astart, int aend, SectionFlags
 
 String StringView::toString() const
 {
-   PDK_ASSERT(size() == static_cast<size_t>(length()));
+   PDK_ASSERT(size() == length());
    return String(data(), length());
 }
 
