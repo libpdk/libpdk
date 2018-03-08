@@ -17,6 +17,7 @@
 #define PDK_KERNEL_INTERNAL_OBJECT_DEFS_PRIVATE_H
 
 #include "pdk/base/os/thread/Atomic.h"
+#include "pdk/stdext/typetraits/FunctionTraits.h"
 
 namespace pdk {
 namespace kernel {
@@ -62,10 +63,10 @@ public:
       }
    }
    
-   inline bool compare(void **a)
+   inline bool compare(void **args)
    {
       bool ret = false;
-      m_impl(Operation::Compare, this, nullptr, a, &ret);
+      m_impl(Operation::Compare, this, nullptr, args, &ret);
       return ret;
    }
    
@@ -81,30 +82,62 @@ private:
    PDK_DISABLE_COPY(SlotObjectBase);
 };
 
-// implementation of SlotObjectBase for which the slot is a pointer to member function of a QObject
+// implementation of SlotObjectBase for which the slot is a pointer to member function of a Object
 // Args and R are the List of arguments and the returntype of the signal to which the slot is connected.
 template<typename Func, typename Args, typename R>
 class SlotObject : public SlotObjectBase
 {
-   typedef QtPrivate::FunctionPointer<Func> FuncType;
-   Func function;
-   static void impl(int which, SlotObjectBase *this_, QObject *r, void **a, bool *ret)
+   using FuncType = pdk::stdext::FunctionPointer<Func>;
+   Func m_function;
+   static void impl(int which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
    {
       switch (which) {
-      case Destroy:
+      case Operation::Destroy:
          delete static_cast<SlotObject*>(this_);
          break;
-      case Call:
-         FuncType::template call<Args, R>(static_cast<SlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(r), a);
+      case Operation::Call:
+         FuncType::template call<Args, R>(static_cast<SlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(r), args);
          break;
-      case Compare:
-         *ret = *reinterpret_cast<Func *>(a) == static_cast<SlotObject*>(this_)->function;
+      case Operation::Compare:
+         *ret = *reinterpret_cast<Func *>(args) == static_cast<SlotObject *>(this_)->m_function;
          break;
-      case NumOperations: ;
+      case Operation::NumOperations: ;
       }
    }
 public:
-   explicit SlotObject(Func f) : SlotObjectBase(&impl), function(f) {}
+   explicit SlotObject(Func func)
+      : SlotObjectBase(&impl),
+        m_function(func)
+   {}
+};
+
+// implementation of SlotObjectBase for which the slot is a functor (or lambda)
+// N is the number of arguments
+// Args and R are the List of arguments and the returntype of the signal to which the slot is connected.
+template<typename Func, int N, typename Args, typename R>
+class FunctorSlotObject : public SlotObjectBase
+{
+   using FuncType = pdk::stdext::Functor<Func, N>;
+   Func m_function;
+   static void impl(int which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
+   {
+      switch (which) {
+      case Operation::Destroy:
+         delete static_cast<FunctorSlotObject*>(this_);
+         break;
+      case Operation::Call:
+         FuncType::template call<Args, R>(static_cast<FunctorSlotObject*>(this_)->m_function, receiver, args);
+         break;
+      case Operation::Compare: // not implemented
+      case Operation::NumOperations:
+         PDK_UNUSED(ret);
+      }
+   }
+public:
+   explicit FunctorSlotObject(Func func)
+      : SlotObjectBase(&impl),
+        m_function(std::move(func))
+   {}
 };
 
 } // internal
