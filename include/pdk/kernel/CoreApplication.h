@@ -24,7 +24,7 @@
 #include "pdk/base/ds/StringList.h"
 #include <string>
 
-#define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance();
+#define PDK_RETRIEVE_APP_INSTANCE() pdk::kernel::CoreApplication::getInstance()
 #define PDK_DECLARE_TR_FUNCTIONS(context) \
    public: \
    static inline String tr(const char *sourceText, const char *disambiguation = nullptr, int n = -1) \

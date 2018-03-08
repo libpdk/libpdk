@@ -29,6 +29,7 @@ namespace internal {
 
 using pdk::os::thread::BasicAtomicInt;
 using pdk::os::thread::AtomicInt;
+using pdk::kernel::EventLoop;
 
 class EventLoopPrivate : public ObjectPrivate
 {
@@ -36,6 +37,8 @@ public:
    inline EventLoopPrivate()
       : m_inExec(false)
    {
+      m_returnCode.store(-1);
+      m_exit.store(true);
    }
    
    AtomicInt m_quitLockRef;
@@ -45,14 +48,18 @@ public:
    
    void ref()
    {
+      m_quitLockRef.ref();
    }
    
    void deref()
    {
+      if (!m_quitLockRef.deref() && m_inExec) {
+         PDK_RETRIEVE_APP_INSTANCE()->postEvent(m_apiPtr, new Event(Event::Type::Quit));
+      }
    }
    
 private:
-//    PDK_DECLARE_PUBLIC(EventLoop);
+   PDK_DECLARE_PUBLIC(EventLoop);
 };
 
 } // internal
