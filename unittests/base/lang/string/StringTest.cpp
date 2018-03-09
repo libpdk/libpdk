@@ -33,6 +33,7 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/lang/StringMatcher.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/kernel/StringUtils.h"
 #include <list>
@@ -46,7 +47,10 @@ using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::lang::Character;
 using pdk::lang::Latin1String;
+using pdk::lang::Latin1Character;
 using pdk::ds::ByteArray;
+using pdk::lang::StringMatcher;
+using pdk::ds::ByteArrayMatcher;
 
 namespace
 {
@@ -1125,3 +1129,231 @@ TEST(StringTest, testAsprintfS)
       ASSERT_EQ(n, 5);
    }
 }
+
+namespace {
+void indexof_data(std::list<std::tuple<String, String, int, bool, int>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("a")), 0, true, 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("a")), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("A")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("A")), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("a")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("a")), 1, false, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("A")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("A")), 1, false, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 0, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("B")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("B")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 1, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 1, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("B")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("B")), 1, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 2, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 2, false, -1));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("A")), 0, true, 0));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("A")), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("a")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("a")), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("A")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("A")), 1, false, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("a")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("a")), 1, false, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 0, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("b")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("b")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 1, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 1, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("b")), 1, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("b")), 1, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 2, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), 2, false, -1));
+   
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("bc")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("Bc")), 0, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("bC")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("BC")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("bc")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("Bc")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("bC")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("aBc")), String(Latin1String("BC")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("bc")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("Bc")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("bC")), 0, true, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("BC")), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("bc")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("Bc")), 0, false, 1));
+   
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("bC")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("BC")), 0, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("bc")), 1, false, 1));
+   data.push_back(std::make_tuple(String(Latin1String("AbC")), String(Latin1String("Bc")), 2, false, -1));
+   
+   data.push_back(std::make_tuple(String(), String(), 0, false, 0));
+   data.push_back(std::make_tuple(String(), String(Latin1String("")), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(), 0, false, 0));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")), 0, false, 0));
+   
+   String s1 = Latin1String("abc");
+   s1 += Character(0xb5);
+   String s2;
+   s2 += Character(0x3bc);
+   data.push_back(std::make_tuple(s1, s2, 0, false, 3));
+   s2.prepend(Latin1Character('C'));
+   data.push_back(std::make_tuple(s1, s2, 0, false, 2));
+   
+   String veryBigHaystack(500, 'a');
+   veryBigHaystack += 'B';
+   data.push_back(std::make_tuple(veryBigHaystack, veryBigHaystack, 0, true, 0));
+   data.push_back(std::make_tuple(String(veryBigHaystack + 'c'), veryBigHaystack, 0, true, 0));
+   data.push_back(std::make_tuple(String('c' + veryBigHaystack), veryBigHaystack, 0, true, 1));
+   data.push_back(std::make_tuple(veryBigHaystack, String(veryBigHaystack + 'c'), 0, true, -1));
+   data.push_back(std::make_tuple(veryBigHaystack, String('c' + veryBigHaystack), 0, true, -1));
+   
+   data.push_back(std::make_tuple(String(veryBigHaystack + 'c'), String('c' + veryBigHaystack), 0, true, -1));
+   data.push_back(std::make_tuple(String('d' + veryBigHaystack), String('c' + veryBigHaystack), 0, true, -1));
+   
+   data.push_back(std::make_tuple(veryBigHaystack, veryBigHaystack, 0, false, 0));
+}
+}
+
+TEST(StringTest, testIndexOf)
+{
+   using DataType = std::list<std::tuple<String, String, int, bool, int>>;
+   DataType data;
+   indexof_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator end = data.end();
+   while (iter != end) {
+      auto item = *iter;
+      String haystack = std::get<0>(item);
+      String needle = std::get<1>(item);
+      String &ref = needle;
+      int startpos = std::get<2>(item);
+      bool bcs = std::get<3>(item);
+      int resultPos = std::get<4>(item);
+      pdk::CaseSensitivity cs = bcs ? pdk::CaseSensitivity::Sensitive : pdk::CaseSensitivity::Insensitive;
+      bool needleIsLatin = (String::fromLatin1(needle.toLatin1()) == needle);
+      ASSERT_EQ(haystack.indexOf(needle, startpos, cs), resultPos);
+      ASSERT_EQ(haystack.indexOf(ref, startpos, cs), resultPos);
+      if (needleIsLatin) {
+         ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1()), startpos, cs), resultPos);
+         ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1().getRawData()), startpos, cs), resultPos);
+      }
+      
+      if (cs == pdk::CaseSensitivity::Sensitive) {
+         ASSERT_EQ(haystack.indexOf(needle, startpos), resultPos);
+         ASSERT_EQ(haystack.indexOf(ref, startpos), resultPos);
+         if (needleIsLatin) {
+            ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1()), startpos), resultPos);
+            ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1().getRawData()), startpos), resultPos);
+         }
+         if (startpos == 0) {
+            ASSERT_EQ( haystack.indexOf(needle), resultPos);
+            ASSERT_EQ( haystack.indexOf(ref), resultPos);
+            if (needleIsLatin) {
+               ASSERT_EQ( haystack.indexOf(Latin1String(needle.toLatin1())), resultPos);
+               ASSERT_EQ( haystack.indexOf(Latin1String(needle.toLatin1().getRawData())), resultPos);
+            }
+         }
+      }
+      if (needle.size() == 1) {
+         ASSERT_EQ(haystack.indexOf(needle.at(0), startpos, cs), resultPos);
+         ASSERT_EQ(haystack.indexOf(ref.at(0), startpos, cs), resultPos);
+      }
+      ++iter;
+   }
+}
+
+namespace {
+
+void indexof2_data(std::list<std::tuple<String, String, int>> &data)
+{
+   data.push_back(std::make_tuple(String(), String(), 0));
+   data.push_back(std::make_tuple(String(), String(Latin1String("")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(), 0));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")), 0));
+   data.push_back(std::make_tuple(String(), String(Latin1String("a")), -1));
+   data.push_back(std::make_tuple(String(), String(Latin1String("abcdefg")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("a")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("abcdefg")), -1));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(), 0));
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("a")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("b")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("abcdefg")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(), 0));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("a")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("b")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("ab")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("bc")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("ab")), String(Latin1String("abcdefg")), -1));
+   
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("a")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("b")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("c")), 2));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("d")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("ab")), 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("bc")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("cd")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("ac")), -1));
+   
+   // sizeof(whale) > 32
+   String whale = Latin1String("a5zby6cx7dw8evf9ug0th1si2rj3qkp4lomn");
+   String minnow = Latin1String("zby");
+   data.push_back(std::make_tuple(whale, minnow, 2));
+   data.push_back(std::make_tuple(String(whale + whale), minnow, 2));
+   data.push_back(std::make_tuple(String(minnow + whale), minnow, 0));
+   data.push_back(std::make_tuple(whale, whale, 0));
+   data.push_back(std::make_tuple(String(whale + whale), whale, 0));
+   data.push_back(std::make_tuple(whale, String(whale + whale), -1));
+   data.push_back(std::make_tuple(String(whale + whale), String(whale + whale), 0));
+   data.push_back(std::make_tuple(String(whale + whale), String(whale + minnow), -1));
+   data.push_back(std::make_tuple(String(minnow + whale), whale, (int)minnow.length()));
+}
+
+TEST(StringTest, testIndexOf2)
+{
+   using DataType = std::list<std::tuple<String, String, int>>;
+   DataType data;
+   indexof2_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator end = data.end();
+   while (iter != end) {
+      auto item = *iter;
+      String haystack = std::get<0>(item);
+      String needle = std::get<1>(item);
+      String &ref = needle;
+      int resultPos = std::get<2>(item);
+      ByteArray chaystack = haystack.toLatin1();
+      ByteArray cneedle = needle.toLatin1();
+      int got;
+      ASSERT_EQ(haystack.indexOf(needle, 0, pdk::CaseSensitivity::Sensitive), resultPos);
+      ASSERT_EQ(haystack.indexOf(ref, 0, pdk::CaseSensitivity::Sensitive), resultPos);
+      ASSERT_EQ(StringMatcher(needle, pdk::CaseSensitivity::Sensitive).indexIn(haystack, 0), resultPos);
+      ASSERT_EQ(haystack.indexOf(needle, 0, pdk::CaseSensitivity::Insensitive), resultPos);
+      ASSERT_EQ(haystack.indexOf(ref, 0, pdk::CaseSensitivity::Insensitive), resultPos);
+      ASSERT_EQ(StringMatcher(needle, pdk::CaseSensitivity::Insensitive).indexIn(haystack, 0), resultPos);
+      if (needle.length() > 0) {
+         got = haystack.lastIndexOf( needle, -1, pdk::CaseSensitivity::Sensitive);
+         ASSERT_TRUE(got == resultPos || (resultPos >= 0 && got >= resultPos));
+         got = haystack.lastIndexOf(needle, -1, pdk::CaseSensitivity::Insensitive);
+         ASSERT_TRUE(got == resultPos || (resultPos >= 0 && got >= resultPos));
+      }
+      ASSERT_EQ(chaystack.indexOf(cneedle, 0), resultPos);
+      ASSERT_EQ(ByteArrayMatcher(cneedle).indexIn(chaystack, 0), resultPos);
+      if ( cneedle.length() > 0 ) {
+         got = chaystack.lastIndexOf(cneedle, -1);
+         ASSERT_TRUE(got == resultPos || (resultPos >= 0 && got >= resultPos));
+      }
+      ++iter;
+   }
+}
+
+} // anonymous namespace
+
+
