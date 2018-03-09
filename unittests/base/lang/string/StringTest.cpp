@@ -440,6 +440,132 @@ void replace_uint_uint_data(std::list<std::tuple<String, int, int, String, Strin
                                   String(Latin1String("A"))));
 }
 
+void replace_string_data(std::list<std::tuple<String, String, String, String, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("")), String(Latin1String("")), 
+                                  String(Latin1String("A")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("B")), String(Latin1String("")), 
+                                  String(Latin1String("A")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("AA")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("AB")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("B")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("AB")), String(Latin1String("B")), String(Latin1String("")), 
+                                  String(Latin1String("A")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("AB")), String(Latin1String("C")), String(Latin1String("")), 
+                                  String(Latin1String("AB")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABA")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("B")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABA")), String(Latin1String("B")), String(Latin1String("")), 
+                                  String(Latin1String("AA")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABA")), String(Latin1String("C")), String(Latin1String("")), 
+                                  String(Latin1String("ABA")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("banana")), String(Latin1String("an")), String(Latin1String("")), 
+                                  String(Latin1String("ba")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("A")), String(Latin1String()), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String()), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String()), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String()), String(Latin1String("A")), String(Latin1String()), 
+                                  String(Latin1String()), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String()), String(Latin1String("")), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+  
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String()), String(Latin1String("")), 
+                                  String(Latin1String("")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("a")), String(Latin1String("")), 
+                                  String(Latin1String("")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("A")), String(Latin1String("")), 
+                                  String(Latin1String("")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("a")), String(Latin1String("")), 
+                                  String(Latin1String("")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("Alpha beta")), String(Latin1String("a")), String(Latin1String("")), 
+                                  String(Latin1String("lph bet")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABC")), String(Latin1String("B")), String(Latin1String("-")), 
+                                  String(Latin1String("A-C")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("$()*+.?[\\]^{|}")), String(Latin1String("$()*+.?[\\]^{|}")), String(Latin1String("X")), 
+                                  String(Latin1String("X")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABCDEF")), String(Latin1String("")), String(Latin1String("X")), 
+                                  String(Latin1String("XAXBXCXDXEXFX")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")), String(Latin1String("X")), 
+                                  String(Latin1String("X")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("a")), String(Latin1String("b")), 
+                                  String(Latin1String("b")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("A")), String(Latin1String("b")), 
+                                  String(Latin1String("b")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("A")), String(Latin1String("b")), 
+                                  String(Latin1String("b")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("a")), String(Latin1String("b")), 
+                                  String(Latin1String("b")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("a")), String(Latin1String("a")), 
+                                  String(Latin1String("a")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("A")), String(Latin1String("a")), 
+                                  String(Latin1String("a")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("A")), String(Latin1String("a")), 
+                                  String(Latin1String("a")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("A")), String(Latin1String("a")), String(Latin1String("a")), 
+                                  String(Latin1String("a")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("Alpha beta")), String(Latin1String("a")), String(Latin1String("o")), 
+                                  String(Latin1String("olpho beto")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String()), String(Latin1String("")), String(Latin1String("A")), 
+                                  String(Latin1String("A")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String()), String(Latin1String("A")), 
+                                  String(Latin1String("A")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("fooxbarxbazxblub")), String(Latin1String("x")), String(Latin1String("yz")), 
+                                  String(Latin1String("fooyzbaryzbazyzblub")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("fooxbarxbazxblub")), String(Latin1String("x")), String(Latin1String("z")), 
+                                  String(Latin1String("foozbarzbazzblub")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("fooxybarxybazxyblub")), String(Latin1String("xy")), String(Latin1String("z")), 
+                                  String(Latin1String("foozbarzbazzblub")), false));
+}
+
 }
 
 TEST(StringTest, testRepaceCharacterAndCharacter)
@@ -506,6 +632,41 @@ TEST(StringTest, testRepaceUintAndUint)
          ASSERT_EQ(s4, expected);
       }
       ++begin;
+   }
+}
+
+TEST(StringTest, testReplaceString)
+{
+   using DataType = std::list<std::tuple<String, String, String, String, bool>>;
+   DataType data;
+   replace_string_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator end = data.end();
+   while (iter != end) {
+      auto item = *iter;
+      String string = std::get<0>(item);
+      String before = std::get<1>(item);
+      String after = std::get<2>(item);
+      String expected = std::get<3>(item);
+      bool bcs = std::get<4>(item);
+      pdk::CaseSensitivity cs = bcs ? pdk::CaseSensitivity::Sensitive : pdk::CaseSensitivity::Insensitive;
+      if (before.length() == 1) {
+         Character ch = before.at(0);
+         String s1 = string;
+         s1.replace(ch, after, cs);
+         ASSERT_EQ(s1, expected);
+         if (Character(ch.toLatin1()) == ch) {
+            String s2 = string;
+            s2.replace(ch.toLatin1(), after, cs );
+            ASSERT_EQ(s2, expected);
+         }
+      }
+      
+      String s3 = string;
+      s3.replace(before, after, cs);
+      ASSERT_EQ(s3, expected);
+      
+      ++iter;
    }
 }
 

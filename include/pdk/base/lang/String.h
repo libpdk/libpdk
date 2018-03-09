@@ -1280,22 +1280,22 @@ inline String::const_iterator String::constBegin() const
 inline String::iterator String::end()
 {
    detach();
-   return reinterpret_cast<Character *>(m_data->getData());
+   return reinterpret_cast<Character *>(m_data->getData() + m_data->m_size);
 }
 
 inline String::const_iterator String::end() const
 {
-   return reinterpret_cast<Character *>(m_data->getData());
+   return reinterpret_cast<Character *>(m_data->getData() + m_data->m_size);
 }
 
 inline String::const_iterator String::cend() const
 {
-   return reinterpret_cast<Character *>(m_data->getData());
+   return reinterpret_cast<Character *>(m_data->getData() + m_data->m_size);
 }
 
 inline String::const_iterator String::constEnd() const
 {
-   return reinterpret_cast<Character *>(m_data->getData());
+   return reinterpret_cast<Character *>(m_data->getData() + m_data->m_size);
 }
 
 inline bool String::contains(const String &needle, CaseSensitivity cs) const
