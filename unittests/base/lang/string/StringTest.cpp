@@ -804,6 +804,83 @@ TEST(StringTest, testAccess)
    //   }
 }
 
+TEST(StringTest, testReplaceExtra)
+{
+   /*
+           This test is designed to be extremely slow if String::replace() doesn't optimize the case
+           len == after.size().
+       */
+   String str(Latin1String("dsfkljfdsjklsdjsfjklfsdjkldfjslkjsdfkllkjdsfjklsfdkjsdflkjlsdfjklsdfkjldsflkjsddlkj"));
+   for (int j = 1; j < 12; ++j) {
+      str += str;
+   }
+   String str2(Latin1String("aaaaaaaaaaaaaaaaaaaa"));
+   for (int i = 0; i < 2000000; ++i) {
+      str.replace(10, 20, str2);
+   }
+   /*
+           Make sure that replacing with itself works.
+       */
+   String copy(str);
+   copy.detach();
+   str.replace(0, str.length(), str);
+   ASSERT_EQ(copy, str);
+   
+   /*
+          Make sure that replacing a part of oneself with itself works.
+      */
+   String str3(Latin1String("abcdefghij"));
+   str3.replace(0, 1, str3);
+   ASSERT_EQ(str3, String(Latin1String("abcdefghijbcdefghij")));
+   
+   String str4(Latin1String("abcdefghij"));
+   str4.replace(1, 3, str4);
+   ASSERT_EQ(str4, String(Latin1String("aabcdefghijefghij")));
+   
+   String str5(Latin1String("abcdefghij"));
+   str5.replace(8, 10, str5);
+   ASSERT_EQ(str5, String(Latin1String("abcdefghabcdefghij")));
+   
+   // Replacements using only part of the string modified:
+   String str6(Latin1String("abcdefghij"));
+   str6.replace(1, 8, str6.getConstRawData() + 3, 3);
+   ASSERT_EQ(str6, String(Latin1String("adefj")));
+   
+   String str7(Latin1String("abcdefghibcdefghij"));
+   str7.replace(str7.getConstRawData() + 1, 6, str7.getConstRawData() + 2, 3);
+   ASSERT_EQ(str7, String(Latin1String("acdehicdehij")));
+   
+   const int many = 1024;
+   /*
+         String::replace(const Character *, int, const Character *, int, pdk::CaseSensitivity)
+         does its replacements in batches of many (please keep in sync with any
+         changes to batch size), which lead to misbehaviour if ether QChar * array
+         was part of the data being modified.
+       */
+   String str8(Latin1String("abcdefg")), ans8(Latin1String("acdeg"));
+   {
+      // Make str8 and ans8 repeat themselves many + 1 times:
+      int i = many;
+      String big(str8), small(ans8);
+      while (i && !(i & 1)) { // Exploit many being a power of 2:
+         big += big;
+         small += small;
+         i >>= 1;
+      }
+      while (i-- > 0) {
+         str8 += big;
+         ans8 += small;
+      }
+   }
+   
+   str8.replace(str8.getConstRawData() + 1, 5, str8.getConstRawData() + 2, 3);
+   // Pre-test the bit where the diff happens, so it gets displayed:
+   ASSERT_EQ(str8.substring((many - 3) * 5), ans8.substring((many - 3) * 5));
+   // Also check the full values match, of course:
+   ASSERT_EQ(str8.size(), ans8.size());
+   ASSERT_EQ(str8, ans8);
+}
+
 PDK_WARNING_PUSH
 PDK_WARNING_DISABLE_GCC("-Wformat-security")
 PDK_WARNING_DISABLE_CLANG("-Wformat-security")
@@ -818,3 +895,45 @@ TEST(StringTest, testIsNull)
 }
 
 PDK_WARNING_POP
+
+TEST(StringTest, testIsEmpty)
+{
+   String a;
+   ASSERT_TRUE(a.isEmpty());
+   String c(Latin1String("Not empty"));
+   ASSERT_TRUE(!c.isEmpty());
+}
+
+TEST(StringTest, testConstructor)
+{
+   String a;
+   String b; //b(10);
+   String c(Latin1String("String C"));
+   Character tmp[10];
+   tmp[0] = 'S';
+   tmp[1] = 't';
+   tmp[2] = 'r';
+   tmp[3] = 'i';
+   tmp[4] = 'n';
+   tmp[5] = 'g';
+   tmp[6] = ' ';
+   tmp[7] = 'D';
+   tmp[8] = 'X';
+   tmp[9] = '\0';
+   String d(tmp,8);
+   String ca(a);
+   String cb(b);
+   String cc(c);
+   ASSERT_EQ(a, ca);
+   ASSERT_TRUE(a.isNull());
+   ASSERT_TRUE(a == String(Latin1String("")));
+   ASSERT_EQ(b, cb);
+   ASSERT_EQ(c, cc);
+   ASSERT_EQ(d, Latin1String("String D"));
+   String nullStr;
+   ASSERT_TRUE(nullStr.isNull());
+   ASSERT_TRUE(nullStr.isEmpty());
+   String empty(Latin1String(""));
+   ASSERT_TRUE(!empty.isNull());
+   ASSERT_TRUE(empty.isEmpty());
+}
