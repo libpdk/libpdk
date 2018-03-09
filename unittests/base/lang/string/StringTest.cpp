@@ -1316,6 +1316,44 @@ void indexof2_data(std::list<std::tuple<String, String, int>> &data)
    data.push_back(std::make_tuple(String(minnow + whale), whale, (int)minnow.length()));
 }
 
+void last_indexof_data(std::list<std::tuple<String, String, int, int, bool>> &data)
+{
+   String a = Latin1String("ABCDEFGHIEfGEFG");
+   data.push_back(std::make_tuple(a, Latin1String("G"), a.size() - 1, 14, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), -1, 14, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), -3, 11, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), -5, 6, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), 14, 14, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), 13, 11, true));
+   data.push_back(std::make_tuple(a, Latin1String("B"), a.size() - 1, 1, true));
+   data.push_back(std::make_tuple(a, Latin1String("B"), -1, 1, true));
+   data.push_back(std::make_tuple(a, Latin1String("B"), 1, 1, true));
+   data.push_back(std::make_tuple(a, Latin1String("B"), 0, -1, true));
+   
+   data.push_back(std::make_tuple(a, Latin1String("G"), - 1, a.size() - 1, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), a.size()-1, a.size()-1, true));
+   data.push_back(std::make_tuple(a, Latin1String("G"), a.size(), -1, true));
+   data.push_back(std::make_tuple(a, Latin1String("A"), 0, 0, true));
+   data.push_back(std::make_tuple(a, Latin1String("A"), -1 * a.size(), 0, true));
+   
+   data.push_back(std::make_tuple(a, Latin1String("efg"), 0, -1, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"), a.size(), -1, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"), -1 * a.size(), -1, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"),  a.size() - 1, 12, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"), 12, 12, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"), -12, -1, false));
+   data.push_back(std::make_tuple(a, Latin1String("efg"), 11, 9, false));
+   
+   data.push_back(std::make_tuple(Latin1String(""), Latin1String("asdf"), -1, -1, false));
+   data.push_back(std::make_tuple(Latin1String("asd"), Latin1String("asdf"), -1, -1, false));
+   data.push_back(std::make_tuple(Latin1String(""), String(), -1, -1, false));
+   
+   data.push_back(std::make_tuple(a, Latin1String(""), a.size(), a.size(), false));
+   data.push_back(std::make_tuple(a, Latin1String(""), a.size() + 10, -1, false));
+}
+
+} // anonymous namespace
+
 TEST(StringTest, testIndexOf2)
 {
    using DataType = std::list<std::tuple<String, String, int>>;
@@ -1354,6 +1392,45 @@ TEST(StringTest, testIndexOf2)
    }
 }
 
-} // anonymous namespace
 
-
+TEST(StringTest, testLastIndexOf)
+{
+   using DataType = std::list<std::tuple<String, String, int, int, bool>>;
+   DataType data;
+   last_indexof_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator end = data.end();
+   while (iter != end) {
+      auto item = *iter;
+      String haystack = std::get<0>(item);
+      String needle = std::get<1>(item);
+      int from = std::get<2>(item);
+      int expected = std::get<3>(item);
+      bool caseSensitive = std::get<4>(item);
+      String &ref = needle;
+      pdk::CaseSensitivity cs = (caseSensitive ? pdk::CaseSensitivity::Sensitive : pdk::CaseSensitivity::Insensitive);
+      
+      ASSERT_EQ(haystack.lastIndexOf(needle, from, cs), expected);
+      ASSERT_EQ(haystack.lastIndexOf(ref, from, cs), expected);
+      ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1()), from, cs), expected);
+      ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1().getRawData()), from, cs), expected);
+      
+      if (cs == pdk::CaseSensitivity::Sensitive) {
+         ASSERT_EQ(haystack.lastIndexOf(needle, from), expected);
+         ASSERT_EQ(haystack.lastIndexOf(ref, from), expected);
+         ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1()), from), expected);
+         ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1().getRawData()), from), expected);
+         if (from == -1) {
+            ASSERT_EQ(haystack.lastIndexOf(needle), expected);
+            ASSERT_EQ(haystack.lastIndexOf(ref), expected);
+            ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1())), expected);
+            ASSERT_EQ(haystack.lastIndexOf(Latin1String(needle.toLatin1().getRawData())), expected);
+         }
+      }
+      if (needle.size() == 1) {
+         ASSERT_EQ(haystack.lastIndexOf(needle.at(0), from), expected);
+         ASSERT_EQ(haystack.lastIndexOf(ref.at(0), from), expected);
+      }      
+      ++iter;
+   }
+}
