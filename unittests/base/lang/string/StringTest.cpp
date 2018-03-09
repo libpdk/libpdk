@@ -1002,3 +1002,126 @@ TEST(StringTest, testSTL)
    ASSERT_EQ(stlStr, s.toStdWString());
 }
 
+TEST(StringTest, testTruncate)
+{
+   String e(Latin1String("String E"));
+   e.truncate(4);
+   ASSERT_EQ(e, Latin1String("Stri"));
+   
+   e = Latin1String("String E");
+   e.truncate(0);
+   ASSERT_EQ(e, Latin1String(""));
+   ASSERT_TRUE(e.isEmpty());
+   ASSERT_TRUE(!e.isNull());
+}
+
+namespace {
+
+void chop_data(std::list<std::tuple<String, int, String>> &data)
+{
+   const String original(Latin1String("abcd"));
+   data.push_back(std::make_tuple(original, 1, String(Latin1String("abc"))));
+   data.push_back(std::make_tuple(original, 0, original));
+   data.push_back(std::make_tuple(original, -1, original));
+   data.push_back(std::make_tuple(original, original.size(), String()));
+   data.push_back(std::make_tuple(original, 1000, String()));
+}
+
+inline const void *ptr_value(pdk::uintptr v)
+{
+   return reinterpret_cast<const void *>(v);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testChop)
+{
+   using DataType = std::list<std::tuple<String, int, String>>;
+   DataType data;
+   chop_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator end = data.end();
+   while (iter != end) {
+      auto item = *iter;
+      String input = std::get<0>(item);
+      int count = std::get<1>(item);
+      String result = std::get<2>(item);
+      input.chop(count);
+      ASSERT_EQ(input, result);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testFill)
+{
+   String e;
+   e.fill('e',1);
+   ASSERT_EQ(e, Latin1String("e"));
+   String f;
+   f.fill('f',3);
+   ASSERT_EQ(f, Latin1String("fff"));
+   f.fill('F');
+   ASSERT_EQ(f, Latin1String("FFF"));
+}
+
+TEST(StringTest, testAsprintf)
+{
+   ASSERT_EQ(String::asprintf("COMPARE"), Latin1String("COMPARE"));
+   ASSERT_EQ(String::asprintf("%%%d", 1), Latin1String("%1"));
+   ASSERT_EQ(String::asprintf("X%dY", 2), Latin1String("X2Y"));
+   ASSERT_EQ(String::asprintf("X%9iY", 50000), Latin1String("X    50000Y"));
+   ASSERT_EQ(String::asprintf("X%-9sY", "hello"), Latin1String("Xhello    Y"));
+   ASSERT_EQ(String::asprintf("X%-9iY", 50000), Latin1String("X50000    Y"));
+   ASSERT_EQ(String::asprintf("%lf", 1.23), Latin1String("1.230000"));
+   ASSERT_EQ(String::asprintf("%lf", 1.23456789), Latin1String("1.234568"));
+   ASSERT_EQ(String::asprintf("%p", ptr_value(0xbfffd350)), Latin1String("0xbfffd350"));
+   ASSERT_EQ(String::asprintf("%p", ptr_value(0)), Latin1String("0x0"));
+   
+   int i = 6;
+   long l = -2;
+   float f = 4.023f;
+   
+   ASSERT_EQ(String::asprintf("%d %ld %f",i,l,f), Latin1String("6 -2 4.023000"));
+   
+   double d = -514.25683;
+   ASSERT_EQ(String::asprintf("%f",d), Latin1String("-514.256830"));
+}
+
+TEST(StringTest, testAsprintfS)
+{
+   ASSERT_EQ(String::asprintf("%.3s", "Hello" ), Latin1String("Hel"));
+   ASSERT_EQ(String::asprintf("%10.3s", "Hello" ), Latin1String("       Hel"));
+   ASSERT_EQ(String::asprintf("%.10s", "Hello" ), Latin1String("Hello"));
+   ASSERT_EQ(String::asprintf("%10.10s", "Hello" ), Latin1String("     Hello"));
+   ASSERT_EQ(String::asprintf("%-10.10s", "Hello" ), Latin1String("Hello     "));
+   ASSERT_EQ(String::asprintf("%-10.3s", "Hello" ), Latin1String("Hel       "));
+   ASSERT_EQ(String::asprintf("%-5.5s", "Hello" ), Latin1String("Hello"));
+   
+   // Check utf8 conversion for %s
+   ASSERT_EQ(String::asprintf("%s", "\303\266\303\244\303\274\303\226\303\204\303\234\303\270\303\246\303\245\303\230\303\206\303\205"), String::fromLatin1("\366\344\374\326\304\334\370\346\345\330\306\305"));
+   
+   int n1;
+   ASSERT_EQ(String::asprintf("%s%n%s", "hello", &n1, "goodbye"), String(Latin1String("hellogoodbye")));
+   ASSERT_EQ(n1, 5);
+   pdk::plonglong n2;
+   ASSERT_EQ(String::asprintf("%s%s%lln%s", "foo", "bar", &n2, "whiz"), String(Latin1String("foobarwhiz")));
+   ASSERT_EQ((int)n2, 6);
+   
+   { // %ls
+      ASSERT_EQ(String::asprintf("%.3ls",     pdk_utf16_printable(Latin1String("Hello"))), Latin1String("Hel"));
+      ASSERT_EQ(String::asprintf("%10.3ls",   pdk_utf16_printable(Latin1String("Hello"))), Latin1String("       Hel"));
+      ASSERT_EQ(String::asprintf("%.10ls",    pdk_utf16_printable(Latin1String("Hello"))), Latin1String("Hello"));
+      ASSERT_EQ(String::asprintf("%10.10ls",  pdk_utf16_printable(Latin1String("Hello"))), Latin1String("     Hello"));
+      ASSERT_EQ(String::asprintf("%-10.10ls", pdk_utf16_printable(Latin1String("Hello"))), Latin1String("Hello     "));
+      ASSERT_EQ(String::asprintf("%-10.3ls",  pdk_utf16_printable(Latin1String("Hello"))), Latin1String("Hel       "));
+      ASSERT_EQ(String::asprintf("%-5.5ls",   pdk_utf16_printable(Latin1String("Hello"))), Latin1String("Hello"));
+      
+      // Check utf16 is preserved for %ls
+      ASSERT_EQ(String::asprintf("%ls",
+                                 pdk_utf16_printable(String::fromLocal8Bit("\303\266\303\244\303\274\303\226\303\204\303\234\303\270\303\246\303\245\303\230\303\206\303\205"))),
+                Latin1String("\366\344\374\326\304\334\370\346\345\330\306\305"));
+      int n;
+      ASSERT_EQ(String::asprintf("%ls%n%s", pdk_utf16_printable(Latin1String("hello")), &n, "goodbye"), Latin1String("hellogoodbye"));
+      ASSERT_EQ(n, 5);
+   }
+}
