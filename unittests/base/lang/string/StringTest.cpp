@@ -937,3 +937,68 @@ TEST(StringTest, testConstructor)
    ASSERT_TRUE(!empty.isNull());
    ASSERT_TRUE(empty.isEmpty());
 }
+
+//namespace {
+
+//void constructor_bytearray_data(std::list<std::tuple<ByteArray, String>> &data)
+//{
+//   ByteArray ba(4, 0);
+//   ba[0] = 'C';
+//   ba[1] = 'O';
+//   ba[2] = 'M';
+//   ba[3] = 'P';
+//   data.push_back(std::make_tuple(ba, String(Latin1String("COMP"))));
+
+//   ByteArray ba1( 7, 0 );
+//   ba1[0] = 'a';
+//   ba1[1] = 'b';
+//   ba1[2] = 'c';
+//   ba1[3] = '\0';
+//   ba1[4] = 'd';
+//   ba1[5] = 'e';
+//   ba1[6] = 'f';
+//   data.push_back(std::make_tuple(ba1, String(Latin1String("abc"))));
+//   data.push_back(std::make_tuple(ByteArray::fromRawData("abcd", 3), String(Latin1String("abc"))));
+//   data.push_back(std::make_tuple(ByteArray("\xc3\xa9"), String(Latin1String("\xc3\xa9"))));
+//   data.push_back(std::make_tuple(ByteArray("\xc3\xa9"), String::fromUtf8("\xc3\xa9")));
+//}
+
+//} // anonymous namespace
+
+//TEST(StringTest, testConstructorFromByteArray)
+//{
+//   using DataType = std::list<std::tuple<ByteArray, String>>;
+//   DataType data;
+//   constructor_bytearray_data(data);
+//   DataType::iterator iter = data.begin();
+//   DataType::iterator end = data.end();
+//   while (iter != end) {
+//      auto item = *iter;
+//      ByteArray src = std::get<0>(item);
+//      String expected = std::get<1>(item);
+//      String str1(String::fromLatin1(src));
+//      ASSERT_EQ(str1.length(), expected.length());
+//      ASSERT_EQ(str1, expected);      
+//      String strBA(String::fromLatin1(src));
+//      ASSERT_EQ(strBA, expected);
+//      ++iter;
+//   }
+//}
+
+TEST(StringTest, testSTL)
+{
+   std::string stdstr( "String" );
+   
+   String stlqt = String::fromStdString(stdstr);
+   ASSERT_EQ(stlqt, String::fromLatin1(stdstr.c_str()));
+   ASSERT_EQ(stlqt.toStdString(), stdstr);
+   
+   const wchar_t arr[] = {'h', 'e', 'l', 'l', 'o', 0};
+   std::wstring stlStr = arr;
+   
+   String s = String::fromStdWString(stlStr);
+   
+   ASSERT_EQ(s, String::fromLatin1("hello"));
+   ASSERT_EQ(stlStr, s.toStdWString());
+}
+
