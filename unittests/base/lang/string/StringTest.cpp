@@ -492,7 +492,7 @@ void replace_string_data(std::list<std::tuple<String, String, String, String, bo
    
    data.push_back(std::make_tuple(String(Latin1String()), String(Latin1String("")), String(Latin1String("")), 
                                   String(Latin1String("")), true));
-  
+   
    data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String()), String(Latin1String("")), 
                                   String(Latin1String("")), true));
    
@@ -724,4 +724,83 @@ TEST(StringTest, testAccess)
    
    a = Latin1String("");
    a[0] = 'A';
+   ASSERT_EQ(a, Latin1String("A"));
+   ASSERT_EQ(a.length(), 1);
+   
+   a[1] = 'B';
+   ASSERT_EQ(a, Latin1String("AB"));
+   ASSERT_EQ(a.length(), 2);
+   a[2] = 'C';
+   ASSERT_EQ(a, Latin1String("ABC"));
+   ASSERT_EQ(a.length(), 3);
+   
+   a = Latin1String("123");
+   b = Latin1String("456");
+   a[0] = a[1];
+   ASSERT_EQ(a, Latin1String("223"));
+   a[1] = b[1];
+   ASSERT_EQ(b, Latin1String("456"));
+   ASSERT_EQ(a, Latin1String("253"));
+   
+   char t[]="TEXT";
+   a = Latin1String("A");
+   a = t;
+   ASSERT_EQ(a, Latin1String("TEXT"));
+   ASSERT_EQ(a, (String)t);
+   
+   a[0] = 'X';
+   ASSERT_EQ(a, Latin1String("XEXT"));
+   ASSERT_EQ(t[0], 'T');
+   t[0] = 'Z';
+   ASSERT_EQ(a, Latin1String("XEXT"));
+   
+   a = Latin1String("ABC");
+   ASSERT_EQ(char(a.toLatin1()[1]), 'B');
+   int ret = strcmp(a.toLatin1(), ByteArrayLiteral("ABC"));
+   ASSERT_EQ(ret, 0);
+   a += Latin1String("DEF");
+   
+   ASSERT_EQ(a, Latin1String("ABCDEF"));
+   ASSERT_EQ(a += 'G', Latin1String("ABCDEFG"));
+   a += Latin1String(((const char*)(0)));
+   ASSERT_EQ(a, Latin1String("ABCDEFG"));
+   
+   a = Latin1String("ABC");
+   b = Latin1String("ABC");
+   c = Latin1String("ACB");
+   d = Latin1String("ABCD");
+   
+   ASSERT_TRUE(a == b);
+   ASSERT_TRUE(!(a == d));
+   ASSERT_TRUE(!(a != b));
+   ASSERT_TRUE(a != d);
+   ASSERT_TRUE(!(a < b));
+   ASSERT_TRUE(a < c);
+   ASSERT_TRUE(a < d);
+   ASSERT_TRUE(!(d < a));
+   ASSERT_TRUE(!(c < a));
+   ASSERT_TRUE(a <= b);
+   ASSERT_TRUE(a <= c);
+   ASSERT_TRUE(a <= d);
+   
+   ASSERT_TRUE(!(c <= a));
+   ASSERT_TRUE(!(d <= a));
+   
+   ASSERT_EQ(String(a + b), Latin1String("ABCABC"));
+   ASSERT_EQ(String(a + Latin1String("XXXX")), Latin1String("ABCXXXX"));
+   ASSERT_EQ(String(a + Latin1String("X")), Latin1String("ABCX"));
+   ASSERT_EQ(String(Latin1String("XXXX") + a), Latin1String("XXXXABC"));
+   ASSERT_EQ(String(Latin1String("X") + a), Latin1String("XABC"));
+   a = String::fromUtf8((const char*)0);
+   ASSERT_TRUE(a.isNull());
+   ASSERT_TRUE(*a.toLatin1().getConstRawData() == '\0');
+   
+//   {
+//      File f("COMPARE.txt");
+//      f.open(IoDevice::OpenMode::ReadOnly);
+//      TextStream ts(&f);
+//      ts.setCodec(TextCodec::codecForName("UTF-16"));
+//      ts << "Abc";
+//   }
 }
+

@@ -1029,7 +1029,7 @@ String &String::operator =(const String &other) noexcept
 
 String &String::operator =(Latin1String other)
 {
-   if (isDetached() && other.size() < capacity()) {
+   if (isDetached() && other.size() <= capacity()) {
       // assumes m_data->m_alloc == 0 -> !isDetached() (sharedNull)
       m_data->m_size = other.size();
       m_data->getData()[other.size()] = 0;

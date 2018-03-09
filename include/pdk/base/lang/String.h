@@ -712,7 +712,7 @@ public:
    
    inline String &operator +=(Latin1String str)
    {
-      return insert(0, str);
+      return append(str);
    }
    
    String &remove(int pos, int length);
@@ -1610,7 +1610,7 @@ public:
    
    inline CharacterRef &operator =(Character c)
    {
-      if (m_idx > m_str.m_data->m_size) {
+      if (m_idx >= m_str.m_data->m_size) {
          m_str.resize(m_idx + 1, Latin1Character(' '));
       } else {
          m_str.detach();

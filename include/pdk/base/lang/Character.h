@@ -391,9 +391,7 @@ public:
    
    constexpr Character(Latin1Character ch) noexcept
       : m_data(ch.unicode())
-   {
-      
-   }
+   {}
    
    constexpr explicit Character(char c) noexcept
       : m_data(char16_t(uchar(c)))
