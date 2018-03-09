@@ -795,12 +795,26 @@ TEST(StringTest, testAccess)
    ASSERT_TRUE(a.isNull());
    ASSERT_TRUE(*a.toLatin1().getConstRawData() == '\0');
    
-//   {
-//      File f("COMPARE.txt");
-//      f.open(IoDevice::OpenMode::ReadOnly);
-//      TextStream ts(&f);
-//      ts.setCodec(TextCodec::codecForName("UTF-16"));
-//      ts << "Abc";
-//   }
+   //   {
+   //      File f("COMPARE.txt");
+   //      f.open(IoDevice::OpenMode::ReadOnly);
+   //      TextStream ts(&f);
+   //      ts.setCodec(TextCodec::codecForName("UTF-16"));
+   //      ts << "Abc";
+   //   }
 }
 
+PDK_WARNING_PUSH
+PDK_WARNING_DISABLE_GCC("-Wformat-security")
+PDK_WARNING_DISABLE_CLANG("-Wformat-security")
+
+TEST(StringTest, testIsNull)
+{
+   String str;
+   ASSERT_TRUE(str.isNull());
+   const char *zero = 0;
+   str = str.asprintf(zero);
+   ASSERT_TRUE(!str.isNull());
+}
+
+PDK_WARNING_POP
