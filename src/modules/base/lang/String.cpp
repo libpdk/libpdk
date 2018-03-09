@@ -158,22 +158,21 @@ int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd,
                     const Character *rhsBegin, const Character *rhsEnd)
 {
    if (lhsBegin == rhsBegin) {
-      return (rhsEnd - lhsEnd);
-   }
-   if (!rhsBegin) {
-      return lhsEnd - lhsBegin;
+      return (lhsEnd - rhsEnd);
    }
    if (!lhsBegin) {
-      return rhsBegin - rhsEnd;
+      return rhsEnd - rhsBegin;
    }
-   const Character *end = rhsEnd;
-   
-   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
-      end = rhsBegin + (lhsEnd - lhsBegin);
+   if (!rhsBegin) {
+      return lhsBegin - lhsEnd;
+   }
+   const Character *end = lhsEnd;
+   if (rhsEnd - rhsBegin < lhsEnd - lhsBegin) {
+      end = lhsBegin + (rhsEnd - rhsBegin);
    }
    char32_t lhsLast = 0;
    char32_t rhsLast = 0;
-   while (rhsBegin < end) {
+   while (lhsBegin < end) {
       int diff = internal::fold_case(lhsBegin->unicode(), lhsLast) - internal::fold_case(rhsBegin->unicode(), rhsLast);
       if (diff) {
          return diff;
@@ -181,29 +180,29 @@ int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd,
       ++lhsBegin;
       ++rhsBegin;
    }
-   if (rhsBegin == rhsEnd) {
-      if (lhsBegin == lhsEnd) {
+   if (lhsBegin == lhsEnd) {
+      if (rhsBegin == rhsEnd) {
          return 0;
       }
-      return 1;
+      return -1;
    }
-   return -1;
+   return 1;
 }
 
 // Case-insensitive comparison between a Unicode string and a Latin1String
 int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd, const char *rhsBegin, const char *rhsEnd)
 {
-   if (!rhsBegin) {
-      return lhsEnd - lhsBegin;
-   }
    if (!lhsBegin) {
-      return rhsBegin - rhsEnd;
+      return rhsEnd - rhsBegin;
    }
-   const char *end = rhsEnd;
-   if (lhsEnd - lhsBegin < rhsEnd - rhsBegin) {
-      end = rhsBegin + (lhsEnd - lhsBegin);
+   if (!rhsBegin) {
+      return lhsBegin - lhsEnd;
    }
-   while (rhsBegin < end) {
+   const Character *end = lhsEnd;
+   if (rhsEnd - rhsBegin < lhsEnd - lhsBegin) {
+      end = lhsBegin + (rhsEnd - rhsBegin);
+   }
+   while (lhsBegin < end) {
       int diff = internal::fold_case(lhsBegin->unicode()) - internal::fold_case(static_cast<char16_t>(*rhsBegin));
       if (diff) {
          return diff;
@@ -211,21 +210,21 @@ int unicode_stricmp(const Character *lhsBegin, const Character *lhsEnd, const ch
       ++lhsBegin;
       ++rhsBegin;
    }
-   if (rhsBegin == rhsEnd) {
-      if (lhsBegin == lhsEnd) {
+   if (lhsBegin == lhsEnd) {
+      if (rhsBegin == rhsEnd) {
          return 0;
       }
-      return 1;
+      return -1;
    }
-   return -1;
+   return 1;
 }
 
 // Unicode case-sensitive compare two same-sized strings
 int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
 {
 #ifdef __OPTIMIZE_SIZE__
-   const Character *end = rhs + length;
-   while (rhs < end) {
+   const Character *end = lhs + length;
+   while (lhs < end) {
       if (int diff = (int)lhs->unicode() - (int)rhs->unicode()) {
          return diff;
       }
@@ -241,7 +240,7 @@ int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
    rhs += length & ~7;
    length &= 7;
    // we're going to read ptr[0..15] (16 bytes)
-   for (; ptr + 15 < reinterpret_cast<const char *>(rhs); ptr += 16) {
+   for (; ptr + 15 < reinterpret_cast<const char *>(lhs); ptr += 16) {
       __m128i lhsData = _mm_loadu_si128((const __m128i*)ptr);
       __m128i rhsData = _mm_loadu_si128((const __m128i*)(ptr + distance));
       __m128i result = _mm_cmpeq_epi16(lhsData, rhsData);
@@ -275,7 +274,6 @@ int unicode_strncmp(const Character *lhs, const Character *rhs, int length)
          --length;
          ++lhs;
          ++rhs;
-         
       }
       // both addresses are 4-bytes aligned
       // do a fast 32-bit comparison
@@ -325,7 +323,7 @@ int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
       __m256i rhsData = _mm256_cvtepu8_epi16(chunk);
       // load UTF-16 data and compare
       __m256i lhsData = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ulhs + offset));
-      __m256i result = _mm256_cmpeq_epi16(lhsData, rhsData);
+      __m256i result = _mm256_cmpeq_epi16(rhsData, lhsData);
       uint mask = ~_mm256_movemask_epi8(result);
 #  else
       // expand via unpacking
@@ -333,7 +331,7 @@ int unicode_strncmp(const Character *lhs, const uchar *rhs, int length)
       __m128i secondHalf = _mm_unpackhi_epi8(chunk, nullMask);
       // load UTF-16 data and compare
       __m128i lhsData1 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset));
-      __m128i lhsData2 = _mm_loadu_si128((const __m128i*)(ulhs + offset + 8));
+      __m128i lhsData2 = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ulhs + offset + 8));
       // load UTF-16 data and compare
       __m128i result1 = _mm_cmpeq_epi16(firstHalf, lhsData1);
       __m128i result2 = _mm_cmpeq_epi16(secondHalf, lhsData2);

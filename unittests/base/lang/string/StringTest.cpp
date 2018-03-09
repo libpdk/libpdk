@@ -317,6 +317,49 @@ void length_data(std::list<std::tuple<String, int>> &data)
    data.push_back(std::make_tuple(String(Latin1String("shdnftrheid fhgnt gjvnfmd chfugkh bnfhg thgjf vnghturkf chfnguh bjgnfhvygh hnbhgutjfv dhdnjds dcjs d")), 100));
 }
 
+void replace_character_character_data(std::list<std::tuple<String, Character, Character, int, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('o'), Character('a'), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String("faa"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('o'), Character('a'), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("faa"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('O'), Character('a'), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String("foo"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('O'), Character('a'), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("faa"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character('a'), Character(' '), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String(" b bABAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character('a'), Character(' '), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String(" b b B B"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character(), Character(' '), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("ababABAB"))));
+}
+
+}
+
+TEST(StringTest, testRepaceCharacterAndCharacter)
+{
+   using DataType = std::list<std::tuple<String, Character, Character, int, String>>;
+   DataType data;
+   replace_character_character_data(data);
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      String src = std::get<0>(item);
+      Character before = std::get<1>(item);
+      Character after = std::get<2>(item);
+      int cs = std::get<3>(item);
+      String expected = std::get<4>(item);
+      ASSERT_EQ(src.replace(before, after, pdk::CaseSensitivity(cs)), expected);
+      ++begin;
+   }
 }
 
 TEST(StringTest, testLength)
