@@ -1,4 +1,4 @@
-// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+﻿// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -341,6 +341,105 @@ void replace_character_character_data(std::list<std::tuple<String, Character, Ch
                                   int(pdk::CaseSensitivity::Insensitive), String(Latin1String("ababABAB"))));
 }
 
+void replace_character_string_data(std::list<std::tuple<String, Character, String, int, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('o'), String(Latin1String("aA")), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String("faAaA"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('o'), String(Latin1String("aA")), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("faAaA"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('O'), String(Latin1String("aA")), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String("foo"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("foo")), Character('O'), String(Latin1String("aA")), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("faAaA"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character('a'), String(Latin1String("  ")), 
+                                  int(pdk::CaseSensitivity::Sensitive), String(Latin1String("  b  bABAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character('a'), String(Latin1String("  ")), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("  b  b  B  B"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character(), String(Latin1String("  ")), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("ababABAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ababABAB")), Character(), String(Latin1String()), 
+                                  int(pdk::CaseSensitivity::Insensitive), String(Latin1String("ababABAB"))));
+}
+
+void replace_uint_uint_data(std::list<std::tuple<String, int, int, String, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("-<>ABCABCABCABC>")), 0, 3, String(Latin1String("")), 
+                                  String(Latin1String("ABCABCABCABC>"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ABCABCABCABC")), 1, 4, String(Latin1String("")), 
+                                  String(Latin1String("ACABCABC"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCABC")), 8, 4, String(Latin1String("")), 
+                                  String(Latin1String("ACABCABC"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCABC")), 7, 1, String(Latin1String("")), 
+                                  String(Latin1String("ACABCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 4, 0, String(Latin1String("")), 
+                                  String(Latin1String("ACABCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 4, 0, String(Latin1String("X")), 
+                                  String(Latin1String("ACABXCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABXCAB")), 4, 1, String(Latin1String("Y")), 
+                                  String(Latin1String("ACABYCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABXCAB")), 4, 1, String(Latin1String("")), 
+                                  String(Latin1String("ACABCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABXCAB")), 0, 9999, String(Latin1String("XX")), 
+                                  String(Latin1String("XX"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("XX")), 0, 9999, String(Latin1String("")), 
+                                  String(Latin1String(""))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 0, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("XXABCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 1, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("AXXBCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 2, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("ACXXCAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 3, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("ACAXXAB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 4, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("ACABXXB"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 5, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("ACABCXX"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 6, 2, String(Latin1String("XX")), 
+                                  String(Latin1String("ACABCAXX"))));
+   
+   data.push_back(std::make_tuple(String(), 0, 10, String(Latin1String("X")), 
+                                  String(Latin1String("X"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("short")), 0, 10, String(Latin1String("X")), 
+                                  String(Latin1String("X"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String()), 0, 10, String(Latin1String("XX")), 
+                                  String(Latin1String("XX"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("short")), 0, 10, String(Latin1String("X")), 
+                                  String(Latin1String("X"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 1, INT_MAX - 1, String(Latin1String("")), 
+                                  String(Latin1String("A"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("ACABCAB")), 1, INT_MAX, String(Latin1String("")), 
+                                  String(Latin1String("A"))));
+}
+
 }
 
 TEST(StringTest, testRepaceCharacterAndCharacter)
@@ -358,6 +457,54 @@ TEST(StringTest, testRepaceCharacterAndCharacter)
       int cs = std::get<3>(item);
       String expected = std::get<4>(item);
       ASSERT_EQ(src.replace(before, after, pdk::CaseSensitivity(cs)), expected);
+      ++begin;
+   }
+}
+
+TEST(StringTest, testRepaceCharacterAndString)
+{
+   using DataType = std::list<std::tuple<String, Character, String, int, String>>;
+   DataType data;
+   replace_character_string_data(data);
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      String src = std::get<0>(item);
+      Character before = std::get<1>(item);
+      String after = std::get<2>(item);
+      int cs = std::get<3>(item);
+      String expected = std::get<4>(item);
+      ASSERT_EQ(src.replace(before, after, pdk::CaseSensitivity(cs)), expected);
+      ++begin;
+   }
+}
+
+TEST(StringTest, testRepaceUintAndUint)
+{
+   using DataType = std::list<std::tuple<String, int, int, String, String>>;
+   DataType data;
+   replace_uint_uint_data(data);
+   DataType::iterator begin = data.begin();
+   DataType::iterator end = data.end();
+   while (begin != end) {
+      auto item = *begin;
+      String string = std::get<0>(item);
+      int index = std::get<1>(item);
+      int length = std::get<2>(item);
+      String after = std::get<3>(item);
+      String expected = std::get<4>(item);
+      String s1 = string;
+      s1.replace((uint)index, (int)length, after);
+      ASSERT_EQ(s1, expected);
+      if (after.length() == 1) {
+         String s3 = string;
+         s3.replace((uint)index, (uint) length, Character(after[0]));
+         ASSERT_EQ(s3, expected);
+         String s4 = string;
+         s4.replace((uint) index, (uint) length, Character(after[0]).toLatin1() );
+         ASSERT_EQ(s4, expected);
+      }
       ++begin;
    }
 }
