@@ -945,6 +945,12 @@ String::String(int size, Character c)
    PDK_CHECK_ALLOC_PTR(m_data);
    m_data->m_size = size;
    m_data->getData()[size] = '\0';
+   char16_t *iter = m_data->getData() + size;
+   char16_t *begin = m_data->getData();
+   const char16_t value = c.unicode();
+   while (iter != begin) {
+      *--iter = value;
+   }
 }
 
 String::String(int size, pdk::Initialization)

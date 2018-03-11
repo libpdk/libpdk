@@ -636,7 +636,7 @@ TEST(StringTest, testRepaceUintAndUint)
          s3.replace((uint)index, (uint) length, Character(after[0]));
          ASSERT_EQ(s3, expected);
          String s4 = string;
-         s4.replace((uint) index, (uint) length, Character(after[0]).toLatin1() );
+         s4.replace((uint) index, (uint) length, Character(after[0]).toLatin1());
          ASSERT_EQ(s4, expected);
       }
       ++begin;
@@ -862,7 +862,7 @@ TEST(StringTest, testReplaceExtra)
    /*
          String::replace(const Character *, int, const Character *, int, pdk::CaseSensitivity)
          does its replacements in batches of many (please keep in sync with any
-         changes to batch size), which lead to misbehaviour if ether QChar * array
+         changes to batch size), which lead to misbehaviour if ether Character * array
          was part of the data being modified.
        */
    String str8(Latin1String("abcdefg")), ans8(Latin1String("acdeg"));
@@ -1635,160 +1635,343 @@ TEST(StringTest, testSubString)
 
 TEST(StringTest, testSubStringRef)
 {
-    String str;
-    str = Latin1String("ABCDEFGHIEfGEFG"); // 15 chars
-
-    ASSERT_EQ(str.substringRef(3,3).toString(), Latin1String("DEF"));
-    ASSERT_EQ(str.substringRef(0,0).toString(), Latin1String(""));
-    ASSERT_TRUE(!str.substringRef(15,0).toString().isNull());
-    ASSERT_TRUE(str.substringRef(15,0).toString().isEmpty());
-    ASSERT_TRUE(!str.substringRef(15,1).toString().isNull());
-    ASSERT_TRUE(str.substringRef(15,1).toString().isEmpty());
-    ASSERT_TRUE(str.substringRef(9999).toString().isEmpty());
-    ASSERT_TRUE(str.substringRef(9999,1).toString().isEmpty());
-
-    ASSERT_EQ(str.substringRef(-1, 6), str.substringRef(0, 5));
-    ASSERT_TRUE(str.substringRef(-100, 6).isEmpty());
-    ASSERT_TRUE(str.substringRef(INT_MIN, 0).isEmpty());
-    ASSERT_EQ(str.substringRef(INT_MIN, -1).toString(), str);
-    ASSERT_TRUE(str.substringRef(INT_MIN, INT_MAX).isNull());
-    ASSERT_TRUE(str.substringRef(INT_MIN + 1, INT_MAX).isEmpty());
-    ASSERT_EQ(str.substringRef(INT_MIN + 2, INT_MAX), str.leftRef(1));
-    ASSERT_EQ(str.substringRef(INT_MIN + str.size() + 1, INT_MAX).toString(), str);
-    ASSERT_TRUE(str.substringRef(INT_MAX).isNull());
-    ASSERT_TRUE(str.substringRef(INT_MAX, INT_MAX).isNull());
-    ASSERT_EQ(str.substringRef(-5, INT_MAX).toString(), str);
-    ASSERT_EQ(str.substringRef(-1, INT_MAX).toString(), str);
-    ASSERT_EQ(str.substringRef(0, INT_MAX).toString(), str);
-    ASSERT_EQ(str.substringRef(1, INT_MAX).toString(), String(Latin1String("BCDEFGHIEfGEFG")));
-    ASSERT_EQ(str.substringRef(5, INT_MAX).toString(), String(Latin1String("FGHIEfGEFG")));
-    ASSERT_TRUE(str.substringRef(20, INT_MAX).isNull());
-    ASSERT_EQ(str.substringRef(-1, -1).toString(), str);
-
-    String n;
-    ASSERT_TRUE(n.substringRef(3,3).toString().isEmpty());
-    ASSERT_TRUE(n.substringRef(0,0).toString().isEmpty());
-    ASSERT_TRUE(n.substringRef(9999,0).toString().isEmpty());
-    ASSERT_TRUE(n.substringRef(9999,1).toString().isEmpty());
-
-    ASSERT_TRUE(n.substringRef(-1, 6).isNull());
-    ASSERT_TRUE(n.substringRef(-100, 6).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN, 0).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN, -1).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN + 1, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN + 2, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MIN + n.size() + 1, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(INT_MAX, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(-5, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(-1, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(0, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(1, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(5, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(20, INT_MAX).isNull());
-    ASSERT_TRUE(n.substringRef(-1, -1).isNull());
-
-    String x = Latin1String("Nine pineapples");
-    ASSERT_EQ(x.substringRef(5, 4).toString(), String(Latin1String("pine")));
-    ASSERT_EQ(x.substringRef(5).toString(), String(Latin1String("pineapples")));
-
-    ASSERT_EQ(x.substringRef(-1, 6), x.substringRef(0, 5));
-    ASSERT_TRUE(x.substringRef(-100, 6).isEmpty());
-    ASSERT_TRUE(x.substringRef(INT_MIN, 0).isEmpty());
-    ASSERT_EQ(x.substringRef(INT_MIN, -1).toString(), x);
-    ASSERT_TRUE(x.substringRef(INT_MIN, INT_MAX).isNull());
-    ASSERT_TRUE(x.substringRef(INT_MIN + 1, INT_MAX).isEmpty());
-    ASSERT_EQ(x.substringRef(INT_MIN + 2, INT_MAX), x.leftRef(1));
-    ASSERT_EQ(x.substringRef(INT_MIN + x.size() + 1, INT_MAX).toString(), x);
-    ASSERT_TRUE(x.substringRef(INT_MAX).isNull());
-    ASSERT_TRUE(x.substringRef(INT_MAX, INT_MAX).isNull());
-    ASSERT_EQ(x.substringRef(-5, INT_MAX).toString(), x);
-    ASSERT_EQ(x.substringRef(-1, INT_MAX).toString(), x);
-    ASSERT_EQ(x.substringRef(0, INT_MAX).toString(), x);
-    ASSERT_EQ(x.substringRef(1, INT_MAX).toString(), String(Latin1String("ine pineapples")));
-    ASSERT_EQ(x.substringRef(5, INT_MAX).toString(), String(Latin1String("pineapples")));
-    ASSERT_TRUE(x.substringRef(20, INT_MAX).isNull());
-    ASSERT_EQ(x.substringRef(-1, -1).toString(), x);
+   String str;
+   str = Latin1String("ABCDEFGHIEfGEFG"); // 15 chars
+   
+   ASSERT_EQ(str.substringRef(3,3).toString(), Latin1String("DEF"));
+   ASSERT_EQ(str.substringRef(0,0).toString(), Latin1String(""));
+   ASSERT_TRUE(!str.substringRef(15,0).toString().isNull());
+   ASSERT_TRUE(str.substringRef(15,0).toString().isEmpty());
+   ASSERT_TRUE(!str.substringRef(15,1).toString().isNull());
+   ASSERT_TRUE(str.substringRef(15,1).toString().isEmpty());
+   ASSERT_TRUE(str.substringRef(9999).toString().isEmpty());
+   ASSERT_TRUE(str.substringRef(9999,1).toString().isEmpty());
+   
+   ASSERT_EQ(str.substringRef(-1, 6), str.substringRef(0, 5));
+   ASSERT_TRUE(str.substringRef(-100, 6).isEmpty());
+   ASSERT_TRUE(str.substringRef(INT_MIN, 0).isEmpty());
+   ASSERT_EQ(str.substringRef(INT_MIN, -1).toString(), str);
+   ASSERT_TRUE(str.substringRef(INT_MIN, INT_MAX).isNull());
+   ASSERT_TRUE(str.substringRef(INT_MIN + 1, INT_MAX).isEmpty());
+   ASSERT_EQ(str.substringRef(INT_MIN + 2, INT_MAX), str.leftRef(1));
+   ASSERT_EQ(str.substringRef(INT_MIN + str.size() + 1, INT_MAX).toString(), str);
+   ASSERT_TRUE(str.substringRef(INT_MAX).isNull());
+   ASSERT_TRUE(str.substringRef(INT_MAX, INT_MAX).isNull());
+   ASSERT_EQ(str.substringRef(-5, INT_MAX).toString(), str);
+   ASSERT_EQ(str.substringRef(-1, INT_MAX).toString(), str);
+   ASSERT_EQ(str.substringRef(0, INT_MAX).toString(), str);
+   ASSERT_EQ(str.substringRef(1, INT_MAX).toString(), String(Latin1String("BCDEFGHIEfGEFG")));
+   ASSERT_EQ(str.substringRef(5, INT_MAX).toString(), String(Latin1String("FGHIEfGEFG")));
+   ASSERT_TRUE(str.substringRef(20, INT_MAX).isNull());
+   ASSERT_EQ(str.substringRef(-1, -1).toString(), str);
+   
+   String n;
+   ASSERT_TRUE(n.substringRef(3,3).toString().isEmpty());
+   ASSERT_TRUE(n.substringRef(0,0).toString().isEmpty());
+   ASSERT_TRUE(n.substringRef(9999,0).toString().isEmpty());
+   ASSERT_TRUE(n.substringRef(9999,1).toString().isEmpty());
+   
+   ASSERT_TRUE(n.substringRef(-1, 6).isNull());
+   ASSERT_TRUE(n.substringRef(-100, 6).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN, 0).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN, -1).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN + 1, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN + 2, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MIN + n.size() + 1, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(INT_MAX, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(-5, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(-1, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(0, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(1, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(5, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(20, INT_MAX).isNull());
+   ASSERT_TRUE(n.substringRef(-1, -1).isNull());
+   
+   String x = Latin1String("Nine pineapples");
+   ASSERT_EQ(x.substringRef(5, 4).toString(), String(Latin1String("pine")));
+   ASSERT_EQ(x.substringRef(5).toString(), String(Latin1String("pineapples")));
+   
+   ASSERT_EQ(x.substringRef(-1, 6), x.substringRef(0, 5));
+   ASSERT_TRUE(x.substringRef(-100, 6).isEmpty());
+   ASSERT_TRUE(x.substringRef(INT_MIN, 0).isEmpty());
+   ASSERT_EQ(x.substringRef(INT_MIN, -1).toString(), x);
+   ASSERT_TRUE(x.substringRef(INT_MIN, INT_MAX).isNull());
+   ASSERT_TRUE(x.substringRef(INT_MIN + 1, INT_MAX).isEmpty());
+   ASSERT_EQ(x.substringRef(INT_MIN + 2, INT_MAX), x.leftRef(1));
+   ASSERT_EQ(x.substringRef(INT_MIN + x.size() + 1, INT_MAX).toString(), x);
+   ASSERT_TRUE(x.substringRef(INT_MAX).isNull());
+   ASSERT_TRUE(x.substringRef(INT_MAX, INT_MAX).isNull());
+   ASSERT_EQ(x.substringRef(-5, INT_MAX).toString(), x);
+   ASSERT_EQ(x.substringRef(-1, INT_MAX).toString(), x);
+   ASSERT_EQ(x.substringRef(0, INT_MAX).toString(), x);
+   ASSERT_EQ(x.substringRef(1, INT_MAX).toString(), String(Latin1String("ine pineapples")));
+   ASSERT_EQ(x.substringRef(5, INT_MAX).toString(), String(Latin1String("pineapples")));
+   ASSERT_TRUE(x.substringRef(20, INT_MAX).isNull());
+   ASSERT_EQ(x.substringRef(-1, -1).toString(), x);
 }
 
 TEST(StringTest, testStringRef)
 {
-    String str;
-    str = Latin1String("ABCDEFGHIEfGEFG"); // 15 chars
-
-    ASSERT_TRUE(StringRef(&str, 0, 0) == String(Latin1String("")));
-
-    ASSERT_TRUE(StringRef(&str, 3, 3) == String(Latin1String("DEF")));
-    ASSERT_TRUE(StringRef(&str, 3, 3) == Latin1String("DEF"));
-    ASSERT_TRUE(String(Latin1String("DEF")) == StringRef(&str, 3, 3));
-    ASSERT_TRUE(Latin1String("DEF") == StringRef(&str, 3, 3));
-
-    ASSERT_TRUE(StringRef(&str, 3, 3) != String(Latin1String("DE")));
-    ASSERT_TRUE(StringRef(&str, 3, 3) != Latin1String("DE"));
-    ASSERT_TRUE(String(Latin1String("DE")) != StringRef(&str, 3, 3));
-    ASSERT_TRUE(Latin1String("DE") != StringRef(&str, 3, 3));
-
-    String s_alpha(Latin1String("alpha"));
-    String s_beta(Latin1String("beta"));
-    StringRef alpha(&s_alpha);
-    StringRef beta(&s_beta);
-
-    ASSERT_TRUE(alpha < beta);
-    ASSERT_TRUE(alpha <= beta);
-    ASSERT_TRUE(alpha <= alpha);
-    ASSERT_TRUE(beta > alpha);
-    ASSERT_TRUE(beta >= alpha);
-    ASSERT_TRUE(beta >= beta);
-
-    String s_alpha2(Latin1String("alpha"));
-
-    std::map<StringRef, String> map;
-    map[alpha] = Latin1String("alpha");
-    map[beta] = Latin1String("beta");
-    ASSERT_TRUE(alpha == map.at(StringRef(&s_alpha2)));
+   String str;
+   str = Latin1String("ABCDEFGHIEfGEFG"); // 15 chars
+   
+   ASSERT_TRUE(StringRef(&str, 0, 0) == String(Latin1String("")));
+   
+   ASSERT_TRUE(StringRef(&str, 3, 3) == String(Latin1String("DEF")));
+   ASSERT_TRUE(StringRef(&str, 3, 3) == Latin1String("DEF"));
+   ASSERT_TRUE(String(Latin1String("DEF")) == StringRef(&str, 3, 3));
+   ASSERT_TRUE(Latin1String("DEF") == StringRef(&str, 3, 3));
+   
+   ASSERT_TRUE(StringRef(&str, 3, 3) != String(Latin1String("DE")));
+   ASSERT_TRUE(StringRef(&str, 3, 3) != Latin1String("DE"));
+   ASSERT_TRUE(String(Latin1String("DE")) != StringRef(&str, 3, 3));
+   ASSERT_TRUE(Latin1String("DE") != StringRef(&str, 3, 3));
+   
+   String s_alpha(Latin1String("alpha"));
+   String s_beta(Latin1String("beta"));
+   StringRef alpha(&s_alpha);
+   StringRef beta(&s_beta);
+   
+   ASSERT_TRUE(alpha < beta);
+   ASSERT_TRUE(alpha <= beta);
+   ASSERT_TRUE(alpha <= alpha);
+   ASSERT_TRUE(beta > alpha);
+   ASSERT_TRUE(beta >= alpha);
+   ASSERT_TRUE(beta >= beta);
+   
+   String s_alpha2(Latin1String("alpha"));
+   
+   std::map<StringRef, String> map;
+   map[alpha] = Latin1String("alpha");
+   map[beta] = Latin1String("beta");
+   ASSERT_TRUE(alpha == map.at(StringRef(&s_alpha2)));
 }
 
 TEST(StringTest, testLeftJustified)
 {
-    String str;
-    str = Latin1String("ABC");
-    ASSERT_EQ(str.leftJustified(5,'-'), Latin1String("ABC--"));
-    ASSERT_EQ(str.leftJustified(4,'-'), Latin1String("ABC-"));
-    ASSERT_EQ(str.leftJustified(4), Latin1String("ABC "));
-    ASSERT_EQ(str.leftJustified(3), Latin1String("ABC"));
-    ASSERT_EQ(str.leftJustified(2), Latin1String("ABC"));
-    ASSERT_EQ(str.leftJustified(1), Latin1String("ABC"));
-    ASSERT_EQ(str.leftJustified(0), Latin1String("ABC"));
-
-    String n;
-    ASSERT_TRUE(!n.leftJustified(3).isNull());
-    ASSERT_EQ(str.leftJustified(4,' ',true), Latin1String("ABC "));
-    ASSERT_EQ(str.leftJustified(3,' ',true), Latin1String("ABC"));
-    ASSERT_EQ(str.leftJustified(2,' ',true), Latin1String("AB"));
-    ASSERT_EQ(str.leftJustified(1,' ',true), Latin1String("A"));
-    ASSERT_EQ(str.leftJustified(0,' ',true), Latin1String(""));
+   String str;
+   str = Latin1String("ABC");
+   ASSERT_EQ(str.leftJustified(5,'-'), Latin1String("ABC--"));
+   ASSERT_EQ(str.leftJustified(4,'-'), Latin1String("ABC-"));
+   ASSERT_EQ(str.leftJustified(4), Latin1String("ABC "));
+   ASSERT_EQ(str.leftJustified(3), Latin1String("ABC"));
+   ASSERT_EQ(str.leftJustified(2), Latin1String("ABC"));
+   ASSERT_EQ(str.leftJustified(1), Latin1String("ABC"));
+   ASSERT_EQ(str.leftJustified(0), Latin1String("ABC"));
+   
+   String n;
+   ASSERT_TRUE(!n.leftJustified(3).isNull());
+   ASSERT_EQ(str.leftJustified(4,' ',true), Latin1String("ABC "));
+   ASSERT_EQ(str.leftJustified(3,' ',true), Latin1String("ABC"));
+   ASSERT_EQ(str.leftJustified(2,' ',true), Latin1String("AB"));
+   ASSERT_EQ(str.leftJustified(1,' ',true), Latin1String("A"));
+   ASSERT_EQ(str.leftJustified(0,' ',true), Latin1String(""));
 }
 
 TEST(StringTest, testRightJustified)
 {
-    String str;
-    str = Latin1String("ABC");
-    ASSERT_EQ(str.rightJustified(5,'-'), Latin1String("--ABC"));
-    ASSERT_EQ(str.rightJustified(4,'-'), Latin1String("-ABC"));
-    ASSERT_EQ(str.rightJustified(4), Latin1String(" ABC"));
-    ASSERT_EQ(str.rightJustified(3), Latin1String("ABC"));
-    ASSERT_EQ(str.rightJustified(2), Latin1String("ABC"));
-    ASSERT_EQ(str.rightJustified(1), Latin1String("ABC"));
-    ASSERT_EQ(str.rightJustified(0), Latin1String("ABC"));
+   String str;
+   str = Latin1String("ABC");
+   ASSERT_EQ(str.rightJustified(5,'-'), Latin1String("--ABC"));
+   ASSERT_EQ(str.rightJustified(4,'-'), Latin1String("-ABC"));
+   ASSERT_EQ(str.rightJustified(4), Latin1String(" ABC"));
+   ASSERT_EQ(str.rightJustified(3), Latin1String("ABC"));
+   ASSERT_EQ(str.rightJustified(2), Latin1String("ABC"));
+   ASSERT_EQ(str.rightJustified(1), Latin1String("ABC"));
+   ASSERT_EQ(str.rightJustified(0), Latin1String("ABC"));
+   
+   String n;
+   ASSERT_TRUE(!n.rightJustified(3).isNull());
+   ASSERT_EQ(str.rightJustified(4,'-',true), Latin1String("-ABC"));
+   ASSERT_EQ(str.rightJustified(4,' ',true), Latin1String(" ABC"));
+   ASSERT_EQ(str.rightJustified(3,' ',true), Latin1String("ABC"));
+   ASSERT_EQ(str.rightJustified(2,' ',true), Latin1String("AB"));
+   ASSERT_EQ(str.rightJustified(1,' ',true), Latin1String("A"));
+   ASSERT_EQ(str.rightJustified(0,' ',true), Latin1String(""));
+   ASSERT_EQ(str, Latin1String("ABC"));
+}
 
-    String n;
-    ASSERT_TRUE(!n.rightJustified(3).isNull());
-    ASSERT_EQ(str.rightJustified(4,'-',true), Latin1String("-ABC"));
-    ASSERT_EQ(str.rightJustified(4,' ',true), Latin1String(" ABC"));
-    ASSERT_EQ(str.rightJustified(3,' ',true), Latin1String("ABC"));
-    ASSERT_EQ(str.rightJustified(2,' ',true), Latin1String("AB"));
-    ASSERT_EQ(str.rightJustified(1,' ',true), Latin1String("A"));
-    ASSERT_EQ(str.rightJustified(0,' ',true), Latin1String(""));
-    ASSERT_EQ(str, Latin1String("ABC"));
+TEST(StringTest, testToUpper)
+{
+   ASSERT_EQ(String().toUpper(), String());
+   ASSERT_EQ(String(Latin1String("")).toUpper(), String(Latin1String("")));
+   String literal = StringLiteral("text").toUpper();
+   ASSERT_EQ(literal, String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("text")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("Text")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("tExt")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("teXt")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("texT")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("TExt")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("teXT")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("tEXt")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("tExT")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("TEXT")).toUpper(), String(Latin1String("TEXT")));
+   ASSERT_EQ(String(Latin1String("@ABYZ[")).toUpper(), String(Latin1String("@ABYZ[")));
+   ASSERT_EQ(String(Latin1String("@abyz[")).toUpper(), String(Latin1String("@ABYZ[")));
+   ASSERT_EQ(String(Latin1String("`ABYZ{")).toUpper(), String(Latin1String("`ABYZ{")));
+   ASSERT_EQ(String(Latin1String("`abyz{")).toUpper(), String(Latin1String("`ABYZ{")));
+   
+   ASSERT_EQ(String(1, Character(0xdf)).toUpper(), String(Latin1String("SS")));
+   
+   {
+      String s = String::fromUtf8("Gro\xc3\x9fstra\xc3\x9f""e");
+      // call lvalue-ref version, mustn't change the original
+      ASSERT_EQ(s.toUpper(), String(Latin1String("GROSSSTRASSE")));
+      ASSERT_EQ(s, String::fromUtf8("Gro\xc3\x9fstra\xc3\x9f""e"));
+      // call rvalue-ref while shared (the original mustn't change)
+      String copy = s;
+      ASSERT_EQ(std::move(copy).toUpper(), String(Latin1String("GROSSSTRASSE")));
+      ASSERT_EQ(s, String::fromUtf8("Gro\xc3\x9fstra\xc3\x9f""e"));
+      // call rvalue-ref version on detached case
+      copy.clear();
+      ASSERT_EQ(std::move(s).toUpper(), String(Latin1String("GROSSSTRASSE")));
+   }
+   
+   String lower, upper;
+   lower += Character(Character::getHighSurrogate(0x10428));
+   lower += Character(Character::getLowSurrogate(0x10428));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getLowSurrogate(0x10400));
+   ASSERT_EQ(lower.toUpper(), upper);
+   lower += lower;
+   upper += upper;
+   ASSERT_EQ(lower.toUpper(), upper);
+   
+   // test for broken surrogate pair handling (low low hi low hi low)
+   lower.prepend(Character(Character::getLowSurrogate(0x10428)));
+   lower.prepend(Character(Character::getLowSurrogate(0x10428)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10428)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10428)));
+   ASSERT_EQ(lower.toUpper(), upper);
+   // test for broken surrogate pair handling (low low hi low hi low hi hi)
+   lower += Character(Character::getHighSurrogate(0x10428));
+   lower += Character(Character::getHighSurrogate(0x10428));
+   upper += Character(Character::getHighSurrogate(0x10428));
+   upper += Character(Character::getHighSurrogate(0x10428));
+   ASSERT_EQ(lower.toUpper(), upper);
+   
+   for (int i = 0; i < 65536; ++i) {
+      String str(1, Character(i));
+      String upper = str.toUpper();
+      ASSERT_TRUE(upper.length() >= 1);
+      if (upper.length() == 1) {
+         ASSERT_TRUE(upper == String(1, Character(i).toUpper()));
+      }
+   }
+}
+
+
+TEST(StringTest, testToLower)
+{
+   ASSERT_EQ(String().toLower(), String());
+   ASSERT_EQ(String(Latin1String("")).toLower(), String(Latin1String("""")));
+   ASSERT_EQ(String(Latin1String("text")).toLower(), String(Latin1String("text")));
+   String literal = StringLiteral("Text").toLower();
+   ASSERT_EQ(literal, String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("Text")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tExt")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("teXt")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("texT")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("TExt")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("teXT")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tEXt")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tExT")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("TEXT")).toLower(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("@ABYZ[")).toLower(), String(Latin1String("@abyz[")));
+   ASSERT_EQ(String(Latin1String("@abyz[")).toLower(), String(Latin1String("@abyz[")));
+   ASSERT_EQ(String(Latin1String("`ABYZ{")).toLower(), String(Latin1String("`abyz{")));
+   ASSERT_EQ(String(Latin1String("`abyz{")).toLower(), String(Latin1String("`abyz{")));
+   
+   ASSERT_EQ(String(1, Character(0x130)).toLower(), String(String(1, Character(0x69)) + Character(0x307)));
+   
+   String lower, upper;
+   lower += Character(Character::getHighSurrogate(0x10428));
+   lower += Character(Character::getLowSurrogate(0x10428));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getLowSurrogate(0x10400));
+   ASSERT_EQ(upper.toLower(), lower);
+   lower += lower;
+   upper += upper;
+   ASSERT_EQ(upper.toLower(), lower);
+   
+   // test for broken surrogate pair handling (low low hi low hi low)
+   lower.prepend(Character(Character::getLowSurrogate(0x10400)));
+   lower.prepend(Character(Character::getLowSurrogate(0x10400)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10400)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10400)));
+   ASSERT_EQ(upper.toLower(), lower);
+   // test for broken surrogate pair handling (low low hi low hi low hi hi)
+   lower += Character(Character::getHighSurrogate(0x10400));
+   lower += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   ASSERT_EQ(upper.toLower(), lower);
+   
+   for (int i = 0; i < 65536; ++i) {
+      String str(1, Character(i));
+      String lower = str.toLower();
+      ASSERT_TRUE(lower.length() >= 1);
+      if (lower.length() == 1) {
+         ASSERT_TRUE(str.toLower() == String(1, Character(i).toLower()));
+      }
+   }
+}
+
+TEST(StringTest, testToCaseFolded)
+{
+   ASSERT_EQ(String().toCaseFolded(), String());
+   ASSERT_EQ(String(Latin1String("")).toCaseFolded(), String(Latin1String("")));
+   ASSERT_EQ(String(Latin1String("text")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("Text")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tExt")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("teXt")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("texT")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("TExt")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("teXT")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tEXt")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("tExT")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("TEXT")).toCaseFolded(), String(Latin1String("text")));
+   ASSERT_EQ(String(Latin1String("@ABYZ[")).toCaseFolded(), String(Latin1String("@abyz[")));
+   ASSERT_EQ(String(Latin1String("@abyz[")).toCaseFolded(), String(Latin1String("@abyz[")));
+   ASSERT_EQ(String(Latin1String("`ABYZ{")).toCaseFolded(), String(Latin1String("`abyz{")));
+   ASSERT_EQ(String(Latin1String("`abyz{")).toCaseFolded(), String(Latin1String("`abyz{")));
+   
+   ASSERT_EQ(String(1, Character(0xa77d)).toCaseFolded(), String(1, Character(0x1d79)));
+   ASSERT_EQ(String(1, Character(0xa78d)).toCaseFolded(), String(1, Character(0x0265)));
+   
+   String lower, upper;
+   upper += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getLowSurrogate(0x10400));
+   lower += Character(Character::getHighSurrogate(0x10428));
+   lower += Character(Character::getLowSurrogate(0x10428));
+   ASSERT_EQ(upper.toCaseFolded(), lower);
+   lower += lower;
+   upper += upper;
+   ASSERT_EQ(upper.toCaseFolded(), lower);
+   
+   // test for broken surrogate pair handling (low low hi low hi low)
+   lower.prepend(Character(Character::getLowSurrogate(0x10400)));
+   lower.prepend(Character(Character::getLowSurrogate(0x10400)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10400)));
+   upper.prepend(Character(Character::getLowSurrogate(0x10400)));
+   ASSERT_EQ(upper.toCaseFolded(), lower);
+   // test for broken surrogate pair handling (low low hi low hi low hi hi)
+   lower += Character(Character::getHighSurrogate(0x10400));
+   lower += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   upper += Character(Character::getHighSurrogate(0x10400));
+   ASSERT_EQ(upper.toCaseFolded(), lower);
+   
+   //### we currently don't support full case foldings
+   for (int i = 0; i < 65536; ++i) {
+      String str(1, Character(i));
+      String lower = str.toCaseFolded();
+      ASSERT_TRUE(lower.length() >= 1);
+      if (lower.length() == 1) {
+         ASSERT_TRUE(str.toCaseFolded() == String(1, Character(i).toCaseFolded()));
+      }
+   }
 }
