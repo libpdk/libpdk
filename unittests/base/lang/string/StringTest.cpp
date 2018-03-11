@@ -129,7 +129,7 @@ public:
    template <typename MemFun, typename ArgType>
    void apply1(String &str, MemFun mf, ArgType arg) const
    {
-      return (str.*mf)(arg, this->m_pinned);
+      (str.*mf)(arg, this->m_pinned);
    }
 };
 
@@ -149,7 +149,7 @@ public:
    }
    
    template <typename MemFun, typename ArgType>
-   void apply1(String &str, MemFun mf, Arg arg) const
+   void apply1(String &str, MemFun mf, ArgType arg) const
    {
       (str.*mf)(arg, ref());
    }
@@ -173,8 +173,8 @@ public:
       (str.*mf)(this->m_pinned.getConstRawData(), this->m_pinned.length());
    }
    
-   template <typename MemFun, typename Arg>
-   void apply1(String &str, MemFun mf, Arg arg) const
+   template <typename MemFun, typename ArgType>
+   void apply1(String &str, MemFun mf, ArgType arg) const
    {
       (str.*mf)(arg, this->m_pinned.getConstRawData(), this->m_pinned.length());
    }
@@ -194,8 +194,8 @@ public:
       (str.*mf)(m_str);
    }
    
-   template <typename MemFun, typename Arg>
-   void apply1(String &str, MemFun mf, Arg arg) const
+   template <typename MemFun, typename ArgType>
+   void apply1(String &str, MemFun mf, ArgType arg) const
    {
       (str.*mf)(arg, m_str);
    }
@@ -226,8 +226,8 @@ public:
       }
    }
    
-   template <typename MemFun, typename Arg>
-   void apply1(String &str, MemFun mf, Arg arg)
+   template <typename MemFun, typename ArgType>
+   void apply1(String &str, MemFun mf, ArgType arg)
    {
       if (m_str) {
          for (const char *it = m_str; *it; ++it) {
@@ -1974,4 +1974,240 @@ TEST(StringTest, testToCaseFolded)
          ASSERT_TRUE(str.toCaseFolded() == String(1, Character(i).toCaseFolded()));
       }
    }
+}
+
+
+TEST(StringTest, testTrimmed)
+{
+   String str;
+   str = Latin1String("Text");
+   ASSERT_EQ(str, Latin1String("Text"));
+   ASSERT_EQ(str.trimmed(), Latin1String("Text"));
+   ASSERT_EQ(str, Latin1String("Text"));
+   str = Latin1String(" ");
+   ASSERT_EQ(str.trimmed(), Latin1String(""));
+   ASSERT_EQ(str, Latin1String(" "));
+   str = Latin1String(" a   ");
+   ASSERT_EQ(str.trimmed(), Latin1String("a"));
+   
+   str = Latin1String("Text");
+   ASSERT_EQ(std::move(str).trimmed(), Latin1String("Text"));
+   str = Latin1String(" ");
+   ASSERT_EQ(std::move(str).trimmed(), Latin1String(""));
+   str = Latin1String(" a   ");
+   ASSERT_EQ(std::move(str).trimmed(), Latin1String("a"));
+}
+
+namespace {
+
+void simplified_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(String(), String()));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String(""))));
+   data.push_back(std::make_tuple(String(Latin1String("a")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("foo")), String(Latin1String("foo"))));
+   data.push_back(std::make_tuple(String(Latin1String("a b")), String(Latin1String("a b"))));
+   data.push_back(std::make_tuple(String(Latin1String("foo bar")), String(Latin1String("foo bar"))));
+   data.push_back(std::make_tuple(String(Latin1String("  \t\v ")), String(Latin1String(""))));
+   data.push_back(std::make_tuple(String(Latin1String("a ")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("a\t")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("a    ")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("a    \t")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String(" a")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("\ta")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("    a")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("\t    a")), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(String(Latin1String("a    b")), String(Latin1String("a b"))));
+   data.push_back(std::make_tuple(String(Latin1String("foo  bar")), String(Latin1String("foo bar"))));
+   data.push_back(std::make_tuple(String(Latin1String("  foo  \t")), String(Latin1String("foo"))));
+   data.push_back(std::make_tuple(String(Latin1String(" a    b ")), String(Latin1String("a b"))));
+   data.push_back(std::make_tuple(String(Latin1String(" foo    bar ")), String(Latin1String("foo bar"))));
+   data.push_back(std::make_tuple(String(Latin1String("a\t b")), String(Latin1String("a b"))));
+   data.push_back(std::make_tuple(String(Latin1String("a \tb")), String(Latin1String("a b"))));
+   data.push_back(std::make_tuple(String(Latin1String("  just some    random	text here")), String(Latin1String("just some random text here"))));
+   data.push_back(std::make_tuple(String(Latin1String("a\nb\nc")), String(Latin1String("a b c"))));
+   data.push_back(std::make_tuple(String(Latin1String("a\nb\nc\n")), String(Latin1String("a b c"))));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testSimplified)
+{
+   using DataType = std::list<std::tuple<String, String>>;
+   DataType data;
+   simplified_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String full = std::get<0>(item);
+      String simple = std::get<1>(item);
+      String origfull = full;
+      origfull.getRawData();
+      String result = full.simplified();
+      if (simple.isNull()) {
+         ASSERT_TRUE(result.isNull()) << pdk_printable(Latin1String("'") + full + Latin1String("' did not yield null: ") + result);
+      } else if (simple.isEmpty()) {
+         ASSERT_TRUE(result.isEmpty() && !result.isNull()) << pdk_printable(Latin1String("'") + full + Latin1String("' did not yield empty: ") + result);
+      } else {
+         ASSERT_EQ(result, simple);
+      }
+      ASSERT_EQ(full, origfull);
+      // without detaching:
+      String copy1 = full;
+      ASSERT_EQ(std::move(full).simplified(), simple);
+      ASSERT_EQ(full, origfull);
+      
+      // force a detach
+      if (!full.isEmpty()) {
+         full[0] = full[0];
+      }
+      ASSERT_EQ(std::move(full).simplified(), simple);
+      ++iter;
+   }
+}
+
+class CharStarContainer
+{
+   const char *m_str;
+public:
+   explicit constexpr CharStarContainer(const char *s = nullptr) 
+      : m_str(s)
+   {}
+   
+   constexpr operator const char *() const
+   {
+      return m_str; 
+   }
+};
+
+namespace {
+
+void insert_data(bool emptyIsNoop, std::list<std::tuple<String, CharStarContainer, int, String>> &data)
+{
+   const CharStarContainer nullC;
+   const CharStarContainer emptyC("");
+   const CharStarContainer aC("a");
+   const CharStarContainer bC("b");
+   //const CharStarContainer abC("ab");
+   const CharStarContainer baC("ba");
+   
+   const String null;
+   const String empty(Latin1String(""));
+   const String a(Latin1String("a"));
+   const String b(Latin1String("b"));
+   const String ab(Latin1String("ab"));
+   const String ba(Latin1String("ba"));
+   data.push_back(std::make_tuple(null, nullC, 0, null));
+}
+
+template <typename ArgType, typename A1, typename MemFun, typename DataType>
+void do_apply1(MemFun mf, DataType data)
+{
+   typename DataType::iterator iter = data.begin();
+   typename DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String s = std::get<0>(item);
+      CharStarContainer arg = std::get<1>(item);
+      int a1 = std::get<2>(item);
+      String expected = std::get<3>(item);
+      Arg<ArgType>(arg).apply1(s, mf, a1);
+      ASSERT_EQ(s, expected);
+      ASSERT_EQ(s.isEmpty(), expected.isEmpty());
+      ASSERT_EQ(s.isNull(), expected.isNull());
+      ++iter;
+   }
+}
+
+template <typename ArgType, typename MemFun, typename DataType>
+void insert_impl(DataType &data)
+{
+   do_apply1<ArgType, int>(MemFun(&String::insert), data);
+}
+
+template <typename ArgType, typename DataType>
+void insert_impl(DataType &data)
+{
+   insert_impl<ArgType, String &(String::*)(int, const ArgType&)>(data);
+}
+} // anonymous namespace
+
+TEST(StringTest, testInsertString)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<String>(data);
+}
+
+TEST(StringTest, testInsertStringRef)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<StringRef>(data);
+}
+
+TEST(StringTest, testInsertLatin1String)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<Latin1String, String &(String::*)(int, Latin1String)>(data);
+}
+
+TEST(StringTest, testInsertCharacterInt)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<std::pair<const Character *, int>, String &(String::*)(int, const Character*, int) >(data);
+}
+
+TEST(StringTest, testInsertCharacter)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<Reversed<Character>, String &(String::*)(int, Character)>(data);
+}
+
+TEST(StringTest, testInsertChar)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, int, String>>;
+   DataType data;
+   insert_data(true, data);
+   insert_impl<Reversed<char>, String &(String::*)(int, Character)>(data);
+}
+
+TEST(StringTest, testInsertSpecialCase)
+{
+   String str;
+   str = Latin1String("Ys");
+   ASSERT_EQ(str.insert(1,'e'), String(Latin1String("Yes")));
+   ASSERT_EQ(str.insert(3,'!'), String(Latin1String("Yes!")));
+   ASSERT_EQ(str.insert(5,'?'), String(Latin1String("Yes! ?")));
+   
+   str = Latin1String("ABC");
+   ASSERT_EQ(str.insert(5, Latin1String("DEF")), String(Latin1String("ABC  DEF")));
+   
+   str = Latin1String("ABC");
+   ASSERT_EQ(str.insert(2, String()), String(Latin1String("ABC")));
+   ASSERT_EQ(str.insert(0, Latin1String("ABC")), String(Latin1String("ABCABC")));
+   ASSERT_EQ(str, String(Latin1String("ABCABC")));
+   ASSERT_EQ(str.insert(0, str), String(Latin1String("ABCABCABCABC")));
+   
+   ASSERT_EQ(str, String(Latin1String("ABCABCABCABC")));
+   ASSERT_EQ(str.insert(0,'<'), String(Latin1String("<ABCABCABCABC")));
+   ASSERT_EQ(str.insert(1,'>'), String(Latin1String("<>ABCABCABCABC")));
+   
+   str = Latin1String("Meal");
+   const String montreal = StringLiteral("Montreal");
+   ASSERT_EQ(str.insert(1, Latin1String("ontr")), montreal);
+   ASSERT_EQ(str.insert(4, Latin1String("")), montreal);
+   ASSERT_EQ(str.insert(3, Latin1String("")), montreal);
+   ASSERT_EQ(str.insert(3, Latin1String(0)), montreal);
+   ASSERT_EQ(str.insert(3, Latin1String(static_cast<const char *>(0))), montreal);
+   ASSERT_EQ(str.insert(0, Latin1String("a")), Latin1String("aMontreal"));
 }

@@ -1175,6 +1175,7 @@ inline const Character *String::unicode() const
 
 inline Character *String::getRawData()
 {
+   detach();
    return reinterpret_cast<Character *>(m_data->getData());
 }
 
