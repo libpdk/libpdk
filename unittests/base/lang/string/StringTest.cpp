@@ -123,7 +123,7 @@ public:
    template <typename MemFun>
    void apply0(String &str, MemFun mf) const
    {
-      return (str.*mf)(this->m_pinned);
+      (str.*mf)(this->m_pinned);
    }
    
    template <typename MemFun, typename ArgType>
@@ -2099,13 +2099,28 @@ void insert_data(bool emptyIsNoop, std::list<std::tuple<String, CharStarContaine
    const String ab(Latin1String("ab"));
    const String ba(Latin1String("ba"));
    data.push_back(std::make_tuple(null, nullC, 0, null));
+   data.push_back(std::make_tuple(null, emptyC, 0,  (emptyIsNoop ? null : empty)));
+   data.push_back(std::make_tuple(null, aC, 0, a));
+   data.push_back(std::make_tuple(empty, nullC, 0, empty));
+   data.push_back(std::make_tuple(empty, emptyC, 0, empty));
+   data.push_back(std::make_tuple(empty, aC, 0, a));
+   data.push_back(std::make_tuple(a, nullC, 0, a));
+   data.push_back(std::make_tuple(a, emptyC, 0, a));
+   data.push_back(std::make_tuple(a, bC, 0, ba));
+   data.push_back(std::make_tuple(a, baC, 0, ba + a));
+   data.push_back(std::make_tuple(a, nullC, 1, a));
+   data.push_back(std::make_tuple(a, emptyC, 1, a));
+   data.push_back(std::make_tuple(a, bC, 1, ab));
+   data.push_back(std::make_tuple(a, baC, 1, a + ba));
+   data.push_back(std::make_tuple(ba, aC, 1, ba + a));
+   data.push_back(std::make_tuple(ba, bC, 2, ba + b));
 }
 
 template <typename ArgType, typename A1, typename MemFun, typename DataType>
-void do_apply1(MemFun mf, DataType data)
+void do_apply1(MemFun mf, const DataType &data)
 {
-   typename DataType::iterator iter = data.begin();
-   typename DataType::iterator endMark = data.end();
+   typename DataType::const_iterator iter = data.begin();
+   typename DataType::const_iterator endMark = data.end();
    while (iter != endMark) {
       auto item = *iter;
       String s = std::get<0>(item);
@@ -2121,13 +2136,13 @@ void do_apply1(MemFun mf, DataType data)
 }
 
 template <typename ArgType, typename MemFun, typename DataType>
-void insert_impl(DataType &data)
+void insert_impl(const DataType &data)
 {
    do_apply1<ArgType, int>(MemFun(&String::insert), data);
 }
 
 template <typename ArgType, typename DataType>
-void insert_impl(DataType &data)
+void insert_impl(const DataType &data)
 {
    insert_impl<ArgType, String &(String::*)(int, const ArgType&)>(data);
 }
@@ -2211,3 +2226,131 @@ TEST(StringTest, testInsertSpecialCase)
    ASSERT_EQ(str.insert(3, Latin1String(static_cast<const char *>(0))), montreal);
    ASSERT_EQ(str.insert(0, Latin1String("a")), Latin1String("aMontreal"));
 }
+
+namespace {
+
+void append_data(std::list<std::tuple<String, CharStarContainer, String>> &data, bool emptyIsNoop = false)
+{
+   const CharStarContainer nullC;
+   const CharStarContainer emptyC("");
+   const CharStarContainer aC("a");
+   const CharStarContainer bC("b");
+   //const CharStarContainer abC("ab");
+   
+   const String null;
+   const String empty(Latin1String(""));
+   const String a(Latin1String("a"));
+   //const String b("b");
+   const String ab(Latin1String("ab"));
+   
+   data.push_back(std::make_tuple(null, nullC, null));
+   data.push_back(std::make_tuple(null, emptyC, (emptyIsNoop ? null : empty)));
+   data.push_back(std::make_tuple(null, aC, a));
+   data.push_back(std::make_tuple(empty, nullC, empty));
+   data.push_back(std::make_tuple(empty, emptyC, empty));
+   data.push_back(std::make_tuple(empty, aC, a));
+   data.push_back(std::make_tuple(a, nullC, a));
+   data.push_back(std::make_tuple(a, emptyC, a));
+   data.push_back(std::make_tuple(a, bC, ab));
+}
+
+template <typename ArgType, typename MemFun, typename DataType>
+void do_apply0(MemFun mf, const DataType &data)
+{
+   typename DataType::const_iterator iter = data.begin();
+   typename DataType::const_iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String s = std::get<0>(item);
+      CharStarContainer arg = std::get<1>(item);
+      String expected = std::get<2>(item);
+      Arg<ArgType>(arg).apply0(s, mf);
+      ASSERT_EQ(s, expected);
+      ASSERT_EQ(s.isEmpty(), expected.isEmpty());
+      ASSERT_EQ(s.isNull(), expected.isNull());
+      ++iter;
+   }
+}
+
+template <typename ArgType, typename MemFun, typename DataType>
+void append_impl(const DataType &data)
+{
+   do_apply0<ArgType>(MemFun(&String::append), data);
+}
+
+template <typename ArgType, typename DataType>
+void append_impl(const DataType &data)
+{
+   append_impl<ArgType, String &(String::*)(const ArgType&)>(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testAppendString)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   append_impl<String>(data);
+}
+
+TEST(StringTest, testAppendStringRef)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   append_impl<StringRef>(data);
+}
+
+TEST(StringTest, testAppendLatin1String)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   append_impl<Latin1String, String &(String::*)(Latin1String)>(data);
+}
+
+TEST(StringTest, testAppendCharInt)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, true);
+   append_impl<std::pair<const Character *, int>, String& (String::*)(const Character *, int)>(data);
+}
+
+TEST(StringTest, testAppendCharacter)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, true);
+   append_impl<Character, String &(String::*)(Character)>(data);
+}
+
+TEST(StringTest, testAppendChar)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, true);
+   append_impl<char, String &(String::*)(Character)>(data);
+}
+
+TEST(StrinTest, testAppendSpecialCases)
+{
+   String str;
+   static const Character unicode[] = { 'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!' };
+   str.append(unicode, sizeof unicode / sizeof *unicode);
+   ASSERT_EQ(str, Latin1String("Hello, World!"));
+   static const Character nl('\n');
+   str.append(&nl, 1);
+   ASSERT_EQ(str, Latin1String("Hello, World!\n"));
+   str.append(unicode, sizeof unicode / sizeof *unicode);
+   ASSERT_EQ(str, Latin1String("Hello, World!\nHello, World!"));
+   str.append(unicode, 0); // no-op
+   ASSERT_EQ(str, Latin1String("Hello, World!\nHello, World!"));
+   str.append(unicode, -1); // no-op
+   ASSERT_EQ(str, Latin1String("Hello, World!\nHello, World!"));
+   str.append(0, 1); // no-op
+   ASSERT_EQ(str, Latin1String("Hello, World!\nHello, World!"));
+}
+
+
