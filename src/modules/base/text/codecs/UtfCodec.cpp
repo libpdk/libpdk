@@ -51,7 +51,7 @@ static PDK_ALWAYS_INLINE uint bit_scan_reverse(unsigned v) noexcept
 #endif
 
 #if defined(__SSE2__) && defined(PDK_COMPILER_SUPPORTS_SSE2)
-static inline bool simd_encode_ascii(uchar *&dst, const ushort *&nextAscii, const ushort *&src, const ushort *end)
+static inline bool simd_encode_ascii(uchar *&dst, const char16_t *&nextAscii, const char16_t *&src, const char16_t *end)
 {
    // do sixteen characters at a time
    for ( ; end - src >= 16; src += 16, dst += 16) {
@@ -74,7 +74,7 @@ static inline bool simd_encode_ascii(uchar *&dst, const ushort *&nextAscii, cons
       _mm_storeu_si128((__m128i*)dst, packed);
       
       // n will contain 1 bit set per character in [data1, data2] that is non-ASCII (or NUL)
-      ushort n = ~_mm_movemask_epi8(nonAscii);
+      char16_t n = ~_mm_movemask_epi8(nonAscii);
       if (n) {
          // find the next probable ASCII character
          // we don't want to load 32 bytes again in this loop if we know there are non-ASCII
@@ -90,7 +90,7 @@ static inline bool simd_encode_ascii(uchar *&dst, const ushort *&nextAscii, cons
    return src == end;
 }
 
-static inline bool simd_decode_ascii(ushort *&dst, const uchar *&nextAscii, const uchar *&src, const uchar *end)
+static inline bool simd_decode_ascii(char16_t *&dst, const uchar *&nextAscii, const uchar *&src, const uchar *end)
 {
    // do sixteen characters at a time
    for ( ; end - src >= 16; src += 16, dst += 16) {
@@ -138,12 +138,12 @@ static inline bool simd_decode_ascii(ushort *&dst, const uchar *&nextAscii, cons
    return src == end;
 }
 #else
-static inline bool simd_encode_ascii(uchar *, const ushort *, const ushort *, const ushort *)
+static inline bool simd_encode_ascii(uchar *, const char16_t *, const char16_t *, const char16_t *)
 {
    return false;
 }
 
-static inline bool simd_decode_ascii(ushort *, const uchar *, const uchar *, const uchar *)
+static inline bool simd_decode_ascii(char16_t *, const uchar *, const uchar *, const uchar *)
 {
    return false;
 }
@@ -154,16 +154,16 @@ ByteArray Utf8::convertFromUnicode(const Character *uc, int len)
    // create a ByteArray with the worst case scenario size
    ByteArray result(len * 3, pdk::Uninitialized);
    uchar *dst = reinterpret_cast<uchar *>(const_cast<char *>(result.getConstRawData()));
-   const ushort *src = reinterpret_cast<const ushort *>(uc);
-   const ushort *const end = src + len;
+   const char16_t *src = reinterpret_cast<const char16_t *>(uc);
+   const char16_t *const end = src + len;
    
    while (src != end) {
-      const ushort *nextAscii = end;
+      const char16_t *nextAscii = end;
       if (simd_encode_ascii(dst, nextAscii, src, end))
          break;
       
       do {
-         ushort uc = *src++;
+         char16_t uc = *src++;
          int res = Utf8Functions::toUtf8<Utf8BaseTraits>(uc, dst, src, end);
          if (res < 0) {
             // encoding error - append '?'
@@ -193,8 +193,8 @@ ByteArray Utf8::convertFromUnicode(const Character *uc, int len, TextCodec::Conv
    
    ByteArray rstr(rlen, pdk::Uninitialized);
    uchar *cursor = reinterpret_cast<uchar *>(const_cast<char *>(rstr.getConstRawData()));
-   const ushort *src = reinterpret_cast<const ushort *>(uc);
-   const ushort *const end = src + len;
+   const char16_t *src = reinterpret_cast<const char16_t *>(uc);
+   const char16_t *const end = src + len;
    
    int invalid = 0;
    if (state && !(state->m_flags & TextCodec::ConversionFlag::IgnoreHeader)) {
@@ -204,10 +204,10 @@ ByteArray Utf8::convertFromUnicode(const Character *uc, int len, TextCodec::Conv
       *cursor++ = utf8bom[2];
    }
    
-   const ushort *nextAscii = src;
+   const char16_t *nextAscii = src;
    while (src != end) {
       int res;
-      ushort uc;
+      char16_t uc;
       if (surrogate_high != -1) {
          uc = surrogate_high;
          surrogate_high = -1;
@@ -282,7 +282,7 @@ String Utf8::convertToUnicode(const char *chars, int len)
 
 Character *Utf8::convertToUnicode(Character *buffer, const char *chars, int len) noexcept
 {
-   ushort *dst = reinterpret_cast<ushort *>(buffer);
+   char16_t *dst = reinterpret_cast<char16_t *>(buffer);
    const uchar *src = reinterpret_cast<const uchar *>(chars);
    const uchar *end = src + len;
    
@@ -299,9 +299,9 @@ Character *Utf8::convertToUnicode(Character *buffer, const char *chars, int len)
       
       while (src < end) {
          nextAscii = end;
-         if (simd_decode_ascii(dst, nextAscii, src, end))
+         if (simd_decode_ascii(dst, nextAscii, src, end)) {
             break;
-         
+         }
          do {
             uchar b = *src++;
             int res = Utf8Functions::fromUtf8<Utf8BaseTraits>(b, dst, src, end);
@@ -319,7 +319,7 @@ Character *Utf8::convertToUnicode(Character *buffer, const char *chars, int len)
 String Utf8::convertToUnicode(const char *chars, int len, TextCodec::ConverterState *state)
 {
    bool headerdone = false;
-   ushort replacement = Character::ReplacementCharacter;
+   char16_t replacement = Character::ReplacementCharacter;
    int invalid = 0;
    int res;
    uchar ch = 0;
@@ -336,7 +336,7 @@ String Utf8::convertToUnicode(const char *chars, int len, TextCodec::ConverterSt
    //   3 of 4 bytes       same                        +1 (same)
    String result(len + 1, pdk::Uninitialized);
    
-   ushort *dst = reinterpret_cast<ushort *>(const_cast<Character *>(result.getConstRawData()));
+   char16_t *dst = reinterpret_cast<char16_t *>(const_cast<Character *>(result.getConstRawData()));
    const uchar *src = reinterpret_cast<const uchar *>(chars);
    const uchar *end = src + len;
    
@@ -416,7 +416,7 @@ String Utf8::convertToUnicode(const char *chars, int len, TextCodec::ConverterSt
          *dst++ = Character::ReplacementCharacter;
    }
    
-   result.truncate(dst - (const ushort *)result.unicode());
+   result.truncate(dst - (const char16_t *)result.unicode());
    if (state) {
       state->m_invalidChars += invalid;
       if (headerdone)

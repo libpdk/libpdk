@@ -3507,3 +3507,264 @@ TEST(StringTest, testEndsWidth)
    // this one is dependent of encoding
    ASSERT_TRUE(str.endsWith(String::fromLocal8Bit("\xc3\x89"), pdk::CaseSensitivity::Insensitive));
 }
+
+TEST(StringTest, testFromRawData)
+{
+   const Character ptr[] = { 0x1234, 0x0000 };
+   String cstr = String::fromRawData(ptr, 1);
+   ASSERT_TRUE(cstr.isDetached());
+   ASSERT_TRUE(cstr.getConstRawData() == ptr);
+   ASSERT_TRUE(cstr == String(ptr, 1));
+   cstr.squeeze();
+   ASSERT_TRUE(cstr.getConstRawData() == ptr);
+   cstr.detach();
+   ASSERT_TRUE(cstr.size() == 1);
+   ASSERT_TRUE(cstr.capacity() == 1);
+   ASSERT_TRUE(cstr.getConstRawData() != ptr);
+   ASSERT_TRUE(cstr.getConstRawData()[0] == Character(0x1234));
+   ASSERT_TRUE(cstr.getConstRawData()[1] == Character(0x0000));
+}
+
+TEST(StringTest, testSetRawData)
+{
+   const Character ptr[] = { 0x1234, 0x0000 };
+   const Character ptr2[] = { 0x4321, 0x0000 };
+   String cstr;
+   
+   // This just tests the fromRawData() fallback
+   ASSERT_TRUE(!cstr.isDetached());
+   cstr.setRawData(ptr, 1);
+   ASSERT_TRUE(cstr.isDetached());
+   ASSERT_TRUE(cstr.getConstRawData() == ptr);
+   ASSERT_TRUE(cstr == String(ptr, 1));
+   
+   // This actually tests the recycling of the shared data object
+   String::DataPtr csd = cstr.getDataPtr();
+   cstr.setRawData(ptr2, 1);
+   ASSERT_TRUE(cstr.isDetached());
+   ASSERT_TRUE(cstr.getConstRawData() == ptr2);
+   ASSERT_TRUE(cstr == String(ptr2, 1));
+   ASSERT_TRUE(cstr.getDataPtr() == csd);
+   
+   // This tests the discarding of the shared data object
+   cstr = Latin1String("foo");
+   ASSERT_TRUE(cstr.isDetached());
+   ASSERT_TRUE(cstr.getConstRawData() != ptr2);
+   
+   // Another test of the fallback
+   csd = cstr.getDataPtr();
+   cstr.setRawData(ptr2, 1);
+   ASSERT_TRUE(cstr.isDetached());
+   ASSERT_TRUE(cstr.getConstRawData() == ptr2);
+   ASSERT_TRUE(cstr == String(ptr2, 1));
+   ASSERT_TRUE(cstr.getDataPtr() != csd);
+}
+
+#ifndef Q_CC_HPACC
+// This test crashes on HP-UX with aCC (not supported)
+TEST(StringTest, testFromStdString)
+{
+   std::string stroustrup = "foo";
+   String eng = String::fromStdString(stroustrup);
+   ASSERT_EQ(eng, String(Latin1String("foo")));
+   const char cnull[] = "Embedded\0null\0character!";
+   std::string stdnull( cnull, sizeof(cnull)-1 );
+   String null = String::fromStdString(stdnull);
+   ASSERT_EQ(null.size(), int(stdnull.size()));
+}
+#endif
+
+#ifndef Q_CC_HPACC
+// This test crashes on HP-UX with aCC (not supported)
+TEST(StringTest, testToStdString)
+{
+   String nord = Latin1String("foo");
+   std::string stroustrup1 = nord.toStdString();
+   ASSERT_TRUE(pdk::strcmp(stroustrup1.c_str(), "foo") == 0);
+   // For now, most String constructors are also broken with respect
+   // to embedded null characters, had to find one that works...
+   const Character cnull[] = {
+      'E', 'm', 'b', 'e', 'd', 'd', 'e', 'd', '\0',
+      'n', 'u', 'l', 'l', '\0',
+      'c', 'h', 'a', 'r', 'a', 'c', 't', 'e', 'r', '!'
+   };
+   String null(cnull, sizeof(cnull)/sizeof(Character) );
+   std::string stdnull = null.toStdString();
+   ASSERT_EQ(int(stdnull.size()), null.size());
+}
+#endif
+
+namespace {
+
+void utf8_data(std::list<std::tuple<ByteArray, String>> &data)
+{
+   String str;
+   data.push_back(std::make_tuple(ByteArray("abcdefgh"), String(Latin1String("abcdefgh"))));
+   data.push_back(std::make_tuple(ByteArray("\303\266\303\244\303\274\303\226\303\204\303\234\303\270\303\246\303\245\303\230\303\206\303\205"), 
+                                  String::fromLatin1("\366\344\374\326\304\334\370\346\345\330\306\305")));
+   str += Character(0x05e9);
+   str += Character(0x05d3);
+   str += Character(0x05d2);
+   data.push_back(std::make_tuple(ByteArray("\327\251\327\223\327\222"), str));
+   
+   str = Character( 0x20ac );
+   str += Latin1String(" some text");
+   data.push_back(std::make_tuple(ByteArray("\342\202\254 some text"), str));
+   str = Latin1String("Old Italic: ");
+   str += Character(0xd800);
+   str += Character(0xdf00);
+   str += Character(0xd800);
+   str += Character(0xdf01);
+   str += Character(0xd800);
+   str += Character(0xdf02);
+   str += Character(0xd800);
+   str += Character(0xdf03);
+   str += Character(0xd800);
+   str += Character(0xdf04);
+   data.push_back(std::make_tuple(ByteArray("Old Italic: \360\220\214\200\360\220\214\201\360\220\214\202\360\220\214\203\360\220\214\204"), str));
+}
+
+void stringref_utf8_data(std::list<std::tuple<ByteArray, String>> &data)
+{
+   utf8_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testUtf8)
+{
+   using DataType = std::list<std::tuple<ByteArray, String>>;
+   DataType data;
+   utf8_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      ByteArray utf8 = std::get<0>(item);
+      String res = std::get<1>(item);
+      ASSERT_EQ(res.toUtf8(), utf8);
+      ++iter;  
+   }
+}
+
+TEST(StringTest, testStringRefUtf8)
+{
+   using DataType = std::list<std::tuple<ByteArray, String>>;
+   DataType data;
+   stringref_utf8_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      ByteArray utf8 = std::get<0>(item);
+      String res = std::get<1>(item);
+      StringRef ref(&res, 0, res.length());
+      ASSERT_EQ(ByteArray(ref.toUtf8()), utf8);
+      ++iter;  
+   }
+}
+
+namespace {
+
+void from_utf8_data(std::list<std::tuple<ByteArray, String, int>> &data)
+{ 
+   data.push_back(std::make_tuple(ByteArray("abcdefgh"), String(Latin1String("abcdefgh")), -1));
+   data.push_back(std::make_tuple(ByteArray("abcdefgh"), String(Latin1String("abc")), 3));
+   data.push_back(std::make_tuple(ByteArray("\303\266\303\244\303\274\303\226\303\204\303\234\303\270\303\246\303\245\303\230\303\206\303\205"), 
+                                  String(Latin1String("\366\344\374\326\304\334\370\346\345\330\306\305")), -1));
+   data.push_back(std::make_tuple(ByteArray("\303\266\303\244\303\274\303\226\303\204\303\234\303\270\303\246\303\245\303\230\303\206\303\205"), 
+                                  String(Latin1String("\366\344\374\326\304")), 10));
+   String str;
+   str += Character(0x05e9);
+   str += Character(0x05d3);
+   str += Character(0x05d2);
+   
+   data.push_back(std::make_tuple(ByteArray("\327\251\327\223\327\222"), str, -1));
+   str = Character(0x05e9);
+   data.push_back(std::make_tuple(ByteArray("\327\251\327\223\327\222"), str, 2));
+   
+   str = Character(0x20ac);
+   str += Latin1String(" some text");
+   data.push_back(std::make_tuple(ByteArray("\342\202\254 some text"), str, -1));
+   
+   str = Character(0x20ac);
+   str += Latin1String(" some ");
+   data.push_back(std::make_tuple(ByteArray("\342\202\254 some text"), str, 9));
+   
+   // test that String::fromUtf8 suppresses an initial BOM, but not a ZWNBSP
+   str = Latin1String("hello");
+   ByteArray bom("\357\273\277");
+   data.push_back(std::make_tuple(bom, String(), 3));
+   data.push_back(std::make_tuple(bom + "hello", str, -1));
+   data.push_back(std::make_tuple(bom + bom, String(Character(0xfeff)), -1));
+   data.push_back(std::make_tuple(bom + "hello" + bom, str + Character(0xfeff), -1));
+   
+   str = Latin1String("hello");
+   str += Character::ReplacementCharacter;
+   str += Character(0x68);
+   str += Character::ReplacementCharacter;
+   str += Character::ReplacementCharacter;
+   str += Character::ReplacementCharacter;
+   str += Character::ReplacementCharacter;
+   str += Character(0x61);
+   str += Character::ReplacementCharacter;
+   data.push_back(std::make_tuple(ByteArray("hello\344h\344\344\366\344a\304"), str, -1));
+   data.push_back(std::make_tuple(ByteArray("hello\344h\344\344\366\344a\304"), String(Latin1String("hello")), 5));
+   
+   str = Latin1String("Prohl");
+   str += Character::ReplacementCharacter;
+   str += Character::ReplacementCharacter;
+   str += Latin1String("e");
+   str += Character::ReplacementCharacter;
+   str += Latin1String(" plugin");
+   str += Character::ReplacementCharacter;
+   str += Latin1String(" Netscape");
+   
+   data.push_back(std::make_tuple(ByteArray("Prohl\355\276e\350 plugin\371 Netscape"), str, -1));
+   data.push_back(std::make_tuple(ByteArray("Prohl\355\276e\350 plugin\371 Netscape"), String(Latin1String("")) , 0));
+   
+   data.push_back(std::make_tuple(ByteArray(), String(), -1));
+   data.push_back(std::make_tuple(ByteArray(), String(), 0));
+   data.push_back(std::make_tuple(ByteArray(), String(), 5));
+   data.push_back(std::make_tuple(ByteArray("\0abcd", 5), String(), -1));
+   
+   data.push_back(std::make_tuple(ByteArray("\0abcd", 5), String::fromLatin1("\0abcd", 5), 5));
+   data.push_back(std::make_tuple(ByteArray("ab\0cd", 5), String::fromLatin1("ab"), -1));
+   data.push_back(std::make_tuple(ByteArray("ab\0cd", 5), String::fromLatin1("ab\0cd", 5), 5));
+   
+   str = String::fromUtf8("Old Italic: ");
+   str += Character(0xd800);
+   str += Character(0xdf00);
+   str += Character(0xd800);
+   str += Character(0xdf01);
+   str += Character(0xd800);
+   str += Character(0xdf02);
+   str += Character(0xd800);
+   str += Character(0xdf03);
+   str += Character(0xd800);
+   str += Character(0xdf04);
+   data.push_back(std::make_tuple(ByteArray("Old Italic: \360\220\214\200\360\220\214\201\360\220\214\202\360\220\214\203\360\220\214\204"),
+                                  str, -1));
+   data.push_back(std::make_tuple(ByteArray("Old Italic: \360\220\214\200\360\220\214\201\360\220\214\202\360\220\214\203\360\220\214\204"),
+                                  str.left(16), 20));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testFromUtf8)
+{
+   using DataType = std::list<std::tuple<ByteArray, String, int>>;
+   DataType data;
+   from_utf8_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      ByteArray utf8 = std::get<0>(item);
+      String res = std::get<1>(item);
+      int length = std::get<2>(item);
+      ASSERT_EQ(String::fromUtf8(utf8.isNull() ? 0 : utf8.getRawData(), length), res);
+      ++iter;  
+   }
+}
+

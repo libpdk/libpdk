@@ -657,7 +657,7 @@ public:
    {
       // equal
       // (((usc4 - PDK_MIN_SUPPLEMENTARY_CODE_POINT) >> 10) + PDK_MIN_LOW_SURROGATE)
-      return char16_t(ucs4 % 0x40u + PDK_MIN_LOW_SURROAGTE);
+      return char16_t(ucs4 % 0x400u + PDK_MIN_LOW_SURROAGTE);
    }
    
    static Category PDK_FASTCALL getCategory(char32_t ucs4) noexcept PDK_DECL_CONST_FUNCTION;

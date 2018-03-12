@@ -15,11 +15,13 @@
 
 #include "gtest/gtest.h"
 #include "pdk/base/lang/Character.h"
+#include "pdk/base/lang/String.h"
 #include "pdk/base/lang/internal/UnicodeTablesPrivate.h"
 #include <list>
 #include <utility>
 
 using pdk::lang::Character;
+using pdk::lang::String;
 using pdk::lang::Latin1Character;
 using namespace pdk::lang::internal::unicodetables;
 
@@ -593,7 +595,31 @@ TEST(CharacterTest, testDecomposition)
    ASSERT_EQ(Character::getDecompositionTag(0xa0), Character::Decomposition::NoBreak);
    ASSERT_EQ(Character::getDecompositionTag(0xa8), Character::Decomposition::Compat);
    ASSERT_EQ(Character::getDecompositionTag(0x41), Character::Decomposition::NoDecomposition);
+   ASSERT_TRUE(Character::getDecomposition(0xa0) == String(Character(0x20)));
+   ASSERT_TRUE(Character::getDecomposition(0xc0) == (String(Character(0x41)) + String(Character(0x300))));
    
+   {
+      String str;
+      str += Character(Character::getHighSurrogate(0x1D157));
+      str += Character(Character::getLowSurrogate(0x1D157));
+      str += Character(Character::getHighSurrogate(0x1D165));
+      str += Character(Character::getLowSurrogate(0x1D165));
+      ASSERT_EQ(Character::getDecomposition(0x1D15e), str);
+   }
+   
+//   {
+//      String str;
+//      str += Character(0x1100);
+//      str += Character(0x1161);
+//      QVERIFY(Character::decomposition(0xac00) == str);
+//   }
+//   {
+//      String str;
+//      str += Character(0x110c);
+//      str += Character(0x1165);
+//      str += Character(0x11b7);
+//      QVERIFY(Character::decomposition(0xc810) == str);
+//   }
 }
 
 

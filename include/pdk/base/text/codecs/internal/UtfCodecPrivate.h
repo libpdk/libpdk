@@ -59,34 +59,34 @@ struct Utf8BaseTraits
       ptr += n;
    }
    
-   static void appendUtf16(ushort *&ptr, ushort uc)
+   static void appendUtf16(char16_t *&ptr, char16_t uc)
    {
       *ptr++ = uc;
    }
    
-   static void appendUcs4(ushort *&ptr, uint uc)
+   static void appendUcs4(char16_t *&ptr, uint uc)
    {
       appendUtf16(ptr, Character::getHighSurrogate(uc));
       appendUtf16(ptr, Character::getLowSurrogate(uc));
    }
    
-   static ushort peekUtf16(const ushort *ptr, int n = 0)
+   static char16_t peekUtf16(const char16_t *ptr, int n = 0)
    {
       return ptr[n];
    }
    
-   static pdk::ptrdiff availableUtf16(const ushort *ptr, const ushort *end)
+   static pdk::ptrdiff availableUtf16(const char16_t *ptr, const char16_t *end)
    {
       return end - ptr;
    }
    
-   static void advanceUtf16(const ushort *&ptr, int n = 1)
+   static void advanceUtf16(const char16_t *&ptr, int n = 1)
    {
       ptr += n;
    }
    
    // it's possible to output to UCS-4 too
-   static void appendUtf16(uint *&ptr, ushort uc)
+   static void appendUtf16(uint *&ptr, char16_t uc)
    {
       *ptr++ = uc;
    }
@@ -105,7 +105,7 @@ struct Utf8BaseTraitsNoAscii : public Utf8BaseTraits
 namespace Utf8Functions
 {
 template <typename Traits, typename OutputPtr, typename InputPtr> inline
-int toUtf8(ushort u, OutputPtr &dst, InputPtr &src, InputPtr end)
+int toUtf8(char16_t u, OutputPtr &dst, InputPtr &src, InputPtr end)
 {
    if (!Traits::sm_skipAsciiHandling && u < 0x80) {
       // U+0000 to U+007F (US-ASCII) - one byte
@@ -129,7 +129,7 @@ int toUtf8(ushort u, OutputPtr &dst, InputPtr &src, InputPtr end)
          if (Traits::availableUtf16(src, end) == 0)
             return Traits::sm_endOfString;
          
-         ushort low = Traits::peekUtf16(src);
+         char16_t low = Traits::peekUtf16(src);
          if (!Character::isHighSurrogate(u))
             return Traits::sm_error;
          if (!Character::isLowSurrogate(low))
@@ -148,7 +148,7 @@ int toUtf8(ushort u, OutputPtr &dst, InputPtr &src, InputPtr end)
          Traits::appendByte(dst, 0x80 | (uchar(ucs4 >> 12) & 0x3f));
          
          // for the rest of the bytes
-         u = ushort(ucs4);
+         u = char16_t(ucs4);
       }
       
       // second to last byte
@@ -206,17 +206,22 @@ int fromUtf8(uchar b, OutputPtr &dst, InputPtr &src, InputPtr end)
    int bytesAvailable = Traits::availableBytes(src, end);
    if (PDK_UNLIKELY(bytesAvailable < charsNeeded - 1)) {
       // it's possible that we have an error instead of just unfinished bytes
-      if (bytesAvailable > 0 && !isContinuationByte(Traits::peekByte(src, 0)))
+      if (bytesAvailable > 0 && !isContinuationByte(Traits::peekByte(src, 0))) {
          return Traits::sm_error;
-      if (bytesAvailable > 1 && !isContinuationByte(Traits::peekByte(src, 1)))
+      }
+         
+      if (bytesAvailable > 1 && !isContinuationByte(Traits::peekByte(src, 1))) {
          return Traits::sm_error;
+      }  
       return Traits::sm_endOfString;
    }
    
    // first continuation character
    b = Traits::peekByte(src, 0);
-   if (!isContinuationByte(b))
+   if (!isContinuationByte(b)) {
       return Traits::sm_error;
+   }
+      
    uc <<= 6;
    uc |= b & 0x3f;
    
@@ -252,7 +257,7 @@ int fromUtf8(uchar b, OutputPtr &dst, InputPtr &src, InputPtr end)
    if (!Character::requiresSurrogates(uc)) {
       // UTF-8 decoded and no surrogates are required
       // detach if necessary
-      Traits::appendUtf16(dst, ushort(uc));
+      Traits::appendUtf16(dst, char16_t(uc));
    } else {
       // UTF-8 decoded to something that requires a surrogate pair
       Traits::appendUcs4(dst, uc);

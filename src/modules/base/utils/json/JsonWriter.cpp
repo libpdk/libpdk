@@ -44,8 +44,8 @@ ByteArray escaped_string(const String &s)
    ByteArray ba(s.length(), pdk::Uninitialized);
    uchar *cursor = reinterpret_cast<uchar *>(const_cast<char *>(ba.getConstRawData()));
    const uchar *baEnd = cursor + ba.length();
-   const ushort *src = reinterpret_cast<const ushort *>(s.constBegin());
-   const ushort *const end = reinterpret_cast<const ushort *>(s.constEnd());
+   const char16_t *src = reinterpret_cast<const char16_t *>(s.constBegin());
+   const char16_t *const end = reinterpret_cast<const char16_t *>(s.constEnd());
    while (src != end) {
       if (cursor >= baEnd - 6) {
          // ensure we have enough space
