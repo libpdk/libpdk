@@ -3401,3 +3401,109 @@ TEST(StringTest, testStartsWidth)
    // this one is dependent of encoding
    ASSERT_TRUE(str.startsWith(String::fromLocal8Bit("\xc3\x89"), pdk::CaseSensitivity::Insensitive));
 }
+
+TEST(StringTest, testEndsWidth)
+{
+   String str;
+   str = Latin1String("AB");
+   ASSERT_TRUE(str.endsWith(Latin1String("B")));
+   ASSERT_TRUE(str.endsWith(Latin1String("AB")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABCDEF")));
+   ASSERT_TRUE(str.endsWith(Latin1String("")));
+   ASSERT_TRUE(str.endsWith('B'));
+   ASSERT_TRUE(str.endsWith(Latin1Character('B')));
+   ASSERT_TRUE(str.endsWith(Character('B')));
+   ASSERT_TRUE(!str.endsWith('C'));
+   ASSERT_TRUE(!str.endsWith(Character()));
+   ASSERT_TRUE(!str.endsWith(Latin1Character(0)));
+   
+   ASSERT_TRUE(str.endsWith(Latin1String("B")));
+   ASSERT_TRUE(str.endsWith(Latin1String("AB")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABCDEF")));
+   ASSERT_TRUE(str.endsWith(Latin1String("")));
+   ASSERT_TRUE(str.endsWith(Latin1String(0)));
+   
+   ASSERT_TRUE(str.endsWith(Latin1String("B"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("B"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("b"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("b"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("aB"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("aB"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("c"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("c"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("abcdef"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String(""), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith('b', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith('B', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith(Latin1Character('b'), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith(Character('b'), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith('c', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Character(), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1Character(0), pdk::CaseSensitivity::Insensitive));
+   
+   ASSERT_TRUE(str.endsWith(Latin1String("B"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("B"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("b"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("b"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("aB"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String("aB"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("C"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("c"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("c"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1String("abcdef"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String(""), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith(Latin1String(0), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.endsWith('B', pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Latin1Character('B'), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.endsWith(Character('B'), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith('b', pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Character(), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.endsWith(Latin1Character(0), pdk::CaseSensitivity::Sensitive));
+   
+   
+#define TEST_REF_ENDS_WITH(string, yes) { CREATE_REF(string); ASSERT_EQ(str.endsWith(ref), yes); }
+   TEST_REF_ENDS_WITH(Latin1String("B"), true);
+   TEST_REF_ENDS_WITH(Latin1String("AB"), true);
+   TEST_REF_ENDS_WITH(Latin1String("C"), false);
+   TEST_REF_ENDS_WITH(Latin1String("ABCDEF"), false);
+   TEST_REF_ENDS_WITH(Latin1String(""), true);
+   TEST_REF_ENDS_WITH(Latin1String(0), true);
+   
+#undef TEST_REF_STARTS_WITH
+   
+   str = Latin1String("");
+   ASSERT_TRUE(str.endsWith(Latin1String("")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABC")));
+   ASSERT_TRUE(!str.endsWith(Latin1Character(0)));
+   ASSERT_TRUE(!str.endsWith(Latin1Character('x')));
+   ASSERT_TRUE(!str.endsWith(Character()));
+   
+   ASSERT_TRUE(str.endsWith(Latin1String("")));
+   ASSERT_TRUE(str.endsWith(Latin1String(0)));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABC")));
+   
+   str = String();
+   ASSERT_TRUE(!str.endsWith(Latin1String("")));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(!str.endsWith(Latin1String("")));
+   ASSERT_TRUE(str.endsWith(Latin1String(0)));
+   ASSERT_TRUE(!str.endsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(!str.endsWith(Latin1Character(0)));
+   ASSERT_TRUE(!str.endsWith(Latin1Character('x')));
+   ASSERT_TRUE(!str.endsWith(Character()));
+   
+   // this test is independent of encoding
+   str = String::fromLocal8Bit("\xc3\xa9");
+   ASSERT_TRUE(str.endsWith(String::fromLocal8Bit("\xc3\xa9")));
+   ASSERT_TRUE(!str.endsWith(String::fromLocal8Bit("\xc3\xa1")));
+   
+   // this one is dependent of encoding
+   ASSERT_TRUE(str.endsWith(String::fromLocal8Bit("\xc3\x89"), pdk::CaseSensitivity::Insensitive));
+}
