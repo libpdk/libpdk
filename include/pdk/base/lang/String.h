@@ -1372,6 +1372,39 @@ inline std::u32string String::toStdU32String() const
    return u32Str;
 }
 
+inline String &String::setNum(short n, int base)
+{
+   return setNum(static_cast<pdk::plonglong>(n), base);
+}
+
+inline String &String::setNum(ushort n, int base)
+{
+   return setNum(static_cast<pdk::pulonglong>(n), base);
+}
+
+inline String &String::setNum(int n, int base)
+{
+   return setNum(static_cast<pdk::plonglong>(n), base);
+}
+inline String &String::setNum(uint n, int base)
+{
+   return setNum(static_cast<pdk::pulonglong>(n), base);
+}
+inline String &String::setNum(long n, int base)
+{
+   return setNum(static_cast<pdk::plonglong>(n), base);
+}
+
+inline String &String::setNum(ulong n, int base)
+{
+   return setNum(static_cast<pdk::pulonglong>(n), base);
+}
+
+inline String &String::setNum(float n, char f, int prec)
+{
+   return setNum(static_cast<double>(n),f,prec);
+}
+
 inline String String::arg(int a, int fieldWidth, int base, Character fillChar) const
 {
    return arg(pdk::plonglong(a), fieldWidth, base, fillChar);

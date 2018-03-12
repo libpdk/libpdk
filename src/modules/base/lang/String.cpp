@@ -2881,6 +2881,8 @@ float String::toFloat(bool *ok) const
    return LocaleData::convertDoubleToFloat(toDouble(ok), ok);
 }
 
+
+
 String &String::setNum(pdk::plonglong n, int base)
 {
    return *this = number(n, base);

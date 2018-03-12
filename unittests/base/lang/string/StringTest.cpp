@@ -2481,7 +2481,7 @@ TEST(StringTest, testOperatorPluseStringRef)
    operator_pluseq_impl<StringRef>(data);
 }
 
-TEST(StringTest, testOperatorPluseqLatin1String)
+TEST(StringTest, testOperatorPluseLatin1String)
 {
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
@@ -3198,5 +3198,105 @@ TEST(StringTest, testToLongLong)
    }
 }
 
+TEST(StringTest, testToFloat)
+{
+   String str;
+   bool ok;
+   str = Latin1String("0.000000000931322574615478515625");
+   ASSERT_FLOAT_EQ(str.toFloat(&ok),(float)(0.000000000931322574615478515625));
+   ASSERT_TRUE(ok);
+}
 
+namespace
+{
+void to_double_data(std::list<std::tuple<String, double, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("0.000000000931322574615478515625")), 0.000000000931322574615478515625, true));
+   data.push_back(std::make_tuple(String(Latin1String(" 123.45")), 123.45, true));
+   data.push_back(std::make_tuple(String(Latin1String("0.1e10")), 0.1e10, true));
+   data.push_back(std::make_tuple(String(Latin1String("0.1e-10")), 0.1e-10, true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("1e10")), 1.0e10, true));
+   data.push_back(std::make_tuple(String(Latin1String("1e+10")), 1.0e10, true));
+   data.push_back(std::make_tuple(String(Latin1String("1e-10")), 1.0e-10, true));
+   
+   data.push_back(std::make_tuple(String(Latin1String(" 1e10")), 1.0e10, true));
+   data.push_back(std::make_tuple(String(Latin1String("  1e+10")), 1.0e10, true));
+   data.push_back(std::make_tuple(String(Latin1String("   1e-10")), 1.0e-10, true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("1.")), 1.0, true));
+   data.push_back(std::make_tuple(String(Latin1String(".1")), 0.1, true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("123.45")), 123.45, true));
+   data.push_back(std::make_tuple(String(Latin1String(" 123.34")), 123.34, true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("aa123.45aa")), 0.0, false));
+   data.push_back(std::make_tuple(String(Latin1String("123.45aa")), 0.0, false));
+   data.push_back(std::make_tuple(String(Latin1String("123asd")), 0.0, false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("abc")), 0.0, false));
+   data.push_back(std::make_tuple(String(), 0.0, false));
+   data.push_back(std::make_tuple(String(Latin1String("")), 0.0, false));
+}
+} // anonymous namespace
+
+TEST(StringTest, testToDouble)
+{
+   using DataType = std::list<std::tuple<String, double, bool>>;
+   DataType data;
+   to_double_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String str = std::get<0>(item);
+      double result = std::get<1>(item);
+      bool ok;
+      double resultOk = std::get<2>(item);
+      double d = str.toDouble(&ok);
+      if(resultOk) {
+         ASSERT_EQ(d, result);
+         ASSERT_TRUE(ok);
+      } else {
+         ASSERT_TRUE(!ok);
+      }
+      ++iter;
+   }
+}
+
+TEST(StringTest, testSetNum)
+{
+    String str;
+    ASSERT_EQ(str.setNum(123), Latin1String("123"));
+    ASSERT_EQ(str.setNum(-123), Latin1String("-123"));
+    ASSERT_EQ(str.setNum(0x123,16), Latin1String("123"));
+    ASSERT_EQ(str.setNum((short)123), Latin1String("123"));
+    ASSERT_EQ(str.setNum(123L), Latin1String("123"));
+    ASSERT_EQ(str.setNum(123UL), Latin1String("123"));
+    ASSERT_EQ(str.setNum(2147483647L), String(Latin1String("2147483647"))); // 32 bit LONG_MAX
+    ASSERT_EQ(str.setNum(-2147483647L), String(Latin1String("-2147483647"))); // LONG_MIN + 1
+    ASSERT_EQ(str.setNum(-2147483647L-1L), String(Latin1String("-2147483648"))); // LONG_MIN
+    ASSERT_EQ(str.setNum(1.23), String(Latin1String("1.23")));
+    ASSERT_EQ(str.setNum(1.234567), String(Latin1String("1.23457")));
+#if defined(LONG_MAX) && defined(LLONG_MAX) && LONG_MAX == LLONG_MAX
+    // LONG_MAX and LONG_MIN on 64 bit systems
+    ASSERT_EQ(str.setNum(9223372036854775807L), String(Latin1String("9223372036854775807")));
+    ASSERT_EQ(str.setNum(-9223372036854775807L-1L), String(Latin1String("-9223372036854775808")));
+    ASSERT_EQ(str.setNum(18446744073709551615UL), String(Latin1String("18446744073709551615")));
+#endif
+    ASSERT_EQ(str.setNum(PDK_INT64_C(123)), String(Latin1String("123")));
+    // 2^40 == 1099511627776
+    ASSERT_EQ(str.setNum(PDK_INT64_C(-1099511627776)), String(Latin1String("-1099511627776")));
+    ASSERT_EQ(str.setNum(PDK_UINT64_C(1099511627776)), String(Latin1String("1099511627776")));
+    ASSERT_EQ(str.setNum(PDK_INT64_C(9223372036854775807)), // LLONG_MAX
+            String(Latin1String("9223372036854775807")));
+    ASSERT_EQ(str.setNum(-PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1)),
+            String(Latin1String("-9223372036854775808")));
+    ASSERT_EQ(str.setNum(PDK_UINT64_C(18446744073709551615)), // ULLONG_MAX
+            String(Latin1String("18446744073709551615")));
+    ASSERT_EQ(str.setNum(0.000000000931322574615478515625),String(Latin1String("9.31323e-10")));
+
+//  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'g',30),(String)"9.31322574615478515625e-010");
+//  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'f',30),(String)"0.00000000093132257461547852");
+}
 
