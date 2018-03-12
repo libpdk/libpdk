@@ -2489,7 +2489,7 @@ TEST(StringTest, testOperatorPluseLatin1String)
    operator_pluseq_impl<Latin1String, String &(String::*)(Latin1String)>(data);
 }
 
-TEST(StringTest, testOperatorPluseqCharacter)
+TEST(StringTest, testOperatorPluseCharacteracter)
 {
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
@@ -2497,7 +2497,7 @@ TEST(StringTest, testOperatorPluseqCharacter)
    operator_pluseq_impl<Character, String &(String::*)(Character)>(data);
 }
 
-TEST(StringTest, testOperatorPluseqChar)
+TEST(StringTest, testOperatorPluseCharacter)
 {
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
@@ -3135,18 +3135,18 @@ TEST(StringTest, testToULongLong)
    String str;
    bool ok;
    str = Latin1String("18446744073709551615"); // ULLONG_MAX
-   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(18446744073709551615) );
-   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(18446744073709551615) );
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(18446744073709551615));
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(18446744073709551615));
    ASSERT_TRUE(ok);
    
    str = Latin1String("18446744073709551616"); // ULLONG_MAX + 1
-   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0) );
-   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0) );
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0));
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0));
    ASSERT_TRUE(!ok);
    
    str = Latin1String("-150");
-   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0) );
-   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0) );
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0));
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0));
    ASSERT_TRUE(!ok);
 }
 
@@ -3156,15 +3156,15 @@ TEST(StringTest, testToLongLong)
    bool ok;
    
    str = Latin1String("9223372036854775807"); // LLONG_MAX
-   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(9223372036854775807) );
-   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(9223372036854775807) );
+   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(9223372036854775807));
+   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(9223372036854775807));
    ASSERT_TRUE( ok );
    
    str = Latin1String("-9223372036854775808"); // LLONG_MIN
    ASSERT_EQ(str.toLongLong(0),
-             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1) );
+             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1));
    ASSERT_EQ(str.toLongLong(&ok),
-             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1) );
+             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1));
    ASSERT_TRUE(ok);
    
    str = Latin1String("aaaa9223372036854775807aaaa");
@@ -3266,37 +3266,138 @@ TEST(StringTest, testToDouble)
 
 TEST(StringTest, testSetNum)
 {
-    String str;
-    ASSERT_EQ(str.setNum(123), Latin1String("123"));
-    ASSERT_EQ(str.setNum(-123), Latin1String("-123"));
-    ASSERT_EQ(str.setNum(0x123,16), Latin1String("123"));
-    ASSERT_EQ(str.setNum((short)123), Latin1String("123"));
-    ASSERT_EQ(str.setNum(123L), Latin1String("123"));
-    ASSERT_EQ(str.setNum(123UL), Latin1String("123"));
-    ASSERT_EQ(str.setNum(2147483647L), String(Latin1String("2147483647"))); // 32 bit LONG_MAX
-    ASSERT_EQ(str.setNum(-2147483647L), String(Latin1String("-2147483647"))); // LONG_MIN + 1
-    ASSERT_EQ(str.setNum(-2147483647L-1L), String(Latin1String("-2147483648"))); // LONG_MIN
-    ASSERT_EQ(str.setNum(1.23), String(Latin1String("1.23")));
-    ASSERT_EQ(str.setNum(1.234567), String(Latin1String("1.23457")));
+   String str;
+   ASSERT_EQ(str.setNum(123), Latin1String("123"));
+   ASSERT_EQ(str.setNum(-123), Latin1String("-123"));
+   ASSERT_EQ(str.setNum(0x123,16), Latin1String("123"));
+   ASSERT_EQ(str.setNum((short)123), Latin1String("123"));
+   ASSERT_EQ(str.setNum(123L), Latin1String("123"));
+   ASSERT_EQ(str.setNum(123UL), Latin1String("123"));
+   ASSERT_EQ(str.setNum(2147483647L), String(Latin1String("2147483647"))); // 32 bit LONG_MAX
+   ASSERT_EQ(str.setNum(-2147483647L), String(Latin1String("-2147483647"))); // LONG_MIN + 1
+   ASSERT_EQ(str.setNum(-2147483647L-1L), String(Latin1String("-2147483648"))); // LONG_MIN
+   ASSERT_EQ(str.setNum(1.23), String(Latin1String("1.23")));
+   ASSERT_EQ(str.setNum(1.234567), String(Latin1String("1.23457")));
 #if defined(LONG_MAX) && defined(LLONG_MAX) && LONG_MAX == LLONG_MAX
-    // LONG_MAX and LONG_MIN on 64 bit systems
-    ASSERT_EQ(str.setNum(9223372036854775807L), String(Latin1String("9223372036854775807")));
-    ASSERT_EQ(str.setNum(-9223372036854775807L-1L), String(Latin1String("-9223372036854775808")));
-    ASSERT_EQ(str.setNum(18446744073709551615UL), String(Latin1String("18446744073709551615")));
+   // LONG_MAX and LONG_MIN on 64 bit systems
+   ASSERT_EQ(str.setNum(9223372036854775807L), String(Latin1String("9223372036854775807")));
+   ASSERT_EQ(str.setNum(-9223372036854775807L-1L), String(Latin1String("-9223372036854775808")));
+   ASSERT_EQ(str.setNum(18446744073709551615UL), String(Latin1String("18446744073709551615")));
 #endif
-    ASSERT_EQ(str.setNum(PDK_INT64_C(123)), String(Latin1String("123")));
-    // 2^40 == 1099511627776
-    ASSERT_EQ(str.setNum(PDK_INT64_C(-1099511627776)), String(Latin1String("-1099511627776")));
-    ASSERT_EQ(str.setNum(PDK_UINT64_C(1099511627776)), String(Latin1String("1099511627776")));
-    ASSERT_EQ(str.setNum(PDK_INT64_C(9223372036854775807)), // LLONG_MAX
-            String(Latin1String("9223372036854775807")));
-    ASSERT_EQ(str.setNum(-PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1)),
-            String(Latin1String("-9223372036854775808")));
-    ASSERT_EQ(str.setNum(PDK_UINT64_C(18446744073709551615)), // ULLONG_MAX
-            String(Latin1String("18446744073709551615")));
-    ASSERT_EQ(str.setNum(0.000000000931322574615478515625),String(Latin1String("9.31323e-10")));
-
-//  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'g',30),(String)"9.31322574615478515625e-010");
-//  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'f',30),(String)"0.00000000093132257461547852");
+   ASSERT_EQ(str.setNum(PDK_INT64_C(123)), String(Latin1String("123")));
+   // 2^40 == 1099511627776
+   ASSERT_EQ(str.setNum(PDK_INT64_C(-1099511627776)), String(Latin1String("-1099511627776")));
+   ASSERT_EQ(str.setNum(PDK_UINT64_C(1099511627776)), String(Latin1String("1099511627776")));
+   ASSERT_EQ(str.setNum(PDK_INT64_C(9223372036854775807)), // LLONG_MAX
+             String(Latin1String("9223372036854775807")));
+   ASSERT_EQ(str.setNum(-PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1)),
+             String(Latin1String("-9223372036854775808")));
+   ASSERT_EQ(str.setNum(PDK_UINT64_C(18446744073709551615)), // ULLONG_MAX
+             String(Latin1String("18446744073709551615")));
+   ASSERT_EQ(str.setNum(0.000000000931322574615478515625),String(Latin1String("9.31323e-10")));
+   
+   //  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'g',30),(String)"9.31322574615478515625e-010");
+   //  ASSERT_EQ(str.setNum(0.000000000931322574615478515625,'f',30),(String)"0.00000000093132257461547852");
 }
 
+TEST(StringTest, testStartsWidth)
+{
+   String str;
+   str = Latin1String("AB");
+   ASSERT_TRUE(str.startsWith(Latin1String("A")));
+   ASSERT_TRUE(str.startsWith(Latin1String("AB")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABCDEF")));
+   ASSERT_TRUE(str.startsWith(Latin1String("")));
+   ASSERT_TRUE(str.startsWith('A'));
+   ASSERT_TRUE(str.startsWith(Latin1Character('A')));
+   ASSERT_TRUE(str.startsWith(Character('A')));
+   ASSERT_TRUE(!str.startsWith('C'));
+   ASSERT_TRUE(!str.startsWith(Character()));
+   ASSERT_TRUE(!str.startsWith(Latin1Character(0)));
+   
+   ASSERT_TRUE(str.startsWith(Latin1String("A")));
+   ASSERT_TRUE(str.startsWith(Latin1String("AB")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABCDEF")));
+   ASSERT_TRUE(str.startsWith(Latin1String("")));
+   ASSERT_TRUE(str.startsWith(Latin1String(0)));
+   
+   ASSERT_TRUE(str.startsWith(Latin1String("A"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("A"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("a"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("a"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("aB"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("aB"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("c"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("c"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("abcdef"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String(""), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith('a', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith('A', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith(Latin1Character('a'), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith(Character('a'), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith('c', pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Character(), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1Character(0), pdk::CaseSensitivity::Insensitive));
+   
+   ASSERT_TRUE(str.startsWith(Latin1String("A"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("A"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("a"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("a"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("aB"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String("aB"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("C"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("c"), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("c"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1String("abcdef"), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String(""), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith(Latin1String(0), pdk::CaseSensitivity::Insensitive));
+   ASSERT_TRUE(str.startsWith('A', pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Latin1Character('A'), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(str.startsWith(Character('A'), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith('a', pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Character(), pdk::CaseSensitivity::Sensitive));
+   ASSERT_TRUE(!str.startsWith(Latin1Character(0), pdk::CaseSensitivity::Sensitive));
+   
+#define TEST_REF_STARTS_WITH(string, yes) {CREATE_REF(string); ASSERT_EQ(str.startsWith(ref), yes); }
+   
+   TEST_REF_STARTS_WITH(Latin1String("A"), true);
+   TEST_REF_STARTS_WITH(Latin1String("AB"), true);
+   TEST_REF_STARTS_WITH(Latin1String("C"), false);
+   TEST_REF_STARTS_WITH(Latin1String("ABCDEF"), false);
+#undef TEST_REF_STARTS_WITH
+   
+   str = Latin1String("");
+   ASSERT_TRUE(str.startsWith(Latin1String("")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(str.startsWith(Latin1String("")));
+   ASSERT_TRUE(str.startsWith(Latin1String(0)));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(!str.startsWith(Latin1Character(0)));
+   ASSERT_TRUE(!str.startsWith(Latin1Character('x')));
+   ASSERT_TRUE(!str.startsWith(Character()));
+   
+   str = String();
+   ASSERT_TRUE(!str.startsWith(Latin1String("")));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(!str.startsWith(Latin1String("")));
+   ASSERT_TRUE(str.startsWith(Latin1String(0)));
+   ASSERT_TRUE(!str.startsWith(Latin1String("ABC")));
+   
+   ASSERT_TRUE(!str.startsWith(Latin1Character(0)));
+   ASSERT_TRUE(!str.startsWith(Latin1Character('x')));
+   ASSERT_TRUE(!str.startsWith(Character()));
+   // this test is independent of encoding
+   str = String::fromLocal8Bit("\xc3\xa9");
+   ASSERT_TRUE(str.startsWith(String::fromLocal8Bit("\xc3\xa9")));
+   ASSERT_TRUE(!str.startsWith(String::fromLocal8Bit("\xc3\xa1")));
+   // this one is dependent of encoding
+   ASSERT_TRUE(str.startsWith(String::fromLocal8Bit("\xc3\x89"), pdk::CaseSensitivity::Insensitive));
+}
