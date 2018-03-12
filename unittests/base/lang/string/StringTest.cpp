@@ -2331,7 +2331,7 @@ TEST(StringTest, testAppendChar)
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
    append_data(data, true);
-   append_impl<char, String &(String::*)(Character)>(data);
+   append_impl<Reversed<char>, String &(String::*)(Character)>(data);
 }
 
 TEST(StrinTest, testAppendSpecialCases)
@@ -2353,4 +2353,94 @@ TEST(StrinTest, testAppendSpecialCases)
    ASSERT_EQ(str, Latin1String("Hello, World!\nHello, World!"));
 }
 
+namespace
+{
+
+void prepend_data(std::list<std::tuple<String, CharStarContainer, String>> &data, bool emptyIsNoop = false)
+{
+   const CharStarContainer nullC;
+   const CharStarContainer emptyC("");
+   const CharStarContainer aC("a");
+   const CharStarContainer bC("b");
+   const CharStarContainer baC("ba");
+   
+   const String null;
+   const String empty(Latin1String(""));
+   const String a(Latin1String("a"));
+   //const String b("b");
+   const String ba(Latin1String("ba"));
+   
+   data.push_back(std::make_tuple(null, nullC, null));
+   data.push_back(std::make_tuple(null, emptyC, (emptyIsNoop ? null : empty)));
+   data.push_back(std::make_tuple(null, aC, a));
+   data.push_back(std::make_tuple(empty, nullC, empty));
+   data.push_back(std::make_tuple(empty, emptyC, empty));
+   data.push_back(std::make_tuple(empty, aC, a));
+   data.push_back(std::make_tuple(a, nullC, a));
+   data.push_back(std::make_tuple(a, emptyC, a));
+   data.push_back(std::make_tuple(a, bC, ba));
+   data.push_back(std::make_tuple(a, baC, (ba + a)));
+}
+
+template <typename ArgType, typename MemFun, typename DataType>
+void prepend_impl(const DataType &data)
+{
+   do_apply0<ArgType>(MemFun(&String::prepend), data);
+}
+
+template <typename ArgType, typename DataType>
+void prepend_impl(const DataType &data)
+{
+   prepend_impl<ArgType, String &(String::*)(const ArgType&)>(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testPrependString)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<String>(data);
+}
+
+TEST(StringTest, testPrependStringRef)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<StringRef>(data);
+}
+
+TEST(StringTest, testPrependLatin1String)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<Latin1String, String &(String::*)(Latin1String)>(data);
+}
+
+TEST(StringTest, testPrependCharInt)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<std::pair<const Character *, int>, String& (String::*)(const Character *, int)>(data);
+}
+
+TEST(StringTest, testPrependCharacter)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<Reversed<Character>, String &(String::*)(Character)>(data);
+}
+
+TEST(StringTest, testPrependChar)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   prepend_data(data, true);
+   prepend_impl<Reversed<char>, String &(String::*)(Character)>(data);
+}
 
