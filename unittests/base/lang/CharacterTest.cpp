@@ -607,22 +607,20 @@ TEST(CharacterTest, testDecomposition)
       ASSERT_EQ(Character::getDecomposition(0x1D15e), str);
    }
    
-//   {
-//      String str;
-//      str += Character(0x1100);
-//      str += Character(0x1161);
-//      QVERIFY(Character::decomposition(0xac00) == str);
-//   }
-//   {
-//      String str;
-//      str += Character(0x110c);
-//      str += Character(0x1165);
-//      str += Character(0x11b7);
-//      QVERIFY(Character::decomposition(0xc810) == str);
-//   }
+   {
+      String str;
+      str += Character(0x1100);
+      str += Character(0x1161);
+      ASSERT_EQ(Character::getDecomposition(0xac00), str);
+   }
+   {
+      String str;
+      str += Character(0x110c);
+      str += Character(0x1165);
+      str += Character(0x11b7);
+      ASSERT_EQ(Character::getDecomposition(0xc810), str);
+   }
 }
-
-
 
 TEST(CharacterTest, testLineBreakClass)
 {
