@@ -678,3 +678,108 @@ TEST(CharacterTest, testGetScript)
    ASSERT_EQ(Character::getScript(0xe0100), Character::Script::Script_Inherited);
 }
 
+TEST(CharacterTest, testNormalizationManual)
+{
+   {
+      String decomposed;
+      decomposed += Character(0x41);
+      decomposed += Character(0x0221); // assigned in 4.0
+      decomposed += Character(0x300);
+      
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_C, Character::UnicodeVersion::Unicode_3_2) == decomposed);
+      
+      decomposed[1] = Character(0x037f); // unassigned in 6.1
+      
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_C) == decomposed);
+   }
+   {
+      String composed;
+      composed += Character(0xc0);
+      String decomposed;
+      decomposed += Character(0x41);
+      decomposed += Character(0x300);
+      
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_D) == decomposed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_C) == composed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KD) == decomposed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KC) == composed);
+   }
+   {
+      String composed;
+      composed += Character(0xa0);
+      String decomposed;
+      decomposed += Character(0x20);
+      
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_D) == composed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_C) == composed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KD) == decomposed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KC) == decomposed);
+   }
+   {
+      String composed;
+      composed += Character(0x0061);
+      composed += Character(0x00f2);
+      String decomposed;
+      decomposed += Character(0x0061);
+      decomposed += Character(0x006f);
+      decomposed += Character(0x0300);
+      
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_D) == decomposed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_C) == composed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_KD) == decomposed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_KC) == composed);
+   }
+   {   // hangul
+      String composed;
+      composed += Character(0xc154);
+      composed += Character(0x11f0);
+      String decomposed;
+      decomposed += Character(0x1109);
+      decomposed += Character(0x1167);
+      decomposed += Character(0x11f0);
+      
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_D) == decomposed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_C) == composed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KD) == decomposed);
+      ASSERT_TRUE(composed.normalized(String::NormalizationForm::Form_KC) == composed);
+      
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_D) == decomposed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_C) == composed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_KD) == decomposed);
+      ASSERT_TRUE(decomposed.normalized(String::NormalizationForm::Form_KC) == composed);
+   }
+}
+
+TEST(CharacterTest, testNormalizationCorrections)
+{
+    String s;
+    s.append(Character(0xf951));
+
+    String n = s.normalized(String::NormalizationForm::Form_D);
+    String res;
+    res.append(Character(0x964b));
+    ASSERT_EQ(n, res);
+
+    n = s.normalized(String::NormalizationForm::Form_D, Character::UnicodeVersion::Unicode_3_1);
+    res.clear();
+    res.append(Character(0x96fb));
+    ASSERT_EQ(n, res);
+
+    s.clear();
+    s += Character(Character::getHighSurrogate(0x2f868));
+    s += Character(Character::getLowSurrogate(0x2f868));
+
+    n = s.normalized(String::NormalizationForm::Form_C);
+    res.clear();
+    res += Character(0x36fc);
+    ASSERT_EQ(n, res);
+
+    n = s.normalized(String::NormalizationForm::Form_C, Character::UnicodeVersion::Unicode_3_1);
+    res.clear();
+    res += Character(0xd844);
+    res += Character(0xdf6a);
+    ASSERT_EQ(n, res);
+
+    n = s.normalized(String::NormalizationForm::Form_C, Character::UnicodeVersion::Unicode_3_2);
+    ASSERT_EQ(n, res);
+}
