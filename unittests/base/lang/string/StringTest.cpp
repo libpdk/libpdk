@@ -3768,3 +3768,190 @@ TEST(StringTest, testFromUtf8)
    }
 }
 
+TEST(StringTest, testNullFromUtf8)
+{
+   String str;
+   str = String::fromUtf8(0);
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromUtf8("");
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromUtf8(ByteArray());
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromUtf8(ByteArray(""));
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+}
+
+namespace {
+
+void from_local8bit_data(std::list<std::tuple<ByteArray, int, String>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray("test\0foo", 8), 8, String::fromLatin1("test\0foo", 8)));
+   ByteArray longByteArray;
+   String longString;
+   for (int l=0;l<111;l++) {
+      longByteArray = longByteArray + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      longString += Latin1String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+   }
+   
+}
+
+void to_local8bit_data(std::list<std::tuple<String, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(String(), ByteArray()));
+   data.push_back(std::make_tuple(String(Latin1String("")), ByteArray("")));
+   data.push_back(std::make_tuple(String(Latin1String("test")), ByteArray("test")));
+   ByteArray longByteArray;
+   String longString;
+   
+   for (int l=0;l<111;l++) {
+      longByteArray = longByteArray + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+      longString += Latin1String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+   }
+   data.push_back(std::make_tuple(longString, longByteArray));
+   data.push_back(std::make_tuple(String(Latin1String("d:/this/is/a/test.h")), ByteArray("d:/this/is/a/test.h")));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testFromLocal8Bit)
+{
+   using DataType = std::list<std::tuple<ByteArray, int, String>>;
+   DataType data;
+   from_local8bit_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      ByteArray local8bit = std::get<0>(item);
+      int length = std::get<1>(item);
+      String result = std::get<2>(item);
+      ASSERT_EQ(String::fromLocal8Bit(local8bit.isNull() ? 0 : local8bit.getRawData(), length).length(),
+                result.length());
+      ASSERT_EQ(String::fromLocal8Bit(local8bit.isNull() ? 0 : local8bit.getRawData(), length), result);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testToLocal8Bit)
+{
+   using DataType = std::list<std::tuple<String, ByteArray>>;
+   DataType data;
+   to_local8bit_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String local8bit = std::get<0>(item);
+      ByteArray result = std::get<1>(item);
+      ASSERT_EQ(local8bit.toLocal8Bit(), ByteArray(result));
+      ++iter;
+   }
+}
+
+namespace {
+
+void invalid_to_local8bit_data(std::list<std::tuple<String, ByteArray>> &data)
+{
+   {
+      const Character malformed[] = { 'A', 0xd800, 'B', 0 };
+      const char expected[] = "A";
+      data.push_back(std::make_tuple(String(malformed, sizeof(malformed) / sizeof(Character)), 
+                                     ByteArray(expected, sizeof(expected) / sizeof(char) - 1)));
+   }
+   {
+      const Character malformed[] = { 'A', 0xdc00, 'B', 0 };
+      const char expected[] = "A";
+      data.push_back(std::make_tuple(String(malformed, sizeof(malformed) / sizeof(Character)), 
+                                     ByteArray(expected, sizeof(expected) / sizeof(char) - 1)));
+   }
+   {
+      const Character malformed[] = { 'A', 0xd800, 0xd801, 'B', 0 };
+      const char expected[] = "A";
+      data.push_back(std::make_tuple(String(malformed, sizeof(malformed) / sizeof(Character)), 
+                                     ByteArray(expected, sizeof(expected) / sizeof(char) - 1)));
+   }
+   {
+      const Character malformed[] = { 'A', 0xdc00, 0xdc01, 'B', 0 };
+      const char expected[] = "A";
+      data.push_back(std::make_tuple(String(malformed, sizeof(malformed) / sizeof(Character)), 
+                                     ByteArray(expected, sizeof(expected) / sizeof(char) - 1)));
+   }
+   {
+      const Character malformed[] = { 'A', 0xdc00, 0xd800, 'B', 0 };
+      const char expected[] = "A";
+      data.push_back(std::make_tuple(String(malformed, sizeof(malformed) / sizeof(Character)), 
+                                     ByteArray(expected, sizeof(expected) / sizeof(char) - 1)));
+   }
+}
+
+void stringref_local8bit_data(std::list<std::tuple<String, ByteArray>> &data)
+{
+   to_local8bit_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testInvalidToLocal8Bit)
+{
+   using DataType = std::list<std::tuple<String, ByteArray>>;
+   DataType data;
+   invalid_to_local8bit_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String unicode = std::get<0>(item);
+      ByteArray expect = std::get<1>(item);
+      ByteArray local = unicode.toLocal8Bit();
+      /*
+        The main concern of this test is to check that any error-reporting that
+        toLocal8Bit() prompts on failure isn't dependent on outputting the data
+        it's converting via toLocal8Bit(), which would be apt to recurse.  So the
+        real purpose of this ASSERT_TRUE(), for all that we should indeed check we get
+        the borked output that matches what we can reliably expect (despite
+        variation in how codecs respond to errors), is to verify that we got here
+        - i.e. we didn't crash in such a recursive stack over-flow.
+       */
+      ASSERT_TRUE(local.startsWith(expect));
+      ++iter;
+   }
+}
+
+TEST(StringTest, testNullFromLocal8Bit)
+{
+   String str;
+   str = String::fromLocal8Bit(0);
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLocal8Bit("");
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLocal8Bit(ByteArray());
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLocal8Bit(ByteArray(""));
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+}
+
+TEST(StringTest,testStringRefLocal8Bit)
+{
+   using DataType = std::list<std::tuple<String, ByteArray>>;
+   DataType data;
+   to_local8bit_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String local8bit = std::get<0>(item);
+      ByteArray result = std::get<1>(item);
+      StringRef ref(&local8bit, 0, local8bit.length());
+      ASSERT_EQ(ref.toLocal8Bit(), result);
+      ++iter;
+   }
+}
+
