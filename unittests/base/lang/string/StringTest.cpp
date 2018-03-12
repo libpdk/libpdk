@@ -2444,3 +2444,63 @@ TEST(StringTest, testPrependChar)
    prepend_impl<Reversed<char>, String &(String::*)(Character)>(data);
 }
 
+namespace {
+
+template <typename ArgType, typename MemFun, typename DataType>
+void operator_pluseq_impl(const DataType &data)
+{
+   do_apply0<ArgType>(MemFun(&String::operator+=), data);
+}
+
+template <typename ArgType, typename DataType>
+void operator_pluseq_impl(const DataType &data)
+{
+   operator_pluseq_impl<ArgType, String &(String::*)(const ArgType&)>(data);
+}
+
+void operator_pluseq_data(std::list<std::tuple<String, CharStarContainer, String>> &data, bool emptyIsNoop = false)
+{
+   append_data(data, emptyIsNoop);  
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testOperatorPluseqString)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   operator_pluseq_impl<String>(data);
+}
+
+TEST(StringTest, testOperatorPluseqStringRef)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   operator_pluseq_impl<StringRef>(data);
+}
+
+TEST(StringTest, testOperatorPluseqLatin1String)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, false);
+   operator_pluseq_impl<Latin1String, String &(String::*)(Latin1String)>(data);
+}
+
+TEST(StringTest, testOperatorPluseqCharacter)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, true);
+   operator_pluseq_impl<Character, String &(String::*)(Character)>(data);
+}
+
+TEST(StringTest, testOperatorPluseqChar)
+{
+   using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
+   DataType data;
+   append_data(data, true);
+   operator_pluseq_impl<char, String &(String::*)(Character)>(data);
+}
