@@ -1200,7 +1200,7 @@ String &String::remove(const String &str, pdk::CaseSensitivity cs)
 {
    if (str.m_data->m_size) {
       int i = 0;
-      while ((i = indexOf(str, i, cs))) {
+      while ((i = indexOf(str, i, cs)) != -1) {
          remove(i, str.m_data->m_size);
       }
    }

@@ -2504,3 +2504,88 @@ TEST(StringTest, testOperatorPluseqChar)
    append_data(data, true);
    operator_pluseq_impl<char, String &(String::*)(Character)>(data);
 }
+
+TEST(StringTest, testSwap)
+{
+   String s1, s2;
+   s1 = Latin1String("s1");
+   s2 = Latin1String("s2");
+   s1.swap(s2);
+   ASSERT_EQ(s1, Latin1String("s2"));
+   ASSERT_EQ(s2, Latin1String("s1"));
+}
+
+namespace {
+
+void remove_uint_uint_data(std::list<std::tuple<String, int, int, String, String>> &data)
+{
+   replace_uint_uint_data(data);
+}
+
+void remove_string_data(std::list<std::tuple<String, String, String, String, bool>> &data)
+{
+   replace_string_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testRemoveUintUint)
+{
+   using DataType = std::list<std::tuple<String, int, int, String, String>>;
+   DataType data;
+   remove_uint_uint_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark)
+   {
+      auto item = *iter;
+      String string = std::get<0>(item);
+      int index = std::get<1>(item);
+      int length = std::get<2>(item);
+      String after = std::get<3>(item);
+      String result = std::get<4>(item);
+      if (after.length() == 0 ) {
+         String s1 = string;
+         s1.remove((uint) index, (uint) length );
+         ASSERT_EQ(s1, result);
+      }  
+      ++iter;
+   }
+}
+
+TEST(StringTest, testRemoveString)
+{
+   using DataType = std::list<std::tuple<String, String, String, String, bool>>;
+   DataType data;
+   remove_string_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String string = std::get<0>(item);
+      String before = std::get<1>(item);
+      String after = std::get<2>(item);
+      String result = std::get<3>(item);
+      bool bcs = std::get<4>(item);
+      pdk::CaseSensitivity cs = bcs ? pdk::CaseSensitivity::Sensitive : pdk::CaseSensitivity::Insensitive;
+      if (after.length() == 0 ) {
+         if (before.length() == 1 && cs == pdk::CaseSensitivity::Sensitive) {
+            Character ch = before.at(0);
+            String s1 = string;
+            s1.remove(ch);
+            ASSERT_EQ(s1, result);
+            if (Character(ch.toLatin1()) == ch) {
+               String s2 = string;
+               s2.remove(ch);
+               ASSERT_EQ(s2, result);
+            }
+         }
+         String s3 = string;
+         s3.remove(before, cs);
+         ASSERT_EQ(s3, result);
+      }
+      ++iter;
+   }
+}
+
+
