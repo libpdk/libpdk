@@ -2465,7 +2465,7 @@ void operator_pluseq_data(std::list<std::tuple<String, CharStarContainer, String
 
 } // anonymous namespace
 
-TEST(StringTest, testOperatorPluseqString)
+TEST(StringTest, testOperatorPluseString)
 {
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
@@ -2473,7 +2473,7 @@ TEST(StringTest, testOperatorPluseqString)
    operator_pluseq_impl<String>(data);
 }
 
-TEST(StringTest, testOperatorPluseqStringRef)
+TEST(StringTest, testOperatorPluseStringRef)
 {
    using DataType = std::list<std::tuple<String, CharStarContainer, String>>;
    DataType data;
@@ -2588,4 +2588,214 @@ TEST(StringTest, testRemoveString)
    }
 }
 
+TEST(StringTest, testToNum)
+{
+#if defined (PDK_OS_WIN) && defined (PDK_CC_MSVC)
+#define TEST_TO_INT(num, func) \
+   str = Latin1String(#num); \
+   ASSERT_TRUE(str.func(&ok) == num ## i64 && ok) <<  "Failed: num=" #num ", func=" #func
+#else
+#define TEST_TO_INT(num, func) \
+   str = Latin1String(#num); \
+   ASSERT_TRUE(str.func(&ok) == num ## LL && ok) << "Failed: num=" #num ", func=" #func
+#endif
+   String str;
+   bool ok = false;
+   TEST_TO_INT(0, toInt);
+   TEST_TO_INT(-1, toInt);
+   TEST_TO_INT(1, toInt);
+   TEST_TO_INT(2147483647, toInt);
+   TEST_TO_INT(-2147483648, toInt);
+   TEST_TO_INT(0, toShort);
+   TEST_TO_INT(-1, toShort);
+   TEST_TO_INT(1, toShort);
+   TEST_TO_INT(32767, toShort);
+   TEST_TO_INT(-32768, toShort);
+   
+   TEST_TO_INT(0, toLong);
+   TEST_TO_INT(-1, toLong);
+   TEST_TO_INT(1, toLong);
+   TEST_TO_INT(2147483647, toLong);
+   TEST_TO_INT(-2147483648, toLong);
+   TEST_TO_INT(0, toLongLong);
+   TEST_TO_INT(-1, toLongLong);
+   TEST_TO_INT(1, toLongLong);
+   TEST_TO_INT(9223372036854775807, toLongLong);
+   TEST_TO_INT(-9223372036854775807, toLongLong);
+#undef TEST_TO_INT
+   
+#if defined (PDK_OS_WIN) && defined (PDK_CC_MSVC)
+#define TEST_TO_UINT(num, func) \
+   str = Latin1String(#num); \
+   ASSERT_TRUE(str.func(&ok) == num ## i64 && ok) << "Failed: num=" #num ", func=" #func
+#else
+#define TEST_TO_UINT(num, func) \
+   str = Latin1String(#num); \
+   ASSERT_TRUE(str.func(&ok) == num ## ULL && ok) << "Failed: num=" #num ", func=" #func
+#endif
+   
+   TEST_TO_UINT(0, toUInt);
+   TEST_TO_UINT(1, toUInt);
+   TEST_TO_UINT(4294967295, toUInt);
+   
+   TEST_TO_UINT(0, toUShort);
+   TEST_TO_UINT(1, toUShort);
+   TEST_TO_UINT(65535, toUShort);
+   
+   TEST_TO_UINT(0, toULong);
+   TEST_TO_UINT(1, toULong);
+   TEST_TO_UINT(4294967295, toULong);
+   
+   TEST_TO_UINT(0, toULongLong);
+   TEST_TO_UINT(1, toULongLong);
+   TEST_TO_UINT(18446744073709551615, toULongLong);
+#undef TEST_TO_UINT
+   
+#define TEST_BASE(str1, base, num) \
+   str = Latin1String(str1); \
+   ASSERT_TRUE(str.toInt(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toInt"; \
+   ASSERT_TRUE(str.toUInt(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toUInt"; \
+   ASSERT_TRUE(str.toShort(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toShort"; \
+   ASSERT_TRUE(str.toUShort(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toUShort"; \
+   ASSERT_TRUE(str.toLong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toLong"; \
+   ASSERT_TRUE(str.toULong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toULong"; \
+   ASSERT_TRUE(str.toLongLong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toLongLong"; \
+   ASSERT_TRUE(str.toULongLong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toULongLong"
+   TEST_BASE("FF", 16, 255);
+   TEST_BASE("0xFF", 16, 255);
+   TEST_BASE("77", 8, 63);
+   TEST_BASE("077", 8, 63);
+   
+   TEST_BASE("0xFF", 0, 255);
+   TEST_BASE("077", 0, 63);
+   TEST_BASE("255", 0, 255);
+   
+   TEST_BASE(" FF", 16, 255);
+   TEST_BASE(" 0xFF", 16, 255);
+   TEST_BASE(" 77", 8, 63);
+   TEST_BASE(" 077", 8, 63);
+   
+   TEST_BASE(" 0xFF", 0, 255);
+   TEST_BASE(" 077", 0, 63);
+   TEST_BASE(" 255", 0, 255);
+   
+   TEST_BASE("\tFF\t", 16, 255);
+   TEST_BASE("\t0xFF  ", 16, 255);
+   TEST_BASE("   77   ", 8, 63);
+   TEST_BASE("77  ", 8, 63);
+   
+#define TEST_NEG_BASE(str1, base, num) \
+   str = Latin1String(str1); \
+   ASSERT_TRUE(str.toInt(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toInt"; \
+   ASSERT_TRUE(str.toShort(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toShort"; \
+   ASSERT_TRUE(str.toLong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toLong"; \
+   ASSERT_TRUE(str.toLongLong(&ok, base) == num && ok) << "Failed: str=" #str1 " base= "#base " num=" #num ", func=toLongLong"
+   
+   TEST_NEG_BASE("-FE", 16, -254);
+   TEST_NEG_BASE("-0xFE", 16, -254);
+   TEST_NEG_BASE("-77", 8, -63);
+   TEST_NEG_BASE("-077", 8, -63);
+   
+   TEST_NEG_BASE("-0xFE", 0, -254);
+   TEST_NEG_BASE("-077", 0, -63);
+   TEST_NEG_BASE("-254", 0, -254);
+   
+#undef TEST_NEG_BASE
+   
+#define TEST_DOUBLE(num, str1) \
+   str = Latin1String(str1); \
+   ASSERT_EQ(str.toDouble(&ok), num); \
+   ASSERT_TRUE(ok)
+   
+   TEST_DOUBLE(1.2345, "1.2345");
+   TEST_DOUBLE(12.345, "1.2345e+01");
+   TEST_DOUBLE(12.345, "1.2345E+01");
+   TEST_DOUBLE(12345.6, "12345.6");
+   
+#undef TEST_DOUBLE
+#define TEST_BAD(str1, func) \
+   str = Latin1String(str1); \
+   str.func(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1 " func=" #func
+   
+   TEST_BAD("32768", toShort);
+   TEST_BAD("-32769", toShort);
+   TEST_BAD("65536", toUShort);
+   TEST_BAD("2147483648", toInt);
+   TEST_BAD("-2147483649", toInt);
+   TEST_BAD("4294967296", toUInt);
+   if (sizeof(long) == 4) {
+      TEST_BAD("2147483648", toLong);
+      TEST_BAD("-2147483649", toLong);
+      TEST_BAD("4294967296", toULong);
+   }
+   TEST_BAD("9223372036854775808", toLongLong);
+   TEST_BAD("-9223372036854775809", toLongLong);
+   TEST_BAD("18446744073709551616", toULongLong);
+   TEST_BAD("-1", toUShort);
+   TEST_BAD("-1", toUInt);
+   TEST_BAD("-1", toULong);
+   TEST_BAD("-1", toULongLong);
+#undef TEST_BAD
+   
+#define TEST_BAD_ALL(str1) \
+   str = Latin1String(str1); \
+   str.toShort(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toUShort(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toInt(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toUInt(&ok); \
+   ASSERT_TRUE(!ok) <<  "Failed: str=" #str1; \
+   str.toLong(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toULong(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toLongLong(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toULongLong(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toFloat(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1; \
+   str.toDouble(&ok); \
+   ASSERT_TRUE(!ok) << "Failed: str=" #str1
+   
+   TEST_BAD_ALL((const char*)0);
+   TEST_BAD_ALL("");
+   TEST_BAD_ALL(" ");
+   TEST_BAD_ALL(".");
+   TEST_BAD_ALL("-");
+   TEST_BAD_ALL("hello");
+   TEST_BAD_ALL("1.2.3");
+   TEST_BAD_ALL("0x0x0x");
+   TEST_BAD_ALL("123-^~<");
+   TEST_BAD_ALL("123ThisIsNotANumber");
+   
+#undef TEST_BAD_ALL
+   str = Latin1String("FF");
+   str.toULongLong(&ok, 10);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("FF");
+   str.toULongLong(&ok, 0);
+   ASSERT_TRUE(!ok);
+#ifdef PDK_NO_FPU
+   double d = 3.40282346638528e+38; // slightly off FLT_MAX when using hardfloats
+#else
+   double d = 3.4028234663852886e+38; // FLT_MAX
+#endif
+   String::number(d, 'e', 17).toFloat(&ok);
+   ASSERT_TRUE(ok);
+   String::number(d + 1e32, 'e', 17).toFloat(&ok);
+   ASSERT_TRUE(!ok);
+   String::number(-d, 'e', 17).toFloat(&ok);
+   ASSERT_TRUE(ok);
+   String::number(-d - 1e32, 'e', 17).toFloat(&ok);
+   ASSERT_TRUE(!ok);
+   String::number(d + 1e32, 'e', 17).toDouble(&ok);
+   ASSERT_TRUE(ok);
+   String::number(-d - 1e32, 'e', 17).toDouble(&ok);
+   ASSERT_TRUE(ok);
+}
 
