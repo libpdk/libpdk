@@ -1255,11 +1255,11 @@ TEST(StringTest, testIndexOf)
             ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1().getRawData()), startpos), resultPos);
          }
          if (startpos == 0) {
-            ASSERT_EQ( haystack.indexOf(needle), resultPos);
-            ASSERT_EQ( haystack.indexOf(ref), resultPos);
+            ASSERT_EQ(haystack.indexOf(needle), resultPos);
+            ASSERT_EQ(haystack.indexOf(ref), resultPos);
             if (needleIsLatin) {
-               ASSERT_EQ( haystack.indexOf(Latin1String(needle.toLatin1())), resultPos);
-               ASSERT_EQ( haystack.indexOf(Latin1String(needle.toLatin1().getRawData())), resultPos);
+               ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1())), resultPos);
+               ASSERT_EQ(haystack.indexOf(Latin1String(needle.toLatin1().getRawData())), resultPos);
             }
          }
       }
@@ -2798,4 +2798,405 @@ TEST(StringTest, testToNum)
    String::number(-d - 1e32, 'e', 17).toDouble(&ok);
    ASSERT_TRUE(ok);
 }
+
+TEST(StringTest, testToUShort)
+{
+   String str;
+   bool ok;
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("COMPARE");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("123");
+   ASSERT_EQ(str.toUShort(),(ushort)123);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)123);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("123A");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("1234567");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa123aaa");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa123");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("123aaa");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("32767");
+   ASSERT_EQ(str.toUShort(),(ushort)32767);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)32767);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("-32767");
+   ASSERT_EQ(str.toUShort(),(ushort)0);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("65535");
+   ASSERT_EQ(str.toUShort(),(ushort)65535);
+   ASSERT_EQ(str.toUShort(&ok),(ushort)65535);
+   ASSERT_TRUE(ok);
+   
+   if (sizeof(short) == 2) {
+      str = Latin1String("65536");
+      ASSERT_EQ(str.toUShort(),(ushort)0);
+      ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+      ASSERT_TRUE(!ok);
+      
+      str = Latin1String("123456");
+      ASSERT_EQ(str.toUShort(),(ushort)0);
+      ASSERT_EQ(str.toUShort(&ok),(ushort)0);
+      ASSERT_TRUE(!ok);
+   }
+}
+
+TEST(StringTest, testToShort)
+{
+   String str;
+   bool ok;
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("COMPARE");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("123");
+   ASSERT_EQ(str.toShort(),(short)123);
+   ASSERT_EQ(str.toShort(&ok),(short)123);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("123A");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("1234567");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa123aaa");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa123");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("123aaa");
+   ASSERT_EQ(str.toShort(),(short)0);
+   ASSERT_EQ(str.toShort(&ok),(short)0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("32767");
+   ASSERT_EQ(str.toShort(),(short)32767);
+   ASSERT_EQ(str.toShort(&ok),(short)32767);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("-32767");
+   ASSERT_EQ(str.toShort(),(short)-32767);
+   ASSERT_EQ(str.toShort(&ok),(short)-32767);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("-32768");
+   ASSERT_EQ(str.toShort(),(short)-32768);
+   ASSERT_EQ(str.toShort(&ok),(short)-32768);
+   ASSERT_TRUE(ok);
+   
+   if (sizeof(short) == 2) {
+      str = Latin1String("32768");
+      ASSERT_EQ(str.toShort(),(short)0);
+      ASSERT_EQ(str.toShort(&ok),(short)0);
+      ASSERT_TRUE(!ok);
+      
+      str = Latin1String("-32769");
+      ASSERT_EQ(str.toShort(),(short)0);
+      ASSERT_EQ(str.toShort(&ok),(short)0);
+      ASSERT_TRUE(!ok);
+   }
+}
+
+TEST(StringTest, testToInt)
+{
+   String str;
+   bool ok;
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("COMPARE");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("123");
+   ASSERT_EQ(str.toInt(),123);
+   ASSERT_EQ(str.toInt(&ok),123);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("123A");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("1234567");
+   ASSERT_EQ(str.toInt(),1234567);
+   ASSERT_EQ(str.toInt(&ok),1234567);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("12345678901234");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("3234567890");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa12345aaa");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaa12345");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("12345aaa");
+   ASSERT_EQ(str.toInt(),0);
+   ASSERT_EQ(str.toInt(&ok),0);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("2147483647"); // 2**31 - 1
+   ASSERT_EQ(str.toInt(),2147483647);
+   ASSERT_EQ(str.toInt(&ok),2147483647);
+   ASSERT_TRUE(ok);
+   
+   if (sizeof(int) == 4) {
+      str = Latin1String("-2147483647"); // -(2**31 - 1)
+      ASSERT_EQ(str.toInt(),-2147483647);
+      ASSERT_EQ(str.toInt(&ok),-2147483647);
+      ASSERT_TRUE(ok);
+      
+      str = Latin1String("2147483648"); // 2**31
+      ASSERT_EQ(str.toInt(),0);
+      ASSERT_EQ(str.toInt(&ok),0);
+      ASSERT_TRUE(!ok);
+      
+      str = Latin1String("-2147483648"); // -2**31
+      ASSERT_EQ(str.toInt(),-2147483647 - 1);
+      ASSERT_EQ(str.toInt(&ok),-2147483647 - 1);
+      ASSERT_TRUE(ok);
+      
+      str = Latin1String("2147483649"); // 2**31 + 1
+      ASSERT_EQ(str.toInt(),0);
+      ASSERT_EQ(str.toInt(&ok),0);
+      ASSERT_TRUE(!ok);
+   }
+}
+
+TEST(StringTest, testToUInt)
+{
+   bool ok;
+   String str;
+   str = Latin1String("3234567890");
+   ASSERT_EQ(str.toUInt(&ok),3234567890u);
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("-50");
+   ASSERT_EQ(str.toUInt(),0u);
+   ASSERT_EQ(str.toUInt(&ok),0u);
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("4294967295"); // 2**32 - 1
+   ASSERT_EQ(str.toUInt(),4294967295u);
+   ASSERT_EQ(str.toUInt(&ok),4294967295u);
+   ASSERT_TRUE(ok);
+   
+   if (sizeof(int) == 4) {
+      str = Latin1String("4294967296"); // 2**32
+      ASSERT_EQ(str.toUInt(),0u);
+      ASSERT_EQ(str.toUInt(&ok),0u);
+      ASSERT_TRUE(!ok);
+   }
+}
+
+namespace {
+
+void to_ulong_data(std::list<std::tuple<String, int, ulong, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(), 10, 0UL, false));
+   data.push_back(std::make_tuple(String(Latin1String("")), 10, 0UL, false));
+   data.push_back(std::make_tuple(String(Latin1String("3234567890")), 10, 3234567890UL, true));
+   data.push_back(std::make_tuple(String(Latin1String("fFFfFfFf")), 16, 0xFFFFFFFFUL, true));
+}
+
+void to_long_data(std::list<std::tuple<String, int, long, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(), 10, 0L, false));
+   data.push_back(std::make_tuple(String(Latin1String("")), 10, 0L, false));
+   data.push_back(std::make_tuple(String(Latin1String("7fFFfFFf")), 16, 0x7fFFfFFfL, true));
+   data.push_back(std::make_tuple(String(Latin1String("2147483647")), 10, 2147483647L, true));
+   if (sizeof(long) == 4) {
+      data.push_back(std::make_tuple(String(Latin1String("2147483648")), 10, 0L, false));
+      data.push_back(std::make_tuple(String(Latin1String("-80000001")), 16, 0L, false));
+   }
+   data.push_back(std::make_tuple(String(Latin1String("-7fffffff")), 16, -0x7fffffffL, true));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testToULong)
+{
+   using DataType = std::list<std::tuple<String, int, ulong, bool>>;
+   DataType data;
+   to_ulong_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String str = std::get<0>(item);
+      int base = std::get<1>(item);
+      ulong result = std::get<2>(item);
+      bool ok = std::get<3>(item);
+      bool b;
+      ASSERT_EQ(str.toULong(0, base), result);
+      ASSERT_EQ(str.toULong(&b, base), result);
+      ASSERT_EQ(b, ok);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testToLong)
+{
+   using DataType = std::list<std::tuple<String, int, long, bool>>;
+   DataType data;
+   to_long_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String str = std::get<0>(item);
+      int base = std::get<1>(item);
+      long result = std::get<2>(item);
+      bool ok = std::get<3>(item);
+      bool b;
+      ASSERT_EQ(str.toLong(0, base), result);
+      ASSERT_EQ(str.toLong(&b, base), result);
+      ASSERT_EQ(b, ok);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testToULongLong)
+{
+   String str;
+   bool ok;
+   str = Latin1String("18446744073709551615"); // ULLONG_MAX
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(18446744073709551615) );
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(18446744073709551615) );
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("18446744073709551616"); // ULLONG_MAX + 1
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0) );
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0) );
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("-150");
+   ASSERT_EQ(str.toULongLong(0), PDK_UINT64_C(0) );
+   ASSERT_EQ(str.toULongLong(&ok), PDK_UINT64_C(0) );
+   ASSERT_TRUE(!ok);
+}
+
+TEST(StringTest, testToLongLong)
+{
+   String str;
+   bool ok;
+   
+   str = Latin1String("9223372036854775807"); // LLONG_MAX
+   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(9223372036854775807) );
+   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(9223372036854775807) );
+   ASSERT_TRUE( ok );
+   
+   str = Latin1String("-9223372036854775808"); // LLONG_MIN
+   ASSERT_EQ(str.toLongLong(0),
+             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1) );
+   ASSERT_EQ(str.toLongLong(&ok),
+             -PDK_INT64_C(9223372036854775807) - PDK_INT64_C(1) );
+   ASSERT_TRUE(ok);
+   
+   str = Latin1String("aaaa9223372036854775807aaaa");
+   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(0));
+   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(0));
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("9223372036854775807aaaa");
+   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(0));
+   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(0));
+   ASSERT_TRUE(!ok);
+   
+   str = Latin1String("aaaa9223372036854775807");
+   ASSERT_EQ(str.toLongLong(0), PDK_INT64_C(0));
+   ASSERT_EQ(str.toLongLong(&ok), PDK_INT64_C(0));
+   ASSERT_TRUE(!ok);
+   
+   static char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+   
+   for (int i = 0; i < 36; ++i) {
+      for (int j = 0; j < 36; ++j) {
+         for (int k = 0; k < 36; ++k) {
+            String str;
+            str += Character(digits[i]);
+            str += Character(digits[j]);
+            str += Character(digits[k]);
+            pdk::plonglong value = (((i * 36) + j) * 36) + k;
+            ASSERT_TRUE(str.toLongLong(0, 36) == value);
+         }
+      }
+   }
+}
+
+
 
