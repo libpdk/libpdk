@@ -938,53 +938,6 @@ TEST(StringTest, testConstructor)
    ASSERT_TRUE(empty.isEmpty());
 }
 
-//namespace {
-
-//void constructor_bytearray_data(std::list<std::tuple<ByteArray, String>> &data)
-//{
-//   ByteArray ba(4, 0);
-//   ba[0] = 'C';
-//   ba[1] = 'O';
-//   ba[2] = 'M';
-//   ba[3] = 'P';
-//   data.push_back(std::make_tuple(ba, String(Latin1String("COMP"))));
-
-//   ByteArray ba1( 7, 0 );
-//   ba1[0] = 'a';
-//   ba1[1] = 'b';
-//   ba1[2] = 'c';
-//   ba1[3] = '\0';
-//   ba1[4] = 'd';
-//   ba1[5] = 'e';
-//   ba1[6] = 'f';
-//   data.push_back(std::make_tuple(ba1, String(Latin1String("abc"))));
-//   data.push_back(std::make_tuple(ByteArray::fromRawData("abcd", 3), String(Latin1String("abc"))));
-//   data.push_back(std::make_tuple(ByteArray("\xc3\xa9"), String(Latin1String("\xc3\xa9"))));
-//   data.push_back(std::make_tuple(ByteArray("\xc3\xa9"), String::fromUtf8("\xc3\xa9")));
-//}
-
-//} // anonymous namespace
-
-//TEST(StringTest, testConstructorFromByteArray)
-//{
-//   using DataType = std::list<std::tuple<ByteArray, String>>;
-//   DataType data;
-//   constructor_bytearray_data(data);
-//   DataType::iterator iter = data.begin();
-//   DataType::iterator end = data.end();
-//   while (iter != end) {
-//      auto item = *iter;
-//      ByteArray src = std::get<0>(item);
-//      String expected = std::get<1>(item);
-//      String str1(String::fromLatin1(src));
-//      ASSERT_EQ(str1.length(), expected.length());
-//      ASSERT_EQ(str1, expected);      
-//      String strBA(String::fromLatin1(src));
-//      ASSERT_EQ(strBA, expected);
-//      ++iter;
-//   }
-//}
-
 TEST(StringTest, testSTL)
 {
    std::string stdstr( "String" );
@@ -1067,7 +1020,7 @@ TEST(StringTest, testFill)
 TEST(StringTest, testAsprintf)
 {
    ASSERT_EQ(String::asprintf("COMPARE"), Latin1String("COMPARE"));
-   ASSERT_EQ(String::asprintf("%%%d", 1), Latin1String(Latin1String("%1")));
+   ASSERT_EQ(String::asprintf("%%%d", 1), Latin1String("%1"));
    ASSERT_EQ(String::asprintf("X%dY", 2), Latin1String("X2Y"));
    ASSERT_EQ(String::asprintf("X%9iY", 50000), Latin1String("X    50000Y"));
    ASSERT_EQ(String::asprintf("X%-9sY", "hello"), Latin1String("Xhello    Y"));
@@ -4272,8 +4225,8 @@ TEST(StringTest, testArg)
              Latin1String("alpha% %x%cbeta %dbeta-%"));
    ASSERT_EQ(s13.arg(Latin1String("alpha"), Latin1String("beta")), Latin1String("alpha% %x%cbeta %dbeta-%"));
    ASSERT_EQ(s14.arg(Latin1String("a"), Latin1String("b"), Latin1String("c")), Latin1String("abc"));
-   ASSERT_EQ(s8.arg(Latin1String(Latin1String("%1"))).arg(Latin1String("foo")), Latin1String("[foo foo]"));
-   ASSERT_EQ(s8.arg(Latin1String(Latin1String("%1")), Latin1String("foo")), Latin1String("[%1 foo]"));
+   ASSERT_EQ(s8.arg(Latin1String("%1")).arg(Latin1String("foo")), Latin1String("[foo foo]"));
+   ASSERT_EQ(s8.arg(Latin1String("%1"), Latin1String("foo")), Latin1String("[%1 foo]"));
    ASSERT_EQ(s4.arg(Latin1String("foo"), 2), Latin1String("[foo]"));
    ASSERT_EQ(s4.arg(Latin1String("foo"), -2), Latin1String("[foo]"));
    ASSERT_EQ(s4.arg(Latin1String("foo"), 10), Latin1String("[       foo]"));
@@ -4299,13 +4252,13 @@ TEST(StringTest, testArg)
    ASSERT_EQ(String(Latin1String("%%%")).arg(0), Latin1String("%%%"));
    ASSERT_EQ(String(Latin1String("%%%1%%%2")).arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("%%foo%%bar"));
    
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), -10), Latin1String("hello     "));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), -5), Latin1String("hello"));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(StringViewLiteral("hello"), -2), Latin1String("hello"));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 0), Latin1String("hello"));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 2), Latin1String("hello"));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(StringViewLiteral("hello"), 5), Latin1String("hello"));
-   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 10), Latin1String("     hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(Latin1String("hello"), -10), Latin1String("hello     "));
+   ASSERT_EQ(String(Latin1String("%1")).arg(Latin1String("hello"), -5), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(StringViewLiteral("hello"), -2), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(Latin1String("hello"), 0), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(Latin1String("hello"), 2), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(StringViewLiteral("hello"), 5), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(Latin1String("hello"), 10), Latin1String("     hello"));
    ASSERT_EQ(String(Latin1String("%1%1")).arg(Latin1String("hello")), Latin1String("hellohello"));
    ASSERT_EQ(String(Latin1String("%2%1")).arg(Latin1String("hello")), Latin1String("%2hello"));
    ASSERT_EQ(String(Latin1String("%2%1")).arg(Latin1String("")), Latin1String("%2"));
@@ -4617,5 +4570,149 @@ TEST(StringTest, testOperatorEqeqNullstring)
    
    ASSERT_TRUE(String() == String(Latin1String("")));
    ASSERT_TRUE(String(Latin1String("")) == String());
+}
+
+TEST(StringTest, testOperatorSmaller)
+{
+    String null;
+    String empty(Latin1String(""));
+    String foo(Latin1String("foo"));
+    const char *nullC = nullptr;
+    const char *emptyC = "";
+
+    ASSERT_TRUE(!(null < String()));
+    ASSERT_TRUE(!(null > String()));
+
+    ASSERT_TRUE(!(empty < String(Latin1String(""))));
+    ASSERT_TRUE(!(empty > String(Latin1String(""))));
+
+    ASSERT_TRUE(!(null < empty));
+    ASSERT_TRUE(!(null > empty));
+
+    ASSERT_TRUE(!(Latin1String(nullC) < empty));
+    ASSERT_TRUE(!(Latin1String(nullC) > empty));
+
+    ASSERT_TRUE(!(null < Latin1String(emptyC)));
+    ASSERT_TRUE(!(null > Latin1String(emptyC)));
+
+    ASSERT_TRUE(null < foo );
+    ASSERT_TRUE(!(null > foo));
+    ASSERT_TRUE(foo > null );
+    ASSERT_TRUE(!(foo < null));
+
+    ASSERT_TRUE(empty < foo );
+    ASSERT_TRUE(!(empty > foo));
+    ASSERT_TRUE(foo > empty );
+    ASSERT_TRUE(!(foo < empty));
+
+    ASSERT_TRUE(!(null < Latin1String(0)));
+    ASSERT_TRUE(!(null > Latin1String(0)));
+    ASSERT_TRUE(!(null < Latin1String("")));
+    ASSERT_TRUE(!(null > Latin1String("")));
+
+    ASSERT_TRUE(!(null < Latin1String("")));
+    ASSERT_TRUE(!(null > Latin1String("")));
+    ASSERT_TRUE(!(empty < Latin1String("")));
+    ASSERT_TRUE(!(empty > Latin1String("")));
+
+    ASSERT_TRUE(!(Latin1String(0) < null));
+    ASSERT_TRUE(!(Latin1String(0) > null));
+    ASSERT_TRUE(!(Latin1String("") < null));
+    ASSERT_TRUE(!(Latin1String("") > null));
+
+    ASSERT_TRUE(!(Latin1String(0) < empty));
+    ASSERT_TRUE(!(Latin1String(0) > empty));
+    ASSERT_TRUE(!(Latin1String("") < empty));
+    ASSERT_TRUE(!(Latin1String("") > empty));
+
+    ASSERT_TRUE(Latin1String(0) < foo );
+    ASSERT_TRUE(!(Latin1String(0) > foo));
+    ASSERT_TRUE(Latin1String("") < foo );
+    ASSERT_TRUE(!(Latin1String("") > foo));
+
+    ASSERT_TRUE(foo > Latin1String(0));
+    ASSERT_TRUE(!(foo < Latin1String(0)));
+    ASSERT_TRUE(foo > Latin1String(""));
+    ASSERT_TRUE(!(foo < Latin1String("")));
+
+    ASSERT_TRUE(Latin1String(0) == empty);
+    ASSERT_TRUE(Latin1String(0) == null);
+    ASSERT_TRUE(Latin1String("") == empty);
+    ASSERT_TRUE(Latin1String("") == null);
+
+    ASSERT_TRUE(!(foo < Latin1String("foo")));
+    ASSERT_TRUE(!(foo > Latin1String("foo")));
+    ASSERT_TRUE(!(Latin1String("foo") < foo));
+    ASSERT_TRUE(!(Latin1String("foo") > foo));
+
+    ASSERT_TRUE(!(foo < Latin1String("a")));
+    ASSERT_TRUE((foo > Latin1String("a")));
+    ASSERT_TRUE((Latin1String("a") < foo));
+    ASSERT_TRUE(!(Latin1String("a") > foo));
+
+    ASSERT_TRUE((foo < Latin1String("z")));
+    ASSERT_TRUE(!(foo > Latin1String("z")));
+    ASSERT_TRUE(!(Latin1String("z") < foo));
+    ASSERT_TRUE((Latin1String("z") > foo));
+
+    // operator< is not locale-aware (or shouldn't be)
+    ASSERT_TRUE(foo < String(Latin1String("\xc3\xa9")));
+    ASSERT_TRUE(foo < Latin1String("\xc3\xa9"));
+
+    ASSERT_TRUE(String(Latin1String("a")) < String(Latin1String("b")));
+    ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("b")));
+    ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("a")));
+    ASSERT_TRUE(String(Latin1String("a")) == String(Latin1String("a")));
+    ASSERT_TRUE(String(Latin1String("a")) >= String(Latin1String("a")));
+    ASSERT_TRUE(String(Latin1String("b")) >= String(Latin1String("a")));
+    ASSERT_TRUE(String(Latin1String("b")) > String(Latin1String("a")));
+
+    ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
+    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
+    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
+
+    ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
+    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
+    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
+
+    ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
+    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
+    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
+    ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
+
+    ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
+    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
+    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
+    ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
+
+    ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
+    ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
+    ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
+    ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
+
+    ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
+    ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
+    ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
+    ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
+    ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
 }
 
