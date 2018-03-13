@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <tuple>
+#include <cmath>
 
 using pdk::lang::String;
 using pdk::lang::StringRef;
@@ -5207,6 +5208,235 @@ TEST(StringTest, testSplitRef)
       String sep = std::get<1>(item);
       StringList result = std::get<2>(item);
       test_split<std::vector<StringRef>>(str, sep, result);
+      ++iter;
+   }
+}
+
+namespace {
+void from_utf16_data(std::list<std::tuple<String, String, int>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("abcdefgh")), String(Latin1String("abcdefgh")), -1));
+   data.push_back(std::make_tuple(String(Latin1String("abcdefgh")), String(Latin1String("abc")), 3));
+}
+}
+
+TEST(StringTest, testFromUtf16)
+{
+   using DataType = std::list<std::tuple<String, String, int>>;
+   DataType data;
+   from_utf16_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String ucs2 = std::get<0>(item);
+      String res = std::get<1>(item);
+      int len = std::get<2>(item);
+      ASSERT_EQ(String::fromUtf16(ucs2.utf16(), len), res);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testUnicodeStrings)
+{
+    String s1, s2;
+    static const std::u16string u16str1(u"Hello Unicode World");
+    static const std::u32string u32str1(U"Hello Unicode World");
+    s1 = String::fromStdU16String(u16str1);
+    s2 = String::fromStdU32String(u32str1);
+    ASSERT_EQ(s1, String(Latin1String("Hello Unicode World")));
+    ASSERT_EQ(s1, s2);
+
+    ASSERT_EQ(s2.toStdU16String(), u16str1);
+    ASSERT_EQ(s1.toStdU32String(), u32str1);
+
+    s1 = String::fromStdU32String(std::u32string(U"\u221212\U000020AC\U00010000"));
+    ASSERT_EQ(s1, String::fromUtf8("\342\210\222" "12" "\342\202\254" "\360\220\200\200"));
+}
+
+TEST(StringTest, testLatin1String)
+{
+   String s(Latin1String("Hello"));
+   
+   ASSERT_TRUE(s == Latin1String("Hello"));
+   ASSERT_TRUE(s != Latin1String("Hello World"));
+   ASSERT_TRUE(s < Latin1String("Helloa"));
+   ASSERT_TRUE(!(s > Latin1String("Helloa")));
+   ASSERT_TRUE(s > Latin1String("Helln"));
+   ASSERT_TRUE(s > Latin1String("Hell"));
+   ASSERT_TRUE(!(s < Latin1String("Helln")));
+   ASSERT_TRUE(!(s < Latin1String("Hell")));
+}
+
+TEST(StringTest, nanAndInf)
+{
+   bool ok;
+   double d;
+   
+#define CHECK_DOUBLE(str, expected_ok, expected_inf) \
+   d = String(Latin1String(str)).toDouble(&ok); \
+   ASSERT_TRUE(ok == expected_ok); \
+   ASSERT_TRUE(std::isinf(d) == expected_inf)
+   
+   CHECK_DOUBLE("inf", true, true);
+   CHECK_DOUBLE("INF", true, true);
+   CHECK_DOUBLE("inf  ", true, true);
+   CHECK_DOUBLE("+inf", true, true);
+   CHECK_DOUBLE("\t +INF", true, true);
+   CHECK_DOUBLE("\t INF", true, true);
+   CHECK_DOUBLE("inF  ", true, true);
+   CHECK_DOUBLE("+iNf", true, true);
+   CHECK_DOUBLE("INFe-10", false, false);
+   CHECK_DOUBLE("0xINF", false, false);
+   CHECK_DOUBLE("- INF", false, false);
+   CHECK_DOUBLE("+ INF", false, false);
+   CHECK_DOUBLE("-- INF", false, false);
+   CHECK_DOUBLE("inf0", false, false);
+   CHECK_DOUBLE("--INF", false, false);
+   CHECK_DOUBLE("++INF", false, false);
+   CHECK_DOUBLE("INF++", false, false);
+   CHECK_DOUBLE("INF--", false, false);
+   CHECK_DOUBLE("INF +", false, false);
+   CHECK_DOUBLE("INF -", false, false);
+   CHECK_DOUBLE("0INF", false, false);
+#undef CHECK_INF
+   
+#define CHECK_NAN(str, expected_ok, expected_nan) \
+   d = String(Latin1String(str)).toDouble(&ok); \
+   ASSERT_TRUE(ok == expected_ok); \
+   ASSERT_TRUE(std::isnan(d) == expected_nan)
+   
+   CHECK_NAN("nan", true, true);
+   CHECK_NAN("NAN", true, true);
+   CHECK_NAN("nan  ", true, true);
+   CHECK_NAN("\t NAN", true, true);
+   CHECK_NAN("\t NAN  ", true, true);
+   CHECK_NAN("-nan", false, false);
+   CHECK_NAN("+NAN", false, false);
+   CHECK_NAN("NaN", true, true);
+   CHECK_NAN("nAn", true, true);
+   CHECK_NAN("NANe-10", false, false);
+   CHECK_NAN("0xNAN", false, false);
+   CHECK_NAN("0NAN", false, false);
+#undef CHECK_NAN
+   
+   d = String(Latin1String("-INF")).toDouble(&ok);
+   ASSERT_TRUE(ok);
+   ASSERT_TRUE(d == -INFINITY);
+   
+   String(Latin1String("INF")).toLong(&ok);
+   ASSERT_TRUE(!ok);
+   
+   String(Latin1String("INF")).toLong(&ok, 36);
+   ASSERT_TRUE(ok);
+   
+   String(Latin1String("INF0")).toLong(&ok, 36);
+   ASSERT_TRUE(ok);
+   
+   String(Latin1String("0INF0")).toLong(&ok, 36);
+   ASSERT_TRUE(ok);
+   
+   // Check that inf (float) => "inf" (String) => inf (float).
+   float value = INFINITY;
+   String valueAsString = String::number(value);
+   ASSERT_EQ(valueAsString, String::fromLatin1("inf"));
+   float valueFromString = valueAsString.toFloat();
+   ASSERT_TRUE(std::isinf(valueFromString));
+   
+   // Check that -inf (float) => "-inf" (String) => -inf (float).
+   value = -INFINITY;
+   valueAsString = String::number(value);
+   ASSERT_EQ(valueAsString, String::fromLatin1("-inf"));
+   valueFromString = valueAsString.toFloat();
+   ASSERT_TRUE(value == -INFINITY);
+   ASSERT_TRUE(std::isinf(valueFromString));
+}
+
+using IntList = std::vector<int>;
+
+namespace {
+
+void arg_fillchar_data(std::list<std::tuple<String, std::list<std::any>, IntList, String, String>> &data)
+{
+   std::list<std::any> replaceValues;
+   IntList widths;
+   String fillChars;
+   replaceValues.push_back((int)5);
+   replaceValues.push_back(String(Latin1String("f")));
+   replaceValues.push_back((int)0);
+   widths.push_back(3);
+   widths.push_back(2);
+   widths.push_back(5);
+   
+   data.push_back(std::make_tuple(String(Latin1String("%1%2%3")), replaceValues, widths,String(Latin1String("abc")),
+                                  String(Latin1String("aa5bfcccc0"))));
+   replaceValues.clear();
+   widths.clear();
+   
+   replaceValues.push_back((int)5.5);
+   replaceValues.push_back(String(Latin1String("foo")));
+   replaceValues.push_back((pdk::pulonglong)INT_MAX);
+   widths.push_back(10);
+   widths.push_back(2);
+   widths.push_back(5);
+   
+   data.push_back(std::make_tuple(String(Latin1String("%3.%1.%3.%2")), replaceValues, widths,String(Latin1String("0 c")),
+                                  String(Latin1String("2147483647.0000000005.2147483647.foo"))));
+   replaceValues.clear();
+   widths.clear();
+   replaceValues.push_back(String(Latin1String("fisk")));
+   widths.push_back(100);
+   
+   data.push_back(std::make_tuple(String(Latin1String("%9 og poteter")), replaceValues, widths,String(Latin1String("f")),
+                                  String(Latin1String("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffisk og poteter"))));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testArgFillChar)
+{
+   using DataType = std::list<std::tuple<String, std::list<std::any>, IntList, String, String>>;
+   DataType data;
+   arg_fillchar_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      static const int base = 10;
+      static const char fmt = 'g';
+      static const int prec = -1;
+      String pattern = std::get<0>(item);
+      std::list<std::any> replaceValues = std::get<1>(item);
+      IntList widths = std::get<2>(item);
+      String fillChars = std::get<3>(item);
+      String expected = std::get<4>(item);
+      ASSERT_EQ(replaceValues.size(), (size_t)fillChars.size());
+      ASSERT_EQ(replaceValues.size(), (size_t)widths.size());
+      String actual = pattern;
+      auto riter = replaceValues.begin();
+      auto rend = replaceValues.end();
+      int i = 0;
+      while (riter != rend) {
+         const std::any &var = *riter;
+         const int width = widths.at(i);
+         const Character fillChar = fillChars.at(i);
+         if (var.type() == typeid(String)) {
+            actual = actual.arg(std::any_cast<String>(var), width, fillChar); 
+         } else if (var.type() == typeid(int)) {
+            actual = actual.arg(std::any_cast<int>(var), width, base, fillChar); 
+         } else if (var.type() == typeid(uint)) {
+            actual = actual.arg(std::any_cast<uint>(var), width, base, fillChar); 
+         } else if (var.type() == typeid(double)) {
+            actual = actual.arg(std::any_cast<double>(var), width, fmt, prec, fillChar); 
+         } else if (var.type() == typeid(pdk::plonglong)) {
+            actual = actual.arg(std::any_cast<pdk::plonglong>(var), width, base, fillChar); 
+         } else if (var.type() == typeid(pdk::pulonglong)) {
+            actual = actual.arg(std::any_cast<pdk::pulonglong>(var), width, base, fillChar); 
+         }
+         ++riter;
+         ++i;
+      }
+      ASSERT_EQ(actual, expected);
       ++iter;
    }
 }
