@@ -18,6 +18,7 @@
 #include "pdk/base/io/fs/Resource.h"
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/ds/ByteArrayMatcher.h"
+#include "pdk/base/ds/StringList.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
 #include "pdk/base/lang/String.h"
@@ -38,6 +39,7 @@ using pdk::lang::Character;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
 using pdk::ds::ByteArray;
+using pdk::ds::StringList;
 using pdk::lang::StringMatcher;
 using pdk::ds::ByteArrayMatcher;
 using pdk::utils::Locale;
@@ -4887,33 +4889,324 @@ TEST(StringTest, testDoubleConversion)
 
 TEST(StringTest, testTortureSprintfDouble)
 {
-    const SprintfDoubleData *data = g_sprintf_double_data;
-
-    String s;
-
-    for (; data->m_fmt != 0; ++data) {
-        double d;
-        char *buff = (char *)&d;
+   const SprintfDoubleData *data = g_sprintf_double_data;
+   
+   String s;
+   
+   for (; data->m_fmt != 0; ++data) {
+      double d;
+      char *buff = (char *)&d;
 #        ifndef PDK_BYTE_ORDER
 #            error "PDK_BYTE_ORDER not defined"
 #        endif
-
+      
 #        if PDK_BYTE_ORDER == PDK_LITTLE_ENDIAN
-        for (uint i = 0; i < 8; ++i)
-            buff[i] = data->m_bytes[i];
+      for (uint i = 0; i < 8; ++i)
+         buff[i] = data->m_bytes[i];
 #        else
-        for (uint i = 0; i < 8; ++i)
-            buff[7 - i] = data->m_bytes[i];
+      for (uint i = 0; i < 8; ++i)
+         buff[7 - i] = data->m_bytes[i];
 #        endif
-        
+      
 #ifdef PDK_NO_FPU // reduced precision when running with hardfloats in qemu
-        if (d - 0.1 < 1e12) {
-           std::printf("clib sprintf doesn't fill with 0's on this platform");
-        }
-        ASSERT_EQ(s.left(16), String(Latin1String(data->m_expected)).left(16));
+      if (d - 0.1 < 1e12) {
+         std::printf("clib sprintf doesn't fill with 0's on this platform");
+      }
+      ASSERT_EQ(s.left(16), String(Latin1String(data->m_expected)).left(16));
 #else
-        ASSERT_EQ(s.asprintf(data->m_fmt, d), String(Latin1String(data->m_expected)));
+      ASSERT_EQ(s.asprintf(data->m_fmt, d), String(Latin1String(data->m_expected)));
 #endif
-    }
+   }
 }
 
+#if !defined(PDK_OS_WIN)
+namespace {
+
+void localeaware_compare_data(std::list<std::tuple<String, String, String, int>> &data)
+{
+   /*
+           The C locale performs pure byte comparisons for
+           Latin-1-specific characters (I think). Compare with Swedish
+           below.
+       */
+   data.push_back(std::make_tuple(String(Latin1String("C")), String::fromLatin1("\xe5"), 
+                                  String::fromLatin1("\xe4"), 1));
+}
+
+} // anonymous namespace
+
+// @TODO localeAwareCompare
+TEST(StringTest, testLocaleAwareCompare)
+{
+   //   using DataType = std::list<std::tuple<String, String, String, int>>;
+   //   DataType data;
+   //   localeaware_compare_data(data);
+   //   DataType::iterator iter = data.begin();
+   //   DataType::iterator endMark = data.end();
+   
+   //   while (iter != endMark) {
+   //      auto item = *iter;
+   //      String locale = std::get<0>(item);
+   //      String s1 = std::get<1>(item);
+   //      String s2 = std::get<2>(item);
+   //      int result = std::get<3>(item);
+   //      StringRef r1(&s1, 0, s1.length());
+   //      StringRef r2(&s2, 0, s2.length());
+   //#if defined (PDK_OS_DARWIN) || defined(PDK_USE_ICU)
+   //      std::cout<< "Setting the locale is not supported on OS X or ICU (you can set the C locale, "
+   //                  "but that won't affect localeAwareCompare)";
+   //      continue;
+   //#else
+   //      if (!locale.isEmpty()) {
+   //         const char *newLocale = setlocale(LC_ALL, locale.toLatin1());
+   //         if (!newLocale) {
+   //            setlocale(LC_ALL, "");
+   //            std::cout << "Please install the proper locale on this machine to test properly";
+   //            continue;
+   //         }
+   //      }
+   //#endif
+   //#ifdef PDK_USE_ICU
+   //      // ### for c1, ICU disagrees with libc on how to compare
+   //      FAIL() << "ICU disagrees with test";
+   //#endif
+   //      int testres = String::localeAwareCompare(s1, s2);
+   //      if (result < 0) {
+   //         ASSERT_TRUE(testres < 0);
+   //      } else if (result > 0) {
+   //         ASSERT_TRUE(testres > 0);
+   //      } else {
+   //         ASSERT_TRUE(testres == 0);
+   //      }
+   
+   //      testres = String::localeAwareCompare(s2, s1);
+   //      if (result > 0) {
+   //         ASSERT_TRUE(testres < 0);
+   //      } else if (result < 0) {
+   //         ASSERT_TRUE(testres > 0);
+   //      } else {
+   //         ASSERT_TRUE(testres == 0);
+   //      }
+   
+   //      testres = String::localeAwareCompare(s1, r2);
+   //      if (result < 0) {
+   //         ASSERT_TRUE(testres < 0);
+   //      } else if (result > 0) {
+   //         ASSERT_TRUE(testres > 0);
+   //      } else {
+   //         ASSERT_TRUE(testres == 0);
+   //      }
+   
+   //      testres = StringRef::localeAwareCompare(r1, r2);
+   //      if (result < 0) {
+   //         ASSERT_TRUE(testres < 0);
+   //      } else if (result > 0) {
+   //         ASSERT_TRUE(testres > 0);
+   //      } else {
+   //         ASSERT_TRUE(testres == 0);
+   //      }
+   
+   //      testres = StringRef::localeAwareCompare(r2, r1);
+   //      if (result > 0) {
+   //         ASSERT_TRUE(testres < 0);
+   //      } else if (result < 0) {
+   //         ASSERT_TRUE(testres > 0);
+   //      } else {
+   //         ASSERT_TRUE(testres == 0);
+   //      }
+   
+   //      if (!locale.isEmpty())
+   //         setlocale(LC_ALL, "");
+   //++iter;
+   //   }
+}
+
+#endif // PDK_OS_WIN
+
+TEST(StringTest, testReverseIterators)
+{
+   String s = Latin1String("1234");
+   String sr = s;
+   std::reverse(sr.begin(), sr.end());
+   const String &csr = sr;
+   ASSERT_TRUE(std::equal(s.begin(), s.end(), sr.rbegin()));
+   ASSERT_TRUE(std::equal(s.begin(), s.end(), sr.crbegin()));
+   ASSERT_TRUE(std::equal(s.begin(), s.end(), csr.rbegin()));
+   ASSERT_TRUE(std::equal(sr.rbegin(), sr.rend(), s.begin()));
+   ASSERT_TRUE(std::equal(sr.crbegin(), sr.crend(), s.begin()));
+   ASSERT_TRUE(std::equal(csr.rbegin(), csr.rend(), s.begin()));
+}
+
+namespace {
+
+void split_data(std::list<std::tuple<String, String, StringList>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("a,b,c")), String(Latin1String(",")),
+                                  (StringList() << String(Latin1String("a"))
+                                   << String(Latin1String("b"))
+                                   << String(Latin1String("c")))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-rw-r--r--  1 0  0  519240 Jul  9  2002 bigfile")), String(Latin1String(" ")),
+                                  (StringList() << String(Latin1String("-rw-r--r--"))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("1"))
+                                   << String(Latin1String("0"))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("0"))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("519240"))
+                                   << String(Latin1String("Jul"))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("9"))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("2002"))
+                                   << String(Latin1String("bigfile")))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String(" ")),
+                                  (StringList() << String(Latin1String("")))));
+   data.push_back(std::make_tuple(String(Latin1String(" ")), String(Latin1String(" ")),
+                                  (StringList() << String(Latin1String(""))
+                                   << String(Latin1String("")))));
+   data.push_back(std::make_tuple(String(Latin1String("  ")), String(Latin1String(" ")),
+                                  (StringList() << String(Latin1String(""))
+                                   << String(Latin1String(""))
+                                   << String(Latin1String("")))));
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")),
+                                  (StringList() << String(Latin1String(""))
+                                   << String(Latin1String("")))));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("")),
+                                  (StringList() << String(Latin1String(""))
+                                   << String(Latin1String("a"))
+                                   << String(Latin1String("b"))
+                                   << String(Latin1String("c"))
+                                   << String(Latin1String("")))));
+}
+
+template<class>
+struct StringSplitWrapper;
+
+template<>
+struct StringSplitWrapper<String>
+{
+   const String &string;
+   
+   StringList split(const String &sep, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts, 
+                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const
+   {
+      return string.split(sep, behavior, cs);
+   }
+   
+   StringList split(Character sep, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts,
+                    pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const
+   {
+      return string.split(sep, behavior, cs);
+   }
+};
+
+template<>
+struct StringSplitWrapper<StringRef>
+{
+   const String &string;
+   std::vector<StringRef> split(const String &sep, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const
+   {
+      return string.splitRef(sep, behavior, cs);
+   }
+   
+   std::vector<StringRef> split(Character sep, String::SplitBehavior behavior = String::SplitBehavior::KeepEmptyParts,
+                                pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const
+   {
+      return string.splitRef(sep, behavior, cs);
+   }
+};
+
+bool operator ==(const StringList &left, const std::vector<StringRef> &right)
+{
+   if (left.size() != right.size()) {
+      return false;      
+   }      
+   StringList::const_iterator iLeft = left.cbegin();
+   std::vector<StringRef>::const_iterator iRight = right.cbegin();
+   for (; iLeft != left.end(); ++iLeft, ++iRight) {
+      if (*iLeft != *iRight) {
+         return false;
+      }
+   }
+   return true;
+}
+
+inline bool operator ==(const std::vector<StringRef> &left, const StringList &right)
+{
+   return right == left;
+}
+
+template<class List>
+void test_split(const String &string, const String &sep, StringList result)
+{
+   
+   List list;
+   StringSplitWrapper<typename List::value_type> str = {string};
+   
+   list = str.split(sep);
+   ASSERT_TRUE(list == result);
+   if (sep.size() == 1) {
+      list = str.split(sep.at(0));
+      ASSERT_TRUE(list == result);
+   }
+   
+   list = str.split(sep, String::SplitBehavior::KeepEmptyParts);
+   ASSERT_TRUE(list == result);
+   if (sep.size() == 1) {
+      list = str.split(sep.at(0), String::SplitBehavior::KeepEmptyParts);
+      ASSERT_TRUE(list == result);
+   }
+   
+   result.remove(String(Latin1String("")));
+   list = str.split(sep, String::SplitBehavior::SkipEmptyParts);
+   ASSERT_TRUE(list == result);
+   if (sep.size() == 1) {
+      list = str.split(sep.at(0), String::SplitBehavior::SkipEmptyParts);
+      ASSERT_TRUE(list == result);
+   }
+}
+
+void splitref_data(std::list<std::tuple<String, String, StringList>> &data)
+{
+    split_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testSplit)
+{
+   using DataType = std::list<std::tuple<String, String, StringList>>;
+   DataType data;
+   split_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String str = std::get<0>(item);
+      String sep = std::get<1>(item);
+      StringList result = std::get<2>(item);
+      test_split<StringList>(str, sep, result);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testSplitRef)
+{
+   using DataType = std::list<std::tuple<String, String, StringList>>;
+   DataType data;
+   split_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String str = std::get<0>(item);
+      String sep = std::get<1>(item);
+      StringList result = std::get<2>(item);
+      test_split<std::vector<StringRef>>(str, sep, result);
+      ++iter;
+   }
+}
