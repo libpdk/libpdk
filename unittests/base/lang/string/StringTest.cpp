@@ -27,6 +27,7 @@
 #include "pdk/kernel/StringUtils.h"
 #include "pdk/kernel/HashFuncs.h"
 #include "pdk/utils/Locale.h"
+#include "pdk/base/lang/StringBuilder.h"
 #include <list>
 #include <utility>
 #include <string>
@@ -40,6 +41,7 @@ using pdk::lang::StringRef;
 using pdk::lang::Character;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
+using pdk::lang::StringData;
 using pdk::ds::ByteArray;
 using pdk::ds::StringList;
 using pdk::lang::StringMatcher;
@@ -1158,13 +1160,13 @@ void indexof_data(std::list<std::tuple<String, String, int, bool, int>> &data)
    String veryBigHaystack(500, 'a');
    veryBigHaystack += 'B';
    data.push_back(std::make_tuple(veryBigHaystack, veryBigHaystack, 0, true, 0));
-   data.push_back(std::make_tuple(String(veryBigHaystack + 'c'), veryBigHaystack, 0, true, 0));
-   data.push_back(std::make_tuple(String('c' + veryBigHaystack), veryBigHaystack, 0, true, 1));
-   data.push_back(std::make_tuple(veryBigHaystack, String(veryBigHaystack + 'c'), 0, true, -1));
-   data.push_back(std::make_tuple(veryBigHaystack, String('c' + veryBigHaystack), 0, true, -1));
+   data.push_back(std::make_tuple(String(veryBigHaystack + Latin1Character('c')), veryBigHaystack, 0, true, 0));
+   data.push_back(std::make_tuple(String(Latin1Character('c') + veryBigHaystack), veryBigHaystack, 0, true, 1));
+   data.push_back(std::make_tuple(veryBigHaystack, String(veryBigHaystack + Latin1Character('c')), 0, true, -1));
+   data.push_back(std::make_tuple(veryBigHaystack, String(Latin1Character('c') + veryBigHaystack), 0, true, -1));
    
-   data.push_back(std::make_tuple(String(veryBigHaystack + 'c'), String('c' + veryBigHaystack), 0, true, -1));
-   data.push_back(std::make_tuple(String('d' + veryBigHaystack), String('c' + veryBigHaystack), 0, true, -1));
+   data.push_back(std::make_tuple(String(veryBigHaystack + Latin1Character('c')), String(Latin1Character('c') + veryBigHaystack), 0, true, -1));
+   data.push_back(std::make_tuple(String(Latin1Character('d') + veryBigHaystack), String(Latin1Character('c') + veryBigHaystack), 0, true, -1));
    
    data.push_back(std::make_tuple(veryBigHaystack, veryBigHaystack, 0, false, 0));
 }
@@ -5530,6 +5532,429 @@ TEST(StringTest, testCompare)
          ASSERT_EQ(sign(String::compare(Latin1String(s1.toLatin1()), s2)), csr);
          ASSERT_EQ(sign(String::compare(Latin1String(s1.toLatin1()), s2, pdk::CaseSensitivity::Insensitive)), cir);
       }
+      ++iter;
+   }
+}
+
+TEST(StringTest, testResize)
+{
+   String s = Latin1String("hello world");
+   s.resize(5);
+   ASSERT_EQ(s, Latin1String("hello"));
+   s.resize(8);
+   ASSERT_EQ(s.size(), 8);
+   ASSERT_TRUE(s.startsWith(Latin1String("hello")));
+   s.resize(10, Latin1Character('n'));
+   ASSERT_EQ(s.size(), 10);
+   ASSERT_TRUE(s.startsWith(Latin1String("hello")));
+   ASSERT_EQ(s.right(2), Latin1String("nn"));
+}
+
+TEST(StringTest, testResizeAfterFromRawData)
+{
+   String buffer(Latin1String("hello world"));
+   String array = String::fromRawData(buffer.getConstRawData(), buffer.size());
+   ASSERT_TRUE(array.getConstRawData() == buffer.getConstRawData());
+   array.resize(5);
+   ASSERT_TRUE(array.getConstRawData() == buffer.getConstRawData());
+}
+
+TEST(StringTest, testResizeAfterReserve)
+{
+   String s;
+   s.reserve(100);
+   s += Latin1String("hello world");
+   // resize should not affect capacity
+   s.resize(s.size());
+   ASSERT_TRUE(s.capacity() == 100);
+   // but squeeze does
+   s.squeeze();
+   ASSERT_TRUE(s.capacity() == s.size());
+   // clear does too
+   s.clear();
+   ASSERT_TRUE(s.capacity() == 0);
+   // test resize(0) border case
+   s.reserve(100);
+   s +=  Latin1String("hello world");
+   s.resize(0);
+   ASSERT_TRUE(s.capacity() == 100);
+   // reserve() can't be used to truncate data
+   s.fill('x', 100);
+   s.reserve(50);
+   ASSERT_TRUE(s.capacity() == 100);
+   ASSERT_TRUE(s.size() == 100);
+   // even with increased ref count truncation isn't allowed
+   String t = s;
+   s.reserve(50);
+   ASSERT_TRUE(s.capacity() == 100);
+   ASSERT_TRUE(s.size() == 100);
+}
+
+TEST(StringTest, testResizeWithNegative)
+{
+   {
+      String string(Latin1String("input"));
+      string.resize(-1);
+      ASSERT_EQ(string, String());
+   }
+   
+   {
+      String string(Latin1String("input"));
+      string.resize(-9099);
+      ASSERT_EQ(string, String());
+   }
+   
+   {
+      /* Example code from customer. */
+      String s(Latin1String("hola"));
+      s.reserve(1);
+      s.resize(-1);
+      ASSERT_EQ(s, String());
+   }
+}
+
+TEST(StringTest, testTruncateWithNegative)
+{
+   {
+      String string(Latin1String("input"));
+      string.truncate(-1);
+      ASSERT_EQ(string, String());
+   }
+   
+   {
+      String string(Latin1String("input"));
+      string.truncate(-9099);
+      ASSERT_EQ(string, String());
+   }
+}
+
+TEST(StringTest, testCharRefMutableUnicode)
+{
+    String str;
+    str.resize(3);
+    str[0].unicode() = 115;
+    str[1].unicode() = 116;
+    str[2].unicode() = 114;
+    ASSERT_EQ(str, String::fromLatin1("str"));
+}
+
+TEST(StringTest, testCharRefDetaching)
+{
+   {
+      String str = String::fromLatin1("str");
+      String copy;
+      copy[0] = Latin1Character('S');
+      ASSERT_EQ(str, String::fromLatin1("str"));
+   }
+   
+   {
+      ushort buf[] = { 's', 't', 'r' };
+      String str = String::fromRawData((const Character *)buf, 3);
+      str[0] = Latin1Character('S');
+      ASSERT_EQ(buf[0], ushort('s'));
+   }
+   
+   {
+      static const ushort buf[] = { 's', 't', 'r' };
+      String str = String::fromRawData((const Character *)buf, 3);
+      // this causes a crash in most systems if the detaching doesn't work
+      str[0] = Latin1Character('S');
+      ASSERT_EQ(buf[0], ushort('s'));
+   }
+}
+
+TEST(StringTest, testSprintfZU)
+{
+   {
+      String string;
+      size_t s = 6;
+      ASSERT_EQ(string.asprintf("%zu", s), String::fromLatin1("6"));
+   }
+   
+   {
+      String string;
+      ASSERT_EQ(string.asprintf("%s\n", "foo"), String::fromLatin1("foo\n"));
+   }
+   
+   {
+      /* This code crashed. I don't know how to reduce it further. In other words,
+         * both %zu and %s needs to be present. */
+      size_t s = 6;
+      String string;
+      ASSERT_EQ(string.asprintf("%zu%s", s, "foo"), String::fromLatin1("6foo"));
+   }
+   
+   {
+      size_t s = 6;
+      String string;
+      ASSERT_EQ(string.asprintf("%zu %s\n", s, "foo"), String::fromLatin1("6 foo\n"));
+   }
+}
+
+TEST(StringTest, testRepeatSignature)
+{
+   /* repated() should be a const member. */
+   const String string;
+   (void) string.repeated(3);
+}
+
+namespace {
+
+void repeated_data(std::list<std::tuple<String, String, int>> &data)
+{
+   data.push_back(std::make_tuple(String(), String(), 0));
+   data.push_back(std::make_tuple(String(), String(), -1004));
+   data.push_back(std::make_tuple(String(), String(), 1));
+   data.push_back(std::make_tuple(String(), String(), 5));
+   
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(), -1004));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(), -1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(), 0));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("abc")), 1));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("abcabc")), 2));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("abcabcabc")), 3));
+   data.push_back(std::make_tuple(String(Latin1String("abc")), String(Latin1String("abcabcabcabc")), 4));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testRepeated)
+{
+   using DataType = std::list<std::tuple<String, String, int>>;
+   DataType data;
+   repeated_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String string = std::get<0>(item);
+      String expected = std::get<1>(item);
+      int count = std::get<2>(item);
+      ASSERT_EQ(string.repeated(count), expected);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testCompareRef)
+{
+    String a = Latin1String("ABCDEFGH");
+
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(Latin1String("BC")), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(Latin1String("BCD")) < 0);
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(Latin1String("Bc"), pdk::CaseSensitivity::Insensitive), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(Latin1String("bCD"), pdk::CaseSensitivity::Insensitive) < 0);
+
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(String::fromLatin1("BC")), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(String::fromLatin1("BCD")) < 0);
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(String::fromLatin1("Bc"), pdk::CaseSensitivity::Insensitive), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(String::fromLatin1("bCD"), pdk::CaseSensitivity::Insensitive) < 0);
+
+    ASSERT_EQ(String::fromLatin1("BC").compare(StringRef(&a, 1, 2)), 0);
+    ASSERT_TRUE(String::fromLatin1("BCD").compare(StringRef(&a, 1, 2)) > 0);
+    ASSERT_EQ(String::fromLatin1("Bc").compare(StringRef(&a, 1, 2), pdk::CaseSensitivity::Insensitive), 0);
+    ASSERT_TRUE(String::fromLatin1("bCD").compare(StringRef(&a, 1, 2), pdk::CaseSensitivity::Insensitive) > 0);
+
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(StringRef(&a, 1, 2)), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(StringRef(&a, 1, 3)) < 0);
+    ASSERT_EQ(StringRef(&a, 1, 2).compare(StringRef(&a, 1, 2), pdk::CaseSensitivity::Insensitive), 0);
+    ASSERT_TRUE(StringRef(&a, 1, 2).compare(StringRef(&a, 1, 3), pdk::CaseSensitivity::Insensitive) < 0);
+
+    String a2 = Latin1String("ABCDEFGh");
+    ASSERT_EQ(StringRef(&a2, 1, 2).compare(StringRef(&a, 1, 2)), 0);
+    ASSERT_TRUE(StringRef(&a2, 1, 2).compare(StringRef(&a, 1, 3)) < 0);
+    ASSERT_EQ(StringRef(&a2, 1, 2).compare(StringRef(&a, 1, 2), pdk::CaseSensitivity::Insensitive), 0);
+    ASSERT_TRUE(StringRef(&a2, 1, 2).compare(StringRef(&a, 1, 3), pdk::CaseSensitivity::Insensitive) < 0);
+}
+
+TEST(StringTest, testArgLocale)
+{
+    Locale l(Locale::Language::English, Locale::Country::UnitedKingdom);
+    String str(Latin1String("*%L1*%L2*"));
+
+    Locale::setDefault(l);
+    ASSERT_EQ(str.arg(123456).arg(1234.56), String::fromLatin1("*123,456*1,234.56*"));
+
+    l.setNumberOptions(Locale::NumberOption::OmitGroupSeparator);
+    Locale::setDefault(l);
+    ASSERT_EQ(str.arg(123456).arg(1234.56), String::fromLatin1("*123456*1234.56*"));
+
+    Locale::setDefault(Locale::Language::C);
+    ASSERT_EQ(str.arg(123456).arg(1234.56), String::fromLatin1("*123456*1234.56*"));
+}
+
+// @TODO PDK_USE_ICU
+
+TEST(StringTest, testLiterals)
+{
+    String str(StringLiteral("abcd"));
+
+    ASSERT_TRUE(str.length() == 4);
+    ASSERT_TRUE(str == Latin1String("abcd"));
+    ASSERT_TRUE(str.getDataPtr()->m_ref.isStatic());
+    ASSERT_TRUE(str.getDataPtr()->m_offset == sizeof(StringData));
+
+    const Character *s = str.getConstRawData();
+    String str2 = str;
+    ASSERT_TRUE(str2.getConstRawData() == s);
+
+    // detach on non const access
+    ASSERT_TRUE(str.getRawData() != s);
+
+    ASSERT_TRUE(str2.getConstRawData() == s);
+    ASSERT_TRUE(str2.getRawData() != s);
+}
+
+namespace {
+
+void eight_bit_literals_data(std::list<std::tuple<ByteArray, String>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray(), String()));
+   data.push_back(std::make_tuple(ByteArray(""), String(Latin1String(""))));
+   data.push_back(std::make_tuple(ByteArray("foo"), String(Latin1String("foo"))));
+   data.push_back(std::make_tuple(ByteArray("\xc3\xa9"), String(Latin1String("\xe9"))));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testEightBitLiterals)
+{
+   using DataType = std::list<std::tuple<ByteArray, String>>;
+   DataType data;
+   eight_bit_literals_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      ByteArray data = std::get<0>(item);
+      String stringData = std::get<1>(item);
+      
+      {
+         String s(String::fromLocal8Bit(data));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s(String::fromLocal8Bit(data.getConstRawData()));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s = String::fromLocal8Bit(data);
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s = String::fromLocal8Bit(data.getConstRawData());
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s.append(String::fromLocal8Bit(data));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s.append(String::fromLocal8Bit(data.getConstRawData()));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s += String::fromLocal8Bit(data);
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s += String::fromLocal8Bit(data.getConstRawData());
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s.prepend(String::fromLocal8Bit(data));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s;
+         s.prepend(String::fromLocal8Bit(data.getConstRawData()));
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String() + String::fromLocal8Bit(data);
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String() + String::fromLocal8Bit(data.getConstRawData());
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String::fromLocal8Bit(data) + String();
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String() % String::fromLocal8Bit(data);
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String() % String::fromLocal8Bit(data.getConstRawData());
+         ASSERT_EQ(s, stringData);
+      }
+      {
+         String s = String::fromLocal8Bit(data) % String();
+         ASSERT_EQ(s, stringData);
+      }
+      
+      {
+         ASSERT_TRUE(stringData == String::fromLocal8Bit(data));
+         ASSERT_TRUE(stringData == String::fromLocal8Bit(data.getConstRawData()));
+         ASSERT_TRUE(!(stringData != String::fromLocal8Bit(data)));
+         ASSERT_TRUE(!(stringData != String::fromLocal8Bit(data.getConstRawData())));
+         ASSERT_TRUE(!(stringData < String::fromLocal8Bit(data)));
+         ASSERT_TRUE(!(stringData < String::fromLocal8Bit(data.getConstRawData())));
+         ASSERT_TRUE(!(stringData > String::fromLocal8Bit(data)));
+         ASSERT_TRUE(!(stringData > String::fromLocal8Bit(data.getConstRawData())));
+         ASSERT_TRUE(stringData <= String::fromLocal8Bit(data));
+         ASSERT_TRUE(stringData <= String::fromLocal8Bit(data.getConstRawData()));
+         ASSERT_TRUE(stringData >= String::fromLocal8Bit(data));
+         ASSERT_TRUE(stringData >= String::fromLocal8Bit(data.getConstRawData()));
+      }
+      ++iter;
+   }
+   
+}
+
+TEST(StringTest, testReserve)
+{
+    String nil1, nil2;
+    nil1.reserve(0);
+    nil2.squeeze();
+    nil1.squeeze();
+    nil2.reserve(0);
+}
+
+namespace {
+
+void to_html_escaped_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("Hello World\n")), String(Latin1String("Hello World\n"))));
+   data.push_back(std::make_tuple(String(Latin1String("#include <pdkcore>")), String(Latin1String("#include &lt;pdkcore&gt;"))));
+   data.push_back(std::make_tuple(String(Latin1String("<p class=\"cool\"><a href=\"http://example.com/?foo=bar&amp;bar=foo\">plop --&gt; </a></p>")),
+                                  String(Latin1String("&lt;p class=&quot;cool&quot;&gt;&lt;a href=&quot;http://example.com/?foo=bar&amp;amp;bar=foo&quot;&gt;plop --&amp;gt; &lt;/a&gt;&lt;/p&gt;"))));
+   data.push_back(std::make_tuple(String::fromUtf8("<\320\222\321\201>"),
+                                  String::fromUtf8("&lt;\320\222\321\201&gt;")));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testHtmlEscape)
+{
+   using DataType = std::list<std::tuple<String, String>>;
+   DataType data;
+   to_html_escaped_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String original = std::get<0>(item);
+      String expected = std::get<1>(item);
+      ASSERT_EQ(original.toHtmlEscaped(), expected);
       ++iter;
    }
 }

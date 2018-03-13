@@ -335,6 +335,13 @@ template <> struct Concatenable<String> : private AbstractConcatenable
       memcpy(out, reinterpret_cast<const char*>(a.getConstRawData()), sizeof(Character) * n);
       out += n;
    }
+   
+   static inline void appendTo(const String &a, char *&out)
+   {
+      const int n = a.size();
+      memcpy(out, reinterpret_cast<const char*>(a.getConstRawData()), sizeof(Character) * n);
+      out += n;
+   }
 };
 
 template <> struct Concatenable<StringRef> : private AbstractConcatenable
