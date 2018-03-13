@@ -820,8 +820,15 @@ public:
    static String fromUcs4(const char32_t *str, int size = -1);
    static String fromRawData(const Character *str, int size);
    
-   static String fromUtf16(const uchar *str, int size = -1);
-   static String fromUcs4(const uint *str, int size = -1);
+   static inline String fromUtf16(const ushort *str, int size = -1)
+   {
+      return fromUtf16(reinterpret_cast<const char16_t *>(str), size);
+   }
+   
+   static inline String fromUcs4(const uint *str, int size = -1)
+   {
+      return fromUcs4(reinterpret_cast<const char32_t *>(str), size);
+   }
    
    inline int toWCharArray(wchar_t *array) const;
    PDK_REQUIRED_RESULT static inline String fromWCharArray(const wchar_t *string, int size = -1);

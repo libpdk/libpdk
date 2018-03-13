@@ -19,16 +19,6 @@
 #include "pdk/base/io/fs/internal/FileEnginePrivate.h"
 #include "pdk/base/io/fs/Resource.h"
 #include "pdk/base/io/fs/FileInfo.h"
-//#include "pdk/global/Random.h"
-//#include "pdk/base/text/codecs/internal/SimpleCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/JisCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/SjisCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/Big5CodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/EucjpCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/EuckrCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/Gb18030CodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/WindowsCodecPrivate.h"
-//#include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include "pdk/base/ds/ByteArrayMatcher.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/lang/Character.h"
@@ -36,6 +26,7 @@
 #include "pdk/base/lang/StringMatcher.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/kernel/StringUtils.h"
+#include "pdk/utils/Locale.h"
 #include <list>
 #include <utility>
 #include <string>
@@ -51,6 +42,7 @@ using pdk::lang::Latin1Character;
 using pdk::ds::ByteArray;
 using pdk::lang::StringMatcher;
 using pdk::ds::ByteArrayMatcher;
+using pdk::utils::Locale;
 
 #define CREATE_REF(string)                                              \
    const String padded = Latin1Character(' ') + string +  Latin1Character(' '); \
@@ -1075,7 +1067,7 @@ TEST(StringTest, testFill)
 TEST(StringTest, testAsprintf)
 {
    ASSERT_EQ(String::asprintf("COMPARE"), Latin1String("COMPARE"));
-   ASSERT_EQ(String::asprintf("%%%d", 1), Latin1String("%1"));
+   ASSERT_EQ(String::asprintf("%%%d", 1), Latin1String(Latin1String("%1")));
    ASSERT_EQ(String::asprintf("X%dY", 2), Latin1String("X2Y"));
    ASSERT_EQ(String::asprintf("X%9iY", 50000), Latin1String("X    50000Y"));
    ASSERT_EQ(String::asprintf("X%-9sY", "hello"), Latin1String("Xhello    Y"));
@@ -3588,7 +3580,7 @@ TEST(StringTest, testToStdString)
       'n', 'u', 'l', 'l', '\0',
       'c', 'h', 'a', 'r', 'a', 'c', 't', 'e', 'r', '!'
    };
-   String null(cnull, sizeof(cnull)/sizeof(Character) );
+   String null(cnull, sizeof(cnull)/sizeof(Character));
    std::string stdnull = null.toStdString();
    ASSERT_EQ(int(stdnull.size()), null.size());
 }
@@ -3955,3 +3947,437 @@ TEST(StringTest,testStringRefLocal8Bit)
    }
 }
 
+namespace {
+
+void to_latin1_roundtrip_data(std::list<std::tuple<ByteArray, String, String>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray(), String(), String()));
+   data.push_back(std::make_tuple(ByteArray(""), String(Latin1String("")), String(Latin1String(""))));
+   static const char16_t unicode1[] = { 'H', 'e', 'l', 'l', 'o', 1, '\r', '\n', 0x7f };
+   data.push_back(std::make_tuple(ByteArray("Hello"), String::fromUtf16(unicode1, 5), String::fromUtf16(unicode1, 5)));
+   data.push_back(std::make_tuple(ByteArray("Hello\1\r\n\x7f"), String::fromUtf16(unicode1, 9), String::fromUtf16(unicode1, 9)));
+   
+   static const char16_t unicode3[] = { 'a', 0, 'z' };
+   data.push_back(std::make_tuple(ByteArray("a\0z", 3), String::fromUtf16(unicode3, 3), String::fromUtf16(unicode3, 3)));
+   
+   static const char16_t unicode4[] = { 0x80, 0xc0, 0xff };
+   data.push_back(std::make_tuple(ByteArray("\x80\xc0\xff"), String::fromUtf16(unicode4, 3), String::fromUtf16(unicode4, 3)));
+   
+   static const char16_t unicodeq[] = { '?', '?', '?', '?', '?' };
+   const String questionmarks = String::fromUtf16(unicodeq, 5);
+   
+   static const char16_t unicode5[] = { 0x100, 0x101, 0x17f, 0x7f00, 0x7f7f };
+   data.push_back(std::make_tuple(ByteArray("?????") , String::fromUtf16(unicode5, 5), questionmarks));
+   
+   static const char16_t unicode6[] = { 0x180, 0x1ff, 0x8001, 0x8080, 0xfffc };
+   data.push_back(std::make_tuple(ByteArray("?????") , String::fromUtf16(unicode6, 5), questionmarks));
+}
+
+void stringref_to_latin1_roundtrip_data(std::list<std::tuple<ByteArray, String, String>> &data)
+{
+   to_latin1_roundtrip_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testToLatin1Roundtrip)
+{
+   using DataType = std::list<std::tuple<ByteArray, String, String>>;
+   DataType data;
+   to_latin1_roundtrip_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   
+   while (iter != endMark)
+   {
+      auto item = *iter;
+      ByteArray latin1 = std::get<0>(item);
+      String unicodesrc = std::get<1>(item);
+      String unicodedst = std::get<2>(item);
+      
+      ASSERT_EQ(latin1.isNull(), unicodesrc.isNull());
+      ASSERT_EQ(latin1.isEmpty(), unicodesrc.isEmpty());
+      ASSERT_EQ(latin1.length(), unicodesrc.length());
+      ASSERT_EQ(latin1.isNull(), unicodedst.isNull());
+      ASSERT_EQ(latin1.isEmpty(), unicodedst.isEmpty());
+      ASSERT_EQ(latin1.length(), unicodedst.length());
+      
+      if (!latin1.isEmpty())
+         while (latin1.length() < 128) {
+            latin1 += latin1;
+            unicodesrc += unicodesrc;
+            unicodedst += unicodedst;
+         }
+      
+      // toLatin1
+      ASSERT_EQ(unicodesrc.toLatin1().length(), latin1.length());
+      ASSERT_EQ(unicodesrc.toLatin1(), latin1);
+      
+      // and back:
+      ASSERT_EQ(String::fromLatin1(latin1, latin1.length()).length(), unicodedst.length());
+      ASSERT_EQ(String::fromLatin1(latin1, latin1.length()), unicodedst);
+      
+      // try the rvalue version of toLatin1()
+      String s = unicodesrc;
+      ASSERT_EQ(std::move(s).toLatin1(), latin1);
+      // and verify that the moved-from object can still be used
+      s = Latin1String("foo");
+      s.clear();
+      ++iter;
+   }
+}
+
+TEST(StringTest, testStringRefToLatin1Roundtrip)
+{
+   using DataType = std::list<std::tuple<ByteArray, String, String>>;
+   DataType data;
+   to_latin1_roundtrip_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   
+   while (iter != endMark)
+   {
+      auto item = *iter;
+      ByteArray latin1 = std::get<0>(item);
+      String unicodesrc = std::get<1>(item);
+      String unicodedst = std::get<2>(item);
+      
+      ASSERT_EQ(latin1.isNull(), unicodesrc.isNull());
+      ASSERT_EQ(latin1.isEmpty(), unicodesrc.isEmpty());
+      ASSERT_EQ(latin1.length(), unicodesrc.length());
+      ASSERT_EQ(latin1.isNull(), unicodedst.isNull());
+      ASSERT_EQ(latin1.isEmpty(), unicodedst.isEmpty());
+      ASSERT_EQ(latin1.length(), unicodedst.length());
+      
+      if (!latin1.isEmpty()) {
+         while (latin1.length() < 128) {
+            latin1 += latin1;
+            unicodesrc += unicodesrc;
+            unicodedst += unicodedst;
+         }
+      }
+      
+      // toLatin1
+      StringRef src(&unicodesrc, 0, unicodesrc.length());
+      ASSERT_EQ(src.toLatin1().length(), latin1.length());
+      ASSERT_EQ(src.toLatin1(), latin1);
+      ++iter;
+   }
+}
+
+TEST(StringTest, testFromLatin1)
+{
+   String str;
+   str = String::fromLatin1(0);
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLatin1("");
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLatin1(ByteArray());
+   ASSERT_TRUE(str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLatin1(ByteArray(""));
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   
+   str = String::fromLatin1(0, 0);
+   ASSERT_TRUE(str.isNull());
+   str = String::fromLatin1(0, 5);
+   ASSERT_TRUE(str.isNull());
+   str = String::fromLatin1("\0abcd", 0);
+   ASSERT_TRUE(!str.isNull());
+   ASSERT_TRUE(str.isEmpty());
+   str = String::fromLatin1("\0abcd", 5);
+   ASSERT_TRUE(str.size() == 5u);
+}
+
+TEST(StringTest, testFromUcs4)
+{
+   const uint *null = nullptr;
+   String s;
+   s = String::fromUcs4(null);
+   ASSERT_TRUE(s.isNull());
+   ASSERT_EQ(s.size(), 0);
+   s = String::fromUcs4(null, 0);
+   ASSERT_TRUE(s.isNull());
+   ASSERT_EQ(s.size(), 0);
+   s = String::fromUcs4( null, 5);
+   ASSERT_TRUE(s.isNull());
+   ASSERT_EQ(s.size(), 0);
+   
+   uint nilvar = '\0';
+   s = String::fromUcs4(&nilvar);
+   ASSERT_TRUE(!s.isNull());
+   ASSERT_EQ(s.size(), 0);
+   s = String::fromUcs4(&nilvar, 0);
+   ASSERT_TRUE(!s.isNull());
+   ASSERT_EQ(s.size(), 0);
+   
+   uint bmp = 'a';
+   s = String::fromUcs4(&bmp, 1);
+   ASSERT_TRUE(!s.isNull());
+   ASSERT_EQ(s.size(), 1);
+   
+   uint smp = 0x10000;
+   s = String::fromUcs4(&smp, 1);
+   ASSERT_TRUE(!s.isNull());
+   ASSERT_EQ(s.size(), 2);
+   
+   static const char32_t str1[] = U"Hello Unicode World";
+   s = String::fromUcs4(str1, sizeof(str1) / sizeof(str1[0]) - 1);
+   ASSERT_EQ(s, String(Latin1String("Hello Unicode World")));
+   
+   s = String::fromUcs4(str1);
+   ASSERT_EQ(s, String(Latin1String("Hello Unicode World")));
+   
+   s = String::fromUcs4(str1, 5);
+   ASSERT_EQ(s, String(Latin1String("Hello")));
+   
+   s = String::fromUcs4(U"\u221212\U000020AC\U00010000");
+   ASSERT_EQ(s, String::fromUtf8("\342\210\222" "12" "\342\202\254" "\360\220\200\200"));
+}
+
+TEST(StringTest, testToUcs4)
+{
+   String s;
+   std::vector<char32_t> ucs4;
+   ASSERT_EQ(s.toUcs4().size(), 0u);
+   
+   static const Character bmp = Latin1Character('a');
+   s = String(&bmp, 1);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 1u);
+   ASSERT_EQ(ucs4.at(0), 0x0061u);
+   
+#define STRING_FROM_CHARARRAY(x) (String((x), sizeof(x)/sizeof((x)[0])))
+   
+   static const Character smp[] = { Character::getHighSurrogate(0x10000), Character::getLowSurrogate(0x10000) };
+   s = STRING_FROM_CHARARRAY(smp);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 1u);
+   ASSERT_EQ(ucs4.at(0), 0x10000u);
+   
+   static const Character smp2[] = { Character::getHighSurrogate(0x10000), 
+                                     Character::getLowSurrogate(0x10000), 
+                                     Character::getHighSurrogate(0x10000), 
+                                     Character::getLowSurrogate(0x10000) };
+   s = STRING_FROM_CHARARRAY(smp2);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 2u);
+   ASSERT_EQ(ucs4.at(0), 0x10000u);
+   ASSERT_EQ(ucs4.at(1), 0x10000u);
+   
+   static const Character invalid_01[] = { Character(0xd800) };
+   s = STRING_FROM_CHARARRAY(invalid_01);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 1u);
+   ASSERT_EQ(ucs4.at(0), 0xFFFDu );
+   
+   static const Character invalid_02[] = { Character(0xdc00) };
+   s = STRING_FROM_CHARARRAY(invalid_02);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 1u);
+   ASSERT_EQ(ucs4.at(0), 0xFFFDu);
+   
+   static const Character invalid_03[] = { Latin1Character('a'),
+                                           Character(0xd800), 
+                                           Latin1Character('b') };
+   s = STRING_FROM_CHARARRAY(invalid_03);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 3u);
+   ASSERT_EQ(ucs4.at(0), 0x0061u);
+   ASSERT_EQ(ucs4.at(1), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(2), 0x0062u);
+   
+   static const Character invalid_04[] = { Latin1Character('a'), 
+                                           Character(0xdc00), 
+                                           Latin1Character('b') };
+   s = STRING_FROM_CHARARRAY(invalid_04);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 3u);
+   ASSERT_EQ(ucs4.at(0), 0x0061u);
+   ASSERT_EQ(ucs4.at(1), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(2), 0x0062u);
+   
+   static const Character invalid_05[] = { Latin1Character('a'), 
+                                           Character(0xd800), 
+                                           Character(0xd800), 
+                                           Latin1Character('b') };
+   s = STRING_FROM_CHARARRAY(invalid_05);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 4u);
+   ASSERT_EQ(ucs4.at(0), 0x0061u);
+   ASSERT_EQ(ucs4.at(1), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(2), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(3), 0x0062u);
+   
+   static const Character invalid_06[] = { Latin1Character('a'), 
+                                           Character(0xdc00),
+                                           Character(0xdc00), 
+                                           Latin1Character('b') };
+   s = STRING_FROM_CHARARRAY(invalid_06);
+   ucs4 = s.toUcs4();
+   ASSERT_EQ(ucs4.size(), 4u);
+   ASSERT_EQ(ucs4.at(0), 0x0061u);
+   ASSERT_EQ(ucs4.at(1), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(2), 0xFFFDu);
+   ASSERT_EQ(ucs4.at(3), 0x0062u);
+   
+#undef STRING_FROM_CHARARRAY
+   
+}
+
+TEST(StringTest, testArg)
+{
+   Locale::setDefault(String(Latin1String("de_DE")));
+   
+   String s4(Latin1String("[%0]"));
+   String s5(Latin1String("[%1]"));
+   String s6(Latin1String("[%3]"));
+   String s7(Latin1String("[%9]"));
+   String s8(Latin1String("[%0 %1]"));
+   String s9(Latin1String("[%0 %3]"));
+   String s10(Latin1String("[%1 %2 %3]"));
+   String s11(Latin1String("[%9 %3 %0]"));
+   String s12(Latin1String("[%9 %1 %3 %9 %0 %8]"));
+   String s13(Latin1String("%1% %x%c%2 %d%2-%"));
+   String s14(Latin1String("%1%2%3"));
+   
+   ASSERT_EQ(s4.arg(Latin1String("foo")), Latin1String("[foo]"));
+   ASSERT_EQ(s5.arg(Latin1String("foo")), Latin1String("[foo]"));
+   ASSERT_EQ(s6.arg(StringViewLiteral("foo")), Latin1String("[foo]"));
+   ASSERT_EQ(s7.arg(Latin1String("foo")), Latin1String("[foo]"));
+   ASSERT_EQ(s8.arg(Latin1String("foo")), Latin1String("[foo %1]"));
+   ASSERT_EQ(s8.arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("[foo bar]"));
+   ASSERT_EQ(s8.arg(Latin1String("foo"), Latin1String("bar")), Latin1String("[foo bar]"));
+   ASSERT_EQ(s9.arg(Latin1String("foo")), Latin1String("[foo %3]"));
+   ASSERT_EQ(s9.arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("[foo bar]"));
+   ASSERT_EQ(s9.arg(Latin1String("foo"), Latin1String("bar")), Latin1String("[foo bar]"));
+   ASSERT_EQ(s10.arg(Latin1String("foo")), Latin1String("[foo %2 %3]"));
+   ASSERT_EQ(s10.arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("[foo bar %3]"));
+   ASSERT_EQ(s10.arg(Latin1String("foo"), Latin1String("bar")), Latin1String("[foo bar %3]"));
+   ASSERT_EQ(s10.arg(Latin1String("foo")).arg(Latin1String("bar")).arg(Latin1String("baz")), Latin1String("[foo bar baz]"));
+   ASSERT_EQ(s10.arg(Latin1String("foo"), Latin1String("bar"), Latin1String("baz")), Latin1String("[foo bar baz]"));
+   ASSERT_EQ(s11.arg(Latin1String("foo")), Latin1String("[%9 %3 foo]"));
+   ASSERT_EQ(s11.arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("[%9 bar foo]"));
+   ASSERT_EQ(s11.arg(Latin1String("foo"), Latin1String("bar")), Latin1String("[%9 bar foo]"));
+   ASSERT_EQ(s11.arg(Latin1String("foo")).arg(Latin1String("bar")).arg(Latin1String("baz")), Latin1String("[baz bar foo]"));
+   ASSERT_EQ(s11.arg(Latin1String("foo"), Latin1String("bar"), Latin1String("baz")), Latin1String("[baz bar foo]"));
+   ASSERT_EQ(s12.arg(Latin1String("a")).arg(Latin1String("b")).arg(Latin1String("c")).arg(Latin1String("d")).arg(Latin1String("e")),
+             Latin1String("[e b c e a d]"));
+   ASSERT_EQ(s12.arg(Latin1String("a"), Latin1String("b"), Latin1String("c"), Latin1String("d")).arg(Latin1String("e")), Latin1String("[e b c e a d]"));
+   ASSERT_EQ(s12.arg(Latin1String("a")).arg(Latin1String("b"), Latin1String("c"), Latin1String("d"), Latin1String("e")), Latin1String("[e b c e a d]"));
+   ASSERT_EQ(s13.arg(Latin1String("alpha")).arg(Latin1String("beta")),
+             Latin1String("alpha% %x%cbeta %dbeta-%"));
+   ASSERT_EQ(s13.arg(Latin1String("alpha"), Latin1String("beta")), Latin1String("alpha% %x%cbeta %dbeta-%"));
+   ASSERT_EQ(s14.arg(Latin1String("a"), Latin1String("b"), Latin1String("c")), Latin1String("abc"));
+   ASSERT_EQ(s8.arg(Latin1String(Latin1String("%1"))).arg(Latin1String("foo")), Latin1String("[foo foo]"));
+   ASSERT_EQ(s8.arg(Latin1String(Latin1String("%1")), Latin1String("foo")), Latin1String("[%1 foo]"));
+   ASSERT_EQ(s4.arg(Latin1String("foo"), 2), Latin1String("[foo]"));
+   ASSERT_EQ(s4.arg(Latin1String("foo"), -2), Latin1String("[foo]"));
+   ASSERT_EQ(s4.arg(Latin1String("foo"), 10), Latin1String("[       foo]"));
+   ASSERT_EQ(s4.arg(Latin1String("foo"), -10), Latin1String("[foo       ]"));
+   
+   String firstName(Latin1String("James"));
+   String lastName(Latin1String("Bond"));
+   String fullName = String(Latin1String("My name is %2, %1 %2"))
+         .arg( firstName ).arg( lastName );
+   ASSERT_EQ(fullName, Latin1String("My name is Bond, James Bond"));
+   
+   // number overloads
+   ASSERT_EQ(s4.arg(0), Latin1String("[0]"));
+   ASSERT_EQ(s4.arg(-1), Latin1String("[-1]"));
+   ASSERT_EQ(s4.arg(4294967295UL), Latin1String("[4294967295]")); // ULONG_MAX 32
+   ASSERT_EQ(s4.arg(PDK_INT64_C(9223372036854775807)), // LLONG_MAX
+             Latin1String("[9223372036854775807]"));
+   ASSERT_EQ(String().arg(0), String());
+   ASSERT_EQ(String(Latin1String("")).arg(0), String(Latin1String("")));
+   ASSERT_EQ(String(Latin1String(" ")).arg(0), Latin1String(" "));
+   ASSERT_EQ(String(Latin1String("%")).arg(0), Latin1String("%"));
+   ASSERT_EQ(String(Latin1String("%%")).arg(0), Latin1String("%%"));
+   ASSERT_EQ(String(Latin1String("%%%")).arg(0), Latin1String("%%%"));
+   ASSERT_EQ(String(Latin1String("%%%1%%%2")).arg(Latin1String("foo")).arg(Latin1String("bar")), Latin1String("%%foo%%bar"));
+   
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), -10), Latin1String("hello     "));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), -5), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(StringViewLiteral("hello"), -2), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 0), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 2), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(StringViewLiteral("hello"), 5), Latin1String("hello"));
+   ASSERT_EQ(String(Latin1String(Latin1String("%1"))).arg(Latin1String("hello"), 10), Latin1String("     hello"));
+   ASSERT_EQ(String(Latin1String("%1%1")).arg(Latin1String("hello")), Latin1String("hellohello"));
+   ASSERT_EQ(String(Latin1String("%2%1")).arg(Latin1String("hello")), Latin1String("%2hello"));
+   ASSERT_EQ(String(Latin1String("%2%1")).arg(Latin1String("")), Latin1String("%2"));
+   
+   ASSERT_EQ(String(Latin1String("%2 %L1")).arg(12345.6789).arg(12345.6789),
+             Latin1String("12345.7 12.345,7"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(12345.6789, 9).arg(12345.6789, 9),
+             Latin1String("[  12345.7] [ 12.345,7]"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(12345.6789, 9, 'g', 7).arg(12345.6789, 9, 'g', 7),
+             Latin1String("[ 12345.68] [12.345,68]"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(12345.6789, 10, 'g', 7, Latin1Character('0')).arg(12345.6789, 10, 'g', 7, Latin1Character('0')),
+             Latin1String("[0012345.68] [012.345,68]"));
+   
+   ASSERT_EQ(String(Latin1String("%2 %L1")).arg(123456789).arg(123456789),
+             Latin1String("123456789 123.456.789"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(123456789, 12).arg(123456789, 12),
+             Latin1String("[   123456789] [ 123.456.789]"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(123456789, 13, 10, Latin1Character('0')).arg(123456789, 12, 10, Latin1Character('0')),
+             Latin1String("[000123456789] [00123.456.789]"));
+   ASSERT_EQ(String(Latin1String("[%2] [%L1]")).arg(123456789, 13, 16, Latin1Character('0')).arg(123456789, 12, 16, Latin1Character('0')),
+             Latin1String("[0000075bcd15] [00000075bcd15]"));
+   
+   ASSERT_EQ(String(Latin1String("%L2 %L1 %3")).arg(12345.7).arg(123456789).arg('c'),
+             Latin1String("123.456.789 12.345,7 c"));
+   
+   // multi-digit replacement
+   String input(Latin1String("%%%L0 %1 %02 %3 %4 %5 %L6 %7 %8 %%% %090 %10 %11 %L12 %14 %L9888 %9999 %%%%%%%L"));
+   input = input.arg(Latin1String("A")).arg(Latin1String("B")).arg(Latin1String("C"))
+         .arg(Latin1String("D")).arg(Latin1String("E")).arg(Latin1String("f"))
+         .arg(Latin1String("g")).arg(Latin1String("h")).arg(Latin1String("i")).arg(Latin1String("j"))
+         .arg(Latin1String("k")).arg(Latin1String("l")).arg(Latin1String("m"))
+         .arg(Latin1String("n")).arg(Latin1String("o")).arg(Latin1String("p"));
+   
+   ASSERT_EQ(input, Latin1String("%%A B C D E f g h i %%% j0 k l m n o88 p99 %%%%%%%L"));
+   
+   String str(Latin1String("%1 %2 %3 %4 %5 %6 %7 %8 %9 foo %10 %11 bar"));
+   str = str.arg(Latin1String("one"), Latin1String("2"), Latin1String("3"), 
+                 Latin1String("4"), Latin1String("5"), Latin1String("6"),
+                 Latin1String("7"), Latin1String("8"), Latin1String("9"));
+   str = str.arg(Latin1String("ahoy"), Latin1String("there"));
+   ASSERT_EQ(str, Latin1String("one 2 3 4 5 6 7 8 9 foo ahoy there bar"));
+   
+   String str2(Latin1String("%123 %234 %345 %456 %567 %999 %1000 %1230"));
+   str2 = str2.arg(Latin1String("A"), Latin1String("B"), Latin1String("C"),
+                   Latin1String("D"), Latin1String("E"), Latin1String("F"));
+   ASSERT_EQ(str2, Latin1String("A B C D E F %1000 %1230"));
+   
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1, 3, 10, Character('0')), Latin1String("-01"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100, 3, 10, Character('0')), Latin1String("-100"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1, 3, 10, Character(' ')), Latin1String(" -1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100, 3, 10, Character(' ')), Latin1String("-100"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1U, 3, 10, Character(' ')), Latin1String("  1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1000U, 3, 10, Character(' ')), Latin1String("1000"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1, 3, 10, Character('x')), Latin1String("x-1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100, 3, 10, Character('x')), Latin1String("-100"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1U, 3, 10, Character('x')), Latin1String("xx1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1000U, 3, 10, Character('x')), Latin1String("1000"));
+   
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1., 3, 'g', -1, Character('0')), Latin1String("-01"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100., 3, 'g', -1, Character('0')), Latin1String("-100"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1., 3, 'g', -1, Character(' ')), Latin1String(" -1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100., 3, 'g', -1, Character(' ')), Latin1String("-100"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1., 3, 'g', -1, Character('x')), Latin1String("xx1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(1000., 3, 'g', -1, Character('x')), Latin1String("1000"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-1., 3, 'g', -1, Character('x')), Latin1String("x-1"));
+   ASSERT_EQ(String(Latin1String("%1")).arg(-100., 3, 'g', -1, Character('x')), Latin1String("-100"));
+   
+   Locale::setDefault(String(Latin1String("ar")));
+   ASSERT_EQ(String(Latin1String("%L1")).arg(12345.6789, 10, 'g', 7, Latin1Character('0')),
+             String::fromUtf8("\xd9\xa0\xd9\xa1\xd9\xa2\xd9\xac\xd9\xa3\xd9\xa4\xd9\xa5\xd9\xab\xd9\xa6\xd9\xa8")); // "٠١٢٬٣٤٥٫٦٨"
+   ASSERT_EQ(String(Latin1String("%L1")).arg(123456789, 13, 10, Latin1Character('0')),
+             String::fromLocal8Bit("\xd9\xa0\xd9\xa0\xd9\xa1\xd9\xa2\xd9\xa3\xd9\xac\xd9\xa4\xd9\xa5\xd9\xa6\xd9\xac\xd9\xa7\xd9\xa8\xd9\xa9")); // ٠٠١٢٣٬٤٥٦٬٧٨٩
+   
+   Locale::setDefault(Locale::getSystem());
+}

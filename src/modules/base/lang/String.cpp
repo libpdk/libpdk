@@ -3350,7 +3350,7 @@ String String::arg(pdk::plonglong a, int fieldWidth, int base, Character fillCha
 {
    ArgEscapeData d = find_arg_escapes(*this);
    if (d.m_occurrences == 0) {
-      warning_stream() << "String::arg: Argument missing:" << *this << ',' << a;
+      //warning_stream() << "String::arg: Argument missing:" << *this << ',' << a;
       return *this;
    }
    LocaleData::Flags flags = LocaleData::Flag::NoFlags;
