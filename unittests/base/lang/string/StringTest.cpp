@@ -5958,3 +5958,238 @@ TEST(StringTest, testHtmlEscape)
       ++iter;
    }
 }
+
+TEST(StringTest, testOperatorGreaterWithLatin1String)
+{
+    Latin1String latin1foo("fooZZ", 3);
+    String stringfoo = String::fromLatin1("foo");
+    ASSERT_TRUE(stringfoo >= latin1foo);
+    ASSERT_TRUE(!(stringfoo > latin1foo));
+    ASSERT_TRUE(stringfoo <= latin1foo);
+    ASSERT_TRUE(!(stringfoo < latin1foo));
+}
+
+TEST(StringTest, testCompareLatin1Strings)
+{
+    Latin1String abc("abc");
+    Latin1String abcd("abcd");
+    Latin1String cba("cba");
+    Latin1String de("de");
+
+    ASSERT_TRUE(abc == abc);
+    ASSERT_TRUE(!(abc == cba));
+    ASSERT_TRUE(!(cba == abc));
+    ASSERT_TRUE(!(abc == abcd));
+    ASSERT_TRUE(!(abcd == abc));
+
+    ASSERT_TRUE(abc != cba);
+    ASSERT_TRUE(!(abc != abc));
+    ASSERT_TRUE(cba != abc);
+    ASSERT_TRUE(abc != abcd);
+    ASSERT_TRUE(abcd != abc);
+
+    ASSERT_TRUE(abc < abcd);
+    ASSERT_TRUE(abc < cba);
+    ASSERT_TRUE(abc < de);
+    ASSERT_TRUE(abcd < cba);
+    ASSERT_TRUE(!(abc < abc));
+    ASSERT_TRUE(!(abcd < abc));
+    ASSERT_TRUE(!(de < cba));
+
+    ASSERT_TRUE(abcd > abc);
+    ASSERT_TRUE(cba > abc);
+    ASSERT_TRUE(de > abc);
+    ASSERT_TRUE(!(abc > abc));
+    ASSERT_TRUE(!(abc > abcd));
+    ASSERT_TRUE(!(abcd > cba));
+
+    ASSERT_TRUE(abc <= abc);
+    ASSERT_TRUE(abc <= abcd);
+    ASSERT_TRUE(abc <= cba);
+    ASSERT_TRUE(abc <= de);
+    ASSERT_TRUE(!(abcd <= abc));
+    ASSERT_TRUE(!(cba <= abc));
+    ASSERT_TRUE(!(cba <= abcd));
+    ASSERT_TRUE(!(de <= abc));
+
+    ASSERT_TRUE(abc >= abc);
+    ASSERT_TRUE(abcd >= abc);
+    ASSERT_TRUE(!(abc >= abcd));
+    ASSERT_TRUE(cba >= abc);
+    ASSERT_TRUE(!(abc >= cba));
+    ASSERT_TRUE(de >= abc);
+    ASSERT_TRUE(!(abc >= de));
+
+    Latin1String subfoo("fooZZ", 3);
+    Latin1String foo("foo");
+    ASSERT_TRUE(subfoo == foo);
+    ASSERT_TRUE(foo == subfoo);
+    ASSERT_TRUE(!(subfoo != foo));
+    ASSERT_TRUE(!(foo != subfoo));
+    ASSERT_TRUE(!(foo < subfoo));
+    ASSERT_TRUE(!(subfoo < foo));
+    ASSERT_TRUE(foo >= subfoo);
+    ASSERT_TRUE(subfoo >= foo);
+    ASSERT_TRUE(!(foo > subfoo));
+    ASSERT_TRUE(!(subfoo > foo));
+    ASSERT_TRUE(foo <= subfoo);
+    ASSERT_TRUE(subfoo <= foo);
+
+    Latin1String subabc("abcZZ", 3);
+    Latin1String subab("abcZZ", 2);
+    ASSERT_TRUE(subabc != subab);
+    ASSERT_TRUE(subab != subabc);
+    ASSERT_TRUE(!(subabc == subab));
+    ASSERT_TRUE(!(subab == subabc));
+    ASSERT_TRUE(subab < subabc);
+    ASSERT_TRUE(!(subabc < subab));
+    ASSERT_TRUE(subabc > subab);
+    ASSERT_TRUE(!(subab > subabc));
+    ASSERT_TRUE(subab <= subabc);
+    ASSERT_TRUE(!(subabc <= subab));
+    ASSERT_TRUE(subabc >= subab);
+    ASSERT_TRUE(!(subab >= subabc));
+}
+
+TEST(StringTest, testFromLatin1StringWithLength)
+{
+    Latin1String latin1foo("foobar", 3);
+    String foo(latin1foo);
+    ASSERT_EQ(foo.size(), latin1foo.size());
+    ASSERT_EQ(foo, String::fromLatin1("foo"));
+}
+
+TEST(StringTest, testAssignLatin1String)
+{
+    String empty = Latin1String("");
+    ASSERT_TRUE(empty.isEmpty());
+    ASSERT_TRUE(!empty.isNull());
+
+    String null = Latin1String(0);
+    ASSERT_TRUE(null.isEmpty());
+    ASSERT_TRUE(null.isNull());
+
+    Latin1String latin1foo("foo");
+    String foo = latin1foo;
+    ASSERT_EQ(foo.size(), latin1foo.size());
+    ASSERT_EQ(foo, String::fromLatin1("foo"));
+
+    Latin1String latin1subfoo("foobar", 3);
+    foo = latin1subfoo;
+    ASSERT_EQ(foo.size(), latin1subfoo.size());
+    ASSERT_EQ(foo, String::fromLatin1("foo"));
+
+    // check capacity re-use:
+    String s;
+    ASSERT_EQ(s.capacity(), 0);
+
+    // assign to null String:
+    s = latin1foo;
+    ASSERT_EQ(s, String::fromLatin1("foo"));
+    ASSERT_EQ(s.capacity(), 3);
+
+    // assign to non-null String with enough capacity:
+    s = String::fromLatin1("foofoo");
+    const int capacity = s.capacity();
+    s = latin1foo;
+    ASSERT_EQ(s, String::fromLatin1("foo"));
+    ASSERT_EQ(s.capacity(), capacity);
+
+    // assign to shared String (enough capacity, but can't use):
+    s = String::fromLatin1("foofoo");
+    String s2 = s;
+    s = latin1foo;
+    ASSERT_EQ(s, String::fromLatin1("foo"));
+    ASSERT_EQ(s.capacity(), 3);
+
+    // assign to String with too little capacity:
+    s = String::fromLatin1("fo");
+    ASSERT_EQ(s.capacity(), 2);
+    s = latin1foo;
+    ASSERT_EQ(s, String::fromLatin1("foo"));
+    ASSERT_EQ(s.capacity(), 3);
+
+}
+
+TEST(StringTest, testAssignChar)
+{
+    const Character sp = Latin1Character(' ');
+    String s;
+    ASSERT_EQ(s.capacity(), 0);
+
+    // assign to null String:
+    s = sp;
+    ASSERT_EQ(s, String(sp));
+    ASSERT_EQ(s.capacity(), 1);
+
+    // assign to non-null String with enough capacity:
+    s = Latin1String("foo");
+    const int capacity = s.capacity();
+    ASSERT_EQ(capacity, 3);
+    s = sp;
+    ASSERT_EQ(s, String(sp));
+    ASSERT_EQ(s.capacity(), capacity);
+
+    // assign to shared String (enough capacity, but can't use):
+    s = Latin1String("foo");
+    String s2 = s;
+    s = sp;
+    ASSERT_EQ(s, String(sp));
+    ASSERT_EQ(s.capacity(), 1);
+
+    // assign to empty String:
+    s = String(Latin1String(""));
+    s.detach();
+    ASSERT_EQ(s.capacity(), 0);
+    s = sp;
+    ASSERT_EQ(s, String(sp));
+    ASSERT_EQ(s.capacity(), 1);
+}
+
+namespace {
+
+void is_right_to_left_data(std::list<std::tuple<String, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(), false));
+   data.push_back(std::make_tuple(String(Latin1String("")), false));
+   data.push_back(std::make_tuple(String(Latin1String("12345")), false));
+   data.push_back(std::make_tuple(String(Latin1String("hello")), false));
+   data.push_back(std::make_tuple(String(Latin1String("12345")) + String(Latin1String("hello")), false));
+   
+   static const ushort unicode1[] = { 0x627, 0x627 };
+   data.push_back(std::make_tuple(String::fromUtf16(unicode1, 2), true));
+   data.push_back(std::make_tuple(String(Latin1String("12345")) + String::fromUtf16(unicode1, 2), true));
+   data.push_back(std::make_tuple(String(Latin1String("12345")) + String(Latin1String("hello")) + String::fromUtf16(unicode1, 2), false));
+   data.push_back(std::make_tuple(String(Latin1String("12345")) + String::fromUtf16(unicode1, 2) + String(Latin1String("hello")), true));
+   static const ushort unicode2[] = { Character::getHighSurrogate(0xE01DAu), 
+                                      Character::getLowSurrogate(0xE01DAu), 
+                                      Character::getHighSurrogate(0x2F800u), 
+                                      Character::getLowSurrogate(0x2F800u) };
+   
+   data.push_back(std::make_tuple(String::fromUtf16(unicode2, 4), false));
+   
+   static const ushort unicode3[] = { Character::getHighSurrogate(0x10800u), 
+                                      Character::getLowSurrogate(0x10800u),
+                                      Character::getHighSurrogate(0x10805u),
+                                      Character::getLowSurrogate(0x10805u) };
+   data.push_back(std::make_tuple(String::fromUtf16(unicode3, 4), true));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testIsRightToLeft)
+{
+   using DataType = std::list<std::tuple<String, bool>>;
+   DataType data;
+   is_right_to_left_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String unicode = std::get<0>(item);
+      bool rtl = std::get<1>(item);
+      ASSERT_EQ(unicode.isRightToLeft(), rtl);
+      ++iter;
+   }
+}
+
