@@ -25,6 +25,7 @@
 #include "pdk/base/lang/StringMatcher.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/kernel/StringUtils.h"
+#include "pdk/kernel/HashFuncs.h"
 #include "pdk/utils/Locale.h"
 #include <list>
 #include <utility>
@@ -5173,7 +5174,7 @@ void test_split(const String &string, const String &sep, StringList result)
 
 void splitref_data(std::list<std::tuple<String, String, StringList>> &data)
 {
-    split_data(data);
+   split_data(data);
 }
 
 } // anonymous namespace
@@ -5239,19 +5240,19 @@ TEST(StringTest, testFromUtf16)
 
 TEST(StringTest, testUnicodeStrings)
 {
-    String s1, s2;
-    static const std::u16string u16str1(u"Hello Unicode World");
-    static const std::u32string u32str1(U"Hello Unicode World");
-    s1 = String::fromStdU16String(u16str1);
-    s2 = String::fromStdU32String(u32str1);
-    ASSERT_EQ(s1, String(Latin1String("Hello Unicode World")));
-    ASSERT_EQ(s1, s2);
-
-    ASSERT_EQ(s2.toStdU16String(), u16str1);
-    ASSERT_EQ(s1.toStdU32String(), u32str1);
-
-    s1 = String::fromStdU32String(std::u32string(U"\u221212\U000020AC\U00010000"));
-    ASSERT_EQ(s1, String::fromUtf8("\342\210\222" "12" "\342\202\254" "\360\220\200\200"));
+   String s1, s2;
+   static const std::u16string u16str1(u"Hello Unicode World");
+   static const std::u32string u32str1(U"Hello Unicode World");
+   s1 = String::fromStdU16String(u16str1);
+   s2 = String::fromStdU32String(u32str1);
+   ASSERT_EQ(s1, String(Latin1String("Hello Unicode World")));
+   ASSERT_EQ(s1, s2);
+   
+   ASSERT_EQ(s2.toStdU16String(), u16str1);
+   ASSERT_EQ(s1.toStdU32String(), u32str1);
+   
+   s1 = String::fromStdU32String(std::u32string(U"\u221212\U000020AC\U00010000"));
+   ASSERT_EQ(s1, String::fromUtf8("\342\210\222" "12" "\342\202\254" "\360\220\200\200"));
 }
 
 TEST(StringTest, testLatin1String)
@@ -5391,6 +5392,21 @@ void arg_fillchar_data(std::list<std::tuple<String, std::list<std::any>, IntList
                                   String(Latin1String("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffisk og poteter"))));
 }
 
+inline int sign(int x)
+{
+   return x == 0 ? 0 : (x < 0 ? -1 : 1);
+}
+
+bool is_latin(const String &s)
+{
+   for (int i = 0; i < s.length(); ++i) {
+      if (s.at(i).unicode() > 0xff) {
+         return false;
+      }
+   }
+   return true;
+}
+
 } // anonymous namespace
 
 TEST(StringTest, testArgFillChar)
@@ -5437,6 +5453,83 @@ TEST(StringTest, testArgFillChar)
          ++i;
       }
       ASSERT_EQ(actual, expected);
+      ++iter;
+   }
+}
+
+namespace {
+
+void compare_data(std::list<std::tuple<String, String, int, int>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("")), String(Latin1String("")), 0, 0));
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testCompare)
+{
+   using DataType = std::list<std::tuple<String, String, int, int>>;
+   DataType data;
+   compare_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String s1 = std::get<0>(item);
+      String s2 = std::get<1>(item);
+      int csr = std::get<2>(item);
+      int cir = std::get<3>(item);
+      StringRef r1(&s1, 0, s1.length());
+      StringRef r2(&s2, 0, s2.length());
+      ASSERT_EQ(sign(String::compare(s1, s2)), csr);
+      ASSERT_EQ(sign(StringRef::compare(r1, r2)), csr);
+      ASSERT_EQ(sign(s1.compare(s2)), csr);
+      ASSERT_EQ(sign(s1.compare(r2)), csr);
+      ASSERT_EQ(sign(r1.compare(r2)), csr);
+      
+      ASSERT_EQ(sign(s1.compare(s2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(s1.compare(s2, pdk::CaseSensitivity::Insensitive)), cir);
+      ASSERT_EQ(sign(s1.compare(r2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(s1.compare(r2, pdk::CaseSensitivity::Insensitive)), cir);
+      ASSERT_EQ(sign(r1.compare(r2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(r1.compare(r2, pdk::CaseSensitivity::Insensitive)), cir);
+      
+      ASSERT_EQ(sign(String::compare(s1, s2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(String::compare(s1, s2, pdk::CaseSensitivity::Insensitive)), cir);
+      ASSERT_EQ(sign(String::compare(s1, r2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(String::compare(s1, r2, pdk::CaseSensitivity::Insensitive)), cir);
+      ASSERT_EQ(sign(StringRef::compare(r1, r2, pdk::CaseSensitivity::Sensitive)), csr);
+      ASSERT_EQ(sign(StringRef::compare(r1, r2, pdk::CaseSensitivity::Insensitive)), cir);
+      
+      if (csr == 0) {
+         ASSERT_TRUE(pdk::pdk_hash(s1) == pdk::pdk_hash(s2));
+         ASSERT_TRUE(pdk::pdk_hash(s1) == pdk::pdk_hash(r2));
+         ASSERT_TRUE(pdk::pdk_hash(r1) == pdk::pdk_hash(s2));
+         ASSERT_TRUE(pdk::pdk_hash(r1) == pdk::pdk_hash(r2));
+      }
+      
+      if (!cir) {
+         ASSERT_EQ(s1.toCaseFolded(), s2.toCaseFolded());
+      }
+      
+      if (is_latin(s2)) {
+         ASSERT_EQ(sign(String::compare(s1, Latin1String(s2.toLatin1()))), csr);
+         ASSERT_EQ(sign(String::compare(s1, Latin1String(s2.toLatin1()), pdk::CaseSensitivity::Insensitive)), cir);
+         ASSERT_EQ(sign(StringRef::compare(r1, Latin1String(s2.toLatin1()))), csr);
+         ASSERT_EQ(sign(StringRef::compare(r1, Latin1String(s2.toLatin1()), pdk::CaseSensitivity::Insensitive)), cir);
+         ByteArray l1 = s2.toLatin1();
+         l1 += "x";
+         Latin1String l1str(l1.getConstRawData(), l1.size() - 1);
+         ASSERT_EQ(sign(String::compare(s1, l1str)), csr);
+         ASSERT_EQ(sign(String::compare(s1, l1str, pdk::CaseSensitivity::Insensitive)), cir);
+         ASSERT_EQ(sign(StringRef::compare(r1, l1str)), csr);
+         ASSERT_EQ(sign(StringRef::compare(r1, l1str, pdk::CaseSensitivity::Insensitive)), cir);
+      }
+      
+      if (is_latin(s1)) {
+         ASSERT_EQ(sign(String::compare(Latin1String(s1.toLatin1()), s2)), csr);
+         ASSERT_EQ(sign(String::compare(Latin1String(s1.toLatin1()), s2, pdk::CaseSensitivity::Insensitive)), cir);
+      }
       ++iter;
    }
 }

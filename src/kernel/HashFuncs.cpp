@@ -59,8 +59,6 @@ PDK_CORE_EXPORT pdk::os::thread::BasicAtomicInt HashFuncSeed = PDK_BASIC_ATOMIC_
 
 namespace
 {
-
-
 #if PDK_COMPILER_SUPPORTS_HERE(SSE4_2)
 inline bool hash_fast_crc32()
 {

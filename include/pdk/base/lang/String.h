@@ -842,18 +842,34 @@ public:
    inline int compare(const StringRef &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const noexcept;
    
    static inline int compare(const String &lhs, const String &rhs,
-                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept
+   {
+      return lhs.compare(rhs, cs);
+   }
+   
    static inline int compare(const String &lhs, Latin1String rhs,
-                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept
+   {
+      return lhs.compare(rhs, cs);   
+   }
+   
    static inline int compare(Latin1String lhs, const String &rhs,
-                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
+                             pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept
+   {
+      return -rhs.compare(lhs);   
+   }
+   
    static inline int compare(const String &lhs, const StringRef &rhs,
                              pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept;
    
    int localeAwareCompare(const String &str) const;
    int localeAwareCompare(const StringRef &str) const;
-   static int localeAwareCompare(const StringRef &lhs, const String &rhs);
-   static int localeAwareCompare(const StringRef &lhs, const StringRef &rhs);
+   static int localeAwareCompare(const String &lhs, const String &rhs)
+   {
+      return lhs.localeAwareCompare(rhs);
+   }
+   
+   static int localeAwareCompare(const String &lhs, const StringRef &rhs);
    
    short toShort(bool *ok = nullptr, int base = 10) const;
    ushort toUShort(bool *ok = nullptr, int base = 10) const;
