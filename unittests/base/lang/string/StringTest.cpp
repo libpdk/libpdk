@@ -4381,3 +4381,241 @@ TEST(StringTest, testArg)
    
    Locale::setDefault(Locale::getSystem());
 }
+
+TEST(StringTest, testNumber)
+{
+   ASSERT_EQ(String::number(int(0)), Latin1String("0") );
+   ASSERT_EQ(String::number((unsigned int)(11)), Latin1String("11") );
+   ASSERT_EQ(String::number(-22L), Latin1String("-22") );
+   ASSERT_EQ(String::number(333UL), Latin1String("333") );
+   ASSERT_EQ(String::number(4.4), Latin1String("4.4") );
+   ASSERT_EQ(String::number(PDK_INT64_C(-555)), Latin1String("-555") );
+   ASSERT_EQ(String::number(PDK_UINT64_C(6666)), Latin1String("6666") );
+   
+#ifndef PDK_NO_DOUBLECONVERSION // snprintf_l is too stupid for this
+   ASSERT_EQ(String::number(12.05, 'f', 1), String(Latin1String("12.1")) );
+   ASSERT_EQ(String::number(12.5, 'f', 0), String(Latin1String("13")) );
+#endif
+}
+
+namespace {
+
+void capacity_data(std::list<std::tuple<String, int>> &data)
+{
+   length_data(data);
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testCapacity)
+{
+   using DataType = std::list<std::tuple<String, int>>;
+   DataType data;
+   capacity_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String s1 = std::get<0>(item);
+      int res = std::get<1>(item);
+      String s2( s1 );
+      s2.reserve( res );
+      ASSERT_TRUE((int)s2.capacity() >= res);
+      ASSERT_EQ( s2, s1 );
+      
+      s2 = s1;    // share again
+      s2.reserve(res * 2);
+      ASSERT_TRUE((int)s2.capacity() >=  res * 2);
+      ASSERT_TRUE(s2.getConstRawData() != s1.getConstRawData());
+      ASSERT_EQ(s2, s1);
+      
+      // don't share again -- s2 must be detached for squeeze() to do anything
+      s2.squeeze();
+      ASSERT_TRUE((int)s2.capacity() == res);
+      ASSERT_EQ(s2, s1);
+      
+      s2 = s1;    // share again
+      int oldsize = s1.size();
+      s2.reserve( res / 2 );
+      ASSERT_TRUE((int)s2.capacity() >=  res / 2);
+      ASSERT_TRUE((int)s2.capacity() >=  oldsize);
+      ASSERT_EQ( s2, s1 );
+      ++iter;
+   }
+   
+}
+
+namespace {
+
+void section_data(std::list<std::tuple<String, String, int, int, int, String, bool>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("forename,middlename,surname,phone")), String(Latin1String(",")), 2, 2, 
+                                  int(String::SectionFlag::Default), String(Latin1String("surname")), false));
+   data.push_back(std::make_tuple(String(Latin1String("/usr/local/bin/myapp")), String(Latin1String("/")), 3, 4, 
+                                  int(String::SectionFlag::Default), String(Latin1String("bin/myapp")), false));
+   data.push_back(std::make_tuple(String(Latin1String("/usr/local/bin/myapp")), String(Latin1String("/")), 3, 3, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("myapp")), false));
+   data.push_back(std::make_tuple(String(Latin1String("forename**middlename**surname**phone")), String(Latin1String("**")), 2, 2, 
+                                  int(String::SectionFlag::Default), String(Latin1String("surname")), false));
+   data.push_back(std::make_tuple(String(Latin1String("forename**middlename**surname**phone")), String(Latin1String("**")), -3, -2, 
+                                  int(String::SectionFlag::Default), String(Latin1String("middlename**surname")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("##Datt######wollen######wir######mal######sehen##")), String(Latin1String("#")), 0, 0, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("Datt")), false));
+   data.push_back(std::make_tuple(String(Latin1String("##Datt######wollen######wir######mal######sehen##")), String(Latin1String("#")), 1, 1, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("wollen")), false));
+   data.push_back(std::make_tuple(String(Latin1String("##Datt######wollen######wir######mal######sehen##")), String(Latin1String("#")), 2, 2, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("wir")), false));
+   data.push_back(std::make_tuple(String(Latin1String("##Datt######wollen######wir######mal######sehen##")), String(Latin1String("#")), 3, 3, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("mal")), false));
+   data.push_back(std::make_tuple(String(Latin1String("##Datt######wollen######wir######mal######sehen##")), String(Latin1String("#")), 4, 4, 
+                                  int(String::SectionFlag::SkipEmpty), String(Latin1String("sehen")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("a/b/c/d")), String(Latin1String("/")), 1, -1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep), String(Latin1String("/b/c/d")), false));
+   data.push_back(std::make_tuple(String(Latin1String("aoLoboLocolod")), String(Latin1String("olo")), -1, -1, 
+                                  int(String::SectionFlag::CaseInsensitiveSeps), String(Latin1String("d")), false));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 0, 0, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String("foo")), false));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 1, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String(";foo")), false));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 2, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String(";")), false));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 0, 0, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String("foo")), true));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 1, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String(";foo")), true));
+   data.push_back(std::make_tuple(String(Latin1String("foo;foo;")), String(Latin1String(";")), 2, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep), String(Latin1String(";")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("/Users/sam/troll/pdk/src/corelib/pdkCore_debug.xcode/")), String(Latin1String("/")), 0, -2, 
+                                  int(String::SectionFlag::Default), String(Latin1String("/Users/sam/troll/pdk/src/corelib/pdkCore_debug.xcode")), false));
+   data.push_back(std::make_tuple(String(Latin1String("/Users/sam/troll/pdk/src/corelib/pdkCore_debug.xcode/")), String(Latin1String("/")), 0, -2, 
+                                  int(String::SectionFlag::Default), String(Latin1String("/Users/sam/troll/pdk/src/corelib/pdkCore_debug.xcode")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("||2|3|||")), String(Latin1String("|")), 0, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("||")), false));
+   data.push_back(std::make_tuple(String(Latin1String("||2|3|||")), String(Latin1String("\\|")), 0, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("||")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("|1|2|")), String(Latin1String("|")), 0, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("|1|")), false));
+   data.push_back(std::make_tuple(String(Latin1String("|1|2|")), String(Latin1String("\\|")), 0, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("|1|")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 0, 0, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 1, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("o1o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 2, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("o2o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 2, 3, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("o2o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 1, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(Latin1String("o1o2o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), -5, -5, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(), false));
+   data.push_back(std::make_tuple(String(Latin1String("oo1o2o")), String(Latin1String("o")), -5, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep | String::SectionFlag::SkipEmpty),
+                                  String(Latin1String("oo1o2o")), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 2, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 4, 4, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep),
+                                  String(), false));
+   data.push_back(std::make_tuple(String(Latin1String("o1oo2o")), String(Latin1String("o")), -2, -1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::SkipEmpty),
+                                  String(Latin1String("o1oo2o")), false));
+   
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 0, 0, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::IncludeLeadingSep),
+                                  String(Latin1String("o")), true));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 1, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::IncludeLeadingSep),
+                                  String(Latin1String("o1o")), true));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 2, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::IncludeLeadingSep),
+                                  String(Latin1String("o2o")), true));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 2, 3, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::IncludeLeadingSep),
+                                  String(Latin1String("o2o")), true));
+   data.push_back(std::make_tuple(String(Latin1String("o1o2o")), String(Latin1String("o")), 1, 2, 
+                                  int(String::SectionFlag::IncludeLeadingSep | String::SectionFlag::IncludeTrailingSep| String::SectionFlag::IncludeLeadingSep),
+                                  String(Latin1String("o1o2o")), true));
+   
+   data.push_back(std::make_tuple(String(Latin1String("This is a story, a small story")), String(Latin1String("\b")), 1, 2, 
+                                  int(String::SectionFlag::Default),
+                                  String(Latin1String("is")), true));
+   data.push_back(std::make_tuple(String(Latin1String("99.0 42.3")), String(Latin1String("\\s*[AaBb]\\s*")), 1, 1, 
+                                  int(String::SectionFlag::IncludeLeadingSep),
+                                  String(), true));
+   
+}
+
+} // anonymous namespace
+
+TEST(StringTest, testSection)
+{
+   using DataType = std::list<std::tuple<String, String, int, int, int, String, bool>>;
+   DataType data;
+   section_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String wholeString = std::get<0>(item);
+      String sep = std::get<1>(item);
+      int start = std::get<2>(item);
+      int end = std::get<3>(item);
+      int flags = std::get<4>(item);
+      String sectionString = std::get<5>(item);
+      bool regexp = std::get<6>(item);
+      if (regexp) {
+         //         ASSERT_EQ(wholeString.section(RegularExpression(sep), start, end, String::SectionFlag(flags) ), sectionString );
+      } else {
+         if (sep.size() == 1) {
+            ASSERT_EQ(wholeString.section(sep[0], start, end, String::SectionFlag(flags)), sectionString);
+         }
+         ASSERT_EQ(wholeString.section(sep, start, end, String::SectionFlag(flags)), sectionString);
+         //ASSERT_EQ(wholeString.section(RegularExpression(RegularExpression::escape(sep)), start, end, String::SectionFlag(flags)), sectionString);
+      }
+      ++iter;
+   }
+}
+
+TEST(StringTest, testOperatorEqeqNullstring)
+{
+   /* Some of these might not be all that logical but it's the behaviour we've had since 3.0.0
+       so we should probably stick with it. */
+   
+   ASSERT_TRUE(String() == Latin1String(""));
+   ASSERT_TRUE(Latin1String("") == String());
+   
+   ASSERT_TRUE(String(Latin1String("")) == Latin1String(""));
+   ASSERT_TRUE(Latin1String("") == String(Latin1String("")));
+   
+   ASSERT_TRUE(String() == nullptr);
+   ASSERT_TRUE(nullptr == String());
+   
+   ASSERT_TRUE(String(Latin1String("")) == nullptr);
+   ASSERT_TRUE(nullptr == String(Latin1String("")));
+   
+   ASSERT_TRUE(String().size() == 0);
+   
+   ASSERT_TRUE(String(Latin1String("")).size() == 0);
+   
+   ASSERT_TRUE(String() == String(Latin1String("")));
+   ASSERT_TRUE(String(Latin1String("")) == String());
+}
+

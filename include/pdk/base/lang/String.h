@@ -2569,6 +2569,36 @@ inline bool operator>=(Latin1String lhs, StringView rhs) noexcept
    return stringprivate::compare_strings(lhs, rhs) >= 0;
 }
 
+inline bool operator ==(const String &lhs, nullptr_t)
+{
+   return lhs.isNull() || lhs.isEmpty();
+}
+
+inline bool operator ==(nullptr_t, const String &rhs)
+{
+   return rhs.isNull() || rhs.isEmpty();
+}
+
+inline bool operator ==(const StringRef &lhs, nullptr_t)
+{
+   return lhs.isNull() || lhs.isEmpty();
+}
+
+inline bool operator ==(nullptr_t, const StringRef &rhs)
+{
+   return rhs.isNull() || rhs.isEmpty();
+}
+
+inline bool operator ==(StringView lhs, nullptr_t)
+{
+   return lhs.isNull() || lhs.isEmpty();
+}
+
+inline bool operator ==(nullptr_t, StringView rhs)
+{
+   return rhs.isNull() || rhs.isEmpty();
+}
+
 inline bool StringRef::contains(const String &str, CaseSensitivity cs) const
 {
    return indexOf(str, 0, cs) != -1;
