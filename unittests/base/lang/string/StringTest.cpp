@@ -14,8 +14,6 @@
 // Created by zzu_softboy on 2017/12/23.
 
 #include "gtest/gtest.h"
-//#include "pdk/utils/internal/LocaleToolsPrivate.h"
-//#include "pdk/base/io/DataStream.h"
 #include "pdk/base/io/fs/internal/FileEnginePrivate.h"
 #include "pdk/base/io/fs/Resource.h"
 #include "pdk/base/io/fs/FileInfo.h"
@@ -2279,7 +2277,7 @@ TEST(StringTest, testAppendChar)
    append_impl<Reversed<char>, String &(String::*)(Character)>(data);
 }
 
-TEST(StrinTest, testAppendSpecialCases)
+TEST(StringTest, testAppendSpecialCases)
 {
    String str;
    static const Character unicode[] = { 'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!' };
@@ -4574,145 +4572,348 @@ TEST(StringTest, testOperatorEqeqNullstring)
 
 TEST(StringTest, testOperatorSmaller)
 {
-    String null;
-    String empty(Latin1String(""));
-    String foo(Latin1String("foo"));
-    const char *nullC = nullptr;
-    const char *emptyC = "";
+   String null;
+   String empty(Latin1String(""));
+   String foo(Latin1String("foo"));
+   const char *nullC = nullptr;
+   const char *emptyC = "";
+   
+   ASSERT_TRUE(!(null < String()));
+   ASSERT_TRUE(!(null > String()));
+   
+   ASSERT_TRUE(!(empty < String(Latin1String(""))));
+   ASSERT_TRUE(!(empty > String(Latin1String(""))));
+   
+   ASSERT_TRUE(!(null < empty));
+   ASSERT_TRUE(!(null > empty));
+   
+   ASSERT_TRUE(!(Latin1String(nullC) < empty));
+   ASSERT_TRUE(!(Latin1String(nullC) > empty));
+   
+   ASSERT_TRUE(!(null < Latin1String(emptyC)));
+   ASSERT_TRUE(!(null > Latin1String(emptyC)));
+   
+   ASSERT_TRUE(null < foo );
+   ASSERT_TRUE(!(null > foo));
+   ASSERT_TRUE(foo > null );
+   ASSERT_TRUE(!(foo < null));
+   
+   ASSERT_TRUE(empty < foo );
+   ASSERT_TRUE(!(empty > foo));
+   ASSERT_TRUE(foo > empty );
+   ASSERT_TRUE(!(foo < empty));
+   
+   ASSERT_TRUE(!(null < Latin1String(0)));
+   ASSERT_TRUE(!(null > Latin1String(0)));
+   ASSERT_TRUE(!(null < Latin1String("")));
+   ASSERT_TRUE(!(null > Latin1String("")));
+   
+   ASSERT_TRUE(!(null < Latin1String("")));
+   ASSERT_TRUE(!(null > Latin1String("")));
+   ASSERT_TRUE(!(empty < Latin1String("")));
+   ASSERT_TRUE(!(empty > Latin1String("")));
+   
+   ASSERT_TRUE(!(Latin1String(0) < null));
+   ASSERT_TRUE(!(Latin1String(0) > null));
+   ASSERT_TRUE(!(Latin1String("") < null));
+   ASSERT_TRUE(!(Latin1String("") > null));
+   
+   ASSERT_TRUE(!(Latin1String(0) < empty));
+   ASSERT_TRUE(!(Latin1String(0) > empty));
+   ASSERT_TRUE(!(Latin1String("") < empty));
+   ASSERT_TRUE(!(Latin1String("") > empty));
+   
+   ASSERT_TRUE(Latin1String(0) < foo );
+   ASSERT_TRUE(!(Latin1String(0) > foo));
+   ASSERT_TRUE(Latin1String("") < foo );
+   ASSERT_TRUE(!(Latin1String("") > foo));
+   
+   ASSERT_TRUE(foo > Latin1String(0));
+   ASSERT_TRUE(!(foo < Latin1String(0)));
+   ASSERT_TRUE(foo > Latin1String(""));
+   ASSERT_TRUE(!(foo < Latin1String("")));
+   
+   ASSERT_TRUE(Latin1String(0) == empty);
+   ASSERT_TRUE(Latin1String(0) == null);
+   ASSERT_TRUE(Latin1String("") == empty);
+   ASSERT_TRUE(Latin1String("") == null);
+   
+   ASSERT_TRUE(!(foo < Latin1String("foo")));
+   ASSERT_TRUE(!(foo > Latin1String("foo")));
+   ASSERT_TRUE(!(Latin1String("foo") < foo));
+   ASSERT_TRUE(!(Latin1String("foo") > foo));
+   
+   ASSERT_TRUE(!(foo < Latin1String("a")));
+   ASSERT_TRUE((foo > Latin1String("a")));
+   ASSERT_TRUE((Latin1String("a") < foo));
+   ASSERT_TRUE(!(Latin1String("a") > foo));
+   
+   ASSERT_TRUE((foo < Latin1String("z")));
+   ASSERT_TRUE(!(foo > Latin1String("z")));
+   ASSERT_TRUE(!(Latin1String("z") < foo));
+   ASSERT_TRUE((Latin1String("z") > foo));
+   
+   // operator< is not locale-aware (or shouldn't be)
+   ASSERT_TRUE(foo < String(Latin1String("\xc3\xa9")));
+   ASSERT_TRUE(foo < Latin1String("\xc3\xa9"));
+   
+   ASSERT_TRUE(String(Latin1String("a")) < String(Latin1String("b")));
+   ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("b")));
+   ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("a")));
+   ASSERT_TRUE(String(Latin1String("a")) == String(Latin1String("a")));
+   ASSERT_TRUE(String(Latin1String("a")) >= String(Latin1String("a")));
+   ASSERT_TRUE(String(Latin1String("b")) >= String(Latin1String("a")));
+   ASSERT_TRUE(String(Latin1String("b")) > String(Latin1String("a")));
+   
+   ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
+   ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
+   ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
+   
+   ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
+   ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
+   ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
+   
+   ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
+   ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
+   ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
+   ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
+   
+   ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
+   ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
+   ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
+   ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
+   
+   ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
+   ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
+   ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
+   ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
+   
+   ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
+   ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
+   ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
+   ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
+   ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
+}
 
-    ASSERT_TRUE(!(null < String()));
-    ASSERT_TRUE(!(null > String()));
+namespace {
 
-    ASSERT_TRUE(!(empty < String(Latin1String(""))));
-    ASSERT_TRUE(!(empty > String(Latin1String(""))));
+void integer_conversion_data(std::list<std::tuple<String, int, bool, pdk::plonglong>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("")), 0, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("")), 8, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("")), 10, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("")), 16, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(), 0, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(), 8, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(), 10, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(), 16, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("  -0xf")), 0, true, (pdk::plonglong)-15));
+   data.push_back(std::make_tuple(String(Latin1String("-0xf  ")), 0, true, (pdk::plonglong)-15));
+   data.push_back(std::make_tuple(String(Latin1String("\t0xf\t")), 0, true, (pdk::plonglong)15));
+   data.push_back(std::make_tuple(String(Latin1String("  -010")), 0, true, (pdk::plonglong)-8));
+   data.push_back(std::make_tuple(String(Latin1String("010  ")), 0, true, (pdk::plonglong)8));
+   data.push_back(std::make_tuple(String(Latin1String("\t-010\t")), 0, true, (pdk::plonglong)-8));
+   data.push_back(std::make_tuple(String(Latin1String("  123")), 10, true, (pdk::plonglong)123));
+   data.push_back(std::make_tuple(String(Latin1String("123  ")), 10, true, (pdk::plonglong)123));
+   data.push_back(std::make_tuple(String(Latin1String("\t123\t")), 10, true, (pdk::plonglong)123));
+   data.push_back(std::make_tuple(String(Latin1String("  -0xf")), 16, true, (pdk::plonglong)-15));
+   data.push_back(std::make_tuple(String(Latin1String("-0xf  ")), 16, true, (pdk::plonglong)-15));
+   data.push_back(std::make_tuple(String(Latin1String("\t0xf\t")), 16, true, (pdk::plonglong)15));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-0")), 0, true, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("-0")), 8, true, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("-0")), 10, true, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("-0")), 16, true, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("1.234")), 10, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("1,234")), 10, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("0x")), 0, false, (pdk::plonglong)0));
+   data.push_back(std::make_tuple(String(Latin1String("0x")), 16, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("10")), 0, true, (pdk::plonglong)10));
+   data.push_back(std::make_tuple(String(Latin1String("010")), 0, true, (pdk::plonglong)8));
+   data.push_back(std::make_tuple(String(Latin1String("0x10")), 0, true, (pdk::plonglong)16));
+   
+   data.push_back(std::make_tuple(String(Latin1String("10")), 8, true, (pdk::plonglong)8));
+   data.push_back(std::make_tuple(String(Latin1String("010")), 8, true, (pdk::plonglong)8));
+   data.push_back(std::make_tuple(String(Latin1String("0x10")), 8, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("10")), 10, true, (pdk::plonglong)10));
+   data.push_back(std::make_tuple(String(Latin1String("010")), 10, true, (pdk::plonglong)10));
+   data.push_back(std::make_tuple(String(Latin1String("0x10")), 10, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("10")), 16, true, (pdk::plonglong)16));
+   data.push_back(std::make_tuple(String(Latin1String("010")), 16, true, (pdk::plonglong)16));
+   data.push_back(std::make_tuple(String(Latin1String("0x10")), 16, true, (pdk::plonglong)16));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-10")), 0, true, (pdk::plonglong)-10));
+   data.push_back(std::make_tuple(String(Latin1String("-010")), 0, true, (pdk::plonglong)-8));
+   data.push_back(std::make_tuple(String(Latin1String("-0x10")), 0, true, (pdk::plonglong)-16));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-10")), 8, true, (pdk::plonglong)-8));
+   data.push_back(std::make_tuple(String(Latin1String("-010")), 8, true, (pdk::plonglong)-8));
+   data.push_back(std::make_tuple(String(Latin1String("-0x10")), 8, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-10")), 10, true, (pdk::plonglong)-10));
+   data.push_back(std::make_tuple(String(Latin1String("-010")), 10, true, (pdk::plonglong)-10));
+   data.push_back(std::make_tuple(String(Latin1String("-0x10")), 10, false, (pdk::plonglong)0));
+   
+   data.push_back(std::make_tuple(String(Latin1String("-10")), 16, true, (pdk::plonglong)-16));
+   data.push_back(std::make_tuple(String(Latin1String("-010")), 16, true, (pdk::plonglong)-16));
+   data.push_back(std::make_tuple(String(Latin1String("-0x10")), 16, true, (pdk::plonglong)-16));
+   
+   const pdk::puint16 arabic_str[] = { 0x0661, 0x0662, 0x0663, 0x0664, 0x0000 }; // "1234"
+   data.push_back(std::make_tuple(String::fromUtf16(arabic_str), 0, false, (pdk::plonglong)0));
+}
 
-    ASSERT_TRUE(!(null < empty));
-    ASSERT_TRUE(!(null > empty));
+void double_conversion_data(std::list<std::tuple<String, bool, double>> &data)
+{
+   // The good...
+   data.push_back(std::make_tuple(String(Latin1String("1")), true, 1.0));
+   data.push_back(std::make_tuple(String(Latin1String("1.0")), true, 1.0));
+   data.push_back(std::make_tuple(String(Latin1String("1.234")), true, 1.234));
+   data.push_back(std::make_tuple(String(Latin1String("1.234e-10")), true, 1.234e-10));
+   data.push_back(std::make_tuple(String(Latin1String("1.234E10")), true, 1.234e10));
+   data.push_back(std::make_tuple(String(Latin1String("1e10")), true, 1.0e10));
+   
+   // The bad...
+   data.push_back(std::make_tuple(String(Latin1String("")), false, 0.0));
+   data.push_back(std::make_tuple(String(), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String(".")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1e")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,0")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,000")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1e1.0")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1e+")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1e-")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,0")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,234")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,234e-10")), false, 0.0));
+   data.push_back(std::make_tuple(String(Latin1String("1,234E10")), false, 0.0));
+   
+   // And the ugly...
+   data.push_back(std::make_tuple(String(Latin1String(".1")), true, 0.1));
+   data.push_back(std::make_tuple(String(Latin1String("-.1")), true, -0.1));
+   data.push_back(std::make_tuple(String(Latin1String("1.")), true, 1.0));
+   data.push_back(std::make_tuple(String(Latin1String("1.E10")), true, 1.0e10));
+   data.push_back(std::make_tuple(String(Latin1String("1e+10")), true, 1.0e+10));
+   data.push_back(std::make_tuple(String(Latin1String("  1")), true, 1.0));
+   data.push_back(std::make_tuple(String(Latin1String("1 ")), true, 1.0));
+   const pdk::puint16 arabic_str[] = { 0x0660, 0x066B, 0x0661, 0x0662,
+                                       0x0663, 0x0664, 0x0065, 0x0662,
+                                       0x0000 };                            // "0.1234e2"
+   data.push_back(std::make_tuple(String::fromUtf16(arabic_str), false, 0.0));
+}
 
-    ASSERT_TRUE(!(Latin1String(nullC) < empty));
-    ASSERT_TRUE(!(Latin1String(nullC) > empty));
+} // anonymous namespace
 
-    ASSERT_TRUE(!(null < Latin1String(emptyC)));
-    ASSERT_TRUE(!(null > Latin1String(emptyC)));
+TEST(StringTest, testIntegerConversion)
+{
+   using DataType = std::list<std::tuple<String, int, bool, pdk::plonglong>>;
+   DataType data;
+   integer_conversion_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   while (iter != endMark) {
+      auto item = *iter;
+      String numStr = std::get<0>(item);
+      int base = std::get<1>(item);
+      bool good = std::get<2>(item);
+      pdk::plonglong num = std::get<3>(item);
+      bool ok;
+      pdk::plonglong d = numStr.toLongLong(&ok, base);
+      ASSERT_EQ(ok, good);
+      if (ok) {
+         ASSERT_EQ(d, num);
+      }
+      ++iter;
+   }
+}
 
-    ASSERT_TRUE(null < foo );
-    ASSERT_TRUE(!(null > foo));
-    ASSERT_TRUE(foo > null );
-    ASSERT_TRUE(!(foo < null));
+TEST(StringTest, testDoubleConversion)
+{
+#define MY_DOUBLE_EPSILON (2.22045e-16)
+   
+   using DataType = std::list<std::tuple<String, bool, double>>;
+   DataType data;
+   double_conversion_data(data);
+   DataType::iterator iter = data.begin();
+   DataType::iterator endMark = data.end();
+   
+   while (iter != endMark) {
+      auto item = *iter;
+      String numStr = std::get<0>(item);
+      bool good = std::get<1>(item);
+      double num = std::get<2>(item);
+      bool ok;
+      double d = numStr.toDouble(&ok);
+      ASSERT_EQ(ok, good);
+      
+      if (ok) {
+         double diff = d - num;
+         if (diff < 0) {
+            diff = -diff;
+         }
+         ASSERT_TRUE(diff <= MY_DOUBLE_EPSILON);
+      }
+      ++iter;
+   }
+}
 
-    ASSERT_TRUE(empty < foo );
-    ASSERT_TRUE(!(empty > foo));
-    ASSERT_TRUE(foo > empty );
-    ASSERT_TRUE(!(foo < empty));
+#include "DoubleData.h"
 
-    ASSERT_TRUE(!(null < Latin1String(0)));
-    ASSERT_TRUE(!(null > Latin1String(0)));
-    ASSERT_TRUE(!(null < Latin1String("")));
-    ASSERT_TRUE(!(null > Latin1String("")));
+TEST(StringTest, testTortureSprintfDouble)
+{
+    const SprintfDoubleData *data = g_sprintf_double_data;
 
-    ASSERT_TRUE(!(null < Latin1String("")));
-    ASSERT_TRUE(!(null > Latin1String("")));
-    ASSERT_TRUE(!(empty < Latin1String("")));
-    ASSERT_TRUE(!(empty > Latin1String("")));
+    String s;
 
-    ASSERT_TRUE(!(Latin1String(0) < null));
-    ASSERT_TRUE(!(Latin1String(0) > null));
-    ASSERT_TRUE(!(Latin1String("") < null));
-    ASSERT_TRUE(!(Latin1String("") > null));
+    for (; data->m_fmt != 0; ++data) {
+        double d;
+        char *buff = (char *)&d;
+#        ifndef PDK_BYTE_ORDER
+#            error "PDK_BYTE_ORDER not defined"
+#        endif
 
-    ASSERT_TRUE(!(Latin1String(0) < empty));
-    ASSERT_TRUE(!(Latin1String(0) > empty));
-    ASSERT_TRUE(!(Latin1String("") < empty));
-    ASSERT_TRUE(!(Latin1String("") > empty));
-
-    ASSERT_TRUE(Latin1String(0) < foo );
-    ASSERT_TRUE(!(Latin1String(0) > foo));
-    ASSERT_TRUE(Latin1String("") < foo );
-    ASSERT_TRUE(!(Latin1String("") > foo));
-
-    ASSERT_TRUE(foo > Latin1String(0));
-    ASSERT_TRUE(!(foo < Latin1String(0)));
-    ASSERT_TRUE(foo > Latin1String(""));
-    ASSERT_TRUE(!(foo < Latin1String("")));
-
-    ASSERT_TRUE(Latin1String(0) == empty);
-    ASSERT_TRUE(Latin1String(0) == null);
-    ASSERT_TRUE(Latin1String("") == empty);
-    ASSERT_TRUE(Latin1String("") == null);
-
-    ASSERT_TRUE(!(foo < Latin1String("foo")));
-    ASSERT_TRUE(!(foo > Latin1String("foo")));
-    ASSERT_TRUE(!(Latin1String("foo") < foo));
-    ASSERT_TRUE(!(Latin1String("foo") > foo));
-
-    ASSERT_TRUE(!(foo < Latin1String("a")));
-    ASSERT_TRUE((foo > Latin1String("a")));
-    ASSERT_TRUE((Latin1String("a") < foo));
-    ASSERT_TRUE(!(Latin1String("a") > foo));
-
-    ASSERT_TRUE((foo < Latin1String("z")));
-    ASSERT_TRUE(!(foo > Latin1String("z")));
-    ASSERT_TRUE(!(Latin1String("z") < foo));
-    ASSERT_TRUE((Latin1String("z") > foo));
-
-    // operator< is not locale-aware (or shouldn't be)
-    ASSERT_TRUE(foo < String(Latin1String("\xc3\xa9")));
-    ASSERT_TRUE(foo < Latin1String("\xc3\xa9"));
-
-    ASSERT_TRUE(String(Latin1String("a")) < String(Latin1String("b")));
-    ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("b")));
-    ASSERT_TRUE(String(Latin1String("a")) <= String(Latin1String("a")));
-    ASSERT_TRUE(String(Latin1String("a")) == String(Latin1String("a")));
-    ASSERT_TRUE(String(Latin1String("a")) >= String(Latin1String("a")));
-    ASSERT_TRUE(String(Latin1String("b")) >= String(Latin1String("a")));
-    ASSERT_TRUE(String(Latin1String("b")) > String(Latin1String("a")));
-
-    ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
-    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
-    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
-
-    ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
-    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
-    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
-
-    ASSERT_TRUE(Latin1String("a") < String(Latin1String("b")));
-    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("b")));
-    ASSERT_TRUE(Latin1String("a") <= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("a") == String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("a") >= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("b") >= String(Latin1String("a")));
-    ASSERT_TRUE(Latin1String("b") > String(Latin1String("a")));
-
-    ASSERT_TRUE(String(Latin1String("a")) < Latin1String("b"));
-    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("b"));
-    ASSERT_TRUE(String(Latin1String("a")) <= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("a")) == Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("a")) >= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("b")) >= Latin1String("a"));
-    ASSERT_TRUE(String(Latin1String("b")) > Latin1String("a"));
-
-    ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
-    ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
-    ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
-    ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
-
-    ASSERT_TRUE(Latin1String("a") < Latin1String("b"));
-    ASSERT_TRUE(Latin1String("a") <= Latin1String("b"));
-    ASSERT_TRUE(Latin1String("a") <= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("a") == Latin1String("a"));
-    ASSERT_TRUE(Latin1String("a") >= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("b") >= Latin1String("a"));
-    ASSERT_TRUE(Latin1String("b") > Latin1String("a"));
+#        if PDK_BYTE_ORDER == PDK_LITTLE_ENDIAN
+        for (uint i = 0; i < 8; ++i)
+            buff[i] = data->m_bytes[i];
+#        else
+        for (uint i = 0; i < 8; ++i)
+            buff[7 - i] = data->m_bytes[i];
+#        endif
+        
+#ifdef PDK_NO_FPU // reduced precision when running with hardfloats in qemu
+        if (d - 0.1 < 1e12) {
+           std::printf("clib sprintf doesn't fill with 0's on this platform");
+        }
+        ASSERT_EQ(s.left(16), String(Latin1String(data->m_expected)).left(16));
+#else
+        ASSERT_EQ(s.asprintf(data->m_fmt, d), String(Latin1String(data->m_expected)));
+#endif
+    }
 }
 
