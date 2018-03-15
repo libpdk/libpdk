@@ -137,7 +137,7 @@ ThreadPrivate::~ThreadPrivate()
 Thread *Thread::getCurrentThread()
 {
    ThreadData *data = ThreadData::current();
-   PDK_ASSERT(data != 0);
+   PDK_ASSERT(data != nullptr);
    return data->m_thread;
 }
 

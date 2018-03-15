@@ -27,6 +27,7 @@
 
 #include "pdk/base/os/thread/Thread.h"
 #include <mutex>
+#include <condition_variable>
 
 #ifndef PDK_NO_EXCEPTIONS
 #include <exception>
@@ -78,9 +79,38 @@ TEST(ThreadTest, testCurrentThreadId)
 {
     CurrentThread thread;
     thread.m_id = 0;
-    thread.m_thread = 0;
+    thread.m_thread = nullptr;
     thread.start();
     ASSERT_TRUE(thread.wait(five_minutes));
     ASSERT_TRUE(thread.m_id != 0);
     ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
+}
+
+TEST(ThreadTest, testCurrentThread)
+{
+   ASSERT_TRUE(Thread::getCurrentThread() != nullptr);
+   CurrentThread thread;
+   thread.m_id = 0;
+   thread.m_thread = nullptr;
+   thread.start();
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_EQ(thread.m_thread, dynamic_cast<Thread *>(&thread));
+}
+
+TEST(ThreadTest, testIdealThreadCount)
+{
+   ASSERT_TRUE(Thread::getIdealThreadCount() > 0);
+   std::clog << "Ideal thread count:" << Thread::getIdealThreadCount();
+}
+
+TEST(ThreadTest, testIsFinished)
+{
+   SimpleThread thread;
+   ASSERT_TRUE(!thread.isFinished());
+   std::unique_lock<std::mutex> locker(thread.m_mutex);
+   thread.start();
+   ASSERT_TRUE(!thread.isFinished());
+   thread.m_cond.wait(locker);
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(thread.isFinished());
 }

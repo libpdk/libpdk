@@ -298,7 +298,7 @@ ThreadData *ThreadData::current(bool createIfNecessary)
       }
       data->deref();
       data->m_isAdopted = true;
-      data->m_threadId = to_pdk_handle_type(pthread_self());
+      data->m_threadId.store(to_pdk_handle_type(pthread_self()));
       if (!CoreApplicationPrivate::sm_theMainThread) {
          CoreApplicationPrivate::sm_theMainThread = data->m_thread.load();
       }
