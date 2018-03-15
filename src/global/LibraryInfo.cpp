@@ -223,7 +223,9 @@ void LibraryInfo::reload()
 {}
 
 String LibraryInfo::getPath(LibraryLocation loc)
-{}
+{
+   return String();
+}
 
 
 String LibraryInfo::getRawLocation(LibraryLocation loc, PathGroup group)

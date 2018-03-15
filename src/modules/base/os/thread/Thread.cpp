@@ -79,7 +79,7 @@ void ThreadData::ref()
 
 void ThreadData::deref()
 {
-   if (m_ref.deref()) {
+   if (!m_ref.deref()) {
       delete this;
    }
 }
@@ -145,6 +145,7 @@ Thread::Thread(Object *parent)
    : Object(*(new ThreadPrivate), parent)
 {
    PDK_D(Thread);
+   // fprintf(stderr, "ThreadData %p created for thread %p\n", implPtr->m_data, this);
    implPtr->m_data->m_thread = this;
 }
 

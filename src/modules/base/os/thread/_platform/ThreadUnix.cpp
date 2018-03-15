@@ -332,70 +332,96 @@ void *ThreadPrivate::start(void *arg)
 {
    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
    pthread_cleanup_push(ThreadPrivate::finish, arg);
-   Thread *thread = reinterpret_cast<Thread *>(arg);
-   ThreadData *data = ThreadData::get(thread);
-   {
-      std::scoped_lock locker(thread->getImplPtr()->m_mutex);
-      // do we need to reset the thread priority?
-      if (static_cast<int>(thread->getImplPtr()->m_priority) & THREAD_PRIORITY_RESET_FLAG) {
-         thread->getImplPtr()->setPriority(Thread::Priority(thread->getImplPtr()->m_priority & ~THREAD_PRIORITY_RESET_FLAG));
+   try {
+      Thread *thread = reinterpret_cast<Thread *>(arg);
+      ThreadData *data = ThreadData::get(thread);
+      {
+         std::scoped_lock locker(thread->getImplPtr()->m_mutex);
+         // do we need to reset the thread priority?
+         if (static_cast<int>(thread->getImplPtr()->m_priority) & THREAD_PRIORITY_RESET_FLAG) {
+            thread->getImplPtr()->setPriority(Thread::Priority(thread->getImplPtr()->m_priority & ~THREAD_PRIORITY_RESET_FLAG));
+         }
+         data->m_threadId.store(to_pdk_handle_type(pthread_self()));
+         set_thread_data(data);
+         data->ref();
+         data->m_quitNow = thread->getImplPtr()->m_exited;
       }
-      data->m_threadId = to_pdk_handle_type(pthread_self());
-      set_thread_data(data);
-      data->ref();
-      data->m_quitNow = thread->getImplPtr()->m_exited;
-   }
-   if (data->m_eventDispatcher.load()) {
-      data->m_eventDispatcher.load()->startingUp();
-   } else {
-      createEventDispatcher(data);
-   }
-#if (defined(PDK_OS_LINUX) || defined(PDK_OS_MAC))
-   {
-      // sets the name of the current thread.
-      String objectName = thread->getObjectName();
-      pthread_t threadId = from_pdk_handle_type<pthread_t>(data->m_threadId);
-      if (PDK_LIKELY(objectName.isEmpty())) {
-         set_current_thread_name(threadId, typeid(thread).name());
+      if (data->m_eventDispatcher.load()) {
+         data->m_eventDispatcher.load()->startingUp();
       } else {
-         set_current_thread_name(threadId, objectName.toLocal8Bit());
+         createEventDispatcher(data);
       }
-   }
+#if (defined(PDK_OS_LINUX) || defined(PDK_OS_MAC))
+      {
+         // sets the name of the current thread.
+         String objectName = thread->getObjectName();
+         pthread_t threadId = from_pdk_handle_type<pthread_t>(data->m_threadId.load());
+         if (PDK_LIKELY(objectName.isEmpty())) {
+            set_current_thread_name(threadId, typeid(thread).name());
+         } else {
+            set_current_thread_name(threadId, objectName.toLocal8Bit());
+         }
+      }
 #endif
-   // emit thread started signal
-   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-   pthread_testcancel();
-   thread->run();
+      // emit thread started signal
+      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+      pthread_testcancel();
+      thread->run();
+   }
+#ifdef __GLIBCXX__
+   // POSIX thread cancellation under glibc is implemented by throwing an exception
+   // of this type. Do what libstdc++ is doing and handle it specially in order not to
+   // abort the application if user's code calls a cancellation function.
+   catch (const abi::__forced_unwind &) {
+      throw;
+   }
+#endif // __GLIBCXX__
+   catch (...) {
+      std::terminate();
+   }
    pthread_cleanup_pop(1);
    return 0;
 }
 
 void ThreadPrivate::finish(void *arg)
 {
-   Thread *thread = reinterpret_cast<Thread *>(arg);
-   ThreadPrivate *implPtr = thread->getImplPtr();
-   std::unique_lock locker(implPtr->m_mutex);
-   implPtr->m_isInFinish = true;
-   implPtr->m_priority = Thread::InheritPriority;
-   void *data = &implPtr->m_data->m_tls;
-   locker.unlock();
-   // emit thread->finished signal
-   CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
-   ThreadStorageData::finish((void **)data);
-   locker.lock();
-   AbstractEventDispatcher *eventDispatcher = implPtr->m_data->m_eventDispatcher.load();
-   if (eventDispatcher) {
-      implPtr->m_data->m_eventDispatcher = nullptr;
+   try {
+      Thread *thread = reinterpret_cast<Thread *>(arg);
+      ThreadPrivate *implPtr = thread->getImplPtr();
+      std::unique_lock locker(implPtr->m_mutex);
+      implPtr->m_isInFinish = true;
+      implPtr->m_priority = Thread::InheritPriority;
+      void *data = &implPtr->m_data->m_tls;
       locker.unlock();
-      eventDispatcher->closingDown();
-      delete eventDispatcher;
+//      // emit thread->finished signal
+      CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
+      ThreadStorageData::finish((void **)data);
       locker.lock();
+      AbstractEventDispatcher *eventDispatcher = implPtr->m_data->m_eventDispatcher.load();
+      if (eventDispatcher) {
+         implPtr->m_data->m_eventDispatcher = nullptr;
+         locker.unlock();
+         eventDispatcher->closingDown();
+         delete eventDispatcher;
+         locker.lock();
+      }
+      implPtr->m_running = false;
+      implPtr->m_finished = true;
+      implPtr->m_interruptionRequested = false;
+      implPtr->m_isInFinish = false;
+      implPtr->m_threadDone.notify_all();
    }
-   implPtr->m_running = false;
-   implPtr->m_finished = true;
-   implPtr->m_interruptionRequested = false;
-   implPtr->m_isInFinish = false;
-   implPtr->m_threadDone.notify_all();
+#ifdef __GLIBCXX__
+   // POSIX thread cancellation under glibc is implemented by throwing an exception
+   // of this type. Do what libstdc++ is doing and handle it specially in order not to
+   // abort the application if user's code calls a cancellation function.
+   catch (const abi::__forced_unwind &) {
+      throw;
+   }
+#endif // __GLIBCXX__
+   catch (...) {
+      std::terminate();
+   }
 }
 
 // Caller must lock the mutex
@@ -555,13 +581,13 @@ void Thread::start(Priority priority)
 #endif
       code = pthread_create(&threadId, &attr, ThreadPrivate::start, this); 
    }
-   implPtr->m_data->m_threadId = to_pdk_handle_type(threadId);
+   implPtr->m_data->m_threadId.store(to_pdk_handle_type(threadId));
    pthread_attr_destroy(&attr);
    if (code) {
       warning_stream("Thread::start: Thread creation error: %s", pdk_printable(pdk::error_string(code)));
       implPtr->m_running = false;
       implPtr->m_finished = false;
-      implPtr->m_data->m_threadId = 0;
+      implPtr->m_data->m_threadId.store(nullptr);
    }
 }
 

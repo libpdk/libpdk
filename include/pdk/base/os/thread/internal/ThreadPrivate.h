@@ -235,7 +235,7 @@ public:
    std::vector<EventLoop *> m_eventLoops;
    PostEventList m_postEventList;
    AtomicPointer<Thread> m_thread;
-   pdk::HANDLE m_threadId;
+   AtomicPointer<void> m_threadId;
    AtomicPointer<AbstractEventDispatcher> m_eventDispatcher;
    std::vector<void *> m_tls;
    

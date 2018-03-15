@@ -61,9 +61,14 @@ ObjectPrivate::ObjectPrivate(int version)
    m_sendChildEvents = true;                     // if we should send ChildAdded and ChildRemoved events to parent
    m_receiveChildEvents = true;
    m_postedEvents = 0;
-   m_extraData = 0;
+   m_extraData = nullptr;
    m_isWindow = false;
    m_deleteLaterCalled = false;
+   m_currentSender = nullptr;
+   m_currentChildBeingDeleted = nullptr;
+   m_senders = nullptr;
+   m_connectionLists = nullptr;
+   m_threadData = nullptr;
 }
 
 ObjectPrivate::~ObjectPrivate()
@@ -243,110 +248,110 @@ Object::~Object()
       implPtr->m_currentSender->m_ref = 0;
    }
    implPtr->m_currentSender = nullptr;
-   if (implPtr->m_connectionLists || implPtr->m_senders) {
-      std::mutex &signalSlotMutex = signal_slot_lock(this);
-      std::unique_lock<std::mutex> locker(signalSlotMutex);
-      // disconnect all receivers
-      if (implPtr->m_connectionLists) {
-         ++implPtr->m_connectionLists->m_inUse;
-         int connectionListsCount = implPtr->m_connectionLists->size();
-         for (int signal = -1; signal < connectionListsCount; ++signal) {
-            ObjectPrivate::ConnectionList &connectionList =
-                  (*implPtr->m_connectionLists)[signal];
+//   if (implPtr->m_connectionLists || implPtr->m_senders) {
+//      std::mutex &signalSlotMutex = signal_slot_lock(this);
+//      std::unique_lock<std::mutex> locker(signalSlotMutex);
+//      // disconnect all receivers
+//      if (implPtr->m_connectionLists) {
+//         ++implPtr->m_connectionLists->m_inUse;
+//         int connectionListsCount = implPtr->m_connectionLists->size();
+//         for (int signal = -1; signal < connectionListsCount; ++signal) {
+//            ObjectPrivate::ConnectionList &connectionList =
+//                  (*implPtr->m_connectionLists)[signal];
             
-            while (ObjectPrivate::Connection *c = connectionList.m_first) {
-               if (!c->m_receiver) {
-                  connectionList.m_first = c->m_nextConnectionList;
-                  c->deref();
-                  continue;
-               }
+//            while (ObjectPrivate::Connection *c = connectionList.m_first) {
+//               if (!c->m_receiver) {
+//                  connectionList.m_first = c->m_nextConnectionList;
+//                  c->deref();
+//                  continue;
+//               }
                
-               std::mutex &m = signal_slot_lock(c->m_receiver);
-               bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
-               if (c->m_receiver) {
-                  *c->m_prev = c->m_next;
-                  if (c->m_next) {
-                     c->m_next->m_prev = c->m_prev;
-                  }
-               }
-               c->m_receiver = nullptr;
-               if (needToUnlock) {
-                  m.unlock();
-               }
-               connectionList.m_first = c->m_nextConnectionList;
-               // The destroy operation must happen outside the lock
-               if (c->m_isSlotObject) {
-                  c->m_isSlotObject = false;
-                  locker.unlock();
-                  c->m_slotObj->destroyIfLastRef();
-                  locker.lock();
-               }
-               c->deref();
-            }
-         }
+//               std::mutex &m = signal_slot_lock(c->m_receiver);
+//               bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
+//               if (c->m_receiver) {
+//                  *c->m_prev = c->m_next;
+//                  if (c->m_next) {
+//                     c->m_next->m_prev = c->m_prev;
+//                  }
+//               }
+//               c->m_receiver = nullptr;
+//               if (needToUnlock) {
+//                  m.unlock();
+//               }
+//               connectionList.m_first = c->m_nextConnectionList;
+//               // The destroy operation must happen outside the lock
+//               if (c->m_isSlotObject) {
+//                  c->m_isSlotObject = false;
+//                  locker.unlock();
+//                  c->m_slotObj->destroyIfLastRef();
+//                  locker.lock();
+//               }
+//               c->deref();
+//            }
+//         }
          
-         if (!--implPtr->m_connectionLists->m_inUse) {
-            delete implPtr->m_connectionLists;
-         } else {
-            implPtr->m_connectionLists->m_orphaned = true;
-         }
-         implPtr->m_connectionLists = nullptr;
-      }
+//         if (!--implPtr->m_connectionLists->m_inUse) {
+//            delete implPtr->m_connectionLists;
+//         } else {
+//            implPtr->m_connectionLists->m_orphaned = true;
+//         }
+//         implPtr->m_connectionLists = nullptr;
+//      }
       
-      // Disconnect all senders:
-      // This loop basically just does
-      // for (node = implPtr->m_senders; node; node = node->m_next) { ... }
-      //
-      // We need to temporarily unlock the receiver mutex to destroy the functors or to lock the
-      // sender's mutex. And when the mutex is released, node->next might be destroyed by another
-      // thread. That's why we set node->prev to &node, that way, if node is destroyed, node will
-      // be updated.
-      ObjectPrivate::Connection *node = implPtr->m_senders;
-      while (node) {
-         Object *sender = node->m_sender;
-         // Send disconnectNotify before removing the connection from sender's connection list.
-         // This ensures any eventual destructor of sender will block on getting receiver's lock
-         // and not finish until we release it.
-         //sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));
-         std::mutex &m = signal_slot_lock(sender);
-         node->m_prev = &node;
-         bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
-         //the node has maybe been removed while the mutex was unlocked in relock?
-         if (!node || node->m_sender != sender) {
-            // We hold the wrong mutex
-            PDK_ASSERT(needToUnlock);
-            m.unlock();
-            continue;
-         }
-         node->m_receiver = nullptr;
-         internal::ObjectConnectionListVector *senderLists = sender->getImplPtr()->m_connectionLists;
-         if (senderLists) {
-            senderLists->m_dirty = true;
-         }
-         internal::SlotObjectBase *slotObj = nullptr;
-         if (node->m_isSlotObject) {
-            slotObj = node->m_slotObj;
-            node->m_isSlotObject = false;
-         }
+//      // Disconnect all senders:
+//      // This loop basically just does
+//      // for (node = implPtr->m_senders; node; node = node->m_next) { ... }
+//      //
+//      // We need to temporarily unlock the receiver mutex to destroy the functors or to lock the
+//      // sender's mutex. And when the mutex is released, node->next might be destroyed by another
+//      // thread. That's why we set node->prev to &node, that way, if node is destroyed, node will
+//      // be updated.
+//      ObjectPrivate::Connection *node = implPtr->m_senders;
+//      while (node) {
+//         Object *sender = node->m_sender;
+//         // Send disconnectNotify before removing the connection from sender's connection list.
+//         // This ensures any eventual destructor of sender will block on getting receiver's lock
+//         // and not finish until we release it.
+//         //sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));
+//         std::mutex &m = signal_slot_lock(sender);
+//         node->m_prev = &node;
+//         bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
+//         //the node has maybe been removed while the mutex was unlocked in relock?
+//         if (!node || node->m_sender != sender) {
+//            // We hold the wrong mutex
+//            PDK_ASSERT(needToUnlock);
+//            m.unlock();
+//            continue;
+//         }
+//         node->m_receiver = nullptr;
+//         internal::ObjectConnectionListVector *senderLists = sender->getImplPtr()->m_connectionLists;
+//         if (senderLists) {
+//            senderLists->m_dirty = true;
+//         }
+//         internal::SlotObjectBase *slotObj = nullptr;
+//         if (node->m_isSlotObject) {
+//            slotObj = node->m_slotObj;
+//            node->m_isSlotObject = false;
+//         }
          
-         node = node->m_next;
-         if (needToUnlock) {
-            m.unlock();
-         }
-         if (slotObj) {
-            if (node) {
-               node->m_prev = &node;
-            }
-            locker.unlock();
-            slotObj->destroyIfLastRef();
-            locker.lock();
-         }
-      }
-   }
+//         node = node->m_next;
+//         if (needToUnlock) {
+//            m.unlock();
+//         }
+//         if (slotObj) {
+//            if (node) {
+//               node->m_prev = &node;
+//            }
+//            locker.unlock();
+//            slotObj->destroyIfLastRef();
+//            locker.lock();
+//         }
+//      }
+//   }
    
-   if (!implPtr->m_children.empty()) {
-      implPtr->deleteChildren();
-   }
+//   if (!implPtr->m_children.empty()) {
+//      implPtr->deleteChildren();
+//   }
    if (PDK_UNLIKELY(sg_pdkHookData[hooks::RemoveObject])) {
       reinterpret_cast<hooks::RemoveObjectCallback>(sg_pdkHookData[hooks::RemoveObject])(this);
    }
