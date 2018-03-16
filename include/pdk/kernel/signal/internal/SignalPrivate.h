@@ -671,14 +671,14 @@ public:
       (*m_pimpl).disconnect(connection);
    }
    
-   ResultType operator ()(Args ... args)
+   ResultType operator ()(Args&&... args)
    {
-      return (*m_pimpl)(args...);
+      return (*m_pimpl)(std::forward<Args>(args)...);
    }
    
-   ResultType operator ()(Args ... args) const
+   ResultType operator ()(Args&&... args) const
    {
-      return (*m_pimpl)(args...);
+      return (*m_pimpl)(std::forward<Args>(args)...);
    }
    
    std::size_t getNumSlots() const

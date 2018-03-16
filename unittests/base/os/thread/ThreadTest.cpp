@@ -24,8 +24,11 @@
 #include <process.h>
 #endif
 #endif
+#include "pdk/kernel/CallableInvoker.h"
 
 #include "pdk/base/os/thread/Thread.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/kernel/Timer.h"
 #include <mutex>
 #include <condition_variable>
 
@@ -37,6 +40,9 @@ enum { one_minute = 60 * 1000, five_minutes = 5 * one_minute };
 
 using pdk::os::thread::Thread;
 using pdk::kernel::Object;
+using pdk::kernel::Timer;
+using pdk::kernel::CoreApplication;
+using pdk::kernel::CallableInvoker;
 
 class CurrentThread : public Thread
 {
@@ -67,23 +73,42 @@ public:
 class ExitObject : public Object
 {
 public:
-    Thread *m_thread;
-    int m_code;
-    void slot() 
-    { 
-       m_thread->exit(m_code);
-    }
+   Thread *m_thread;
+   int m_code;
+   void slot() 
+   { 
+      m_thread->exit(m_code);
+   }
+};
+
+class ExitThread : public SimpleThread
+{
+public:
+   ExitObject *m_object;
+   int m_code;
+   int m_result;
+   
+   void run()
+   {
+      SimpleThread::run();
+      if (m_object) {
+         m_object->m_thread = this;
+         m_object->m_code = m_code;
+         Timer::singleShot(100, m_object, "slot");
+      }
+      m_result = exec();
+   }
 };
 
 TEST(ThreadTest, testCurrentThreadId)
 {
-    CurrentThread thread;
-    thread.m_id = 0;
-    thread.m_thread = nullptr;
-    thread.start();
-    ASSERT_TRUE(thread.wait(five_minutes));
-    ASSERT_TRUE(thread.m_id != 0);
-    ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
+   CurrentThread thread;
+   thread.m_id = 0;
+   thread.m_thread = nullptr;
+   thread.start();
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(thread.m_id != 0);
+   ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
 }
 
 TEST(ThreadTest, testCurrentThread)
@@ -113,4 +138,113 @@ TEST(ThreadTest, testIsFinished)
    thread.m_cond.wait(locker);
    ASSERT_TRUE(thread.wait(five_minutes));
    ASSERT_TRUE(thread.isFinished());
+}
+
+TEST(ThreadTest, testIsRunning)
+{
+   SimpleThread thread;
+   ASSERT_TRUE(!thread.isRunning());
+   std::unique_lock<std::mutex> locker;
+   thread.start();
+   ASSERT_TRUE(thread.isRunning());
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(!thread.isRunning());
+}
+
+TEST(ThreadTest, testSetPriority)
+{
+   SimpleThread thread;
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::IdlePriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::LowestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::LowPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::NormalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::HighPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::HighestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::TimeCriticalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   
+   std::unique_lock<std::mutex> locker(thread.m_mutex);
+   thread.start();
+   
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::IdlePriority);
+   ASSERT_EQ(thread.getPriority(), Thread::IdlePriority);
+   thread.setPriority(Thread::LowestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::LowestPriority);
+   thread.setPriority(Thread::LowPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::LowPriority);
+   thread.setPriority(Thread::NormalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::NormalPriority);
+   thread.setPriority(Thread::HighPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::HighPriority);
+   thread.setPriority(Thread::HighestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::HighestPriority);
+   thread.setPriority(Thread::TimeCriticalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::TimeCriticalPriority);
+   
+   thread.m_cond.wait(locker);
+   ASSERT_TRUE(thread.wait(five_minutes));
+   
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::IdlePriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::LowestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::LowPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::NormalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::HighPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::HighestPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   thread.setPriority(Thread::TimeCriticalPriority);
+   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+}
+
+TEST(ThreadTest, testSetStackSize)
+{
+   SimpleThread thread;
+   ASSERT_EQ(thread.getStackSize(), 0u);
+   thread.setStackSize(8192u);
+   ASSERT_EQ(thread.getStackSize(), 8192u);
+   thread.setStackSize(0u);
+   ASSERT_EQ(thread.getStackSize(), 0u);
+}
+
+TEST(ThreadTest, testExit)
+{
+   ExitThread thread;
+   thread.m_object = new ExitObject;
+   thread.m_object->moveToThread(&thread);
+   thread.m_code = 42;
+   thread.m_result = 0;
+   ASSERT_TRUE(!thread.isFinished());
+   ASSERT_TRUE(!thread.isRunning());
+   std::unique_lock<std::mutex> locker(thread.m_mutex);
+   thread.start();
+   
+   ASSERT_TRUE(thread.isRunning());
+   ASSERT_TRUE(!thread.isFinished());
+   thread.m_cond.wait(locker);
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(thread.isFinished());
+   ASSERT_TRUE(!thread.isRunning());
+}
+
+int main(int argc, char **argv)
+{
+   CoreApplication app(argc, argv);
+   int retCode = 0;
+   ::testing::InitGoogleTest(&argc, argv);
+   retCode = RUN_ALL_TESTS();   
+   app.exec();
+   return retCode;
 }

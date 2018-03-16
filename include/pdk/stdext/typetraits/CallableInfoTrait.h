@@ -32,6 +32,7 @@ struct CallableInfoTrait<RetType (&)(ParamTypes ...args)>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -49,6 +50,7 @@ struct CallableInfoTrait<RetType (*)(ParamTypes ...args)>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -66,6 +68,7 @@ struct CallableInfoTrait<RetType (ParamTypes ...args)>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -83,6 +86,7 @@ struct CallableInfoTrait<RetType (&)(ParamTypes ...args, ...)>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -100,6 +104,7 @@ struct CallableInfoTrait<RetType (*)(ParamTypes ...args, ...)>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -117,6 +122,7 @@ struct CallableInfoTrait<RetType (ParamTypes ...args, ...)>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -134,6 +140,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args)>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -151,6 +158,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...)>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -168,6 +176,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -185,6 +194,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -202,6 +212,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) volatile>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -219,6 +230,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) volatile>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -236,6 +248,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const volatile>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -253,6 +266,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const volat
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -270,6 +284,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) &>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -287,6 +302,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) &>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -304,6 +320,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -321,6 +338,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const&>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -338,6 +356,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) volatile&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -355,6 +374,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) volatile&>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -372,6 +392,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const volatile&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -389,6 +410,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const volat
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -406,6 +428,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) &&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -423,6 +446,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) &&>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -440,6 +464,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const&&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -457,6 +482,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const&&>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -474,6 +500,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) volatile&&>
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -491,6 +518,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) volatile&&>
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -508,6 +536,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args) const volatile&&
 {
    using Signature = RetType(ParamTypes ...args);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = false;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;
@@ -525,6 +554,7 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const volat
 {
    using Signature = RetType(ParamTypes ...args, ...);
    using ReturnType = RetType;
+   using ArgTypes = std::tuple<ParamTypes...>;
    constexpr static size_t argNum = sizeof...(ParamTypes);
    constexpr static bool hasVaridicParams = true;
    constexpr static bool hasParamDef = argNum != 0 || hasVaridicParams;

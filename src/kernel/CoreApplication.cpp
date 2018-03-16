@@ -181,7 +181,7 @@ inline bool contains(int argc, char **argv, const char *needle)
 
 bool do_notify(Object *receiver, Event *event)
 {
-   if (receiver == 0) {                        // serious error
+   if (receiver == nullptr) {                        // serious error
       warning_stream("CoreApplication::notify: Unexpected null receiver");
       return true;
    }
@@ -381,7 +381,7 @@ bool CoreApplicationPrivate::sm_isAppRunning = false;
 bool CoreApplicationPrivate::sm_isAppClosing = false;
 AbstractEventDispatcher *CoreApplicationPrivate::sm_eventDispatcher = nullptr;
 
-CoreApplicationPrivate::CoreApplicationPrivate(int &aargc, char **aargv, uint flags)
+CoreApplicationPrivate::CoreApplicationPrivate(int &argc, char **argv, uint flags)
    : ObjectPrivate(),
      #if defined(PDK_OS_WIN)
      m_origArgc(0),
@@ -391,8 +391,8 @@ CoreApplicationPrivate::CoreApplicationPrivate(int &aargc, char **aargv, uint fl
      m_inExec(false),
      m_aboutToQuitEmitted(false),
      m_threadDataClean(false),
-     m_argc(aargc),
-     m_argv(aargv)
+     m_argc(argc),
+     m_argv(argv)
 {
 #if defined(PDK_OS_DARWIN)
    apple_check_os_version();
@@ -697,15 +697,18 @@ String retrieve_app_name()
 }
 
 CoreApplication::CoreApplication(CoreApplicationPrivate &p)
-   : Object(p, 0)
-{}
+   : Object(p, nullptr)
+{
+   getImplPtr()->m_apiPtr = this;
+}
 
 CoreApplication::CoreApplication(int &argc, char **argv, int internal)
    : Object(*new CoreApplicationPrivate(argc, argv, internal))
-{}
-
-void CoreApplication::flush()
-{}
+{
+   getImplPtr()->m_apiPtr = this;
+   getImplPtr()->init();
+   CoreApplicationPrivate::sm_eventDispatcher->startingUp();
+}
 
 #ifndef PDK_NO_TRANSLATION
 bool CoreApplication::installTranslator(Translator *translationFile)
@@ -716,10 +719,10 @@ bool CoreApplication::installTranslator(Translator *translationFile)
    if (!CoreApplicationPrivate::checkInstance("installTranslator")) {
       return false;
    }
-   CoreApplicationPrivate *d = sm_self->getImplPtr();
+   CoreApplicationPrivate *implPtr = sm_self->getImplPtr();
    {
-      WriteLocker locker(&d->m_translateMutex);
-      d->m_translators.insert(d->m_translators.begin(), translationFile);
+      WriteLocker locker(&implPtr->m_translateMutex);
+      implPtr->m_translators.insert(implPtr->m_translators.begin(), translationFile);
    }
    
 #ifndef PDK_NO_TRANSLATION_BUILDER
@@ -728,8 +731,8 @@ bool CoreApplication::installTranslator(Translator *translationFile)
    }
 #endif
    
-   Event ev(Event::Type::LanguageChange);
-   CoreApplication::sendEvent(sm_self, &ev);
+   Event event(Event::Type::LanguageChange);
+   CoreApplication::sendEvent(sm_self, &event);
    return true;
 }
 
@@ -917,7 +920,7 @@ bool CoreApplication::notifyInternal(Object *receiver, Event *event)
    if (!sm_self && selfRequired) {
       return false;
    }
-   // Make it possible for Qt Script to hook into events even
+   // Make it possible for pdk Script to hook into events even
    // though Application is subclassed...
    bool result = false;
    void *cbdata[] = { receiver, event, &result };
@@ -1229,7 +1232,8 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
       if (!pe.m_event) {
          continue;
       }
-      if ((receiver && receiver != pe.m_receiver) || eventType != pe.m_event->getType()) {
+      if ((receiver && receiver != pe.m_receiver) ||
+          (eventType != Event::Type::None && eventType != pe.m_event->getType())) {
          data->m_canWait = false;
          continue;
       }
@@ -1257,7 +1261,7 @@ void CoreApplicationPrivate::sendPostedEvents(Object *receiver, Event::Type even
                PostEvent pecopy = pe;
                // null out the event so if sendPostedEvents recurses, it
                // will ignore this one, as it's been re-posted.
-               const_cast<PostEvent &>(pe).m_event = 0;
+               const_cast<PostEvent &>(pe).m_event = nullptr;
                // re-post the copied event so it isn't lost
                data->m_postEventList.addEvent(pecopy);
             }

@@ -111,6 +111,23 @@ private:
       return R();
    }
    
+   template<typename Func, unsigned ... indices, typename ... Args>
+   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &&args,
+            typename pdk::stdext::DisableIf<std::is_void<typename Func::result_type>::value>::type * = nullptr
+         ) const
+   {
+      return func(std::get<indices>(std::forward<Args>(args))...);
+   }
+   
+   template<typename Func, unsigned ... indices, typename ... Args>
+   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &&args,
+            typename std::enable_if<std::is_void<typename Func::result_type>::value>::type * = nullptr
+         ) const
+   {
+      func(std::get<indices>(std::forward<Args>(args))...);
+      return R();
+   }
+   
    // This overload is redundant, as it is the same as the previous variadic method when
    // it has zero "indices" or "Args" variadic template parameters.  This overload
    // only exists to quiet some unused parameter warnings

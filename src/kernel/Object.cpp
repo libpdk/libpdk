@@ -15,6 +15,7 @@
 
 #include "pdk/kernel/Object.h"
 #include "pdk/kernel/CoreEvent.h"
+#include "pdk/kernel/CallableInvoker.h"
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
@@ -41,8 +42,6 @@
 namespace pdk {
 namespace kernel {
 
-static int DIRECT_CONNECTION_ONLY = 0;
-
 ObjectData::~ObjectData()
 {}
 
@@ -66,8 +65,6 @@ ObjectPrivate::ObjectPrivate(int version)
    m_deleteLaterCalled = false;
    m_currentSender = nullptr;
    m_currentChildBeingDeleted = nullptr;
-   m_senders = nullptr;
-   m_connectionLists = nullptr;
    m_threadData = nullptr;
 }
 
@@ -104,29 +101,24 @@ void delete_in_event_handler(Object *object)
    delete object;
 }
 
-class ObjectConnectionListVector : public std::vector<ObjectPrivate::ConnectionList>
+MetaCallEvent::MetaCallEvent(const CallableSignature &callable, std::any &&args)
+   : Event(Type::MetaCall),
+     m_callable(callable),
+     m_invokeArgs(std::move(args))
+{}
+
+const MetaCallEvent::CallableSignature &MetaCallEvent::getCallable() const
 {
-public:
-   bool m_orphaned; //the Object owner of this vector has been destroyed while the vector was inUse
-   bool m_dirty; //some Connection have been disconnected (their receiver is 0) but not removed from the list yet
-   int m_inUse; //number of functions that are currently accessing this object or its connections
-   ObjectPrivate::ConnectionList m_allsignals;
-   
-   ObjectConnectionListVector()
-      : std::vector<ObjectPrivate::ConnectionList>(),
-        m_orphaned(false),
-        m_dirty(false),
-        m_inUse(0)
-   {}
-   
-   ObjectPrivate::ConnectionList &operator[](int at)
-   {
-      if (at < 0) {
-         return m_allsignals;
-      }
-      return std::vector<ObjectPrivate::ConnectionList>::operator[](at);
-   }
-};
+   return m_callable;
+}
+
+std::any &MetaCallEvent::getInvokeArgs()
+{
+   return m_invokeArgs;
+}
+
+MetaCallEvent::~MetaCallEvent()
+{}
 
 } // internal
 
@@ -154,14 +146,14 @@ bool check_parent_thread(Object *parent,
 
 } // anonymous namespace
 
-static std::mutex sg_ObjectMutexPool[131];
+static std::mutex sg_objectMutexPool[131];
 
 namespace {
 
 inline std::mutex &signal_slot_lock(const Object *object)
 {
-   return *static_cast<std::mutex *>(&sg_ObjectMutexPool[
-                                     uint(pdk::uintptr(object)) % sizeof(sg_ObjectMutexPool) / sizeof(std::mutex)]);
+   return *static_cast<std::mutex *>(&sg_objectMutexPool[
+                                     uint(pdk::uintptr(object)) % sizeof(sg_objectMutexPool) / sizeof(std::mutex)]);
 }
 
 } // anonymous namespace
@@ -242,116 +234,15 @@ Object::~Object()
    // @TODO check signal
    //   if (!implPtr->m_isWidget && implPtr->isSignalConnected(0)) {
    //      emit destroyed(this);
-   //   }   
+   //   }
    // set ref to zero to indicate that this object has been deleted
    if (implPtr->m_currentSender != nullptr) {
       implPtr->m_currentSender->m_ref = 0;
    }
    implPtr->m_currentSender = nullptr;
-//   if (implPtr->m_connectionLists || implPtr->m_senders) {
-//      std::mutex &signalSlotMutex = signal_slot_lock(this);
-//      std::unique_lock<std::mutex> locker(signalSlotMutex);
-//      // disconnect all receivers
-//      if (implPtr->m_connectionLists) {
-//         ++implPtr->m_connectionLists->m_inUse;
-//         int connectionListsCount = implPtr->m_connectionLists->size();
-//         for (int signal = -1; signal < connectionListsCount; ++signal) {
-//            ObjectPrivate::ConnectionList &connectionList =
-//                  (*implPtr->m_connectionLists)[signal];
-            
-//            while (ObjectPrivate::Connection *c = connectionList.m_first) {
-//               if (!c->m_receiver) {
-//                  connectionList.m_first = c->m_nextConnectionList;
-//                  c->deref();
-//                  continue;
-//               }
-               
-//               std::mutex &m = signal_slot_lock(c->m_receiver);
-//               bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
-//               if (c->m_receiver) {
-//                  *c->m_prev = c->m_next;
-//                  if (c->m_next) {
-//                     c->m_next->m_prev = c->m_prev;
-//                  }
-//               }
-//               c->m_receiver = nullptr;
-//               if (needToUnlock) {
-//                  m.unlock();
-//               }
-//               connectionList.m_first = c->m_nextConnectionList;
-//               // The destroy operation must happen outside the lock
-//               if (c->m_isSlotObject) {
-//                  c->m_isSlotObject = false;
-//                  locker.unlock();
-//                  c->m_slotObj->destroyIfLastRef();
-//                  locker.lock();
-//               }
-//               c->deref();
-//            }
-//         }
-         
-//         if (!--implPtr->m_connectionLists->m_inUse) {
-//            delete implPtr->m_connectionLists;
-//         } else {
-//            implPtr->m_connectionLists->m_orphaned = true;
-//         }
-//         implPtr->m_connectionLists = nullptr;
-//      }
-      
-//      // Disconnect all senders:
-//      // This loop basically just does
-//      // for (node = implPtr->m_senders; node; node = node->m_next) { ... }
-//      //
-//      // We need to temporarily unlock the receiver mutex to destroy the functors or to lock the
-//      // sender's mutex. And when the mutex is released, node->next might be destroyed by another
-//      // thread. That's why we set node->prev to &node, that way, if node is destroyed, node will
-//      // be updated.
-//      ObjectPrivate::Connection *node = implPtr->m_senders;
-//      while (node) {
-//         Object *sender = node->m_sender;
-//         // Send disconnectNotify before removing the connection from sender's connection list.
-//         // This ensures any eventual destructor of sender will block on getting receiver's lock
-//         // and not finish until we release it.
-//         //sender->disconnectNotify(QMetaObjectPrivate::signal(sender->metaObject(), node->signal_index));
-//         std::mutex &m = signal_slot_lock(sender);
-//         node->m_prev = &node;
-//         bool needToUnlock = OrderedMutexLocker::relock(&signalSlotMutex, &m);
-//         //the node has maybe been removed while the mutex was unlocked in relock?
-//         if (!node || node->m_sender != sender) {
-//            // We hold the wrong mutex
-//            PDK_ASSERT(needToUnlock);
-//            m.unlock();
-//            continue;
-//         }
-//         node->m_receiver = nullptr;
-//         internal::ObjectConnectionListVector *senderLists = sender->getImplPtr()->m_connectionLists;
-//         if (senderLists) {
-//            senderLists->m_dirty = true;
-//         }
-//         internal::SlotObjectBase *slotObj = nullptr;
-//         if (node->m_isSlotObject) {
-//            slotObj = node->m_slotObj;
-//            node->m_isSlotObject = false;
-//         }
-         
-//         node = node->m_next;
-//         if (needToUnlock) {
-//            m.unlock();
-//         }
-//         if (slotObj) {
-//            if (node) {
-//               node->m_prev = &node;
-//            }
-//            locker.unlock();
-//            slotObj->destroyIfLastRef();
-//            locker.lock();
-//         }
-//      }
-//   }
-   
-//   if (!implPtr->m_children.empty()) {
-//      implPtr->deleteChildren();
-//   }
+   //   if (!implPtr->m_children.empty()) {
+   //      implPtr->deleteChildren();
+   //   }
    if (PDK_UNLIKELY(sg_pdkHookData[hooks::RemoveObject])) {
       reinterpret_cast<hooks::RemoveObjectCallback>(sg_pdkHookData[hooks::RemoveObject])(this);
    }
@@ -378,22 +269,78 @@ void Object::setObjectName(const String &name)
    }
 }
 
-bool Object::event(Event *e)
+Connection Object::connectDestoryedSignal(std::function<DestroyedSignalHandler> callable)
 {
+   if (!m_destroyedSignal) {
+      m_destroyedSignal.reset(new Signal<DestroyedSignalHandler>);
+   }
+   return m_destroyedSignal->connect(callable);
+}
+
+Connection Object::connectObjectNameChangedSignal(std::function<ObjectNameChangedHandler> callable)
+{
+   if (!m_objectNameChangedSignal) {
+      m_objectNameChangedSignal.reset(new Signal<ObjectNameChangedHandler>);
+   }
+   return m_objectNameChangedSignal->connect(callable);
+}
+
+bool Object::event(Event *event)
+{
+   switch(event->getType()) {
+   case Event::Type::MetaCall: {
+      internal::MetaCallEvent *metaEvent = dynamic_cast<internal::MetaCallEvent *>(event);
+      auto callable = metaEvent->getCallable();
+      callable(metaEvent->getInvokeArgs());
+      break;
+   }
+   case Event::Type::Timer:
+      timerEvent(dynamic_cast<TimerEvent *>(event));
+      break;
+   case Event::Type::ChildAdded:
+   case Event::Type::ChildPolished:
+   case Event::Type::ChildRemoved:
+      childEvent(dynamic_cast<ChildEvent *>(event));
+      break;
+   case Event::Type::DeferredDelete:
+      internal::delete_in_event_handler(this);
+      break;
+   case Event::Type::ThreadChange: {
+      PDK_D(Object);
+      ThreadData *threadData = implPtr->m_threadData;
+      AbstractEventDispatcher *eventDispatcher = threadData->m_eventDispatcher.load();
+      if (eventDispatcher) {
+         std::list<AbstractEventDispatcher::TimerInfo> timers = eventDispatcher->getRegisteredTimers(this);
+         if (!timers.empty()) {
+             // do not to release our timer ids back to the pool (since the timer ids are moving to a new thread).
+            eventDispatcher->unregisterTimers(this);
+            PDK_D(Object);
+            CallableInvoker::invoke(this, [&](std::list<AbstractEventDispatcher::TimerInfo> *list){
+               implPtr->reregisterTimers(list);
+            }, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
+         }
+      }
+      break;
+   }
+   default:
+      if (pdk::as_integer<Event::Type>(event->getType()) >= 
+          pdk::as_integer<Event::Type>(Event::Type::User)) {
+         customEvent(event);
+         break;
+      }
+      return false;
+   }
    return true;
 }
 
 void Object::timerEvent(TimerEvent *)
-{
-}
+{}
 
 void Object::childEvent(ChildEvent * /* event */)
-{
-}
+{}
 
 void Object::customEvent(Event * /* event */)
-{
-}
+{}
 
 bool Object::eventFilter(Object * /* watched */, Event * /* event */)
 {
@@ -501,7 +448,7 @@ void ObjectPrivate::setThreadDataHelper(ThreadData *currentData, ThreadData *tar
    if (m_currentSender) {
       m_currentSender->m_ref = 0;
    }
-   m_currentSender = 0;
+   m_currentSender = nullptr;
    // set new thread data
    targetData->ref();
    m_threadData->deref();
@@ -528,19 +475,6 @@ void ObjectPrivate::reregisterTimers(void *pointer)
       ++iter;
    }
    delete timerList;
-}
-
-ObjectPrivate::Connection::~Connection()
-{
-   if (m_ownArgumentTypes) {
-      const int *v = m_argumentTypes.load();
-      if (v != &DIRECT_CONNECTION_ONLY) {
-         delete [] v;
-      }
-   }
-   if (m_isSlotObject) {
-      m_slotObj->destroyIfLastRef();
-   }
 }
 
 void ObjectPrivate::deleteChildren()
@@ -600,8 +534,8 @@ void ObjectPrivate::setParentHelper(Object *object)
       m_parent->getImplPtr()->m_children.push_back(apiPtr);
       if(m_sendChildEvents && m_parent->getImplPtr()->m_receiveChildEvents) {
          if (!m_isWidget) {
-            ChildEvent e(Event::Type::ChildAdded, apiPtr);
-            CoreApplication::sendEvent(m_parent, &e);
+            ChildEvent event(Event::Type::ChildAdded, apiPtr);
+            CoreApplication::sendEvent(m_parent, &event);
          }
       }
    }
@@ -747,7 +681,7 @@ ObjectUserData *Object::getUserData(uint id) const
    if (id < implPtr->m_extraData->m_userData.size()) {
       return implPtr->m_extraData->m_userData.at(id);
    }
-   return 0;
+   return nullptr;
 }
 
 #endif // PDK_NO_USERDATA

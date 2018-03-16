@@ -18,9 +18,10 @@
 
 #include "pdk/kernel/Object.h"
 #include "pdk/kernel/Pointer.h"
-#include "pdk/kernel/signal/Signal.h"
+#include "pdk/kernel/CoreEvent.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/base/os/thread/Atomic.h"
+
 #include <vector>
 #include <list>
 #include <any>
@@ -31,6 +32,7 @@ namespace pdk {
 // forward declare with namespace
 namespace os {
 namespace thread {
+class Semaphore;
 namespace internal {
 class ThreadData;
 } // internal
@@ -57,9 +59,7 @@ using pdk::ds::ByteArray;
 using pdk::os::thread::AtomicPointer;
 using pdk::os::thread::AtomicInt;
 using pdk::kernel::Object;
-// forward declare
-class SlotObjectBase;
-class ObjectConnectionListVector;
+using pdk::os::thread::Semaphore;
 
 PDK_CORE_EXPORT void delete_in_event_handler(Object *);
 
@@ -84,59 +84,7 @@ public:
       std::list<Pointer<Object>> m_eventFilters;
       String m_objectName;
    };
-   using StaticMetaCallFunc = void (*)(Object *, int, void **);
-   struct Connection
-   {
-      Object *m_sender;
-      Object *m_receiver;
-      union {
-         StaticMetaCallFunc m_callFunc;
-         SlotObjectBase *m_slotObj;
-      };
-      // The next pointer for the singly-linked ConnectionList
-      Connection *m_nextConnectionList;
-      //senders linked list
-      Connection *m_next;
-      Connection **m_prev;
-      AtomicPointer<const int> m_argumentTypes;
-      AtomicInt m_ref;
-      ushort m_connectionType : 3; // 0 == auto, 1 == direct, 2 == queued, 4 == blocking
-      ushort m_isSlotObject : 1;
-      ushort m_ownArgumentTypes : 1;
-      Connection()
-         : m_nextConnectionList(0),
-           m_ref(2),
-           m_ownArgumentTypes(true)
-      {
-         //ref_ is 2 for the use in the internal lists
-      }
-      ~Connection();
-      void ref()
-      {
-         m_ref.ref();
-      }
-      
-      void deref()
-      {
-         if (!m_ref.deref()) {
-            PDK_ASSERT(!m_receiver);
-            delete this;
-         }
-      }
-   };
-   
-   // ConnectionList is a singly-linked list
-   struct ConnectionList
-   {
-      ConnectionList() 
-         : m_first(nullptr),
-           m_last(nullptr)
-      {}
-      
-      Connection *m_first;
-      Connection *m_last;
-   };
-   
+     
    struct Sender
    {
       Object *m_sender;
@@ -160,13 +108,6 @@ public:
    void setThreadDataHelper(ThreadData *currentData, ThreadData *targetData);
    void reregisterTimers(void *pointer);
    
-   bool isSender(const Object *receiver, const char *signal) const;
-   ObjectList receiverList(const char *signal) const;
-   ObjectList senderList() const;
-   
-   void addConnection(int signal, Connection *connection);
-   void cleanConnectionLists();
-   
    static inline Sender *setCurrentSender(Object *receiver, Sender *sender);
    static inline void resetCurrentSender(Object *receiver, Sender *currentSender, Sender *previousSender);
 public:
@@ -174,8 +115,6 @@ public:
       Object *m_currentChildBeingDeleted;
    };
    
-   ObjectConnectionListVector *m_connectionLists;
-   Connection *m_senders;     // linked list of connections connected to this object
    Sender *m_currentSender;
    ExtraData *m_extraData;
    ThreadData *m_threadData;
@@ -184,8 +123,23 @@ public:
    AtomicPointer<ExternalRefCountData> m_sharedRefcount;
 };
 
+class PDK_CORE_EXPORT MetaCallEvent : public Event
+{
+public:
+   using CallableSignature = std::function<void(std::any &args)>;
+   MetaCallEvent(const CallableSignature &callable, std::any &&args);
+   const CallableSignature &getCallable() const;
+   std::any &getInvokeArgs();
+   ~MetaCallEvent();
+private:
+   CallableSignature m_callable;
+   std::any m_invokeArgs;
+};
+
 } // internal
 } // kernel
 } // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::kernel::internal::ObjectPrivate::Sender, PDK_MOVABLE_TYPE);
 
 #endif // PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H

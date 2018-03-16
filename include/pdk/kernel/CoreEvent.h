@@ -54,6 +54,7 @@ public:
       ParentChange,
       ParentAboutToChange,
       ThreadChange,
+      MetaCall,
       SocketActive,
       SocketClose,
       LanguageChange,

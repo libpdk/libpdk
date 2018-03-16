@@ -33,7 +33,7 @@ EventLoop::EventLoop(Object *parent)
 {
    PDK_D(EventLoop);
    if (!CoreApplication::getInstance() && CoreApplicationPrivate::threadRequiresCoreApplication()) {
-      warning_stream("EventLoop: Cannot be used without CoreApplication");
+      //warning_stream("EventLoop: Cannot be used without CoreApplication");
    } else if (!implPtr->m_threadData->m_eventDispatcher.load()) {
       ThreadPrivate::createEventDispatcher(implPtr->m_threadData);
    }

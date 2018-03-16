@@ -20,7 +20,6 @@
 #include "pdk/kernel/Object.h"
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
-#include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/ds/StringList.h"
 #include <string>
 
@@ -120,8 +119,6 @@ public:
    static bool removeTranslator(Translator *messageFile);
 #endif   
    
-   static void flush();
-   
    static String translate(const char * context,
                            const char * key,
                            const char * disambiguation = nullptr,
@@ -155,9 +152,6 @@ private:
 private:
    PDK_DISABLE_COPY(CoreApplication);
    PDK_DECLARE_PRIVATE(CoreApplication);
-   
-protected:
-   pdk::utils::ScopedPointer<CoreApplicationPrivate> m_implPtr;
    
 private:
    static CoreApplication *sm_self;

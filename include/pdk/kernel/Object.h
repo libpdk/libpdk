@@ -19,7 +19,10 @@
 #include "pdk/global/Global.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/kernel/signal/Signal.h"
+#include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include <list>
+#include <any>
 
 namespace pdk {
 
@@ -39,6 +42,8 @@ using ObjectList = std::list<Object *>;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 using pdk::lang::String;
+using pdk::kernel::signal::Signal;
+using pdk::kernel::signal::Connection;
 class Object;
 class Event;
 class TimerEvent;
@@ -82,6 +87,14 @@ public:
 class Object
 {
 public:
+   enum class SignalType
+   {
+      Destroyed,
+      ObjectNameChanged
+   };
+   using DestroyedSignalHandler = void(Object *);
+   using ObjectNameChangedHandler = void(const String &);
+public:
    explicit Object(Object *parent = nullptr);
    virtual ~Object();
    static String tr(const char *sourceText, const char * = nullptr, int = -1)
@@ -100,6 +113,12 @@ public:
    {
       return m_implPtr->m_isWindow;
    }
+   
+   template <typename ...ArgTypes>
+   void emit(SignalType signal, ArgTypes&& ...args);
+   
+   Connection connectDestoryedSignal(std::function<DestroyedSignalHandler> callable);
+   Connection connectObjectNameChangedSignal(std::function<ObjectNameChangedHandler> callable);
    
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
@@ -138,10 +157,22 @@ protected:
    
 protected:
    pdk::utils::ScopedPointer<ObjectData> m_implPtr;
+   std::shared_ptr<Signal<DestroyedSignalHandler>> m_destroyedSignal;
+   std::shared_ptr<Signal<ObjectNameChangedHandler>> m_objectNameChangedSignal;
 private:
    PDK_DECLARE_PRIVATE(Object);
    PDK_DISABLE_COPY(Object);
 };
+
+template <typename ...ArgTypes>
+void Object::emit(SignalType signal, ArgTypes&&... args)
+{
+   if (signal == SignalType::Destroyed) {
+      (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
+   } else if (signal == SignalType::ObjectNameChanged) {
+      (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
+   }
+}
 
 } // kernel
 } // pdk

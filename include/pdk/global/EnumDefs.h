@@ -129,6 +129,15 @@ enum class AppAttribute
    AA_AttributeCount
 };
 
+enum class ConnectionType
+{
+   AutoConnection,
+   DirectConnection,
+   QueuedConnection,
+   BlockingQueuedConnection,
+   UniqueConnection =  0x80
+};
+
 } // pdk
 
 #endif // PDK_GLOBAL_ENUM_DEFS_H
