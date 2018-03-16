@@ -72,7 +72,9 @@ public:
    template <typename ...ArgTypes>
    inline void emitTimeout(ArgTypes&& ...args)
    {
-      (*m_timeoutSignal)(std::forward<ArgTypes>(args)...);
+      if (m_timeoutSignal) {
+         (*m_timeoutSignal)(std::forward<ArgTypes>(args)...);
+      }
    }
    
    Connection connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable);

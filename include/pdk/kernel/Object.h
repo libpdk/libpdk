@@ -169,14 +169,18 @@ private:
 template <typename ...ArgTypes>
 inline void Object::emitDestoryedSignal(ArgTypes&&... args)
 {
-   (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_destroyedSignal) {
+      (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
+   }
 }
 
 
 template <typename ...ArgTypes>
 inline void Object::emitObjectNameChangedSignal(ArgTypes&&... args)
 {
-   (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_objectNameChangedSignal) {
+       (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
+   }
 }
 
 } // kernel
