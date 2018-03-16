@@ -183,7 +183,7 @@ PDK_CORE_EXPORT String retrieve_app_name();                // get application na
 
 #define PDK_COREAPP_STARTUP_FUNCTION(AFUNC) \
    static void AFUNC ## _ctor_function() {  \
-   qAddPreRoutine(AFUNC);        \
+   add_pre_routine(AFUNC);        \
 }                                 \
    PDK_CONSTRUCTOR_FUNCTION(AFUNC ## _ctor_function)
 

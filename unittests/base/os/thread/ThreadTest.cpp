@@ -246,7 +246,6 @@ int main(int argc, char **argv)
    CoreApplication app(argc, argv);
    int retCode = 0;
    ::testing::InitGoogleTest(&argc, argv);
-   retCode = RUN_ALL_TESTS();   
-   app.exec();
+   retCode = RUN_ALL_TESTS();
    return retCode;
 }
