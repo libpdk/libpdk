@@ -19,11 +19,13 @@
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/Pointer.h"
 #include "pdk/global/Logging.h"
+#include "pdk/kernel/CallableInvoker.h"
 
 namespace pdk {
 namespace kernel {
 
 using pdk::kernel::internal::SlotObjectBase;
+using pdk::kernel::CallableInvoker;
 static constexpr int INV_TIMER = -1;// invalid timer id
 
 Timer::Timer(Object *parent)
@@ -79,12 +81,19 @@ void Timer::timerEvent(TimerEvent *event)
 class SingleShotTimer : public Object
 {
 public:
+   using TimeoutHandlerType = Timer::TimeoutHandlerType;
+   using SlotFuncType = Timer::SlotFuncType;
+public:
    ~SingleShotTimer();
-   SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const char * member);
-   SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, SlotObjectBase *slotObj);
+   SingleShotTimer(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable);
+   SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc);
+   template <typename ...ArgTypes>
+   inline void emitTimeout(ArgTypes&& ...args)
+   {
+      (*m_timeoutSignal)(std::forward<ArgTypes>(args)...);
+   }
    
-   // SIGNALS:
-   // void timeout();
+   Connection connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable);
 protected:
    void timerEvent(TimerEvent *) override;
    
@@ -92,24 +101,26 @@ private:
    int m_timerId;
    bool m_hasValidReceiver;
    Pointer<const Object> m_receiver;
-   SlotObjectBase *m_slotObj;
+   std::function<SlotFuncType> m_slotFunc;
+   bool m_slotMode;
+   std::shared_ptr<Signal<TimeoutHandlerType>> m_timeoutSignal;
 };
 
-SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const char *member)
+SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable)
    : Object(AbstractEventDispatcher::getInstance()), 
      m_hasValidReceiver(true),
-     m_slotObj(nullptr)
+     m_slotMode(false)
 {
    m_timerId = startTimer(msec, timerType);
-   // @TODO bind signal
-   // connect(this, SIGNAL(timeout()), r, member);
+   connectTimeoutSignal(callable);
 }
 
-SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, SlotObjectBase *slotObj)
+SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc)
    : Object(AbstractEventDispatcher::getInstance()),
      m_hasValidReceiver(receiver), 
      m_receiver(std::shared_ptr<const Object>(receiver)),
-     m_slotObj(slotObj)
+     m_slotFunc(slotFunc),
+     m_slotMode(true)
 {
    m_timerId = startTimer(msec, timerType);
    if (receiver && getThread() != receiver->getThread()) {
@@ -121,13 +132,18 @@ SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Objec
    }
 }
 
+Connection SingleShotTimer::connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable)
+{
+   if (!m_timeoutSignal) {
+      m_timeoutSignal.reset(new Signal<TimeoutHandlerType>);
+   }
+   return m_timeoutSignal->connect(callable);
+}
+
 SingleShotTimer::~SingleShotTimer()
 {
    if (m_timerId > 0) {
       killTimer(m_timerId);
-   }
-   if (m_slotObj) {
-      m_slotObj->destroyIfLastRef();
    }
 }
 
@@ -137,17 +153,17 @@ void SingleShotTimer::timerEvent(TimerEvent *)
       killTimer(m_timerId);
    }
    m_timerId = -1;
-   if (m_slotObj) {
+   if (m_slotMode) {
       // If the receiver was destroyed, skip this part
       if (PDK_LIKELY(!m_receiver.isNull() || !m_hasValidReceiver)) {
          // We allocate only the return type - we previously checked the function had
          // no arguments.
-         void *args[1] = { 0 };
-         m_slotObj->call(const_cast<Object*>(m_receiver.getData()), args);
+         CallableInvoker::invokeAsync(m_slotFunc, const_cast<Object *>(m_receiver.getData()), this);
       }
    } else {
-      // @TODO emit signal
-      // emit timeout();
+      if (m_timeoutSignal) {
+         (*m_timeoutSignal)();
+      }
    }
    // we would like to use delete later here, but it feels like a
    // waste to post a new event to handle this event, so we just unset the flag
@@ -155,44 +171,47 @@ void SingleShotTimer::timerEvent(TimerEvent *)
    internal::delete_in_event_handler(this);
 }
 
-void Timer::singleShotImpl(int msec, pdk::TimerType timerType,
-                           const Object *receiver,
-                           SlotObjectBase *slotObj)
+void Timer::singleShotImpl(int msec, pdk::TimerType timerType, const Object *receiver,
+                           const std::function<SlotFuncType> &slotFunc)
 {
-   new SingleShotTimer(msec, timerType, receiver, slotObj);
+   new SingleShotTimer(msec, timerType, receiver, slotFunc);
 }
 
-void Timer::singleShot(int msec, const Object *receiver, const char *member)
+void Timer::singleShotImpl(int msec, pdk::TimerType timerType,
+                           const std::function<TimeoutHandlerType> &callable)
+{
+   new SingleShotTimer(msec, timerType, callable);
+}
+
+Connection Timer::connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable)
+{
+   if (!m_timeoutSignal) {
+      m_timeoutSignal.reset(new Signal<TimeoutHandlerType>);
+   }
+   return m_timeoutSignal->connect(callable);
+}
+
+void Timer::singleShot(int msec, const std::function<TimeoutHandlerType> &callable)
 {
    // coarse timers are worst in their first firing
    // so we prefer a high precision timer for something that happens only once
    // unless the timeout is too big, in which case we go for coarse anyway
    singleShot(msec, msec >= 2000 
               ? pdk::TimerType::CoarseTimer 
-              : pdk::TimerType::PreciseTimer, receiver, member);
+              : pdk::TimerType::PreciseTimer, callable);
 }
 
-void Timer::singleShot(int msec, pdk::TimerType timerType, const Object *receiver,
-                       const char *member)
+void Timer::singleShot(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable)
 {
    if (PDK_UNLIKELY(msec < 0)) {
       warning_stream("Timer::singleShot: Timers cannot have negative timeouts");
       return;
    }
-   if (receiver && member) {
-      if (msec == 0) {
-         // special code shortpath for 0-timers
-         const char* bracketPosition = strchr(member, '(');
-         if (!bracketPosition || !(member[0] >= '0' && member[0] <= '2')) {
-            warning_stream("Timer::singleShot: Invalid slot specification");
-            return;
-         }
-         ByteArray methodName(member + 1, bracketPosition - 1 - member); // extract method name
-         // std::invokeMethod(const_cast<Object *>(receiver), methodName.constData(), pdk::QueuedConnection);
-         return;
-      }
-      (void) new SingleShotTimer(msec, timerType, receiver, member);
+   if (msec == 0) {
+      callable();
+      return;
    }
+   (void) new SingleShotTimer(msec, timerType, callable);
 }
 
 void Timer::setInterval(int msec)

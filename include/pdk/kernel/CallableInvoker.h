@@ -37,7 +37,7 @@ public:
    }
    
    template <typename CallableType, typename ...ArgTypes>
-   static void invoke(Object *receiver, CallableType callable, ArgTypes&&... args)
+   static void invokeAsync(CallableType callable, Object *receiver, ArgTypes&&... args)
    {
       using TupleType = std::tuple<ArgTypes...>;
       CoreApplication::postEvent(receiver, new internal::MetaCallEvent([&](std::any &arg) {

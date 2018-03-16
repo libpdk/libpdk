@@ -269,7 +269,7 @@ void Object::setObjectName(const String &name)
    }
 }
 
-Connection Object::connectDestoryedSignal(std::function<DestroyedSignalHandler> callable)
+Connection Object::connectDestoryedSignal(const std::function<DestroyedSignalHandler> &callable)
 {
    if (!m_destroyedSignal) {
       m_destroyedSignal.reset(new Signal<DestroyedSignalHandler>);
@@ -277,7 +277,7 @@ Connection Object::connectDestoryedSignal(std::function<DestroyedSignalHandler> 
    return m_destroyedSignal->connect(callable);
 }
 
-Connection Object::connectObjectNameChangedSignal(std::function<ObjectNameChangedHandler> callable)
+Connection Object::connectObjectNameChangedSignal(const std::function<ObjectNameChangedHandler> &callable)
 {
    if (!m_objectNameChangedSignal) {
       m_objectNameChangedSignal.reset(new Signal<ObjectNameChangedHandler>);
@@ -315,9 +315,9 @@ bool Object::event(Event *event)
              // do not to release our timer ids back to the pool (since the timer ids are moving to a new thread).
             eventDispatcher->unregisterTimers(this);
             PDK_D(Object);
-            CallableInvoker::invoke(this, [&](std::list<AbstractEventDispatcher::TimerInfo> *list){
+            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
                implPtr->reregisterTimers(list);
-            }, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
+            }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
          }
       }
       break;

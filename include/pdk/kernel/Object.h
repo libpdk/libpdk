@@ -115,10 +115,12 @@ public:
    }
    
    template <typename ...ArgTypes>
-   void emit(SignalType signal, ArgTypes&& ...args);
+   void emitDestoryedSignal(ArgTypes&& ...args);
+   template <typename ...ArgTypes>
+   void emitObjectNameChangedSignal(ArgTypes&& ...args);
    
-   Connection connectDestoryedSignal(std::function<DestroyedSignalHandler> callable);
-   Connection connectObjectNameChangedSignal(std::function<ObjectNameChangedHandler> callable);
+   Connection connectDestoryedSignal(const std::function<DestroyedSignalHandler> &callable);
+   Connection connectObjectNameChangedSignal(const std::function<ObjectNameChangedHandler> &callable);
    
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
@@ -165,13 +167,16 @@ private:
 };
 
 template <typename ...ArgTypes>
-void Object::emit(SignalType signal, ArgTypes&&... args)
+inline void Object::emitDestoryedSignal(ArgTypes&&... args)
 {
-   if (signal == SignalType::Destroyed) {
-      (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
-   } else if (signal == SignalType::ObjectNameChanged) {
-      (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
+   (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
+}
+
+
+template <typename ...ArgTypes>
+inline void Object::emitObjectNameChangedSignal(ArgTypes&&... args)
+{
+   (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
 }
 
 } // kernel
