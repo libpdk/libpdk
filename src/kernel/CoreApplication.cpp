@@ -679,8 +679,7 @@ void CoreApplicationPrivate::execCleanup()
    m_threadData->m_quitNow = false;
    m_inExec = false;
    if (!m_aboutToQuitEmitted) {
-      // @TODO emit signal
-      //      emit getImplPtr()->aboutToQuit(CoreApplication::PrivateSignal());
+      getApiPtr()->emitAboutToQuitSignal();
    }
    m_aboutToQuitEmitted = true;
    CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
@@ -1439,36 +1438,36 @@ Connection CoreApplication::connectAboutToQuitSignal(const std::function<InfoCha
    return m_aboutToQuitSignal->connect(callable);
 }
 
-Connection CoreApplication::connectOrganizationNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
+Connection CoreApplication::connectOrgNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
 {
-   if (!m_organizationNameChangedSignal) {
-      m_organizationNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
+   if (!m_orgNameChangedSignal) {
+      m_orgNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
    }
-   return m_organizationNameChangedSignal->connect(callable);
+   return m_orgNameChangedSignal->connect(callable);
 }
 
-Connection CoreApplication::connectOrganizationDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable)
+Connection CoreApplication::connectOrgDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable)
 {
-   if (!m_organizationDomainChangedSignal) {
-      m_organizationDomainChangedSignal.reset(new Signal<InfoChangeHandlerType>);
+   if (!m_orgDomainChangedSignal) {
+      m_orgDomainChangedSignal.reset(new Signal<InfoChangeHandlerType>);
    }
-   return m_organizationDomainChangedSignal->connect(callable);
+   return m_orgDomainChangedSignal->connect(callable);
 }
 
-Connection CoreApplication::connectApplicationNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
+Connection CoreApplication::connectAppNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
 {
-   if (!m_applicationNameChangedSignal) {
-      m_applicationNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
+   if (!m_appNameChangedSignal) {
+      m_appNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
    }
-   return m_applicationNameChangedSignal->connect(callable);
+   return m_appNameChangedSignal->connect(callable);
 }
 
-Connection CoreApplication::connectApplicationVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable)
+Connection CoreApplication::connectAppVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable)
 {
-   if (!m_applicationVersionChangedSignal) {
-      m_applicationVersionChangedSignal.reset(new Signal<InfoChangeHandlerType>);
+   if (!m_appVersionChangedSignal) {
+      m_appVersionChangedSignal.reset(new Signal<InfoChangeHandlerType>);
    }
-   return m_applicationVersionChangedSignal->connect(callable);
+   return m_appVersionChangedSignal->connect(callable);
 }
 
 String CoreApplication::getAppDirPath()
@@ -1610,8 +1609,7 @@ void CoreApplication::setOrgName(const String &orgName)
    sg_coreAppData()->m_orgName = orgName;
 #ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
-      // @TODO emit signal
-      // emit CoreApplication::sm_self->orgNameChanged();
+      CoreApplication::sm_self->emitOrgNameChangedSignal();
    }      
 #endif
 }
@@ -1629,8 +1627,7 @@ void CoreApplication::setOrgDomain(const String &orgDomain)
    sg_coreAppData()->m_orgDomain = orgDomain;
 #ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
-      // @TODO emit signal
-      // emit CoreApplication::sm_self->orgDomainChanged();
+      CoreApplication::sm_self->emitOrgDomainChangedSignal();
    }
 #endif
 }
@@ -1653,8 +1650,7 @@ void CoreApplication::setAppName(const String &application)
    sg_coreAppData()->m_appName = newAppName;
 #ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
-      // @TODO emit signal
-      // emit CoreApplication::sm_self->applicationNameChanged();
+      CoreApplication::sm_self->emitAppNameChangedSignal();
    }
 #endif
 }
@@ -1677,8 +1673,7 @@ void CoreApplication::setAppVersion(const String &version)
    sg_coreAppData()->m_appVersion = newVersion;
 #ifndef PDK_NO_Object
    if (CoreApplication::sm_self) {
-      // @TODO emit signal
-      // emit CoreApplication::sm_self->appVersionChanged();
+      CoreApplication::sm_self->emitAppVersionChangedSignal();
    }
 #endif
 }

@@ -134,27 +134,27 @@ public:
    template <typename ...ArgTypes>
    void emitAboutToQuitSignal(ArgTypes&& ...args);
    template <typename ...ArgTypes>
-   void emitOrganizationNameChangedSignal(ArgTypes&& ...args);
+   void emitOrgNameChangedSignal(ArgTypes&& ...args);
    template <typename ...ArgTypes>
-   void emitOrganizationDomainChangedSignal(ArgTypes&& ...args);
+   void emitOrgDomainChangedSignal(ArgTypes&& ...args);
    template <typename ...ArgTypes>
-   void emitApplicationNameChangedSignal(ArgTypes&& ...args);
+   void emitAppNameChangedSignal(ArgTypes&& ...args);
    template <typename ...ArgTypes>
-   void emitApplicationVersionChangedSignal(ArgTypes&& ...args);
+   void emitAppVersionChangedSignal(ArgTypes&& ...args);
    
    Connection connectAboutToQuitSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectOrganizationNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectOrganizationDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectApplicationNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectApplicationVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable);
+   Connection connectOrgNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
+   Connection connectOrgDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable);
+   Connection connectAppNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
+   Connection connectAppVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable);
    
 protected:
    // signals
    std::shared_ptr<Signal<InfoChangeHandlerType>> m_aboutToQuitSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_organizationNameChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_organizationDomainChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_applicationNameChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_applicationVersionChangedSignal;
+   std::shared_ptr<Signal<InfoChangeHandlerType>> m_orgNameChangedSignal;
+   std::shared_ptr<Signal<InfoChangeHandlerType>> m_orgDomainChangedSignal;
+   std::shared_ptr<Signal<InfoChangeHandlerType>> m_appNameChangedSignal;
+   std::shared_ptr<Signal<InfoChangeHandlerType>> m_appVersionChangedSignal;
 protected:
    bool event(Event *) override;
    virtual bool compressEvent(Event *, Object *receiver, PostEventList *);
@@ -200,34 +200,34 @@ void CoreApplication::emitAboutToQuitSignal(ArgTypes&& ...args)
 }
 
 template <typename ...ArgTypes>
-void CoreApplication::emitOrganizationNameChangedSignal(ArgTypes&& ...args)
+void CoreApplication::emitOrgNameChangedSignal(ArgTypes&& ...args)
 {
-   if (m_organizationNameChangedSignal) {
-      (*m_organizationNameChangedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_orgNameChangedSignal) {
+      (*m_orgNameChangedSignal)(std::forward<ArgTypes>(args)...);
    }
 }
 
 template <typename ...ArgTypes>
-void CoreApplication::emitOrganizationDomainChangedSignal(ArgTypes&& ...args)
+void CoreApplication::emitOrgDomainChangedSignal(ArgTypes&& ...args)
 {
-   if (m_organizationDomainChangedSignal) {
-      (*m_organizationDomainChangedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_orgDomainChangedSignal) {
+      (*m_orgDomainChangedSignal)(std::forward<ArgTypes>(args)...);
    }
 }
 
 template <typename ...ArgTypes>
-void CoreApplication::emitApplicationNameChangedSignal(ArgTypes&& ...args)
+void CoreApplication::emitAppNameChangedSignal(ArgTypes&& ...args)
 {
-   if (m_applicationNameChangedSignal) {
-      (*m_applicationNameChangedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_appNameChangedSignal) {
+      (*m_appNameChangedSignal)(std::forward<ArgTypes>(args)...);
    }
 }
 
 template <typename ...ArgTypes>
-void CoreApplication::emitApplicationVersionChangedSignal(ArgTypes&& ...args)
+void CoreApplication::emitAppVersionChangedSignal(ArgTypes&& ...args)
 {
-   if (m_applicationVersionChangedSignal) {
-      (*m_applicationVersionChangedSignal)(std::forward<ArgTypes>(args)...);
+   if (m_appVersionChangedSignal) {
+      (*m_appVersionChangedSignal)(std::forward<ArgTypes>(args)...);
    }
 }
 
