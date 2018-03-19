@@ -43,10 +43,14 @@ using internal::ThreadData;
 using pdk::kernel::AbstractEventDispatcher;
 using pdk::kernel::Event;
 using pdk::kernel::CoreApplication;
+using pdk::kernel::signal::Signal;
+using pdk::kernel::signal::Connection;
 
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
 public:
+   using FinishedHandlerType = void();
+   using StartedHandlerType = void();
    static pdk::HANDLE getCurrentThreadId() noexcept PDK_DECL_PURE_FUNCTION;
    static Thread *getCurrentThread();
    static int getIdealThreadCount() noexcept;
@@ -98,6 +102,13 @@ public:
    // signals
    // void started(PrivateSignal);
    // void finished(PrivateSignal);
+   template <typename ...ArgTypes>
+   void emitStartedSignal(ArgTypes&& ...args);
+   template <typename ...ArgTypes>
+   void emitFinishedSignal(ArgTypes&& ...args);
+   
+   Connection connectStartedSignal(const std::function<StartedHandlerType> &callable);
+   Connection connectFinishedSignal(const std::function<FinishedHandlerType> &callable);
    
 protected:
    virtual void run();
@@ -106,6 +117,9 @@ protected:
    
 protected:
    Thread(ThreadPrivate &dd, Object *parent = nullptr);
+protected:
+   std::shared_ptr<Signal<FinishedHandlerType>> m_finishedSignal;
+   std::shared_ptr<Signal<StartedHandlerType>> m_startedSignal;
    
 private:
    static Thread *createThreadImpl(std::future<void> &&future);
@@ -113,6 +127,22 @@ private:
    friend class CoreApplication;
    friend class ThreadData;
 };
+
+template <typename ...ArgTypes>
+void Thread::emitStartedSignal(ArgTypes&& ...args)
+{
+   if (m_startedSignal) {
+      (*m_startedSignal)(std::forward<ArgTypes>(args)...);
+   }
+}
+
+template <typename ...ArgTypes>
+void Thread::emitFinishedSignal(ArgTypes&& ...args)
+{
+   if (m_finishedSignal) {
+      (*m_finishedSignal)(std::forward<ArgTypes>(args)...);
+   }
+}
 
 } // thread
 } // os

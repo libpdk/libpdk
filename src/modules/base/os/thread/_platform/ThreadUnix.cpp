@@ -363,7 +363,7 @@ void *ThreadPrivate::start(void *arg)
          }
       }
 #endif
-      // emit thread started signal
+      thread->emitStartedSignal();
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       pthread_testcancel();
       thread->run();
@@ -393,7 +393,7 @@ void ThreadPrivate::finish(void *arg)
       implPtr->m_priority = Thread::InheritPriority;
       void *data = &implPtr->m_data->m_tls;
       locker.unlock();
-//      // emit thread->finished signal
+      thread->emitFinishedSignal();
       CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
       ThreadStorageData::finish((void **)data);
       locker.lock();
@@ -496,6 +496,23 @@ void Thread::usleep(unsigned long usecs)
 {
    pdk::kernel::nanosleep(make_timespec(usecs / 1000 / 1000, usecs % (1000 * 1000) * 1000));
 }
+
+Connection Thread::connectStartedSignal(const std::function<StartedHandlerType> &callable)
+{
+   if (!m_startedSignal) {
+      m_startedSignal.reset(new Signal<StartedHandlerType>);
+   }
+   return m_startedSignal->connect(callable);
+}
+
+Connection Thread::connectFinishedSignal(const std::function<FinishedHandlerType> &callable)
+{
+   if (!m_finishedSignal) {
+      m_finishedSignal.reset(new Signal<FinishedHandlerType>);
+   }
+   return m_finishedSignal->connect(callable);
+}
+
 
 void Thread::start(Priority priority)
 {
