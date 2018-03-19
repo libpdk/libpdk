@@ -407,7 +407,85 @@ TEST(ThreadTest, testQuit)
 
 TEST(ThreadTest, testStarted)
 {
-   
+   SimpleThread thread;
+   bool signalCatched = false;
+   thread.connectStartedSignal([&](){
+      signalCatched = true;
+   });
+   thread.start();
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(signalCatched);
+}
+
+TEST(ThreadTest, testFinished)
+{
+   SimpleThread thread;
+   bool signalCatched = false;
+   thread.connectFinishedSignal([&](){
+      signalCatched = true;
+   });
+   thread.start();
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(signalCatched);
+}
+
+TEST(ThreadTest, testTerminated)
+{
+   TerminateThread thread;
+   bool signalCatched = false;
+   thread.connectFinishedSignal([&](){
+      signalCatched = true;
+   });
+   {
+      std::unique_lock<std::mutex> locker(thread.m_mutex);
+      thread.start();
+      thread.m_cond.wait(locker);
+      thread.terminate();
+      thread.m_cond.notify_one();
+   }
+   ASSERT_TRUE(thread.wait(five_minutes));
+}
+
+TEST(ThreadTest, testExec)
+{
+   class MultipleExecThread : public Thread
+   {
+   public:
+      int m_res1;
+      int m_res2;
+      
+      MultipleExecThread()
+         : m_res1(-2),
+           m_res2(-2)
+      {}
+      
+      void run()
+      {
+         {
+            ExitObject o;
+            o.m_thread = this;
+            o.m_code = 1;
+            Timer::singleShot(100, [&]() {
+               o.slot();
+            });
+            m_res1 = exec();
+         }
+         {
+            ExitObject o;
+            o.m_thread = this;
+            o.m_code = 2;
+            Timer::singleShot(100, [&]() {
+               o.slot();
+            });
+            m_res2 = exec();
+         }
+      }
+   };
+   MultipleExecThread thread;
+   thread.start();
+   ASSERT_TRUE(thread.wait());
+   ASSERT_EQ(thread.m_res1, 1);
+   ASSERT_EQ(thread.m_res2, 2);
 }
 
 int main(int argc, char **argv)

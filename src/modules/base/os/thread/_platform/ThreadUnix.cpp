@@ -634,8 +634,12 @@ bool Thread::wait(unsigned long time)
       return true;
    }
    while (implPtr->m_running) {
-      if (std::cv_status::timeout == implPtr->m_threadDone.wait_for(locker, std::chrono::milliseconds(time))) {
-         return false;
+      if (time == ULONG_MAX) {
+         implPtr->m_threadDone.wait(locker);
+      } else {
+         if (std::cv_status::timeout == implPtr->m_threadDone.wait_for(locker, std::chrono::milliseconds(time))) {
+            return false;
+         }
       }
    }
    return true;
