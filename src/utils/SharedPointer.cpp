@@ -14,11 +14,12 @@
 // Created by softboy on 2018/01/04.
 
 #include "pdk/utils/SharedPointer.h"
+#include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/base/ds/ByteArray.h"
-#include <map>
+#include "pdk/global/GlobalStatic.h"
+#include "pdk/global/Logging.h"
+#include <unordered_map>
 #include <mutex>
-
-//#define PDK_SHARED_POINTER_BACKTRACE_SUPPORT
 
 #ifdef PDK_SHARED_POINTER_BACKTRACE_SUPPORT
 #  if defined(__GLIBC__) && (__GLIBC__ >= 2) && !defined(__UCLIBC__) && !defined(PDK_LINUXBASE)
@@ -28,6 +29,11 @@
 #  endif
 #endif
 
+namespace pdk {
+namespace utils {
+namespace internal {
+namespace sharedptr {
+
 using pdk::ds::ByteArray;
 
 #if defined(BACKTRACE_SUPPORTED)
@@ -36,8 +42,6 @@ using pdk::ds::ByteArray;
 #    include <stdio.h>
 #    include <unistd.h>
 #    include <sys/wait.h>
-
-namespace pdk {
 
 namespace {
 
@@ -53,7 +57,7 @@ inline ByteArray save_backtrace()
    return stacktrace;
 }
 
-static void print_backtrace(ByteArray stacktrace)
+void print_backtrace(ByteArray stacktrace)
 {
    void *const *stack = (void *const *)stacktrace.getConstRawData();
    int stackSize = stacktrace.size() / sizeof(void*);
@@ -104,8 +108,6 @@ static void print_backtrace(ByteArray stacktrace)
 
 } // anonymous namespace
 
-} // pdk
-
 #endif // BACKTRACE_SUPPORTED
 
 namespace {
@@ -116,13 +118,90 @@ struct Data
 #ifdef BACKTRACE_SUPPORTED
    ByteArray m_backtrace;
 #endif
-   class KnownPointers
-   {
-   public:
-      std::mutex m_mutex;
-      std::map<const void *, Data> m_dPointers;
-      std::map<const volatile void *, const void *> m_dataPointers;
-   };
+};
+
+class KnownPointers
+{
+public:
+   std::mutex m_mutex;
+   std::unordered_map<const void *, Data> m_dPointers;
+   std::unordered_map<const volatile void *, const void *> m_dataPointers;
 };
 
 } // anonymous namespace
+
+PDK_GLOBAL_STATIC(KnownPointers, sg_knownPointers);
+
+PDK_UNITTEST_EXPORT void internal_safety_check_clean_check();
+
+void internal_safety_check_add(const void *implPtr, const volatile void *ptr)
+{
+   KnownPointers *const kp = sg_knownPointers();
+   if (!kp) {
+      return;
+   }
+   std::lock_guard<std::mutex> locker(kp->m_mutex);
+   // debug_stream("Adding d=%p value=%p", implPtr, ptr);
+   const void *otherImplPtr = kp->m_dataPointers.find(ptr) != kp->m_dataPointers.end() 
+         ? kp->m_dataPointers.at(ptr) : nullptr;
+   if (PDK_UNLIKELY(otherImplPtr)) {
+#  ifdef BACKTRACE_SUPPORTED
+      print_backtrace(sg_knownPointers()->m_dPointers.at(otherImplPtr).m_backtrace);
+#  endif
+      fatal_stream("SharedPointer: internal self-check failed: pointer %p was already tracked "
+                   "by another SharedPointer object %p", ptr, otherImplPtr);
+   }
+   
+   Data data;
+   data.m_pointer = ptr;
+#  ifdef BACKTRACE_SUPPORTED
+   data.m_backtrace = save_backtrace();
+#  endif
+   
+   kp->m_dPointers[implPtr] = data;
+   kp->m_dataPointers[ptr] = implPtr;
+   PDK_ASSERT(kp->m_dPointers.size() == kp->m_dataPointers.size());
+}
+
+void internal_safety_check_remove(const void *implPtr)
+{
+   KnownPointers *const kp = sg_knownPointers();
+   if (!kp) {
+      return;
+   }
+   std::lock_guard<std::mutex> locker(kp->m_mutex);
+   auto iter = kp->m_dPointers.find(implPtr);
+   if (PDK_UNLIKELY(iter == kp->m_dPointers.end())) {
+      fatal_stream("SharedPointer: internal self-check inconsistency: pointer %p was not tracked. "
+                   "To use PDK_SHAREDPOINTER_TRACK_POINTERS, you have to enable it throughout "
+                   "in your code.", implPtr);
+   }
+   const auto iter2 = kp->m_dataPointers.find(iter->first);
+   PDK_ASSERT(iter2 != kp->m_dataPointers.end());
+   
+   //debug_stream("Removing d=%p value=%p", d_ptr, it->pointer);
+   
+   // remove entries
+   kp->m_dataPointers.erase(iter2);
+   kp->m_dPointers.erase(iter);
+   PDK_ASSERT(kp->m_dPointers.size() == kp->m_dataPointers.size());
+}
+
+void internal_safety_check_clean_check()
+{
+   KnownPointers *const kp = sg_knownPointers();
+   PDK_ASSERT_X(kp, "internal_safety_check_self_check()", "Called after global statics deletion!");
+   
+   if (PDK_UNLIKELY(kp->m_dPointers.size() != kp->m_dataPointers.size())) {
+      fatal_stream("Internal consistency error: the number of pointers is not equal!");
+   }
+   
+   if (PDK_UNLIKELY(!kp->m_dPointers.empty())) {
+      fatal_stream("Pointer cleaning failed: %d entries remaining", (int)kp->m_dPointers.size());
+   }
+}
+
+} // sharedptr
+} // internal
+} // utils
+} // pdk

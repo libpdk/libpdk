@@ -52,7 +52,7 @@ public:
    
    inline void changeInterval(int secs)
    {
-      killTimer(timerId);
+      killTimer(m_timerId);
       m_timerId = startTimer(secs * 1000);
    }
    
@@ -97,7 +97,7 @@ inline void TestEventLoop::enterLoopMSecs(int ms)
 
 inline void TestEventLoop::exitLoop()
 {
-   if (getThread() != Thread::getThread())
+   if (getThread() != Thread::getCurrentThread())
    {
       CallableInvoker::invokeAsync([&](){
          this->exitLoop();
@@ -105,9 +105,9 @@ inline void TestEventLoop::exitLoop()
       return;
    }
    if (m_timerId != -1) {
-      killTimer(timerId);
+      killTimer(m_timerId);
    }
-   timerId = -1;
+   m_timerId = -1;
    if (m_loop) {
       m_loop->exit();
    }

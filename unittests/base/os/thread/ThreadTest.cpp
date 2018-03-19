@@ -28,6 +28,7 @@
 
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "TestEventLoop.h"
 #include "pdk/kernel/Timer.h"
 #include "pdk/base/time/Time.h"
 #include <mutex>
@@ -46,6 +47,7 @@ using pdk::kernel::Timer;
 using pdk::kernel::CoreApplication;
 using pdk::kernel::CallableInvoker;
 using pdk::time::Time;
+using pdkunittest::TestEventLoop;
 
 class CurrentThread : public Thread
 {
@@ -726,41 +728,46 @@ Thread *mainThread;
 //   nativeThread.join();
 //}
 
-void adopted_thread_exec_function(void *)
-{
-   Thread  * const adoptedThread = Thread::getCurrentThread();
-   EventLoop eventLoop(adoptedThread);
-   const int code = 1;
-   ExitObject o;
-   o.m_thread = adoptedThread;
-   o.m_code = code;
-   Timer::singleShot(100, [&](){
-      o.slot();
-   });
-   const int result = eventLoop.exec();
-   ASSERT_EQ(result, code);
-}
+//void adopted_thread_exec_function(void *)
+//{
+//   Thread  * const adoptedThread = Thread::getCurrentThread();
+//   EventLoop eventLoop(adoptedThread);
+//   const int code = 1;
+//   ExitObject o;
+//   o.m_thread = adoptedThread;
+//   o.m_code = code;
+//   Timer::singleShot(100, [&](){
+//      o.slot();
+//   });
+//   const int result = eventLoop.exec();
+//   ASSERT_EQ(result, code);
+//}
 
-TEST(ThreadTest, testAdoptedThreadExec)
-{
-   NativeThreadWrapper nativeThread;
-   nativeThread.start(adopted_thread_exec_function);
-   nativeThread.join();
-}
-
-//TEST(ThreadTest, testAdoptedThreadFinished)
+//TEST(ThreadTest, testAdoptedThreadExec)
 //{
 //   NativeThreadWrapper nativeThread;
-//   nativeThread.setWaitForStop();
-//   nativeThread.startAndWait(adopted_thread_exec_function);
-//   bool finished = false;
-//   nativeThread.m_pdkthread->connectFinishedSignal([&](){
-//      finished = true;
-//   });
-//   nativeThread.stop();
+//   nativeThread.start(adopted_thread_exec_function);
 //   nativeThread.join();
-//   ASSERT_TRUE(finished);
 //}
+
+TEST(ThreadTest, testAdoptedThreadFinished)
+{
+   NativeThreadWrapper nativeThread;
+   nativeThread.setWaitForStop();
+   nativeThread.startAndWait();
+   TestEventLoop *instance = &TestEventLoop::instance();
+   nativeThread.m_pdkthread->connectFinishedSignal([&](){
+      CallableInvoker::invokeAsync([&](){
+         instance->exitLoop();
+      }, instance);
+   });
+   nativeThread.stop();
+   nativeThread.join();
+   
+   TestEventLoop *temp = &TestEventLoop::instance();
+   temp->enterLoop(5);
+   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+}
 
 int main(int argc, char **argv)
 {

@@ -69,7 +69,10 @@ public:
    
    inline Pointer<T> &operator=(T* p)
    {
-      m_wptr = std::shared_ptr<T>(static_cast<ObjectType*>(p));
+      m_wptr = std::shared_ptr<ObjectType>(static_cast<ObjectType*>(p));
+      if (m_wptr.expired()) {
+         return *this;
+      }
       return *this;
    }
    
@@ -83,7 +86,7 @@ public:
       if (m_wptr.expired()) {
          return nullptr;
       }
-      return m_wptr.lock().get();
+      return static_cast<T *>(m_wptr.lock().get());
    }
    
    inline T *operator ->() const
