@@ -633,7 +633,7 @@ void Thread::setTerminationEnabled(bool enabled)
    pthread_setcancelstate(enabled ? PTHREAD_CANCEL_ENABLE : PTHREAD_CANCEL_DISABLE, NULL);
    if (enabled) {
       pthread_testcancel();
-   }      
+   }
 }
 
 } // thread

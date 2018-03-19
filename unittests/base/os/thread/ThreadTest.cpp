@@ -29,6 +29,7 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/Timer.h"
+#include "pdk/base/time/Time.h"
 #include <mutex>
 #include <condition_variable>
 
@@ -43,6 +44,7 @@ using pdk::kernel::Object;
 using pdk::kernel::Timer;
 using pdk::kernel::CoreApplication;
 using pdk::kernel::CallableInvoker;
+using pdk::time::Time;
 
 class CurrentThread : public Thread
 {
@@ -99,6 +101,82 @@ public:
          });
       }
       m_result = exec();
+   }
+};
+
+class TerminateThread : public SimpleThread
+{
+public:
+   void run()
+   {
+      setTerminationEnabled(false);
+      {
+         std::unique_lock locker(m_mutex);
+         m_cond.notify_one();
+         m_cond.wait_for(locker, std::chrono::milliseconds(five_minutes));
+      }
+      setTerminationEnabled(true);
+      FAIL() << "ThreadTest : test case hung";
+   }
+};
+
+class QuitObject : public Object
+{
+public:
+   Thread *m_thread;
+public:
+   void slot()
+   {
+      m_thread->quit();
+   }
+};
+
+class QuitThread : public SimpleThread
+{
+public:
+   QuitObject *m_object;
+   int m_result;
+   
+   void run()
+   {
+      SimpleThread::run();
+      if (m_object) {
+         m_object->m_thread = this;
+         Timer::singleShot(100, [&](){
+            m_object->slot();
+         });
+      }
+      m_result = exec();
+   }
+};
+
+class SleepThread : public SimpleThread
+{
+public:
+   enum SleepType { Second, Millisecond, Microsecond };
+   
+   SleepType m_sleepType;
+   int m_interval;
+   int m_elapsed; // result, in *MILLISECONDS*
+   void run()
+   {
+      std::lock_guard<std::mutex> locker(m_mutex);
+      m_elapsed = 0;
+      Time time;
+      time.start();
+      switch (m_sleepType) {
+      case Second:
+         sleep(m_interval);
+         break;
+      case Millisecond:
+         msleep(m_interval);
+         break;
+      case Microsecond:
+         usleep(m_interval);
+         break;
+      }
+      m_elapsed = time.elapsed();
+      m_cond.notify_one();
    }
 };
 
@@ -250,8 +328,8 @@ TEST(ThreadTest, testExit)
    thread2.start();
    thread2.exit(thread2.m_code);
    thread2.m_cond.wait(locker2);
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_EQ(thread.m_result, thread.m_code);
+   ASSERT_TRUE(thread2.wait(five_minutes));
+   ASSERT_EQ(thread2.m_result, thread2.m_code);
 }
 
 TEST(ThreadTest, testStart)
@@ -281,6 +359,55 @@ TEST(ThreadTest, testStart)
       ASSERT_TRUE(thread.isFinished());
       ASSERT_TRUE(!thread.isRunning());
    }
+}
+
+TEST(ThreadTest, testTerminate)
+{
+   TerminateThread thread;
+   {
+      std::unique_lock<std::mutex> locker(thread.m_mutex);
+      thread.start();
+      ASSERT_TRUE(std::cv_status::no_timeout == thread.m_cond.wait_for(locker, std::chrono::milliseconds(five_minutes)));
+      thread.terminate();
+      thread.m_cond.notify_one();
+   }
+   ASSERT_TRUE(thread.wait(five_minutes));
+}
+
+TEST(ThreadTest, testQuit)
+{
+   QuitThread thread;
+   thread.m_object = new QuitObject;
+   thread.m_object->moveToThread(&thread);
+   thread.m_result = -1;
+   ASSERT_TRUE(!thread.isFinished());
+   ASSERT_TRUE(!thread.isRunning());
+   
+   std::unique_lock<std::mutex> locker(thread.m_mutex);
+   thread.start();
+   ASSERT_TRUE(!thread.isFinished());
+   ASSERT_TRUE(thread.isRunning());
+   thread.m_cond.wait(locker);
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(thread.isFinished());
+   ASSERT_TRUE(!thread.isRunning());
+   ASSERT_EQ(thread.m_result, 0);
+   delete thread.m_object;
+   
+   QuitThread thread2;
+   thread2.m_object = 0;
+   thread2.m_result = -1;
+   std::unique_lock<std::mutex> locker2(thread2.m_mutex);
+   thread2.start();
+   thread2.quit();
+   thread2.m_cond.wait(locker2);
+   ASSERT_TRUE(thread2.wait(five_minutes));
+   ASSERT_EQ(thread2.m_result, 0);
+}
+
+TEST(ThreadTest, testStarted)
+{
+   
 }
 
 int main(int argc, char **argv)
