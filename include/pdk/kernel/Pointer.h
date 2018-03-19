@@ -17,12 +17,12 @@
 #define PDK_KERNEL_POINTER_H
 
 #include "pdk/global/Global.h"
-#include "pdk/kernel/Object.h"
-#include <memory>
-#include <variant>
+#include "pdk/utils/SharedPointer.h"
 
 namespace pdk {
 namespace kernel {
+
+using pdk::utils::WeakPointer;
 
 template <typename T>
 class Pointer
@@ -48,31 +48,12 @@ public:
    {}
    
    inline Pointer(T *p) 
-      : m_wptr(std::shared_ptr<T>(p))
+      : m_wptr(p, true)
    {}
-   
-   inline Pointer(const std::shared_ptr<T> &ptr)
-      : m_wptr(ptr)
-   {}
-   
-   inline Pointer &operator =(const std::weak_ptr<T> &other)
-   {
-      m_wptr = other;
-      return *this;
-   }
-   
-   inline Pointer &operator =(const std::shared_ptr<T> &other)
-   {
-      m_wptr = other;
-      return *this;
-   }
    
    inline Pointer<T> &operator=(T* p)
    {
-      m_wptr = std::shared_ptr<ObjectType>(static_cast<ObjectType*>(p));
-      if (m_wptr.expired()) {
-         return *this;
-      }
+      m_wptr.assign(static_cast<ObjectType *>(p));
       return *this;
    }
    
@@ -83,10 +64,7 @@ public:
    
    inline T *getData() const
    {
-      if (m_wptr.expired()) {
-         return nullptr;
-      }
-      return static_cast<T *>(m_wptr.lock().get());
+      return static_cast<T *>(m_wptr.getData());
    }
    
    inline T *operator ->() const
@@ -96,7 +74,7 @@ public:
    
    inline T &operator *() const
    {
-      return *m_wptr.lock();
+      return *getData();
    }
    
    inline operator T*() const
@@ -106,18 +84,18 @@ public:
    
    inline bool isNull() const
    {
-      return m_wptr.expired();
+      return m_wptr.isNull();
    }
    
    inline void clear()
    {
-      m_wptr.reset();
+      m_wptr.clear();
    }
    
    ~Pointer() = default;
    
 private:
-   std::weak_ptr<ObjectType> m_wptr;
+   WeakPointer<ObjectType> m_wptr;
 };
 
 template <class T>

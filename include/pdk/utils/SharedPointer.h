@@ -22,6 +22,12 @@
 #include "pdk/kernel/HashFuncs.h"
 
 namespace pdk {
+// forward declare with namespace
+namespace kernel {
+template<typename T>
+class Pointer;
+} // kernel
+
 namespace utils {
 
 #ifdef PDK_NO_DEBUG
@@ -264,8 +270,6 @@ private:
    ~ExternalRefCountWithContiguousData() = delete;
    PDK_DISABLE_COPY(ExternalRefCountWithContiguousData);
 };
-
-
 
 } // sharedptr
 } // internal
@@ -783,8 +787,8 @@ private:
 #if defined(PDK_NO_TEMPLATE_FRIENDS)
 public:
 #endif
-   template <class X> friend class SharedPointer;
-   template <class X> friend class Pointer;
+   template <typename X> friend class SharedPointer;
+   template <typename X> friend class pdk::kernel::Pointer;
    
    template <class X>
    inline WeakPointer &assign(X* ptr)

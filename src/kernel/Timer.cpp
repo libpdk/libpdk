@@ -118,7 +118,7 @@ SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const std::
 SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc)
    : Object(AbstractEventDispatcher::getInstance()),
      m_hasValidReceiver(receiver), 
-     m_receiver(std::shared_ptr<const Object>(receiver)),
+     m_receiver(receiver),
      m_slotFunc(slotFunc),
      m_slotMode(true)
 {

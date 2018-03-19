@@ -35,6 +35,38 @@ namespace internal {
 namespace sharedptr {
 
 using pdk::ds::ByteArray;
+using pdk::kernel::Object;
+using pdk::kernel::internal::ObjectPrivate;
+
+void ExternalRefCountData::setObjectShared(const kernel::Object *, bool)
+{}
+
+void ExternalRefCountData::checkObjectShared(const kernel::Object *)
+{}
+
+ExternalRefCountData *ExternalRefCountData::getAndRef(const kernel::Object *object)
+{
+   PDK_ASSERT(object);
+   ObjectPrivate *implPtr = ObjectPrivate::get(const_cast<Object *>(object));
+   PDK_ASSERT_X(!implPtr->m_wasDeleted, "WeakPointer", "Detected WeakPointer creation in a Object being deleted");
+   
+   ExternalRefCountData *that = implPtr->m_sharedRefcount.load();
+   if (that) {
+      that->m_weakRef.ref();
+      return that;
+   }
+   
+   // we can create the refcount data because it doesn't exist
+   ExternalRefCountData *newRefCountData = new ExternalRefCountData(pdk::Uninitialized);
+   newRefCountData->m_strongRef.store(-1);
+   newRefCountData->m_weakRef.store(2);  // the QWeakPointer that called us plus the QObject itself
+   if (!implPtr->m_sharedRefcount.testAndSetRelease(0, newRefCountData)) {
+      delete newRefCountData;
+      newRefCountData = implPtr->m_sharedRefcount.loadAcquire();
+      newRefCountData->m_weakRef.ref();
+   }
+   return newRefCountData;
+}
 
 #if defined(BACKTRACE_SUPPORTED)
 #    include <sys/types.h>
