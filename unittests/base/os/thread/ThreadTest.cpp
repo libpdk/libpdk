@@ -239,6 +239,48 @@ TEST(ThreadTest, testExit)
    ASSERT_TRUE(thread.wait(five_minutes));
    ASSERT_TRUE(thread.isFinished());
    ASSERT_TRUE(!thread.isRunning());
+   ASSERT_EQ(thread.m_result, thread.m_code);
+   delete thread.m_object;
+   
+   ExitThread thread2;
+   thread2.m_object = nullptr;
+   thread2.m_code = 53;
+   thread2.m_result = 0;
+   std::unique_lock<std::mutex> locker2(thread2.m_mutex);
+   thread2.start();
+   thread2.exit(thread2.m_code);
+   thread2.m_cond.wait(locker2);
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_EQ(thread.m_result, thread.m_code);
+}
+
+TEST(ThreadTest, testStart)
+{
+   Thread::Priority priorities[] = {
+      Thread::Priority::IdlePriority,
+      Thread::Priority::LowestPriority,
+      Thread::Priority::LowPriority,
+      Thread::Priority::NormalPriority,
+      Thread::Priority::HighPriority,
+      Thread::Priority::HighestPriority,
+      Thread::Priority::TimeCriticalPriority,
+      Thread::Priority::InheritPriority
+   };
+   
+   const int priorityCount = sizeof(priorities) / sizeof(Thread::Priority);
+   for (int i = 0; i < priorityCount; ++i) {
+      SimpleThread thread;
+      ASSERT_TRUE(!thread.isFinished());
+      ASSERT_TRUE(!thread.isRunning());
+      std::unique_lock<std::mutex> locker(thread.m_mutex);
+      thread.start(priorities[i]);
+      ASSERT_TRUE(thread.isRunning());
+      ASSERT_TRUE(!thread.isFinished());
+      thread.m_cond.wait(locker);
+      ASSERT_TRUE(thread.wait(five_minutes));
+      ASSERT_TRUE(thread.isFinished());
+      ASSERT_TRUE(!thread.isRunning());
+   }
 }
 
 int main(int argc, char **argv)
@@ -247,5 +289,6 @@ int main(int argc, char **argv)
    int retCode = 0;
    ::testing::InitGoogleTest(&argc, argv);
    retCode = RUN_ALL_TESTS();
+   app.exec();
    return retCode;
 }
