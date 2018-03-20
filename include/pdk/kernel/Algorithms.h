@@ -360,5 +360,4 @@ PDK_DECL_RELAXED_CONSTEXPR inline uint count_leading_zero_bits(unsigned long int
 
 } // pdk
 
-
 #endif // PDK_KERNEL_ALGORITHMS_H

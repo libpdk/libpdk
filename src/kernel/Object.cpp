@@ -101,20 +101,14 @@ void delete_in_event_handler(Object *object)
    delete object;
 }
 
-MetaCallEvent::MetaCallEvent(const CallableSignature &callable, std::any &&args)
+MetaCallEvent::MetaCallEvent(const std::function<void()> &callable)
    : Event(Type::MetaCall),
-     m_callable(callable),
-     m_invokeArgs(std::move(args))
+     m_callable(callable)
 {}
 
-const MetaCallEvent::CallableSignature &MetaCallEvent::getCallable() const
+const std::function<void()> &MetaCallEvent::getCallable() const
 {
    return m_callable;
-}
-
-std::any &MetaCallEvent::getInvokeArgs()
-{
-   return m_invokeArgs;
 }
 
 MetaCallEvent::~MetaCallEvent()
@@ -291,7 +285,7 @@ bool Object::event(Event *event)
    case Event::Type::MetaCall: {
       internal::MetaCallEvent *metaEvent = dynamic_cast<internal::MetaCallEvent *>(event);
       auto callable = metaEvent->getCallable();
-      callable(metaEvent->getInvokeArgs());
+      callable();
       break;
    }
    case Event::Type::Timer:
@@ -315,9 +309,9 @@ bool Object::event(Event *event)
              // do not to release our timer ids back to the pool (since the timer ids are moving to a new thread).
             eventDispatcher->unregisterTimers(this);
             PDK_D(Object);
-            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
-               implPtr->reregisterTimers(list);
-            }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
+//            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
+//               implPtr->reregisterTimers(list);
+//            }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
          }
       }
       break;

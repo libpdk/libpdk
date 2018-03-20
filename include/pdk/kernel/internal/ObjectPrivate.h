@@ -126,14 +126,11 @@ public:
 class PDK_CORE_EXPORT MetaCallEvent : public Event
 {
 public:
-   using CallableSignature = std::function<void(std::any &args)>;
-   MetaCallEvent(const CallableSignature &callable, std::any &&args);
-   const CallableSignature &getCallable() const;
-   std::any &getInvokeArgs();
+   MetaCallEvent(const std::function<void()> &callable);
+   const std::function<void()> &getCallable() const;
    ~MetaCallEvent();
 private:
-   CallableSignature m_callable;
-   std::any m_invokeArgs;
+   std::function<void()> m_callable;
 };
 
 } // internal

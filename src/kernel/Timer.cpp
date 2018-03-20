@@ -158,7 +158,7 @@ void SingleShotTimer::timerEvent(TimerEvent *)
       if (PDK_LIKELY(!m_receiver.isNull() || !m_hasValidReceiver)) {
          // We allocate only the return type - we previously checked the function had
          // no arguments.
-         CallableInvoker::invokeAsync(m_slotFunc, const_cast<Object *>(m_receiver.getData()), this);
+//         CallableInvoker::invokeAsync(m_slotFunc, const_cast<Object *>(m_receiver.getData()), this);
       }
    } else {
       if (m_timeoutSignal) {

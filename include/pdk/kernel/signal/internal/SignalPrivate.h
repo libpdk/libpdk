@@ -45,7 +45,12 @@
 
 namespace pdk {
 namespace kernel {
+
+class Object;
+
 namespace signal {
+
+using pdk::kernel::Object;
 
 class Connection;
 
@@ -186,20 +191,22 @@ public:
    {}
    
    // connect slot
-   Connection connect(const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+   Connection connect(const SlotType &slot, 
+                      ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<MutexType> lock(*m_mutex);
       return nolockConnect(lock, slot, position);
    }
    
-   Connection connect(const GroupType &group,
-                      const SlotType &slot, ConnectPosition position = ConnectPosition::AtBack)
+   Connection connect(const GroupType &group, const SlotType &slot, 
+                      ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<MutexType> lock(*m_mutex);
       return nolockConnect(lock, group, slot, position);
    }
    
-   Connection connectExtended(const ExtendedSlotType &extSlot, ConnectPosition position = ConnectPosition::AtBack)
+   Connection connectExtended(const ExtendedSlotType &extSlot,
+                              ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<MutexType> lock(*m_mutex);
       BoundExtendedSlotFunctionType boundSlot(extSlot.slotFunc());
@@ -209,8 +216,8 @@ public:
       return conn;
    }
    
-   Connection connectExtended(const GroupType &group,
-                              const ExtendedSlotType &extSlot, ConnectPosition position = ConnectPosition::AtBack)
+   Connection connectExtended(const GroupType &group, const ExtendedSlotType &extSlot, 
+                              ConnectPosition position = ConnectPosition::AtBack)
    {
       GarbageCollectingLock<Mutex> lock(*m_mutex);
       BoundExtendedSlotFunctionType boundSlot(extSlot.slotFunc());
@@ -636,21 +643,19 @@ public:
       return (*m_pimpl).connect(slot, position);
    }
    
-   Connection connect(const GroupType &group,
-                      const SlotType &slot, 
+   Connection connect(const GroupType &group, const SlotType &slot,
                       ConnectPosition position = ConnectPosition::AtBack)
    {
       return (*m_pimpl).connect(group, slot, position);
    }
    
-   Connection connectExtended(const ExtendedSlotType &slot, 
+   Connection connectExtended(const ExtendedSlotType &slot,
                               ConnectPosition position = ConnectPosition::AtBack)
    {
       return (*m_pimpl).connectExtended(slot, position);
    }
    
-   Connection connectExtended(const GroupType &group,
-                              const ExtendedSlotType &slot, 
+   Connection connectExtended(const GroupType &group, const ExtendedSlotType &slot,
                               ConnectPosition position = ConnectPosition::AtBack)
    {
       return (*m_pimpl).connectExtended(group, slot, position);

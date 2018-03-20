@@ -97,21 +97,21 @@ inline void TestEventLoop::enterLoopMSecs(int ms)
 
 inline void TestEventLoop::exitLoop()
 {
-   if (getThread() != Thread::getCurrentThread())
-   {
-      CallableInvoker::invokeAsync([&](){
-         this->exitLoop();
-      }, this);
-      return;
-   }
-   if (m_timerId != -1) {
-      killTimer(m_timerId);
-   }
-   m_timerId = -1;
-   if (m_loop) {
-      m_loop->exit();
-   }
-   m_inLoop = false;
+//   if (getThread() != Thread::getCurrentThread())
+//   {
+//      CallableInvoker::invokeAsync([&](){
+//         this->exitLoop();
+//      }, this);
+//      return;
+//   }
+//   if (m_timerId != -1) {
+//      killTimer(m_timerId);
+//   }
+//   m_timerId = -1;
+//   if (m_loop) {
+//      m_loop->exit();
+//   }
+//   m_inLoop = false;
 }
 
 inline void TestEventLoop::timerEvent(TimerEvent *event)

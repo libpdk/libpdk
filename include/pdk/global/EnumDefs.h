@@ -134,8 +134,8 @@ enum class ConnectionType
    AutoConnection,
    DirectConnection,
    QueuedConnection,
-   BlockingQueuedConnection,
-   UniqueConnection =  0x80
+//   BlockingQueuedConnection,
+//   UniqueConnection =  0x80
 };
 
 } // pdk

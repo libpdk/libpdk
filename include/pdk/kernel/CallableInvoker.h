@@ -21,6 +21,7 @@
 #include "pdk/kernel/CoreApplication.h"
 #include <any>
 #include <tuple>
+#include <functional>
 
 namespace pdk {
 namespace kernel {
@@ -39,10 +40,11 @@ public:
    template <typename CallableType, typename ...ArgTypes>
    static void invokeAsync(CallableType callable, Object *receiver, ArgTypes&&... args)
    {
-      using TupleType = std::tuple<ArgTypes...>;
-      CoreApplication::postEvent(receiver, new internal::MetaCallEvent([&](std::any &arg) {
-                                    std::apply(callable, std::any_cast<TupleType>(arg));
-                                 }, std::any(std::make_tuple(std::forward<ArgTypes>(args)...))));
+      CoreApplication::postEvent(receiver, new internal::MetaCallEvent(std::apply([callable](auto&&...args1){
+         return [&, callable]() {
+            callable(std::forward<decltype(args1)>(args1)...);
+         };
+      }, std::make_tuple(std::forward<ArgTypes>(args)...))));
    }
 };
 
