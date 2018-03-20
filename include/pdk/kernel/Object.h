@@ -20,6 +20,7 @@
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/kernel/signal/Signal.h"
+#include "pdk/kernel/internal/ObjectDefsPrivate.h"
 #include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include <list>
 #include <any>

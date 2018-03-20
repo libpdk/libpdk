@@ -40,11 +40,9 @@ public:
    template <typename CallableType, typename ...ArgTypes>
    static void invokeAsync(CallableType callable, Object *receiver, ArgTypes&&... args)
    {
-      CoreApplication::postEvent(receiver, new internal::MetaCallEvent(std::apply([callable](auto&&...args1){
-         return [&, callable]() {
-            callable(std::forward<decltype(args1)>(args1)...);
-         };
-      }, std::make_tuple(std::forward<ArgTypes>(args)...))));
+      CoreApplication::postEvent(receiver, new internal::MetaCallEvent([&](){
+         callable(std::forward<ArgTypes>(args)...);
+      }));
    }
 };
 

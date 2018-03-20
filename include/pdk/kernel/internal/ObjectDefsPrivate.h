@@ -16,134 +16,62 @@
 #ifndef PDK_KERNEL_INTERNAL_OBJECT_DEFS_PRIVATE_H
 #define PDK_KERNEL_INTERNAL_OBJECT_DEFS_PRIVATE_H
 
-#include "pdk/base/os/thread/Atomic.h"
-#include "pdk/stdext/typetraits/FunctionTraits.h"
+#define PDK_DECLARE_SIGNAL_BINDER(signalName) public:\
+   pdk::kernel::signal::Connection\
+   connect##signalName##Signal(const std::function<signalName##HandlerType> &callable,\
+   pdk::kernel::Object *receiver = nullptr,\
+   pdk::ConnectionType connectionType = pdk::ConnectionType::AutoConnection);\
+   protected: \
+   std::shared_ptr<pdk::kernel::signal::Signal<signalName##HandlerType>> m_##signalName##Signal
 
-namespace pdk {
-namespace kernel {
-
-// forward declare class
-class Object;
-
-namespace internal {
-
-using pdk::os::thread::AtomicInt;
-using pdk::kernel::Object;
-
-class SlotObjectBase
-{
-protected:
-   enum class Operation {
-      Destroy,
-      Call,
-      Compare,
-      NumOperations
-   };
-private:
-   AtomicInt m_ref;
-   // don't use virtual functions here; we don't want the
-   // compiler to create tons of per-polymorphic-class stuff that
-   // we'll never need. We just use one function pointer.
-   typedef void (*ImplFunc)(Operation which, SlotObjectBase* this_, Object *receiver, void **args, bool *ret);
-   const ImplFunc m_impl;
+#define PDK_DEFINE_SIGNAL_EMITTER(signalName) \
+   template <typename ...ArgTypes>\
+   void emit##signalName##Signal(ArgTypes&& ...args)\
+   {\
+      if (m_##signalName##Signal) {\
+         (*m_##signalName##Signal)(std::forward<ArgTypes>(args)...);\
+      }\
+   }\
    
-public:
-   explicit SlotObjectBase(ImplFunc func)
-      : m_ref(1),
-        m_impl(func)
-   {}
-   
-   inline int ref() noexcept
-   {
-      return m_ref.ref();
+#define PDK_DEFINE_SIGNAL_CLS_NAME(clsname) clsname
+#define PDK_DEFINE_SIGNAL_BINDER(clsname, signalName) \
+   pdk::kernel::signal::Connection PDK_DEFINE_SIGNAL_CLS_NAME(clsname)::connect## signalName ##Signal(\
+         const std::function<signalName ## HandlerType> &callable,\
+         pdk::kernel::Object *receiver,\
+         pdk::ConnectionType connectionType)\
+   {\
+      using ReturnType = typename pdk::stdext::CallableInfoTrait<signalName ## HandlerType>::ReturnType;\
+      if (!m_## signalName ##Signal) {\
+         m_## signalName ##Signal.reset(new pdk::kernel::signal::Signal<signalName ## HandlerType>);\
+      }\
+      if (nullptr == receiver) {\
+         receiver = this;\
+      }\
+      switch(connectionType) {\
+      case pdk::ConnectionType::DirectConnection:\
+         return m_## signalName ##Signal->connect(callable);\
+      case pdk::ConnectionType::QueuedConnection: {\
+         auto wrapper = [callable, receiver](auto&&... args) -> ReturnType{\
+            pdk::kernel::CoreApplication::postEvent(receiver, new pdk::kernel::internal::MetaCallEvent([=](){\
+               callable(args...);\
+            }));\
+         };\
+         return m_## signalName ##Signal->connect(wrapper);\
+      }\
+      case pdk::ConnectionType::AutoConnection:{\
+         if (getThread() == receiver->getThread()) {\
+            return m_StartedSignal->connect(callable);\
+         } else {\
+            auto wrapper = [callable, receiver](auto&&... args) -> ReturnType{\
+               CoreApplication::postEvent(receiver, new pdk::kernel::internal::MetaCallEvent([=](){\
+                  callable(args...);\
+               }));\
+            };\
+            return m_## signalName ##Signal->connect(wrapper);\
+         }\
+      }\
+      }\
    }
-   
-   inline void destroyIfLastRef() noexcept
-   {
-      if (!m_ref.deref()) {
-         m_impl(Operation::Destroy, this, nullptr, nullptr, nullptr);
-      }
-   }
-   
-   inline bool compare(void **args)
-   {
-      bool ret = false;
-      m_impl(Operation::Compare, this, nullptr, args, &ret);
-      return ret;
-   }
-   
-   inline void call(Object *receiver, void **args)
-   {
-      m_impl(Operation::Call, this, receiver, args, nullptr);
-   }
-protected:
-   ~SlotObjectBase()
-   {}
-   
-   PDK_DISABLE_COPY(SlotObjectBase);
-};
 
-// implementation of SlotObjectBase for which the slot is a pointer to member function of a Object
-// Args and R are the List of arguments and the returntype of the signal to which the slot is connected.
-template<typename Func, typename Args, typename R>
-class SlotObject : public SlotObjectBase
-{
-   using FuncType = pdk::stdext::FunctionPointer<Func>;
-   Func m_function;
-   static void impl(Operation which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
-   {
-      switch (which) {
-      case Operation::Destroy:
-         delete static_cast<SlotObject*>(this_);
-         break;
-      case Operation::Call:
-         FuncType::template call<Args, R>(static_cast<SlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(receiver), args);
-         break;
-      case Operation::Compare:
-         *ret = *reinterpret_cast<Func *>(args) == static_cast<SlotObject *>(this_)->m_function;
-         break;
-      case Operation::NumOperations: ;
-      }
-   }
-public:
-   explicit SlotObject(Func func)
-      : SlotObjectBase(&impl),
-        m_function(func)
-   {}
-};
-
-// implementation of SlotObjectBase for which the slot is a functor (or lambda)
-// N is the number of arguments
-// Args and R are the List of arguments and the returntype of the signal to which the slot is connected.
-template<typename Func, int N, typename Args, typename R>
-class FunctorSlotObject : public SlotObjectBase
-{
-   using FuncType = pdk::stdext::Functor<Func, N>;
-   Func m_function;
-   static void impl(Operation which, SlotObjectBase *this_, Object *receiver, void **args, bool *ret)
-   {
-      switch (which) {
-      case Operation::Destroy:
-         delete static_cast<FunctorSlotObject*>(this_);
-         break;
-      case Operation::Call:
-         FuncType::template call<Args, R>(static_cast<FunctorSlotObject*>(this_)->m_function, receiver, args);
-         break;
-      case Operation::Compare: // not implemented
-      case Operation::NumOperations:
-         PDK_UNUSED(ret);
-      }
-   }
-public:
-   explicit FunctorSlotObject(Func func)
-      : SlotObjectBase(&impl),
-        m_function(std::move(func))
-   {}
-};
-
-} // internal
-
-} // kernel
-} // pdk
 
 #endif // PDK_KERNEL_INTERNAL_OBJECT_DEFS_PRIVATE_H

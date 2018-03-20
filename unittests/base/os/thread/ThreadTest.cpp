@@ -410,15 +410,11 @@ public:
 
 TEST(ThreadTest, testStarted)
 {
-//   CallableInvoker::invokeAsync([&](int v){
-//      std::cout << "xiuxiux" << std::endl;
-//   }, CoreApplication::getInstance(), 1);
    SimpleThread thread;
    bool signalCatched = false;
    thread.connectStartedSignal([&](int v){
       signalCatched = true;
-      std::cout << "xiuxiux" << std::endl;
-   }, CoreApplication::getInstance(), pdk::ConnectionType::QueuedConnection);
+   }, CoreApplication::getInstance(), pdk::ConnectionType::DirectConnection);
    thread.start();
    ASSERT_TRUE(thread.wait(five_minutes));
    ASSERT_TRUE(signalCatched);

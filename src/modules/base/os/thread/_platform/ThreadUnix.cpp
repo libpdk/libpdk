@@ -497,52 +497,8 @@ void Thread::usleep(unsigned long usecs)
    pdk::kernel::nanosleep(make_timespec(usecs / 1000 / 1000, usecs % (1000 * 1000) * 1000));
 }
 
-//PDK_DEFINE_SIGNAL_BINDER(Thread, Started)
-
-pdk::kernel::signal::Connection Thread::connectStartedSignal(
-      const std::function<StartedHandlerType> &callable,
-      pdk::kernel::Object *receiver,
-      pdk::ConnectionType connectionType)
-{
-   using ArgTypes = typename pdk::stdext::CallableInfoTrait<StartedHandlerType>::ArgTypes;
-   using ReturnType = typename pdk::stdext::CallableInfoTrait<StartedHandlerType>::ReturnType;
-   if (!m_StartedSignal) {
-      m_StartedSignal.reset(new pdk::kernel::signal::Signal<StartedHandlerType>);
-   }
-   if (nullptr == receiver) {
-      receiver = this;
-   }
-   switch(connectionType) {
-   case pdk::ConnectionType::DirectConnection:
-      return m_StartedSignal->connect(callable);
-   case pdk::ConnectionType::QueuedConnection: {
-      auto wrapper = [callable, receiver](auto&&... args) -> ReturnType{
-         CoreApplication::postEvent(receiver, new pdk::kernel::internal::MetaCallEvent(std::apply([callable](const auto&...args1){
-            return [=]() {
-               callable(args1...);
-            };
-         }, std::make_tuple(std::forward<decltype(args)>(args)...))));
-      };
-      return m_StartedSignal->connect(wrapper);
-   }
-   case pdk::ConnectionType::AutoConnection:{
-      if (getThread() == receiver->getThread()) {
-         return m_StartedSignal->connect(callable);
-      } else { 
-         auto wrapper = [callable, receiver](auto&&... args) -> ReturnType{
-            CoreApplication::postEvent(receiver, new pdk::kernel::internal::MetaCallEvent(std::apply([callable](const auto&...args1){
-               return [=]() {
-                  callable(args1...);
-               };
-            }, std::make_tuple(std::forward<decltype(args)>(args)...))));
-         };
-         return m_StartedSignal->connect(wrapper);
-      }
-   }
-   }
-}
-
-//PDK_DEFINE_SIGNAL_BINDER(Thread, Finished)
+PDK_DEFINE_SIGNAL_BINDER(Thread, Started)
+PDK_DEFINE_SIGNAL_BINDER(Thread, Finished)
 
 void Thread::start(Priority priority)
 {

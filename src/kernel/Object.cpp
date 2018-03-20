@@ -21,7 +21,6 @@
 #include "pdk/kernel/internal/AbstractEventDispatcherPrivate.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/internal/CoreApplicationPrivate.h"
-#include "pdk/kernel/internal/ObjectDefsPrivate.h"
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/os/thread/Semaphore.h"
@@ -309,9 +308,9 @@ bool Object::event(Event *event)
              // do not to release our timer ids back to the pool (since the timer ids are moving to a new thread).
             eventDispatcher->unregisterTimers(this);
             PDK_D(Object);
-//            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
-//               implPtr->reregisterTimers(list);
-//            }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
+            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
+               implPtr->reregisterTimers(list);
+            }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
          }
       }
       break;
