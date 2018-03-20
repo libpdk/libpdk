@@ -1,4 +1,4 @@
-// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
+﻿// @copyright 2017-2018 zzu_softboy <zzu_softboy@163.com>
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 // IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -42,44 +42,6 @@ namespace kernel {
 namespace signal {
 namespace internal {
 
-template<unsigned ... values> 
-class UnsignedMetaArray
-{};
-
-template<typename UnsignedMetaArray, unsigned n>
-class UnsignedMetaArrayAppender;
-
-template<unsigned n, unsigned ... Args>
-class UnsignedMetaArrayAppender<UnsignedMetaArray<Args...>, n>
-{
-public:
-   using type = UnsignedMetaArray<Args..., n>;
-};
-
-template<unsigned n> 
-class MakeUnsignedMetaArray;
-
-template<> 
-class MakeUnsignedMetaArray<0>
-{
-public:
-   using type = UnsignedMetaArray<>;
-};
-
-template<> 
-class MakeUnsignedMetaArray<1>
-{
-public:
-   using type = UnsignedMetaArray<0>;
-};
-
-template<unsigned n>
-class MakeUnsignedMetaArray
-{
-public:
-   using type = typename UnsignedMetaArrayAppender<typename MakeUnsignedMetaArray<n - 1>::type, n - 1>::type;
-};
-
 template<typename R>
 class CallWithTupleArgs
 {
@@ -87,44 +49,43 @@ public:
    using ResultType = R;
    using result_type = ResultType;
    
-   template<typename Func, typename ... Args, std::size_t N>
-   R operator()(Func &func, const std::tuple<Args...> & args, std::integral_constant<std::size_t, N>) const
+   template<typename Func, typename... Args>
+   R operator()(Func &func, const std::tuple<Args...> &args) const
    {
-      typedef typename MakeUnsignedMetaArray<N>::type indices_type;
-      return invoke<Func>(func, indices_type(), args);
+      return invoke<Func>(func, args);
    }
 private:
-   template<typename Func, unsigned ... indices, typename ... Args>
-   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
+   template<typename Func, typename... Args>
+   R invoke(Func &func, const std::tuple<Args...> &args,
             typename pdk::stdext::DisableIf<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
-      return func(std::get<indices>(args)...);
+      return std::apply(func, args);
    }
    
-   template<typename Func, unsigned ... indices, typename ... Args>
-   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &args,
+   template<typename Func, typename... Args>
+   R invoke(Func &func, const std::tuple<Args...> &args,
             typename std::enable_if<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
-      func(std::get<indices>(args)...);
+      std::apply(func, args);
       return R();
    }
    
-   template<typename Func, unsigned ... indices, typename ... Args>
-   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &&args,
+   template<typename Func, typename ... Args>
+   R invoke(Func &func, const std::tuple<Args...> &&args,
             typename pdk::stdext::DisableIf<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
-      return func(std::get<indices>(std::forward<Args>(args))...);
+      return std::apply(func, std::forward<Args>(args)...);
    }
    
-   template<typename Func, unsigned ... indices, typename ... Args>
-   R invoke(Func &func, UnsignedMetaArray<indices...>, const std::tuple<Args...> &&args,
+   template<typename Func, typename ... Args>
+   R invoke(Func &func, const std::tuple<Args...> &&args,
             typename std::enable_if<std::is_void<typename Func::result_type>::value>::type * = nullptr
          ) const
    {
-      func(std::get<indices>(std::forward<Args>(args))...);
+      std::apply(func, std::forward<Args>(args)...);
       return R();
    }
    
@@ -133,7 +94,7 @@ private:
    // only exists to quiet some unused parameter warnings
    // on certain compilers (some versions of gcc and msvc)
    template<typename Func>
-   R invoke(Func &func, UnsignedMetaArray<>, const std::tuple<> &, 
+   R invoke(Func &func, const std::tuple<> &, 
             typename std::enable_if<std::is_void<typename Func::ResultType>::value>::type * = 0
          ) const
    {
@@ -142,25 +103,24 @@ private:
    }
 };
 
-template<typename R, typename ... Args>
+template<typename R, typename... Args>
 class VariadicSlotInvoker
 {
 public:
    using ResultType = R;
    using result_type = ResultType;
    
-   VariadicSlotInvoker(Args & ... args)
-      : m_args(args...)
+   VariadicSlotInvoker(Args&&... args)
+      : m_args(std::forward<Args>(args)...)
    {}
    
    template<typename ConnectionBodyType>
    ResultType operator ()(const ConnectionBodyType &connectionBody) const
    {
-      return CallWithTupleArgs<ResultType>()(connectionBody->slot().slotFunc(), 
-                                              m_args, std::integral_constant<size_t, sizeof...(Args)>());
+      return CallWithTupleArgs<ResultType>()(connectionBody->slot().slotFunc(), m_args);
    }
 private:
-   std::tuple<Args& ...> m_args;
+   std::tuple<Args...> m_args;
 };
 
 } // internal

@@ -79,6 +79,11 @@ struct MakeIncreasingInt {
 
 namespace Signals = pdk::kernel::signal;
 
+void xx(int &&age)
+{
+   
+}
+
 TEST(SignalTest, testZeroArgs)
 {
    MakeInt i42(42, 41);

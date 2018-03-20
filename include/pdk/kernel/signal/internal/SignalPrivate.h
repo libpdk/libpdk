@@ -258,7 +258,7 @@ public:
    }
    
    // emit signal
-   ResultType operator ()(Args ... args)
+   ResultType operator ()(Args&& ...args)
    {
       std::shared_ptr<InvocationState> localState;
       {
@@ -272,7 +272,7 @@ public:
          // during invocation. 
          localState = m_sharedState;
       }
-      SlotInvoker invoker = SlotInvoker(args...);
+      SlotInvoker invoker = SlotInvoker(std::forward<Args>(args)...);
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return CombinerInvoker<typename CombinerType::ResultType>()
@@ -283,7 +283,7 @@ public:
                );
    }
    
-   ResultType operator ()(Args ... args) const
+   ResultType operator ()(Args&& ...args) const
    {
       std::shared_ptr<InvocationState> localState;
       {
@@ -297,7 +297,7 @@ public:
          // during invocation.
          localState = m_sharedState;
       }
-      SlotInvoker invoker = SlotInvoker(args...);
+      SlotInvoker invoker = SlotInvoker(std::forward<Args>(args)...);
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return internal::CombinerInvoker<typename CombinerType::ResultType>()(
@@ -751,18 +751,18 @@ public:
       : m_weakPimpl(signal.m_pimpl)
    {}
    
-   ResultType operator ()(Args ... args)
+   ResultType operator ()(Args&& ...args)
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
       shared_pimpl(m_weakPimpl);
-      return (*shared_pimpl)(args...);
+      return (*shared_pimpl)(std::forward<Args>(args)...);
    }
    
-   ResultType operator ()(Args ... args) const
+   ResultType operator ()(Args&& ...args) const
    {
       std::shared_ptr<internal::SignalImpl <R (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, Mutex>>
       shared_pimpl(m_weakPimpl);
-      return (*shared_pimpl)(args...);
+      return (*shared_pimpl)(std::forward<Args>(args)...);
    }
    
 private:
