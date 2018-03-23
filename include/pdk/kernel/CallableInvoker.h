@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "pdk/stdext/typetraits/CallableInfoTrait.h"
 
 namespace pdk {
 namespace kernel {
@@ -29,16 +30,32 @@ class PDK_CORE_EXPORT CallableInvoker
 {
 public:
    template <typename CallableType, typename ...ArgTypes>
-   static void invoke(CallableType &&callable, ArgTypes&&... args)
+   static decltype(auto) invoke(CallableType &&callable, ArgTypes&&... args)
    {
-      callable(std::forward<ArgTypes>(args)...);
+      PDK_STATIC_ASSERT_X(pdk::stdext::IsCallable<CallableType>::value, "CallableInvoker::invoke callable is not callable");
+      return callable(std::forward<ArgTypes>(args)...);
+   }
+   
+   template <typename RetType, typename Class, typename ...ArgTypes>
+   static decltype(auto) invoke(pdk::kernel::Object *receiver, RetType Class::* memberFunc, ArgTypes&&... args)
+   {
+      return (dynamic_cast<Class *>(receiver)->*memberFunc)(std::forward<ArgTypes>(args)...);
    }
    
    template <typename CallableType, typename ...ArgTypes>
-   static void invokeAsync(CallableType &&callable, Object *receiver, ArgTypes... args)
+   static void invokeAsync(CallableType &&callable, Object *context, ArgTypes... args)
+   {
+      PDK_STATIC_ASSERT_X(pdk::stdext::IsCallable<CallableType>::value, "CallableInvoker::invokeAsync callable is not callable");
+      CoreApplication::postEvent(context, new internal::MetaCallEvent([=](){
+         callable(args...);
+      }));
+   }
+   
+   template <typename RetType, typename Class, typename ...ArgTypes>
+   static void invokeAsync(pdk::kernel::Object *receiver, RetType Class::* memberFunc, ArgTypes... args)
    {
       CoreApplication::postEvent(receiver, new internal::MetaCallEvent([=](){
-         callable(args...);
+          (dynamic_cast<Class *>(receiver)->*memberFunc)(args...);
       }));
    }
 };

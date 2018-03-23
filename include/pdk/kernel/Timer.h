@@ -18,7 +18,10 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/kernel/BasicTimer.h"
+#include "pdk/kernel/internal/SingleShotTimerPrivate.h"
 #include "pdk/kernel/Object.h"
+#include "pdk/global/Logging.h"
+#include "pdk/kernel/CallableInvoker.h"
 #include <chrono>
 
 namespace pdk {
@@ -77,88 +80,105 @@ public:
       return m_single;
    }
    
-   static void singleShot(int msec, const std::function<TimeoutHandlerType> &callable);
-   static void singleShot(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable);
+   template <typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static void singleShot(int msec, const Object *receiver, MemberFuncPointer memberFunc);
    
-   // singleShot to a Object slot
-   template <typename Duration>
-   static inline void singleShot(Duration interval, pdk::TimerType timerType, 
-                                 const Object *receiver, const std::function<SlotFuncType> &slotFunc)
+   template <typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static void singleShot(int msec, pdk::TimerType timerType, const Object *receiver, 
+                          MemberFuncPointer memberFunc);
+   
+   template <typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static void singleShot(std::chrono::milliseconds interval, const Object *receiver, MemberFuncPointer memberFunc)
    {
-      singleShotImpl(interval, timerType, receiver, slotFunc);
+      singleShot(int(interval.count()), receiver, memberFunc);
    }
    
-   template <typename Duration>
-   static inline void singleShot(Duration interval, const Object *receiver, const std::function<SlotFuncType> &slotFunc)
+   template <typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static void singleShot(std::chrono::milliseconds interval, pdk::TimerType timerType, const Object *receiver, 
+                          MemberFuncPointer memberFunc)
    {
-      singleShot(interval, defaultTypeFor(interval), receiver, slotFunc);
+      singleShot(int(interval.count()), timerType, receiver, memberFunc);
    }
    
-   template<typename Duration>
-   void singleShot(Duration interval, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable)
+   template <typename Duration,
+             typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static inline void singleShot(Duration interval, const Object *receiver, MemberFuncPointer memberFunc)
    {
-      singleShotImpl(interval, timerType, callable);
+      singleShot(interval, defaultTypeFor(interval), receiver, memberFunc);
    }
    
-   template<typename Duration>
-   void singleShot(Duration interval, const std::function<TimeoutHandlerType> &callable)
+   template <typename Duration,
+             typename MemberFuncPointer,
+             typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
+   static inline void singleShot(Duration interval, pdk::TimerType timerType, const Object *receiver, 
+                                 MemberFuncPointer memberFunc)
    {
-      singleShot(interval, defaultTypeFor(interval), callable);
+      PDK_STATIC_ASSERT_X(int(pdk::stdext::CallableInfoTrait<MemberFuncPointer>::argNum) == 0,
+                          "The slot function must not have any arguments.");
+      singleShotImpl(interval, timerType, receiver, receiver, memberFunc);
+   }
+   
+   template <typename Duration,
+             typename SlotFuncType,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFuncType>::value>>
+   static inline void singleShot(Duration interval, SlotFuncType &&slotFunc)
+   {
+      singleShot(interval, defaultTypeFor(interval), nullptr, std::move(slotFunc));
+   }
+   
+   template <typename Duration,
+             typename SlotFuncType,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFuncType>::value>>
+   static inline void singleShot(Duration interval, pdk::TimerType timerType, SlotFuncType &&slotFunc)
+   {
+      singleShot(interval, timerType, nullptr, std::move(slotFunc));
+   }
+   
+   template <typename Duration,
+             typename SlotFuncType,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFuncType>::value>>
+   static inline void singleShot(Duration interval, const Object *context, SlotFuncType &&slotFunc)
+   {
+      singleShot(interval, defaultTypeFor(interval), context, std::move(slotFunc));
+   }
+   
+   template <typename Duration,
+             typename SlotFuncType,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFuncType>::value>>
+   static inline void singleShot(Duration interval, pdk::TimerType timerType, const Object *context, SlotFuncType &&slotFunc)
+   {
+      PDK_STATIC_ASSERT_X(
+               pdk::stdext::CallableInfoTrait<decltype(&SlotFuncType::operator())>::argNum == 0,
+               "The slot must not have any arguments.");
+      singleShotImpl(interval, timerType, context, std::move(slotFunc));
    }
    
 public:
    void start(int msec);
    void start();
    void stop();
-   // SIGNALS:
-   // void timeout(QPrivateSignal);
    
 public:
-   PDK_ALWAYS_INLINE
    void setInterval(std::chrono::milliseconds value)
    {
       setInterval(int(value.count()));
    }
    
-   PDK_ALWAYS_INLINE
    std::chrono::milliseconds intervalAsDuration() const
    {
       return std::chrono::milliseconds(getInterval());
    }
    
-   PDK_ALWAYS_INLINE
    std::chrono::milliseconds remainingTimeAsDuration() const
    {
       return std::chrono::milliseconds(getRemainingTime());
    }
    
-   PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, const std::function<TimeoutHandlerType> &callable)
-   {
-      singleShot(int(value.count()), callable);
-   }
-   
-   PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable)
-   {
-      singleShot(int(value.count()), timerType, callable);
-   }
-   
-   PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, const Object *receiver, 
-                          const std::function<SlotFuncType> &slotFunc)
-   {
-      singleShot(int(value.count()), defaultTypeFor(value), receiver, slotFunc);
-   }
-   
-   PDK_ALWAYS_INLINE
-   static void singleShot(std::chrono::milliseconds value, pdk::TimerType timerType, const Object *receiver, 
-                          const std::function<SlotFuncType> &slotFunc)
-   {
-      singleShot(int(value.count()), timerType, receiver, slotFunc);
-   }
-   
-   PDK_ALWAYS_INLINE
    void start(std::chrono::milliseconds value)
    {
       start(int(value.count()));
@@ -181,26 +201,22 @@ private:
       return msecs >= 2000 ? pdk::TimerType::CoarseTimer : pdk::TimerType::PreciseTimer;
    }
    
+   template <typename SlotFunc,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFunc>::value>>
    static void singleShotImpl(int msec, pdk::TimerType timerType,
-                              const Object *receiver, const std::function<SlotFuncType> &slotFunc);
-   static void singleShotImpl(int msec, pdk::TimerType timerType,
-                              const std::function<TimeoutHandlerType> &callable);
+                              const Object *context, SlotFunc &&slotFunc);
    
    static pdk::TimerType defaultTypeFor(std::chrono::milliseconds interval)
    {
       return defaultTypeFor(int(interval.count()));
    }
    
+   template <typename SlotFunc,
+             typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFunc>::value>>
    static void singleShotImpl(std::chrono::milliseconds interval, pdk::TimerType timerType,
-                              const Object *receiver, const std::function<SlotFuncType> &slotFunc)
+                              const Object *context, SlotFunc &&slotFunc)
    {
-      singleShotImpl(int(interval.count()), timerType, receiver, slotFunc);
-   }
-   
-   static void singleShotImpl(std::chrono::milliseconds interval, pdk::TimerType timerType,
-                              const std::function<TimeoutHandlerType> &callable)
-   {
-      singleShotImpl(int(interval.count()), timerType, callable);
+      singleShotImpl(int(interval.count()), timerType, context, std::move(slotFunc));
    }
    
    int m_id;
@@ -214,6 +230,42 @@ private:
 inline void Timer::setSingleShot(bool singleShot)
 {
    m_single = singleShot;
+}
+
+template <typename MemberFuncPointer, typename>
+void Timer::singleShot(int msec, const Object *receiver, MemberFuncPointer memberFunc)
+{
+   singleShot(msec, 
+              msec >= 2000 ? pdk::TimerType::CoarseTimer : pdk::TimerType::PreciseTimer,
+              receiver, memberFunc);
+}
+
+template <typename MemberFuncPointer, typename>
+void Timer::singleShot(int msec, pdk::TimerType timerType, const Object *receiver, 
+                       MemberFuncPointer memberFunc)
+{
+   if (PDK_UNLIKELY(msec < 0)) {
+      warning_stream("Timer::singleShot: Timers cannot have negative timeouts");
+      return;
+   }
+   if (receiver) {
+      if (msec == 0) {
+         if (!memberFunc) {
+            warning_stream("Timer::singleShot: Invalid slot specification");
+            return;
+         }
+         CallableInvoker::invokeAsync(const_cast<Object *>(receiver), memberFunc);
+         return;
+      }
+      (void) new internal::SingleShotTimer(msec, timerType, receiver, memberFunc);
+   }
+}
+
+template <typename SlotFunc, typename>
+void Timer::singleShotImpl(int msec, pdk::TimerType timerType,
+                           const Object *context, SlotFunc &&slotFunc)
+{
+   new internal::SingleShotTimer(msec, timerType, context, std::move(slotFunc));
 }
 
 } // kernel

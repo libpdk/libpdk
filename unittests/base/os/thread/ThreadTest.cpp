@@ -103,9 +103,7 @@ public:
       if (m_object) {
          m_object->m_thread = this;
          m_object->m_code = m_code;
-         Timer::singleShot(100, [&](){
-            m_object->slot();
-         });
+         Timer::singleShot(100, m_object, &ExitObject::slot);
       }
       m_result = exec();
    }
