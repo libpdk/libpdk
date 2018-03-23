@@ -804,7 +804,7 @@ public:
       
    }
    using PropChangedHandlerType = void(int);
-   PDK_DEFINE_SIGNAL_BINDER(PropChanged);
+   PDK_DEFINE_SIGNAL_BINDER(PropChanged)
    PDK_DEFINE_SIGNAL_EMITTER(PropChanged)
    
    public:
@@ -814,21 +814,6 @@ public:
    
    int m_prop;
 };
-
-template <typename T>
-struct ClassType
-{
-};
-
-template <typename RetType, typename Class, typename... Args>
-struct ClassType<RetType (Class::*)(Args...)>
-{
-   using Type = Class;
-};
-
-
-
-
 
 class CurrentThread1;
 
@@ -873,11 +858,7 @@ public:
 TEST(ThreadTest, exitAndStart)
 {
    CurrentThread1 thread;
-
-   
    thread.exit(555); //should do nothing
-   
-   
    thread.start();
    std::cout << "current thread " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
    //   //test that the thread is running by executing queued connected signal there

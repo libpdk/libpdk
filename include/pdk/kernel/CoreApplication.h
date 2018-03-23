@@ -137,11 +137,11 @@ public:
    static void setQuitLockEnabled(bool enabled);
    static void quit();
    
-   PDK_DEFINE_SIGNAL_BINDER(AboutToQuit);
-   PDK_DEFINE_SIGNAL_BINDER(OrgNameChanged);
-   PDK_DEFINE_SIGNAL_BINDER(OrgDomainChanged);
-   PDK_DEFINE_SIGNAL_BINDER(AppNameChanged);
-   PDK_DEFINE_SIGNAL_BINDER(AppVersionChanged);
+   PDK_DEFINE_SIGNAL_BINDER(AboutToQuit)
+   PDK_DEFINE_SIGNAL_BINDER(OrgNameChanged)
+   PDK_DEFINE_SIGNAL_BINDER(OrgDomainChanged)
+   PDK_DEFINE_SIGNAL_BINDER(AppNameChanged)
+   PDK_DEFINE_SIGNAL_BINDER(AppVersionChanged)
    
    PDK_DEFINE_SIGNAL_EMITTER(AboutToQuit)
    PDK_DEFINE_SIGNAL_EMITTER(OrgNameChanged)

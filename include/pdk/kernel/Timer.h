@@ -67,11 +67,11 @@ public:
       return pdk::TimerType(m_type);
    }
    
-   PDK_DEFINE_SIGNAL_BINDER(Timeout);
+   PDK_DEFINE_SIGNAL_BINDER(Timeout)
    PDK_DEFINE_SIGNAL_EMITTER(Timeout)
    
-public:
-   inline void setSingleShot(bool singleShot);
+   public:
+      inline void setSingleShot(bool singleShot);
    inline bool isSingleShot() const
    {
       return m_single;

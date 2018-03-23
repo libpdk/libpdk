@@ -497,9 +497,6 @@ void Thread::usleep(unsigned long usecs)
    pdk::kernel::nanosleep(make_timespec(usecs / 1000 / 1000, usecs % (1000 * 1000) * 1000));
 }
 
-//PDK_DEFINE_SIGNAL_BINDER(Thread, Started)
-//PDK_DEFINE_SIGNAL_BINDER(Thread, Finished)
-
 void Thread::start(Priority priority)
 {
    PDK_D(Thread);

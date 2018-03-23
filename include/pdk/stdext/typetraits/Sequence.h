@@ -18,6 +18,9 @@
 
 #include <tuple>
 
+namespace pdk {
+namespace stdext {
+
 namespace internal {
 
 template <size_t... Index, typename... ArgTypes>

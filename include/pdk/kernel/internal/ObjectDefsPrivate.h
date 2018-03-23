@@ -55,7 +55,10 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
 } // kernel
 } // pdk
 
-#define PDK_DEFINE_SIGNAL_BINDER(signalName) public:\
+#define PDK_DEFINE_SIGNAL_BINDER(signalName) \
+   protected: \
+   std::shared_ptr<pdk::kernel::signal::Signal<signalName##HandlerType>> m_##signalName##Signal;\
+   public:\
    pdk::kernel::signal::Connection\
    connect##signalName##Signal(const std::function<signalName##HandlerType> &callable,\
    const pdk::kernel::Object *context = nullptr,\
@@ -142,11 +145,10 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
       default:\
          PDK_UNREACHABLE();\
       }\
-   }\
-   protected: \
-   std::shared_ptr<pdk::kernel::signal::Signal<signalName##HandlerType>> m_##signalName##Signal
+   }
 
 #define PDK_DEFINE_SIGNAL_EMITTER(signalName) \
+   public:\
    template <typename ...ArgTypes>\
    void emit##signalName##Signal(ArgTypes&& ...args)\
    {\

@@ -102,8 +102,8 @@ public:
    PDK_DEFINE_SIGNAL_EMITTER(Started)
    PDK_DEFINE_SIGNAL_EMITTER(Finished)
    
-   PDK_DEFINE_SIGNAL_BINDER(Finished);
-   PDK_DEFINE_SIGNAL_BINDER(Started);
+   PDK_DEFINE_SIGNAL_BINDER(Finished)
+   PDK_DEFINE_SIGNAL_BINDER(Started)
    
 protected:
    virtual void run();

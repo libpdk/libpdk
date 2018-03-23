@@ -87,7 +87,7 @@ public:
    SingleShotTimer(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable);
    SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc);
    
-   PDK_DEFINE_SIGNAL_BINDER(Timeout);
+   PDK_DEFINE_SIGNAL_BINDER(Timeout)
    PDK_DEFINE_SIGNAL_EMITTER(Timeout)
    
 protected:

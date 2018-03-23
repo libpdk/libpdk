@@ -141,9 +141,9 @@ protected:
    virtual void childEvent(ChildEvent *event);
    virtual void customEvent(Event *event);
    
-   PDK_DEFINE_SIGNAL_BINDER(Destroyed);
+   PDK_DEFINE_SIGNAL_BINDER(Destroyed)
    PDK_DEFINE_SIGNAL_EMITTER(Destroyed)
-   PDK_DEFINE_SIGNAL_BINDER(ObjectNameChanged);
+   PDK_DEFINE_SIGNAL_BINDER(ObjectNameChanged)
    PDK_DEFINE_SIGNAL_EMITTER(ObjectNameChanged)
    
 protected:

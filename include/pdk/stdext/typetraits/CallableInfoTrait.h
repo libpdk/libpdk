@@ -597,7 +597,6 @@ public:
    constexpr static bool value = std::is_same<Type, std::true_type>::value;
 };
 
-
 } // internal
 
 template<typename T>
