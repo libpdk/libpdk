@@ -567,6 +567,44 @@ struct CallableInfoTrait<RetType (Class::*)(ParamTypes... args, ...) const volat
    };
 };
 
+namespace internal {
+
+template<typename T>
+using IsFunctionType = typename std::is_function<std::remove_pointer_t<std::remove_reference_t<T>>>::type;
+
+template<bool isObject, typename T>
+struct IsCallableImpl : public IsFunctionType<T> {};
+
+template<typename T>
+struct IsCallableImpl<true, T> {
+private:
+   struct Fallback {
+      void operator()();
+   };
+   struct Derived : T, Fallback
+   {};
+   template<typename U, U>
+   struct Checker;
+   
+   template<typename>
+   static std::true_type test(...);
+   
+   template<typename C>
+   static std::false_type test(Checker<void (Fallback::*)(), &C::operator()>*);
+   
+public:
+   using Type = decltype(test<Derived>(nullptr));
+   constexpr static bool value = std::is_same<Type, std::true_type>::value;
+};
+
+
+} // internal
+
+template<typename T>
+using IsCallable =
+typename internal::IsCallableImpl<std::is_class<std::remove_reference_t<T>>::value,
+std::remove_reference_t<T>>;
+
 } // stdext
 } // pdk
 

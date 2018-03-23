@@ -47,8 +47,8 @@ ObjectData::~ObjectData()
 namespace internal {
 
 ObjectPrivate::ObjectPrivate(int version)
-   : m_currentChildBeingDeleted(0),
-     m_threadData(0)
+   : m_currentChildBeingDeleted(nullptr),
+     m_threadData(nullptr)
 {
    PDK_UNUSED(version);
    m_apiPtr = nullptr;
@@ -63,8 +63,6 @@ ObjectPrivate::ObjectPrivate(int version)
    m_isWindow = false;
    m_deleteLaterCalled = false;
    m_currentSender = nullptr;
-   m_currentChildBeingDeleted = nullptr;
-   m_threadData = nullptr;
 }
 
 ObjectPrivate::~ObjectPrivate()
@@ -180,7 +178,7 @@ Object::Object(ObjectPrivate &dd, Object *parent)
    : m_implPtr(&dd)
 {
    PDK_D(Object);
-   implPtr->m_apiPtr = this;
+   m_implPtr->m_apiPtr = this;
    implPtr->m_threadData = (parent && !parent->getThread()) ? parent->getImplPtr()->m_threadData : ThreadData::current();
    implPtr->m_threadData->ref();
    if (parent) {
@@ -224,18 +222,17 @@ Object::~Object()
          delete sharedRefcount;
       }
    }
-   // @TODO check signal
-   //   if (!implPtr->m_isWidget && implPtr->isSignalConnected(0)) {
-   //      emit destroyed(this);
-   //   }
+   if (!implPtr->m_isWidget) {
+      emitDestroyedSignal(this);
+   }
    // set ref to zero to indicate that this object has been deleted
    if (implPtr->m_currentSender != nullptr) {
       implPtr->m_currentSender->m_ref = 0;
    }
    implPtr->m_currentSender = nullptr;
-   //   if (!implPtr->m_children.empty()) {
-   //      implPtr->deleteChildren();
-   //   }
+   if (!implPtr->m_children.empty()) {
+      implPtr->deleteChildren();
+   }
    if (PDK_UNLIKELY(sg_pdkHookData[hooks::RemoveObject])) {
       reinterpret_cast<hooks::RemoveObjectCallback>(sg_pdkHookData[hooks::RemoveObject])(this);
    }
@@ -258,24 +255,8 @@ void Object::setObjectName(const String &name)
    }
    if (implPtr->m_extraData->m_objectName != name) {
       implPtr->m_extraData->m_objectName = name;
-      // emit objectNameChanged
+      emitObjectNameChangedSignal(name);
    }
-}
-
-Connection Object::connectDestoryedSignal(const std::function<DestroyedSignalHandler> &callable)
-{
-   if (!m_destroyedSignal) {
-      m_destroyedSignal.reset(new Signal<DestroyedSignalHandler>);
-   }
-   return m_destroyedSignal->connect(callable);
-}
-
-Connection Object::connectObjectNameChangedSignal(const std::function<ObjectNameChangedHandler> &callable)
-{
-   if (!m_objectNameChangedSignal) {
-      m_objectNameChangedSignal.reset(new Signal<ObjectNameChangedHandler>);
-   }
-   return m_objectNameChangedSignal->connect(callable);
 }
 
 bool Object::event(Event *event)
@@ -678,6 +659,15 @@ ObjectUserData *Object::getUserData(uint id) const
 }
 
 #endif // PDK_NO_USERDATA
+
+namespace internal {
+
+void post_app_event_helper(Object *context, MetaCallEvent *event)
+{
+   pdk::kernel::CoreApplication::postEvent(context, event);
+}
+
+} // internal
 
 } // kernel
 } // pdk

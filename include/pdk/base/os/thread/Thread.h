@@ -47,8 +47,8 @@ using pdk::kernel::CoreApplication;
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
 public:
-   using FinishedHandlerType = void(int);
-   using StartedHandlerType = void(int);
+   using FinishedHandlerType = void();
+   using StartedHandlerType = void();
    static pdk::HANDLE getCurrentThreadId() noexcept PDK_DECL_PURE_FUNCTION;
    static Thread *getCurrentThread();
    static int getIdealThreadCount() noexcept;
@@ -102,8 +102,8 @@ public:
    PDK_DEFINE_SIGNAL_EMITTER(Started)
    PDK_DEFINE_SIGNAL_EMITTER(Finished)
    
-   PDK_DECLARE_SIGNAL_BINDER(Finished);
-   PDK_DECLARE_SIGNAL_BINDER(Started);
+   PDK_DEFINE_SIGNAL_BINDER(Finished);
+   PDK_DEFINE_SIGNAL_BINDER(Started);
    
 protected:
    virtual void run();

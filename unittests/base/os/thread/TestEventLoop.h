@@ -99,7 +99,7 @@ inline void TestEventLoop::exitLoop()
 {
    if (getThread() != Thread::getCurrentThread())
    {
-      CallableInvoker::invokeAsync([&](){
+      CallableInvoker::invokeAsync([=](){
          this->exitLoop();
       }, this);
       return;
@@ -112,6 +112,7 @@ inline void TestEventLoop::exitLoop()
       m_loop->exit();
    }
    m_inLoop = false;
+   std::cout << "exit loop" << std::endl;
 }
 
 inline void TestEventLoop::timerEvent(TimerEvent *event)
@@ -120,6 +121,7 @@ inline void TestEventLoop::timerEvent(TimerEvent *event)
       return;
    }
    m_timeout = true;
+   std::cout << "timer event" << std::endl;
    exitLoop();
 }
 

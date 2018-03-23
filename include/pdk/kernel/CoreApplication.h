@@ -66,6 +66,12 @@ class PDK_CORE_EXPORT CoreApplication : public Object
 {
 public:
    using InfoChangeHandlerType = void();
+   using AboutToQuitHandlerType = InfoChangeHandlerType;
+   using OrgNameChangedHandlerType = InfoChangeHandlerType;
+   using OrgDomainChangedHandlerType = InfoChangeHandlerType;
+   using AppNameChangedHandlerType = InfoChangeHandlerType;
+   using AppVersionChangedHandlerType = InfoChangeHandlerType;
+   
    enum { 
       ApplicationFlags = 0x000001// PDK_VERSION
    };
@@ -131,30 +137,17 @@ public:
    static void setQuitLockEnabled(bool enabled);
    static void quit();
    
-   template <typename ...ArgTypes>
-   void emitAboutToQuitSignal(ArgTypes&& ...args);
-   template <typename ...ArgTypes>
-   void emitOrgNameChangedSignal(ArgTypes&& ...args);
-   template <typename ...ArgTypes>
-   void emitOrgDomainChangedSignal(ArgTypes&& ...args);
-   template <typename ...ArgTypes>
-   void emitAppNameChangedSignal(ArgTypes&& ...args);
-   template <typename ...ArgTypes>
-   void emitAppVersionChangedSignal(ArgTypes&& ...args);
+   PDK_DEFINE_SIGNAL_BINDER(AboutToQuit);
+   PDK_DEFINE_SIGNAL_BINDER(OrgNameChanged);
+   PDK_DEFINE_SIGNAL_BINDER(OrgDomainChanged);
+   PDK_DEFINE_SIGNAL_BINDER(AppNameChanged);
+   PDK_DEFINE_SIGNAL_BINDER(AppVersionChanged);
    
-   Connection connectAboutToQuitSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectOrgNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectOrgDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectAppNameChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   Connection connectAppVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable);
-   
-protected:
-   // signals
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_aboutToQuitSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_orgNameChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_orgDomainChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_appNameChangedSignal;
-   std::shared_ptr<Signal<InfoChangeHandlerType>> m_appVersionChangedSignal;
+   PDK_DEFINE_SIGNAL_EMITTER(AboutToQuit)
+   PDK_DEFINE_SIGNAL_EMITTER(OrgNameChanged)
+   PDK_DEFINE_SIGNAL_EMITTER(OrgDomainChanged)
+   PDK_DEFINE_SIGNAL_EMITTER(AppNameChanged)
+   PDK_DEFINE_SIGNAL_EMITTER(AppVersionChanged)
 protected:
    bool event(Event *) override;
    virtual bool compressEvent(Event *, Object *receiver, PostEventList *);
@@ -189,46 +182,6 @@ inline bool CoreApplication::sendSpontaneousEvent(Object *receiver, Event *event
       event->m_spont = true; 
    }
    return notifyInternal(receiver, event); 
-}
-
-template <typename ...ArgTypes>
-void CoreApplication::emitAboutToQuitSignal(ArgTypes&& ...args)
-{
-   if (m_aboutToQuitSignal) {
-      (*m_aboutToQuitSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
-
-template <typename ...ArgTypes>
-void CoreApplication::emitOrgNameChangedSignal(ArgTypes&& ...args)
-{
-   if (m_orgNameChangedSignal) {
-      (*m_orgNameChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
-
-template <typename ...ArgTypes>
-void CoreApplication::emitOrgDomainChangedSignal(ArgTypes&& ...args)
-{
-   if (m_orgDomainChangedSignal) {
-      (*m_orgDomainChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
-
-template <typename ...ArgTypes>
-void CoreApplication::emitAppNameChangedSignal(ArgTypes&& ...args)
-{
-   if (m_appNameChangedSignal) {
-      (*m_appNameChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
-
-template <typename ...ArgTypes>
-void CoreApplication::emitAppVersionChangedSignal(ArgTypes&& ...args)
-{
-   if (m_appVersionChangedSignal) {
-      (*m_appVersionChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
 }
 
 using StartUpFunction = void (*)();

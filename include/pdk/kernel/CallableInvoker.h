@@ -19,9 +19,6 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/kernel/CoreApplication.h"
-#include <any>
-#include <tuple>
-#include <functional>
 
 namespace pdk {
 namespace kernel {
@@ -32,16 +29,16 @@ class PDK_CORE_EXPORT CallableInvoker
 {
 public:
    template <typename CallableType, typename ...ArgTypes>
-   static void invoke(CallableType callable, ArgTypes&&... args)
+   static void invoke(CallableType &&callable, ArgTypes&&... args)
    {
       callable(std::forward<ArgTypes>(args)...);
    }
    
    template <typename CallableType, typename ...ArgTypes>
-   static void invokeAsync(CallableType callable, Object *receiver, ArgTypes&&... args)
+   static void invokeAsync(CallableType &&callable, Object *receiver, ArgTypes... args)
    {
-      CoreApplication::postEvent(receiver, new internal::MetaCallEvent([&](){
-         callable(std::forward<ArgTypes>(args)...);
+      CoreApplication::postEvent(receiver, new internal::MetaCallEvent([=](){
+         callable(args...);
       }));
    }
 };

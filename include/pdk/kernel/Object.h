@@ -21,7 +21,7 @@
 #include "pdk/base/lang/String.h"
 #include "pdk/kernel/signal/Signal.h"
 #include "pdk/kernel/internal/ObjectDefsPrivate.h"
-#include "pdk/stdext/typetraits/CallableInfoTrait.h"
+#include "pdk/kernel/CoreEvent.h"
 #include <list>
 #include <any>
 
@@ -43,8 +43,6 @@ using ObjectList = std::list<Object *>;
 using pdk::os::thread::Thread;
 using pdk::os::thread::internal::ThreadData;
 using pdk::lang::String;
-using pdk::kernel::signal::Signal;
-using pdk::kernel::signal::Connection;
 class Object;
 class Event;
 class TimerEvent;
@@ -93,8 +91,8 @@ public:
       Destroyed,
       ObjectNameChanged
    };
-   using DestroyedSignalHandler = void(Object *);
-   using ObjectNameChangedHandler = void(const String &);
+   using DestroyedHandlerType = void(Object *);
+   using ObjectNameChangedHandlerType = void(const String &);
 public:
    explicit Object(Object *parent = nullptr);
    virtual ~Object();
@@ -114,14 +112,6 @@ public:
    {
       return m_implPtr->m_isWindow;
    }
-   
-   template <typename ...ArgTypes>
-   void emitDestoryedSignal(ArgTypes&& ...args);
-   template <typename ...ArgTypes>
-   void emitObjectNameChangedSignal(ArgTypes&& ...args);
-   
-   Connection connectDestoryedSignal(const std::function<DestroyedSignalHandler> &callable);
-   Connection connectObjectNameChangedSignal(const std::function<ObjectNameChangedHandler> &callable);
    
    virtual bool event(Event *event);
    virtual bool eventFilter(Object *watched, Event *event);
@@ -151,6 +141,11 @@ protected:
    virtual void childEvent(ChildEvent *event);
    virtual void customEvent(Event *event);
    
+   PDK_DEFINE_SIGNAL_BINDER(Destroyed);
+   PDK_DEFINE_SIGNAL_EMITTER(Destroyed)
+   PDK_DEFINE_SIGNAL_BINDER(ObjectNameChanged);
+   PDK_DEFINE_SIGNAL_EMITTER(ObjectNameChanged)
+   
 protected:
    Object(ObjectPrivate &dd, Object *parent = nullptr);
    
@@ -160,29 +155,11 @@ protected:
    
 protected:
    pdk::utils::ScopedPointer<ObjectData> m_implPtr;
-   std::shared_ptr<Signal<DestroyedSignalHandler>> m_destroyedSignal;
-   std::shared_ptr<Signal<ObjectNameChangedHandler>> m_objectNameChangedSignal;
+   
 private:
    PDK_DECLARE_PRIVATE(Object);
    PDK_DISABLE_COPY(Object);
 };
-
-template <typename ...ArgTypes>
-inline void Object::emitDestoryedSignal(ArgTypes&&... args)
-{
-   if (m_destroyedSignal) {
-      (*m_destroyedSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
-
-
-template <typename ...ArgTypes>
-inline void Object::emitObjectNameChangedSignal(ArgTypes&&... args)
-{
-   if (m_objectNameChangedSignal) {
-       (*m_objectNameChangedSignal)(std::forward<ArgTypes>(args)...);
-   }
-}
 
 } // kernel
 } // pdk

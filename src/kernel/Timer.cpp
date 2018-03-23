@@ -86,13 +86,10 @@ public:
    ~SingleShotTimer();
    SingleShotTimer(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable);
    SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc);
-   template <typename ...ArgTypes>
-   inline void emitTimeout(ArgTypes&& ...args)
-   {
-      (*m_timeoutSignal)(std::forward<ArgTypes>(args)...);
-   }
    
-   Connection connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable);
+   PDK_DEFINE_SIGNAL_BINDER(Timeout);
+   PDK_DEFINE_SIGNAL_EMITTER(Timeout)
+   
 protected:
    void timerEvent(TimerEvent *) override;
    
@@ -102,7 +99,6 @@ private:
    Pointer<const Object> m_receiver;
    std::function<SlotFuncType> m_slotFunc;
    bool m_slotMode;
-   std::shared_ptr<Signal<TimeoutHandlerType>> m_timeoutSignal;
 };
 
 SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const std::function<TimeoutHandlerType> &callable)
@@ -111,7 +107,7 @@ SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const std::
      m_slotMode(false)
 {
    m_timerId = startTimer(msec, timerType);
-   connectTimeoutSignal(callable);
+   connectTimeoutSignal([](){}, this);
 }
 
 SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, const std::function<SlotFuncType> &slotFunc)
@@ -129,14 +125,6 @@ SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Objec
       setParent(nullptr);
       moveToThread(receiver->getThread());
    }
-}
-
-Connection SingleShotTimer::connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable)
-{
-   if (!m_timeoutSignal) {
-      m_timeoutSignal.reset(new Signal<TimeoutHandlerType>);
-   }
-   return m_timeoutSignal->connect(callable);
 }
 
 SingleShotTimer::~SingleShotTimer()
@@ -160,9 +148,7 @@ void SingleShotTimer::timerEvent(TimerEvent *)
          CallableInvoker::invokeAsync(m_slotFunc, const_cast<Object *>(m_receiver.getData()), this);
       }
    } else {
-      if (m_timeoutSignal) {
-         (*m_timeoutSignal)();
-      }
+      emitTimeoutSignal();
    }
    // we would like to use delete later here, but it feels like a
    // waste to post a new event to handle this event, so we just unset the flag
@@ -180,14 +166,6 @@ void Timer::singleShotImpl(int msec, pdk::TimerType timerType,
                            const std::function<TimeoutHandlerType> &callable)
 {
    new SingleShotTimer(msec, timerType, callable);
-}
-
-Connection Timer::connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable)
-{
-   if (!m_timeoutSignal) {
-      m_timeoutSignal.reset(new Signal<TimeoutHandlerType>);
-   }
-   return m_timeoutSignal->connect(callable);
 }
 
 void Timer::singleShot(int msec, const std::function<TimeoutHandlerType> &callable)

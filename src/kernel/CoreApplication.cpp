@@ -1430,46 +1430,6 @@ void CoreApplication::quit()
    exit(0);
 }
 
-Connection CoreApplication::connectAboutToQuitSignal(const std::function<InfoChangeHandlerType> &callable)
-{
-   if (!m_aboutToQuitSignal) {
-      m_aboutToQuitSignal.reset(new Signal<InfoChangeHandlerType>);
-   }
-   return m_aboutToQuitSignal->connect(callable);
-}
-
-Connection CoreApplication::connectOrgNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
-{
-   if (!m_orgNameChangedSignal) {
-      m_orgNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
-   }
-   return m_orgNameChangedSignal->connect(callable);
-}
-
-Connection CoreApplication::connectOrgDomainChangedSignal(const std::function<InfoChangeHandlerType> &callable)
-{
-   if (!m_orgDomainChangedSignal) {
-      m_orgDomainChangedSignal.reset(new Signal<InfoChangeHandlerType>);
-   }
-   return m_orgDomainChangedSignal->connect(callable);
-}
-
-Connection CoreApplication::connectAppNameChangedSignal(const std::function<InfoChangeHandlerType> &callable)
-{
-   if (!m_appNameChangedSignal) {
-      m_appNameChangedSignal.reset(new Signal<InfoChangeHandlerType>);
-   }
-   return m_appNameChangedSignal->connect(callable);
-}
-
-Connection CoreApplication::connectAppVersionChangedSignal(const std::function<InfoChangeHandlerType> &callable)
-{
-   if (!m_appVersionChangedSignal) {
-      m_appVersionChangedSignal.reset(new Signal<InfoChangeHandlerType>);
-   }
-   return m_appVersionChangedSignal->connect(callable);
-}
-
 String CoreApplication::getAppDirPath()
 {
    if (!sm_self) {

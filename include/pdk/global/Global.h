@@ -386,7 +386,7 @@ PDK_CORE_EXPORT void pdk_assert_x(const char *where, const char *what,
 #  if defined(PDK_NO_DEBUG) && !defined(PDK_FORCE_ASSERTS)
 #     define PDK_ASSERT_X(cond, where, what) do {} while ((false) && (cond))
 #  else
-#     define PDK_ASSERT_X(cond, where, what) ((!(cond)) ? pdk_assert_x(where, what,__FILE__,__LINE__) : pdk_noop())
+#     define PDK_ASSERT_X(cond, where, what) ((!(cond)) ? pdk::pdk_assert_x(where, what,__FILE__,__LINE__) : pdk::pdk_noop())
 #  endif
 #endif
 

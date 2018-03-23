@@ -25,18 +25,22 @@
 #endif
 #endif
 #include "pdk/kernel/CallableInvoker.h"
+#include "pdk/base/os/thread/internal/ThreadPrivate.h"
 
-#include "pdk/base/os/thread/Thread.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "TestEventLoop.h"
 #include "pdk/kernel/Timer.h"
 #include "pdk/base/time/Time.h"
 #include <mutex>
+#include <tuple>
 #include <condition_variable>
 
 #ifndef PDK_NO_EXCEPTIONS
 #include <exception>
 #endif
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/stdext/typetraits/Sequence.h"
+#include "pdk/stdext/typetraits/CallableInfoTrait.h"
 
 enum { one_minute = 60 * 1000, five_minutes = 5 * one_minute };
 
@@ -252,10 +256,10 @@ public:
 //   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
 //   thread.setPriority(Thread::TimeCriticalPriority);
 //   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
-   
+
 //   std::unique_lock<std::mutex> locker(thread.m_mutex);
 //   thread.start();
-   
+
 //   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
 //   thread.setPriority(Thread::IdlePriority);
 //   ASSERT_EQ(thread.getPriority(), Thread::IdlePriority);
@@ -271,10 +275,10 @@ public:
 //   ASSERT_EQ(thread.getPriority(), Thread::HighestPriority);
 //   thread.setPriority(Thread::TimeCriticalPriority);
 //   ASSERT_EQ(thread.getPriority(), Thread::TimeCriticalPriority);
-   
+
 //   thread.m_cond.wait(locker);
 //   ASSERT_TRUE(thread.wait(five_minutes));
-   
+
 //   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
 //   thread.setPriority(Thread::IdlePriority);
 //   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
@@ -313,7 +317,7 @@ public:
 //   ASSERT_TRUE(!thread.isRunning());
 //   std::unique_lock<std::mutex> locker(thread.m_mutex);
 //   thread.start();
-   
+
 //   ASSERT_TRUE(thread.isRunning());
 //   ASSERT_TRUE(!thread.isFinished());
 //   thread.m_cond.wait(locker);
@@ -322,7 +326,7 @@ public:
 //   ASSERT_TRUE(!thread.isRunning());
 //   ASSERT_EQ(thread.m_result, thread.m_code);
 //   delete thread.m_object;
-   
+
 //   ExitThread thread2;
 //   thread2.m_object = nullptr;
 //   thread2.m_code = 53;
@@ -347,7 +351,7 @@ public:
 //      Thread::Priority::TimeCriticalPriority,
 //      Thread::Priority::InheritPriority
 //   };
-   
+
 //   const int priorityCount = sizeof(priorities) / sizeof(Thread::Priority);
 //   for (int i = 0; i < priorityCount; ++i) {
 //      SimpleThread thread;
@@ -385,7 +389,7 @@ public:
 //   thread.m_result = -1;
 //   ASSERT_TRUE(!thread.isFinished());
 //   ASSERT_TRUE(!thread.isRunning());
-   
+
 //   std::unique_lock<std::mutex> locker(thread.m_mutex);
 //   thread.start();
 //   ASSERT_TRUE(!thread.isFinished());
@@ -396,7 +400,7 @@ public:
 //   ASSERT_TRUE(!thread.isRunning());
 //   ASSERT_EQ(thread.m_result, 0);
 //   delete thread.m_object;
-   
+
 //   QuitThread thread2;
 //   thread2.m_object = 0;
 //   thread2.m_result = -1;
@@ -408,17 +412,17 @@ public:
 //   ASSERT_EQ(thread2.m_result, 0);
 //}
 
-TEST(ThreadTest, testStarted)
-{
-   SimpleThread thread;
-   bool signalCatched = false;
-   thread.connectStartedSignal([&](int v){
-      signalCatched = true;
-   }, CoreApplication::getInstance(), pdk::ConnectionType::DirectConnection);
-   thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(signalCatched);
-}
+//TEST(ThreadTest, testStarted)
+//{
+//   SimpleThread thread;
+//   bool signalCatched = false;
+//   thread.connectStartedSignal([&](){
+//      signalCatched = true;
+//   }, CoreApplication::getInstance(), pdk::ConnectionType::DirectConnection);
+//   thread.start();
+//   ASSERT_TRUE(thread.wait(five_minutes));
+//   ASSERT_TRUE(signalCatched);
+//}
 
 //TEST(ThreadTest, testFinished)
 //{
@@ -456,12 +460,12 @@ TEST(ThreadTest, testStarted)
 //   public:
 //      int m_res1;
 //      int m_res2;
-      
+
 //      MultipleExecThread()
 //         : m_res1(-2),
 //           m_res2(-2)
 //      {}
-      
+
 //      void run()
 //      {
 //         {
@@ -531,128 +535,128 @@ TEST(ThreadTest, testStarted)
 //#endif
 //}
 
-//using FuncPtr = void (*)(void *);
-//void noop(void*) {}
+using FuncPtr = void (*)(void *);
+void noop(void*) {}
 
-//#if defined PDK_OS_UNIX
-//using ThreadHandle = pthread_t;
-//#elif defined PDK_OS_WIN
-//using ThreadHandle = HANDLE;
-//#endif
+#if defined PDK_OS_UNIX
+using ThreadHandle = pthread_t;
+#elif defined PDK_OS_WIN
+using ThreadHandle = HANDLE;
+#endif
 
-//#ifdef PDK_OS_WIN
-//#define WIN_FIX_STDCALL __stdcall
-//#else
-//#define WIN_FIX_STDCALL
-//#endif
+#ifdef PDK_OS_WIN
+#define WIN_FIX_STDCALL __stdcall
+#else
+#define WIN_FIX_STDCALL
+#endif
 
-//class NativeThreadWrapper
-//{
-//public:
-//   NativeThreadWrapper()
-//      : m_pdkthread(0),
-//        m_waitForStop(false)
-//   {}
+class NativeThreadWrapper
+{
+public:
+   NativeThreadWrapper()
+      : m_pdkthread(0),
+        m_waitForStop(false)
+   {}
    
-//   void start(FuncPtr functionPointer = noop, void *data = nullptr);
-//   void startAndWait(FuncPtr functionPointer = noop, void *data = nullptr);
-//   void join();
-//   void setWaitForStop()
-//   {
-//      m_waitForStop = true;
-//   }
+   void start(FuncPtr functionPointer = noop, void *data = nullptr);
+   void startAndWait(FuncPtr functionPointer = noop, void *data = nullptr);
+   void join();
+   void setWaitForStop()
+   {
+      m_waitForStop = true;
+   }
    
-//   void stop();
+   void stop();
    
-//   ThreadHandle m_nativeThreadHandle;
-//   Thread *m_pdkthread;
-//   std::condition_variable m_startCondition;
-//   std::mutex m_mutex;
-//   bool m_waitForStop;
-//   std::condition_variable m_stopCondition;
-//protected:
-//   static void *runUnix(void *data);
-//   static unsigned WIN_FIX_STDCALL runWin(void *data);
+   ThreadHandle m_nativeThreadHandle;
+   Thread *m_pdkthread;
+   std::condition_variable m_startCondition;
+   std::mutex m_mutex;
+   bool m_waitForStop;
+   std::condition_variable m_stopCondition;
+protected:
+   static void *runUnix(void *data);
+   static unsigned WIN_FIX_STDCALL runWin(void *data);
    
-//   FuncPtr m_functionPointer;
-//   void *m_data;
-//};
+   FuncPtr m_functionPointer;
+   void *m_data;
+};
 
-//void NativeThreadWrapper::start(FuncPtr functionPointer, void *data)
-//{
-//   this->m_functionPointer = functionPointer;
-//   this->m_data = data;
-//#if defined PDK_OS_UNIX
-//   const int state = pthread_create(&m_nativeThreadHandle, 0, NativeThreadWrapper::runUnix, this);
-//   PDK_UNUSED(state);
-//#elif defined(PDK_OS_WINRT)
-//   nativeThreadHandle = CreateThread(NULL, 0 , (LPTHREAD_START_ROUTINE)NativeThreadWrapper::runWin , this, 0, NULL);
-//#elif defined PDK_OS_WIN
-//   unsigned thrdid = 0;
-//   m_nativeThreadHandle = (pdk::HANDLE) _beginthreadex(NULL, 0, NativeThreadWrapper::runWin, this, 0, &thrdid);
-//#endif
-//}
+void NativeThreadWrapper::start(FuncPtr functionPointer, void *data)
+{
+   this->m_functionPointer = functionPointer;
+   this->m_data = data;
+#if defined PDK_OS_UNIX
+   const int state = pthread_create(&m_nativeThreadHandle, 0, NativeThreadWrapper::runUnix, this);
+   PDK_UNUSED(state);
+#elif defined(PDK_OS_WINRT)
+   nativeThreadHandle = CreateThread(NULL, 0 , (LPTHREAD_START_ROUTINE)NativeThreadWrapper::runWin , this, 0, NULL);
+#elif defined PDK_OS_WIN
+   unsigned thrdid = 0;
+   m_nativeThreadHandle = (pdk::HANDLE) _beginthreadex(NULL, 0, NativeThreadWrapper::runWin, this, 0, &thrdid);
+#endif
+}
 
-//void NativeThreadWrapper::startAndWait(FuncPtr functionPointer, void *data)
-//{
-//   std::unique_lock<std::mutex> locker(m_mutex);
-//   start(functionPointer, data);
-//   m_startCondition.wait(locker);
-//}
+void NativeThreadWrapper::startAndWait(FuncPtr functionPointer, void *data)
+{
+   std::unique_lock<std::mutex> locker(m_mutex);
+   start(functionPointer, data);
+   m_startCondition.wait(locker);
+}
 
-//void NativeThreadWrapper::join()
-//{
-//#if defined PDK_OS_UNIX
-//   pthread_join(m_nativeThreadHandle, 0);
-//#elif defined PDK_OS_WIN
-//   WaitForSingleObjectEx(m_nativeThreadHandle, INFINITE, FALSE);
-//   CloseHandle(nativeThreadHandle);
-//#endif
-//}
+void NativeThreadWrapper::join()
+{
+#if defined PDK_OS_UNIX
+   pthread_join(m_nativeThreadHandle, 0);
+#elif defined PDK_OS_WIN
+   WaitForSingleObjectEx(m_nativeThreadHandle, INFINITE, FALSE);
+   CloseHandle(nativeThreadHandle);
+#endif
+}
 
-//void *NativeThreadWrapper::runUnix(void *that)
-//{
-//   NativeThreadWrapper *nativeThreadWrapper = reinterpret_cast<NativeThreadWrapper*>(that);
-//   // Adopt thread, create Thread object.
-//   nativeThreadWrapper->m_pdkthread = Thread::getCurrentThread();
-//   // Release main thread.
-//   {
-//      std::lock_guard<std::mutex> lock(nativeThreadWrapper->m_mutex);
-//      nativeThreadWrapper->m_startCondition.notify_one();
-//   }
-//   // Run function.
-//   nativeThreadWrapper->m_functionPointer(nativeThreadWrapper->m_data);
-//   // Wait for stop.
-//   {
-//      std::unique_lock<std::mutex> lock(nativeThreadWrapper->m_mutex);
-//      if (nativeThreadWrapper->m_waitForStop)
-//         nativeThreadWrapper->m_stopCondition.wait(lock);
-//   }
-//   return nullptr;
-//}
+void *NativeThreadWrapper::runUnix(void *that)
+{
+   NativeThreadWrapper *nativeThreadWrapper = reinterpret_cast<NativeThreadWrapper*>(that);
+   // Adopt thread, create Thread object.
+   nativeThreadWrapper->m_pdkthread = Thread::getCurrentThread();
+   // Release main thread.
+   {
+      std::lock_guard<std::mutex> lock(nativeThreadWrapper->m_mutex);
+      nativeThreadWrapper->m_startCondition.notify_one();
+   }
+   // Run function.
+   nativeThreadWrapper->m_functionPointer(nativeThreadWrapper->m_data);
+   // Wait for stop.
+   {
+      std::unique_lock<std::mutex> lock(nativeThreadWrapper->m_mutex);
+      if (nativeThreadWrapper->m_waitForStop)
+         nativeThreadWrapper->m_stopCondition.wait(lock);
+   }
+   return nullptr;
+}
 
-//unsigned WIN_FIX_STDCALL NativeThreadWrapper::runWin(void *data)
-//{
-//   runUnix(data);
-//   return 0;
-//}
+unsigned WIN_FIX_STDCALL NativeThreadWrapper::runWin(void *data)
+{
+   runUnix(data);
+   return 0;
+}
 
-//void NativeThreadWrapper::stop()
-//{
-//   std::lock_guard<std::mutex> lock(m_mutex);
-//   m_waitForStop = false;
-//   m_stopCondition.notify_one();
-//}
+void NativeThreadWrapper::stop()
+{
+   std::lock_guard<std::mutex> lock(m_mutex);
+   m_waitForStop = false;
+   m_stopCondition.notify_one();
+}
 
-//bool threadAdoptedOk = false;
-//Thread *mainThread;
+bool threadAdoptedOk = false;
+Thread *mainThread;
 
-//void test_native_thread_adoption(void *)
-//{
-//   threadAdoptedOk = (Thread::getCurrentThreadId() != 0
-//         && Thread::getCurrentThread() != nullptr
-//         && Thread::getCurrentThread() != mainThread);
-//}
+void test_native_thread_adoption(void *)
+{
+   threadAdoptedOk = (Thread::getCurrentThreadId() != 0
+         && Thread::getCurrentThread() != nullptr
+         && Thread::getCurrentThread() != mainThread);
+}
 
 //TEST(ThreadTest, testNativeThreadAdoption)
 //{
@@ -662,10 +666,10 @@ TEST(ThreadTest, testStarted)
 //   nativeThread.setWaitForStop();
 //   nativeThread.startAndWait(test_native_thread_adoption);
 //   ASSERT_TRUE(nativeThread.m_pdkthread);
-   
+
 //   nativeThread.stop();
 //   nativeThread.join();
-   
+
 //   ASSERT_TRUE(threadAdoptedOk);
 //}
 
@@ -692,7 +696,7 @@ TEST(ThreadTest, testStarted)
 //   NativeThreadWrapper nativeThread;
 //   nativeThread.setWaitForStop();
 //   nativeThread.startAndWait();
-   
+
 //   // change the priority of a running thread
 //   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::InheritPriority);
 //   nativeThread.m_pdkthread->setPriority(Thread::IdlePriority);
@@ -709,7 +713,7 @@ TEST(ThreadTest, testStarted)
 //   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighestPriority);
 //   nativeThread.m_pdkthread->setPriority(Thread::TimeCriticalPriority);
 //   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::TimeCriticalPriority);
-   
+
 //   nativeThread.stop();
 //   nativeThread.join();
 //}
@@ -718,12 +722,12 @@ TEST(ThreadTest, testStarted)
 //{
 //   NativeThreadWrapper nativeThread;
 //   nativeThread.setWaitForStop();
-   
+
 //   nativeThread.startAndWait();
 //   ASSERT_TRUE(nativeThread.m_pdkthread);
 //   ASSERT_TRUE(nativeThread.m_pdkthread->isRunning());
 //   ASSERT_TRUE(!nativeThread.m_pdkthread->isFinished());
-   
+
 //   nativeThread.stop();
 //   nativeThread.join();
 //}
@@ -752,22 +756,151 @@ TEST(ThreadTest, testStarted)
 
 //TEST(ThreadTest, testAdoptedThreadFinished)
 //{
+//   SimpleThread closureThread;
+//   closureThread.start();
+//   TestEventLoop *instance = &TestEventLoop::instance();
 //   NativeThreadWrapper nativeThread;
 //   nativeThread.setWaitForStop();
 //   nativeThread.startAndWait();
-//   TestEventLoop *instance = &TestEventLoop::instance();
 //   nativeThread.m_pdkthread->connectFinishedSignal([&](){
-//      CallableInvoker::invokeAsync([&](){
-//         instance->exitLoop();
-//      }, instance);
+//      std::cout << "xxxx" << std::endl;
+//     // instance->exitLoop();
 //   });
+
+
+//   ASSERT_TRUE(closureThread.wait(five_minutes));
 //   nativeThread.stop();
 //   nativeThread.join();
-   
+
 //   TestEventLoop *temp = &TestEventLoop::instance();
 //   temp->enterLoop(5);
 //   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
 //}
+
+//TEST(ThreadTest, testStress)
+//{
+//   Time t;
+//   t.start();
+//   while (t.elapsed() < one_minute) {
+//      CurrentThread t;
+//      t.start();
+//      t.wait(one_minute);
+//   }
+//}
+
+class Syncronizer : public Object
+{
+public:
+   void setProp(int p) {
+       std::cout << "prop changed : " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      if(m_prop != p) {
+         m_prop = p;
+         emitPropChangedSignal(std::move(p));
+      }
+   }
+   void propChanged(int);
+   ~Syncronizer()
+   {
+      
+   }
+   using PropChangedHandlerType = void(int);
+   PDK_DEFINE_SIGNAL_BINDER(PropChanged);
+   PDK_DEFINE_SIGNAL_EMITTER(PropChanged)
+   
+   public:
+      Syncronizer() 
+    : m_prop(42)
+   {}
+   
+   int m_prop;
+};
+
+template <typename T>
+struct ClassType
+{
+};
+
+template <typename RetType, typename Class, typename... Args>
+struct ClassType<RetType (Class::*)(Args...)>
+{
+   using Type = Class;
+};
+
+
+
+
+
+class CurrentThread1;
+
+class CurrentThread1 : public Thread
+{
+public:
+   pdk::HANDLE m_id;
+   Thread *m_thread;
+   CurrentThread1(Object *parent = nullptr)
+      : Thread(parent)
+   {
+      std::cout << "constructor current thread " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+   }
+   void run()
+   {
+      std::cout << "run thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      //   Syncronizer xx;
+      //   CallableInvoker::invokeAsync([](int value) {
+      //      std::cout << "invokeAsync current thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      //   }, this, 89);
+      //   xx.connectPropChangedSignal(this, &CurrentThread1::propChanged, pdk::ConnectionType::QueuedConnection);
+      //   xx.setProp(11111);
+      //   m_id = Thread::getCurrentThreadId();
+      //   m_thread = Thread::getCurrentThread();
+      //   xxxxx(this, &CurrentThread1::propChanged);
+      //   CurrentThread1::* f = &CurrentThread1::propChanged;
+      exec();
+   }
+   
+   void quit()
+   {
+      std::cout << "quit called" << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      Thread::quit();
+   }
+   
+   void propChanged(int val)
+   {
+      std::cout << "prop changed : " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+   }
+};
+
+TEST(ThreadTest, exitAndStart)
+{
+   CurrentThread1 thread;
+
+   
+   thread.exit(555); //should do nothing
+   
+   
+   thread.start();
+   std::cout << "current thread " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+   //   //test that the thread is running by executing queued connected signal there
+   Syncronizer sync1;
+   sync1.moveToThread(&thread);
+   Syncronizer sync2;
+   sync2.moveToThread(&thread);
+   sync2.connectPropChangedSignal(&sync1, &Syncronizer::setProp, pdk::ConnectionType::QueuedConnection);
+   sync1.connectPropChangedSignal(&thread, &CurrentThread1::quit, pdk::ConnectionType::QueuedConnection);
+   CallableInvoker::invokeAsync([&sync2](int value) {
+//      std::cout << "invokeAsync current thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      sync2.setProp(value);
+   }, &sync2, 89);
+   
+   //std::cout << "current thread " << Thread::getCurrentThread() << std::endl;
+   thread.wait(five_minutes);
+   ASSERT_EQ(sync2.m_prop, 89);
+   ASSERT_EQ(sync1.m_prop, 89);
+      CoreApplication::getInstance()->getThread()->msleep(5000);
+   //   while(!thread.wait(10))
+   //      CoreApplication::getInstance()->getThread()->msleep(10);
+
+}
 
 int main(int argc, char **argv)
 {

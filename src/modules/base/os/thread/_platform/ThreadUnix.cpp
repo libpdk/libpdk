@@ -19,7 +19,7 @@
 #include "pdk/base/io/Debug.h"
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
-
+#include <iostream>
 #if defined(PDK_OS_DARWIN)
 #  include "pdk/kernel/EventDispatcherCf.h"
 #endif
@@ -128,10 +128,10 @@ void destroy_current_thread_data(void *p)
    // called again (POSIX allows implementations to call destructor
    // functions repeatedly until all values are zero)
    pthread_setspecific(sg_currentThreadDataKey,
-                    #if defined(PDK_OS_VXWORKS)
-                       (void *)1);
+#if defined(PDK_OS_VXWORKS)
+   (void *)1);
 #else
-                       nullptr);
+   nullptr);
 #endif
 }
 
@@ -363,7 +363,7 @@ void *ThreadPrivate::start(void *arg)
          }
       }
 #endif
-      thread->emitStartedSignal(1);
+      thread->emitStartedSignal();
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       pthread_testcancel();
       thread->run();
@@ -393,7 +393,7 @@ void ThreadPrivate::finish(void *arg)
       implPtr->m_priority = Thread::InheritPriority;
       void *data = &implPtr->m_data->m_tls;
       locker.unlock();
-      thread->emitFinishedSignal(1);
+      thread->emitFinishedSignal();
       CoreApplication::sendPostedEvents(0, Event::Type::DeferredDelete);
       ThreadStorageData::finish((void **)data);
       locker.lock();
@@ -497,8 +497,8 @@ void Thread::usleep(unsigned long usecs)
    pdk::kernel::nanosleep(make_timespec(usecs / 1000 / 1000, usecs % (1000 * 1000) * 1000));
 }
 
-PDK_DEFINE_SIGNAL_BINDER(Thread, Started)
-PDK_DEFINE_SIGNAL_BINDER(Thread, Finished)
+//PDK_DEFINE_SIGNAL_BINDER(Thread, Started)
+//PDK_DEFINE_SIGNAL_BINDER(Thread, Finished)
 
 void Thread::start(Priority priority)
 {

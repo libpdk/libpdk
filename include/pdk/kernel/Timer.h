@@ -19,7 +19,6 @@
 #include "pdk/global/Global.h"
 #include "pdk/kernel/BasicTimer.h"
 #include "pdk/kernel/Object.h"
-#include "pdk/kernel/signal/Signal.h"
 #include <chrono>
 
 namespace pdk {
@@ -68,16 +67,10 @@ public:
       return pdk::TimerType(m_type);
    }
    
-   template <typename ...ArgTypes>
-   inline void emitTimeout(ArgTypes&& ...args)
-   {
-      if (m_timeoutSignal) {
-         (*m_timeoutSignal)(std::forward<ArgTypes>(args)...);
-      }
-   }
+   PDK_DEFINE_SIGNAL_BINDER(Timeout);
+   PDK_DEFINE_SIGNAL_EMITTER(Timeout)
    
-   Connection connectTimeoutSignal(const std::function<TimeoutHandlerType> &callable);
-   
+public:
    inline void setSingleShot(bool singleShot);
    inline bool isSingleShot() const
    {
@@ -112,7 +105,6 @@ public:
    {
       singleShot(interval, defaultTypeFor(interval), callable);
    }
-   
    
 public:
    void start(int msec);
@@ -217,7 +209,6 @@ private:
    uint m_nullTimer : 1;
    uint m_type : 2;
    // uint m_reserved : 28
-   std::shared_ptr<Signal<TimeoutHandlerType>> m_timeoutSignal;
 };
 
 inline void Timer::setSingleShot(bool singleShot)

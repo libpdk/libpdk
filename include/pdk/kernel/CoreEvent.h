@@ -185,6 +185,20 @@ private:
    friend class CoreApplication;
 };
 
+namespace internal {
+
+class PDK_CORE_EXPORT MetaCallEvent : public Event
+{
+public:
+   MetaCallEvent(const std::function<void()> &callable);
+   const std::function<void()> &getCallable() const;
+   ~MetaCallEvent();
+private:
+   std::function<void()> m_callable;
+};
+
+} // internal
+
 } // kernel
 } // pdk
 

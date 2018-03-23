@@ -147,14 +147,18 @@ Thread::Thread(Object *parent)
    PDK_D(Thread);
    // fprintf(stderr, "ThreadData %p created for thread %p\n", implPtr->m_data, this);
    implPtr->m_data->m_thread = this;
+   // TODO keep watch
+   implPtr->m_threadData = implPtr->m_data;
 }
 
 Thread::Thread(ThreadPrivate &dd, Object *parent)
    : Object(dd, parent)
 {
    PDK_D(Thread);
-   // fprintf(stderr, "ThreadData %p taken from private data for thread %p\n", d->data, this);
+   // fprintf(stderr, "ThreadData %p taken from private data for thread %p\n", implPtr->m_data, this);
    implPtr->m_data->m_thread = this;
+   // TODO keep watch
+   implPtr->m_threadData = implPtr->m_data;
 }
 
 Thread::~Thread()
