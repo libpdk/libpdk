@@ -602,7 +602,6 @@ void Object::installEventFilter(Object *obj)
    implPtr->m_extraData->m_eventFilters.push_front(obj);
 }
 
-
 void Object::removeEventFilter(Object *obj)
 {
    PDK_D(Object);

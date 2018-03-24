@@ -31,6 +31,7 @@
 #include "TestEventLoop.h"
 #include "pdk/kernel/Timer.h"
 #include "pdk/base/time/Time.h"
+#include "pdk/kernel/Pointer.h"
 #include <mutex>
 #include <tuple>
 #include <condition_variable>
@@ -39,6 +40,7 @@
 #include <exception>
 #endif
 #include "pdk/base/os/thread/Thread.h"
+#include "pdk/base/os/thread/Semaphore.h"
 #include "pdk/stdext/typetraits/Sequence.h"
 #include "pdk/stdext/typetraits/CallableInfoTrait.h"
 
@@ -48,10 +50,12 @@ using pdk::os::thread::Thread;
 using pdk::kernel::EventLoop;
 using pdk::kernel::Object;
 using pdk::kernel::Timer;
+using pdk::kernel::Pointer;
 using pdk::kernel::CoreApplication;
 using pdk::kernel::CallableInvoker;
 using pdk::time::Time;
 using pdkunittest::TestEventLoop;
+using pdk::os::thread::Semaphore;
 
 class CurrentThread : public Thread
 {
@@ -790,7 +794,6 @@ class Syncronizer : public Object
 {
 public:
    void setProp(int p) {
-       std::cout << "prop changed : " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
       if(m_prop != p) {
          m_prop = p;
          emitPropChangedSignal(std::move(p));
@@ -820,65 +823,100 @@ class CurrentThread1 : public Thread
 public:
    pdk::HANDLE m_id;
    Thread *m_thread;
-   CurrentThread1(Object *parent = nullptr)
-      : Thread(parent)
-   {
-      std::cout << "constructor current thread " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
-   }
+   
    void run()
    {
-      std::cout << "run thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
-      //   Syncronizer xx;
-      //   CallableInvoker::invokeAsync([](int value) {
-      //      std::cout << "invokeAsync current thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
-      //   }, this, 89);
-      //   xx.connectPropChangedSignal(this, &CurrentThread1::propChanged, pdk::ConnectionType::QueuedConnection);
-      //   xx.setProp(11111);
-      //   m_id = Thread::getCurrentThreadId();
-      //   m_thread = Thread::getCurrentThread();
-      //   xxxxx(this, &CurrentThread1::propChanged);
-      //   CurrentThread1::* f = &CurrentThread1::propChanged;
       exec();
    }
    
    void quit()
    {
-      std::cout << "quit called" << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      
       Thread::quit();
    }
    
    void propChanged(int val)
    {
-      std::cout << "prop changed : " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
+      
    }
 };
 
-TEST(ThreadTest, exitAndStart)
-{
-   CurrentThread1 thread;
-   thread.exit(555); //should do nothing
-   thread.start();
-   std::cout << "current thread " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
-   //   //test that the thread is running by executing queued connected signal there
-   Syncronizer sync1;
-   sync1.moveToThread(&thread);
-   Syncronizer sync2;
-   sync2.moveToThread(&thread);
-   sync2.connectPropChangedSignal(&sync1, &Syncronizer::setProp, pdk::ConnectionType::QueuedConnection);
-   sync1.connectPropChangedSignal(&thread, &CurrentThread1::quit, pdk::ConnectionType::QueuedConnection);
-   CallableInvoker::invokeAsync([&sync2](int value) {
-//      std::cout << "invokeAsync current thread dispatcher " << Thread::getCurrentThread()->getEventDispatcher() << std::endl;
-      sync2.setProp(value);
-   }, &sync2, 89);
+//TEST(ThreadTest, exitAndStart)
+//{
+//   CurrentThread1 thread;
+//   thread.exit(555); //should do nothing
+//   thread.start();
+//   Syncronizer sync1;
+//   sync1.moveToThread(&thread);
+//   Syncronizer sync2;
+//   sync2.moveToThread(&thread);
+//   sync2.connectPropChangedSignal(&sync1, &Syncronizer::setProp, pdk::ConnectionType::QueuedConnection);
+//   sync1.connectPropChangedSignal(&thread, &CurrentThread1::quit, pdk::ConnectionType::QueuedConnection);
+//   CallableInvoker::invokeAsync([&sync2](int value) {
+//      sync2.setProp(value);
+//   }, &sync2, 89);
    
-   //std::cout << "current thread " << Thread::getCurrentThread() << std::endl;
-   thread.wait(five_minutes);
-   ASSERT_EQ(sync2.m_prop, 89);
-   ASSERT_EQ(sync1.m_prop, 89);
-      CoreApplication::getInstance()->getThread()->msleep(5000);
-   //   while(!thread.wait(10))
-   //      CoreApplication::getInstance()->getThread()->msleep(10);
+//   CoreApplication::getInstance()->getThread()->msleep(50);
+//   while(!thread.wait(10)) {
+//      CoreApplication::getInstance()->getThread()->msleep(10);
+//   }
+   
+//   ASSERT_EQ(sync2.m_prop, 89);
+//   ASSERT_EQ(sync1.m_prop, 89);
+//}
 
+//TEST(ThreadTest, testExitAndExec)
+//{
+//   class MyThread : public Thread {
+//   public:
+//      Semaphore m_sem1;
+//      Semaphore m_sem2;
+//      volatile int m_value;
+//      void run() {
+//         m_sem1.acquire();
+//         m_value = exec();  //First entrence
+//         m_sem2.release();
+//         m_value = exec(); // Second loop
+//      }
+//   };
+//   MyThread thread;
+//   thread.m_value = 0;
+//   thread.start();
+//   thread.exit(556);
+//   thread.m_sem1.release();
+//   thread.m_sem2.acquire();
+//   int v = thread.m_value;
+//   ASSERT_EQ(v, 556);
+//   Syncronizer sync1;
+//   sync1.moveToThread(&thread);
+//   Syncronizer sync2;
+//   sync2.moveToThread(&thread);
+//   sync2.connectPropChangedSignal(&sync1, &Syncronizer::setProp, pdk::ConnectionType::QueuedConnection);
+//   sync1.connectPropChangedSignal(&thread, &MyThread::quit, pdk::ConnectionType::QueuedConnection);
+//   CallableInvoker::invokeAsync([&sync2](int value) {
+//      sync2.setProp(value);
+//   }, &sync2, 89);
+   
+//   CoreApplication::getInstance()->getThread()->msleep(50);
+//   while(!thread.wait(10)) {
+//      CoreApplication::getInstance()->getThread()->msleep(10);
+//   }
+//   ASSERT_EQ(sync2.m_prop, 89);
+//   ASSERT_EQ(sync1.m_prop, 89);
+//}
+
+TEST(ThreadTest, testConnectThreadFinishedSignalToObjectDeleteLaterSlot)
+{
+   Thread thread;
+   Object *object = new Object;
+   Pointer<Object> p = object;
+   ASSERT_TRUE(!p.isNull());
+   thread.connectStartedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
+   thread.connectFinishedSignal(object, &Object::deleteLater);
+   object->moveToThread(&thread);
+   thread.start();
+   ASSERT_TRUE(thread.wait(30000));
+   ASSERT_TRUE(p.isNull());
 }
 
 int main(int argc, char **argv)

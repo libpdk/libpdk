@@ -75,22 +75,13 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
       if (!m_## signalName ##Signal) {\
          m_## signalName ##Signal.reset(new pdk::kernel::signal::Signal<signalName ## HandlerType>);\
       }\
-      if (connectionType == pdk::ConnectionType::AutoConnection) {\
-         if (getThread() == receiver->getThread()) {\
-            connectionType = pdk::ConnectionType::DirectConnection;\
-         } else {\
-            connectionType = pdk::ConnectionType::QueuedConnection;\
-         }\
-      }\
-      switch(connectionType) {\
-      case pdk::ConnectionType::DirectConnection:{\
+      if (connectionType == pdk::ConnectionType::DirectConnection) {\
          return m_## signalName ##Signal->connect([memberFunc, receiver](auto&&... args) -> ReturnType{\
             return std::apply(std::mem_fn(memberFunc),\
                        std::tuple_cat(std::tuple<Class *>(dynamic_cast<Class *>(const_cast<Object *>(receiver))),\
                        pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...))));\
          });\
-      }\
-      case pdk::ConnectionType::QueuedConnection: {\
+      } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
          auto wrapper = [memberFunc, receiver](auto&&... args) -> ReturnType{\
             pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(receiver), new pdk::kernel::internal::MetaCallEvent([=](){\
                std::apply(std::mem_fn(memberFunc),\
@@ -99,9 +90,21 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
             }));\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
-      }\
-      default:\
-         PDK_UNREACHABLE();\
+      }else {\
+         Object *sender = this;\
+         auto wrapper = [sender, memberFunc, receiver](auto&&... args) -> ReturnType{\
+            if (sender && sender->getThread() == receiver->getThread()) {\
+               return std::apply(std::mem_fn(memberFunc),\
+                        std::tuple_cat(std::tuple<Class *>(dynamic_cast<Class *>(const_cast<Object *>(receiver))),\
+                        pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...))));\
+            }\
+            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(receiver), new pdk::kernel::internal::MetaCallEvent([=](){\
+               std::apply(std::mem_fn(memberFunc),\
+               std::tuple_cat(std::tuple<Class *>(dynamic_cast<Class *>(const_cast<Object *>(receiver))),\
+               pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...))));\
+            }));\
+         };\
+         return m_## signalName ##Signal->connect(wrapper);\
       }\
    }\
    template <typename SlotFuncType>\
@@ -121,29 +124,29 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
       if (nullptr == context) {\
          context = this;\
       }\
-      if (connectionType == pdk::ConnectionType::AutoConnection) {\
-         if (getThread() == context->getThread()) {\
-            connectionType = pdk::ConnectionType::DirectConnection;\
-         } else {\
-            connectionType = pdk::ConnectionType::QueuedConnection;\
-         }\
-      }\
-      switch(connectionType) {\
-      case pdk::ConnectionType::DirectConnection:{\
+      if (connectionType == pdk::ConnectionType::DirectConnection) {\
          return m_## signalName ##Signal->connect([callable](auto&&... args) -> ReturnType{\
             return std::apply(callable, pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...)));\
          });\
-      }\
-      case pdk::ConnectionType::QueuedConnection: {\
+      } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
          auto wrapper = [callable, context](auto&&... args) -> ReturnType{\
             pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context), new pdk::kernel::internal::MetaCallEvent([=](){\
                std::apply(callable, pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...)));\
             }));\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
-      }\
-      default:\
-         PDK_UNREACHABLE();\
+      } else {\
+         Object *sender = this;\
+         auto wrapper = [sender, callable, context](auto&&... args) -> ReturnType{\
+            if (sender && sender->getThread() == context->getThread()) {\
+               return std::apply(callable, pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...)));\
+            } else {\
+               pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context), new pdk::kernel::internal::MetaCallEvent([=](){\
+                  std::apply(callable, pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...)));\
+               }));\
+            }\
+         };\
+         return m_## signalName ##Signal->connect(wrapper);\
       }\
    }
 
