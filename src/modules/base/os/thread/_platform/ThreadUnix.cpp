@@ -19,7 +19,6 @@
 #include "pdk/base/io/Debug.h"
 #include "pdk/global/PlatformDefs.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
-#include <iostream>
 #if defined(PDK_OS_DARWIN)
 #  include "pdk/kernel/EventDispatcherCf.h"
 #endif
@@ -388,7 +387,7 @@ void ThreadPrivate::finish(void *arg)
    try {
       Thread *thread = reinterpret_cast<Thread *>(arg);
       ThreadPrivate *implPtr = thread->getImplPtr();
-      std::unique_lock locker(implPtr->m_mutex);
+      std::unique_lock<std::mutex> locker(implPtr->m_mutex);
       implPtr->m_isInFinish = true;
       implPtr->m_priority = Thread::InheritPriority;
       void *data = &implPtr->m_data->m_tls;

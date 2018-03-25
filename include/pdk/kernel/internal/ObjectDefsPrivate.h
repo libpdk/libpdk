@@ -34,6 +34,7 @@ namespace internal {
 class MetaCallEvent;
 
 void post_app_event_helper(Object *, MetaCallEvent *);
+bool is_in_current_thread(const Object *);
 
 template <bool isObject, typename CallableType>
 struct SlotArgNumImpl
@@ -91,9 +92,8 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
          };\
          return m_## signalName ##Signal->connect(wrapper);\
       }else {\
-         Object *sender = this;\
-         auto wrapper = [sender, memberFunc, receiver](auto&&... args) -> ReturnType{\
-            if (sender && sender->getThread() == receiver->getThread()) {\
+         auto wrapper = [memberFunc, receiver](auto&&... args) -> ReturnType{\
+            if (pdk::kernel::internal::is_in_current_thread(receiver)) {\
                return std::apply(std::mem_fn(memberFunc),\
                         std::tuple_cat(std::tuple<Class *>(dynamic_cast<Class *>(const_cast<Object *>(receiver))),\
                         pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...))));\
@@ -136,9 +136,8 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
          };\
          return m_## signalName ##Signal->connect(wrapper);\
       } else {\
-         Object *sender = this;\
-         auto wrapper = [sender, callable, context](auto&&... args) -> ReturnType{\
-            if (sender && sender->getThread() == context->getThread()) {\
+         auto wrapper = [callable, context](auto&&... args) -> ReturnType{\
+            if (pdk::kernel::internal::is_in_current_thread(context)) {\
                return std::apply(callable, pdk::stdext::extract_first_n_items<slotArgNum>(std::make_tuple(args...)));\
             } else {\
                pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context), new pdk::kernel::internal::MetaCallEvent([=](){\
@@ -147,6 +146,12 @@ struct SlotArgNum : SlotArgNumImpl<std::is_class<std::remove_reference_t<Callabl
             }\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
+      }\
+   }\
+   void disconnect## signalName ##Signal(const pdk::kernel::signal::Connection &connection)\
+   {\
+      if (m_## signalName ##Signal) {\
+         m_## signalName ##Signal->disconnect(connection);\
       }\
    }
 

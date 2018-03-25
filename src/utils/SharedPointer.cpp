@@ -59,7 +59,7 @@ ExternalRefCountData *ExternalRefCountData::getAndRef(const kernel::Object *obje
    // we can create the refcount data because it doesn't exist
    ExternalRefCountData *newRefCountData = new ExternalRefCountData(pdk::Uninitialized);
    newRefCountData->m_strongRef.store(-1);
-   newRefCountData->m_weakRef.store(2);  // the QWeakPointer that called us plus the QObject itself
+   newRefCountData->m_weakRef.store(2);  // the WeakPointer that called us plus the Object itself
    if (!implPtr->m_sharedRefcount.testAndSetRelease(0, newRefCountData)) {
       delete newRefCountData;
       newRefCountData = implPtr->m_sharedRefcount.loadAcquire();

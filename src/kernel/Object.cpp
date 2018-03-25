@@ -618,6 +618,7 @@ void Object::removeEventFilter(Object *obj)
    }
 }
 
+
 void Object::deleteLater()
 {
    CoreApplication::postEvent(this, new DeferredDeleteEvent());
@@ -664,6 +665,11 @@ namespace internal {
 void post_app_event_helper(Object *context, MetaCallEvent *event)
 {
    pdk::kernel::CoreApplication::postEvent(context, event);
+}
+
+bool is_in_current_thread(const Object *object)
+{
+   return object->getThread() == Thread::getCurrentThread();
 }
 
 } // internal

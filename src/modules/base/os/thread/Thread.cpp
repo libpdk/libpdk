@@ -148,7 +148,7 @@ Thread::Thread(Object *parent)
    // fprintf(stderr, "ThreadData %p created for thread %p\n", implPtr->m_data, this);
    implPtr->m_data->m_thread = this;
    // TODO keep watch
-   implPtr->m_threadData = implPtr->m_data;
+   //implPtr->m_threadData = implPtr->m_data;
 }
 
 Thread::Thread(ThreadPrivate &dd, Object *parent)
@@ -172,7 +172,7 @@ Thread::~Thread()
          locker.lock();
       }
       if (implPtr->m_running && !implPtr->m_finished && !implPtr->m_data->m_isAdopted) {
-         fatal_stream("Thread: Destroyed while thread is still running");
+         //fatal_stream("Thread: Destroyed while thread is still running");
       }
       implPtr->m_data->m_thread = nullptr;
    }

@@ -30,8 +30,10 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "TestEventLoop.h"
 #include "pdk/kernel/Timer.h"
+#include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/base/time/Time.h"
 #include "pdk/kernel/Pointer.h"
+#include "pdk/base/lang/String.h"
 #include <mutex>
 #include <tuple>
 #include <condition_variable>
@@ -56,6 +58,8 @@ using pdk::kernel::CallableInvoker;
 using pdk::time::Time;
 using pdkunittest::TestEventLoop;
 using pdk::os::thread::Semaphore;
+using pdk::kernel::ElapsedTimer;
+using pdk::lang::String;
 
 class CurrentThread : public Thread
 {
@@ -855,12 +859,12 @@ public:
 //   CallableInvoker::invokeAsync([&sync2](int value) {
 //      sync2.setProp(value);
 //   }, &sync2, 89);
-   
+
 //   CoreApplication::getInstance()->getThread()->msleep(50);
 //   while(!thread.wait(10)) {
 //      CoreApplication::getInstance()->getThread()->msleep(10);
 //   }
-   
+
 //   ASSERT_EQ(sync2.m_prop, 89);
 //   ASSERT_EQ(sync1.m_prop, 89);
 //}
@@ -896,7 +900,7 @@ public:
 //   CallableInvoker::invokeAsync([&sync2](int value) {
 //      sync2.setProp(value);
 //   }, &sync2, 89);
-   
+
 //   CoreApplication::getInstance()->getThread()->msleep(50);
 //   while(!thread.wait(10)) {
 //      CoreApplication::getInstance()->getThread()->msleep(10);
@@ -905,18 +909,128 @@ public:
 //   ASSERT_EQ(sync1.m_prop, 89);
 //}
 
-TEST(ThreadTest, testConnectThreadFinishedSignalToObjectDeleteLaterSlot)
+//TEST(ThreadTest, testConnectThreadFinishedSignalToObjectDeleteLaterSlot)
+//{
+//   Thread thread;
+//   Object *object = new Object;
+//   Pointer<Object> p = object;
+//   ASSERT_TRUE(!p.isNull());
+//   thread.connectStartedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
+//   thread.connectFinishedSignal(object, &Object::deleteLater);
+//   object->moveToThread(&thread);
+//   thread.start();
+//   ASSERT_TRUE(thread.wait(30000));
+//   ASSERT_TRUE(p.isNull());
+//}
+
+class WaitingThread : public Thread
 {
+public:
+   enum { WaitTime = 800 };
+   std::mutex m_mutex;
+   std::condition_variable m_cond1;
+   std::condition_variable m_cond2;
+   
+   void run()
+   {
+      std::unique_lock locker(m_mutex);
+      m_cond1.wait(locker);
+      m_cond2.wait_for(locker, std::chrono::milliseconds(WaitTime));
+   }
+};
+
+//TEST(ThreadTest, testWait2)
+//{
+//   ElapsedTimer timer;
+//   WaitingThread thread;
+//   thread.start();
+//   timer.start();
+//   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
+//   pdk::pint64 elapsed = timer.elapsed();
+//   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 10) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+//   timer.start();
+//   thread.m_cond1.notify_one();
+//   ASSERT_TRUE(thread.wait(/*WaitingThread::WaitTime * 1.4*/));
+//   elapsed = timer.elapsed();
+//   ASSERT_TRUE(elapsed - WaitingThread::WaitTime >= -1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+//}
+
+class SlowSlotObject : public Object {
+public:
+   std::mutex m_mutex;
+   std::condition_variable m_cond;
+   void slowSlot()
+   {
+      std::unique_lock locker(m_mutex);
+      m_cond.wait(locker);
+   }
+};
+
+TEST(ThreadTest, testWait3SlowDestructor)
+{
+   SlowSlotObject slow;
    Thread thread;
-   Object *object = new Object;
-   Pointer<Object> p = object;
-   ASSERT_TRUE(!p.isNull());
-   thread.connectStartedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
-   thread.connectFinishedSignal(object, &Object::deleteLater);
-   object->moveToThread(&thread);
+   thread.connectFinishedSignal(&slow, &SlowSlotObject::slowSlot, pdk::ConnectionType::DirectConnection);
+   enum { WaitTime = 1800 };
+   ElapsedTimer timer;
    thread.start();
-   ASSERT_TRUE(thread.wait(30000));
-   ASSERT_TRUE(p.isNull());
+   thread.quit();
+   timer.start();
+   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
+   pdk::pint64 elapsed = timer.elapsed();
+   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+   slow.m_cond.notify_one();
+   //now the thread should finish quickly
+   ASSERT_TRUE(thread.wait(one_minute));
+}
+
+TEST(ThreadTest, testDestroyFinishRace)
+{
+   class MyThread : public Thread { void run() {} };
+   for (int i = 0; i < 15; i++) {
+      MyThread *thread = new MyThread;
+      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
+      Pointer<Thread> weak(static_cast<Thread *>(thread));
+      thread->start();
+      while (weak) {
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+      }
+   }
+}
+
+TEST(ThreadTest, testStartFinishRace)
+{
+   class MyThread : public Thread {
+   public:
+      MyThread() : m_i (50) {}
+      void run() {
+         m_i--;
+         if (!m_i) {
+            disconnectFinishedSignal(m_connection);
+         }
+      }
+      void start()
+      {
+         Thread::start(Priority::InheritPriority);
+      }
+      int m_i;
+      pdk::kernel::signal::Connection m_connection;
+   };
+   for (int i = 0; i < 15; i++) {
+      MyThread thread;
+      thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start);
+      thread.start();
+      while (!thread.isFinished() || thread.m_i != 0) {
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+      }
+      ASSERT_EQ(thread.m_i, 0);
+   }
 }
 
 int main(int argc, char **argv)
@@ -924,7 +1038,9 @@ int main(int argc, char **argv)
    CoreApplication app(argc, argv);
    int retCode = 0;
    ::testing::InitGoogleTest(&argc, argv);
-   retCode = RUN_ALL_TESTS();
+   CallableInvoker::invokeAsync([&retCode]() {
+      retCode = RUN_ALL_TESTS();
+   }, &app);
    app.exec();
    return retCode;
 }
