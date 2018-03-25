@@ -986,22 +986,22 @@ TEST(ThreadTest, testWait3SlowDestructor)
    ASSERT_TRUE(thread.wait(one_minute));
 }
 
-//TEST(ThreadTest, testDestroyFinishRace)
-//{
-//   class MyThread : public Thread { void run() {} };
-//   for (int i = 0; i < 15; i++) {
-//      MyThread *thread = new MyThread;
-//      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
-//      Pointer<Thread> weak(static_cast<Thread *>(thread));
-//      thread->start();
-//      while (weak) {
-//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-//      }
-//   }
-//}
+TEST(ThreadTest, testDestroyFinishRace)
+{
+   class MyThread : public Thread { void run() {} };
+   for (int i = 0; i < 15; i++) {
+      MyThread *thread = new MyThread;
+      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
+      Pointer<Thread> weak(static_cast<Thread *>(thread));
+      thread->start();
+      while (weak) {
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+      }
+   }
+}
 
 //TEST(ThreadTest, testStartFinishRace)
 //{

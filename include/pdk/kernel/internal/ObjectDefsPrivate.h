@@ -195,6 +195,7 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
       using CallableInfo = pdk::stdext::CallableInfoTrait<signalName ## HandlerType>;\
       using ReturnType = typename CallableInfo::ReturnType;\
       using SlotArgInfo = pdk::kernel::internal::SlotArgNum<SignalType, SlotFuncType>;\
+      using DecayedSlotFuncType = typename std::decay<SlotFuncType>::type;\
       constexpr bool canPassSenderInfo = SlotArgInfo::canPassSenderInfo;\
       constexpr size_t signalArgNum = CallableInfo::argNum;\
       constexpr size_t slotArgNum = SlotArgInfo::value;\
@@ -211,29 +212,32 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
       }\
       Object *sender = this;\
       if (connectionType == pdk::ConnectionType::DirectConnection) {\
-         return m_## signalName ##Signal->connect([sender, callable](auto&&... args) -> ReturnType{\
-            return std::apply(callable,\
-                              pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
+         return m_## signalName ##Signal->connect([sender, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable))]\
+            (auto&&... args) -> ReturnType{\
+               return std::apply(std::move(callable),\
+                                 pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                                                                                   sender, std::forward<decltype(args)>(args)...));\
          });\
       } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
-         auto wrapper = [sender, callable, context](auto&&... args) -> ReturnType{\
-            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context), new pdk::kernel::internal::MetaCallEvent([=](){\
-               std::apply(callable,\
+         auto wrapper = [sender, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable)), context](auto&&... args) -> ReturnType{\
+            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context),\
+               new pdk::kernel::internal::MetaCallEvent([=, callable = std::move(callable)](){\
+                  std::apply(std::move(callable),\
                           pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                                                                               sender, std::forward<decltype(args)>(args)...));\
             }));\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
       } else {\
-         auto wrapper = [sender, callable, context](auto&&... args) -> ReturnType{\
+         auto wrapper = [sender, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable)), context](auto&&... args) -> ReturnType{\
             if (pdk::kernel::internal::is_in_current_thread(context)) {\
-               return std::apply(callable,\
+               return std::apply(std::move(callable),\
                                  pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                                                                                      sender, std::forward<decltype(args)>(args)...));\
             } else {\
-               pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context), new pdk::kernel::internal::MetaCallEvent([=](){\
-                  std::apply(callable,\
+               pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context),\
+                  new pdk::kernel::internal::MetaCallEvent([=, callable = std::move(callable)](){\
+                     std::apply(std::move(callable),\
                              pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                                                                                  sender, std::forward<decltype(args)>(args)...));\
                }));\

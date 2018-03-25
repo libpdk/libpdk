@@ -106,7 +106,8 @@ public:
    
    PDK_DEFINE_SIGNAL_BINDER(Started)
    PDK_DEFINE_SIGNAL_BINDER(Finished)
-  
+   template <typename SlotFuncType, typename... Args>
+   static Thread *create(SlotFuncType &&f, Args &&... args);
 protected:
    virtual void run();
    int exec();
@@ -121,6 +122,21 @@ private:
    friend class CoreApplication;
    friend class ThreadData;
 };
+
+template <typename SlotFuncType, typename... Args>
+Thread *Thread::create(SlotFuncType &&func, Args &&... args)
+{
+   using DecayedFunction = typename std::decay<SlotFuncType>::type;
+   auto threadFunc =
+         [func = static_cast<DecayedFunction>(std::forward<SlotFuncType>(func))](auto &&... largs) mutable -> void
+   {
+      (void)std::invoke(std::move(func), std::forward<decltype(largs)>(largs)...);
+   };
+   
+//   return createThreadImpl(std::async(std::launch::deferred,
+//                                      std::move(threadFunction),
+//                                      std::forward<Args>(args)...));
+}
 
 } // thread
 } // os
