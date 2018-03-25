@@ -41,6 +41,7 @@ struct ScopedPointerDeleter
       using IsIncompleteType = char[sizeof(T) ? 1: -1];
       (void) sizeof(IsIncompleteType);
       delete pointer;
+      pointer = nullptr;
    }
 };
 
@@ -100,6 +101,7 @@ public:
    {
       T *oldPointer = this->m_data;
       Deleter::cleanup(oldPointer);
+      this->m_data = nullptr;
    }
    
    inline T &operator *() const

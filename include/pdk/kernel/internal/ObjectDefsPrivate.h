@@ -19,6 +19,7 @@
 #include "pdk/global/Global.h"
 #include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include "pdk/stdext/typetraits/Sequence.h"
+#include "pdk/kernel/Pointer.h"
 #include <functional>
 #include <tuple>
 
@@ -145,6 +146,7 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
       constexpr bool canPassSenderInfo = pdk::kernel::internal::IsMemberFuncSlotCanPassSenderInfo<SignalType, decltype(memberFunc)>::value;\
       constexpr size_t signalArgNum = pdk::stdext::CallableInfoTrait<signalName ## HandlerType>::argNum;\
       constexpr size_t slotArgNum = pdk::stdext::CallableInfoTrait<decltype(memberFunc)>::argNum;\
+      pdk::kernel::Pointer<pdk::kernel::Object> receiverPtr(const_cast<pdk::kernel::Object *>(receiver));\
       if constexpr(canPassSenderInfo) {\
          PDK_STATIC_ASSERT_X(signalArgNum >= (slotArgNum - 2), "slot handler argument number must less or equal than signal");\
       } else {\
@@ -155,32 +157,38 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
       }\
       Object *sender = this;\
       if (connectionType == pdk::ConnectionType::DirectConnection) {\
-         return m_## signalName ##Signal->connect([memberFunc, receiver, sender](auto&&... args) -> ReturnType{\
-            return std::apply(std::mem_fn(memberFunc),\
-                        pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(const_cast<Object *>(receiver)), \
-                        SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+         return m_## signalName ##Signal->connect([memberFunc, slotArgNum, canPassSenderInfo, receiverPtr, sender](auto&&... args) -> ReturnType{\
+            if (receiverPtr) {\
+               return std::apply(std::mem_fn(memberFunc),\
+                           pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(receiverPtr.getData()), \
+                           SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+            }\
          });\
       } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
-         auto wrapper = [memberFunc, sender, receiver](auto&&... args) -> ReturnType{\
-            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(receiver), new pdk::kernel::internal::MetaCallEvent([=](){\
-               std::apply(std::mem_fn(memberFunc),\
-               pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(const_cast<Object *>(receiver)), \
-                    SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
-            }));\
+         auto wrapper = [memberFunc, sender, slotArgNum, canPassSenderInfo, receiverPtr](auto&&... args) -> ReturnType{\
+            if (receiverPtr) {\
+               pdk::kernel::internal::post_app_event_helper(receiverPtr, new pdk::kernel::internal::MetaCallEvent([=](){\
+                  std::apply(std::mem_fn(memberFunc),\
+                  pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(receiverPtr.getData()), \
+                       SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+               }));\
+            }\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
       }else {\
-         auto wrapper = [memberFunc, sender, receiver](auto&&... args) -> ReturnType{\
-            if (pdk::kernel::internal::is_in_current_thread(receiver)) {\
-               return std::apply(std::mem_fn(memberFunc),\
-                  pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(const_cast<Object *>(receiver)), \
-                       SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+         auto wrapper = [memberFunc, sender, slotArgNum, canPassSenderInfo, receiverPtr](auto&&... args) -> ReturnType{\
+            if (receiverPtr) {\
+               if (pdk::kernel::internal::is_in_current_thread(receiverPtr)) {\
+                  return std::apply(std::mem_fn(memberFunc),\
+                     pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(receiverPtr.getData()), \
+                          SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+               }\
+               pdk::kernel::internal::post_app_event_helper(receiverPtr, new pdk::kernel::internal::MetaCallEvent([=](){\
+                  std::apply(std::mem_fn(memberFunc),\
+                     pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(receiverPtr.getData()), \
+                          SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
+               }));\
             }\
-            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(receiver), new pdk::kernel::internal::MetaCallEvent([=](){\
-               std::apply(std::mem_fn(memberFunc),\
-                  pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(dynamic_cast<Class *>(const_cast<Object *>(receiver)), \
-                       SignalType::PDK_SIGNAL_NAME(signalName), sender, std::forward<decltype(args)>(args)...));\
-            }));\
          };\
          return m_## signalName ##Signal->connect(wrapper);\
       }\
@@ -196,6 +204,7 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
       using ReturnType = typename CallableInfo::ReturnType;\
       using SlotArgInfo = pdk::kernel::internal::SlotArgNum<SignalType, SlotFuncType>;\
       using DecayedSlotFuncType = typename std::decay<SlotFuncType>::type;\
+      pdk::kernel::Pointer<pdk::kernel::Object> contextPtr(const_cast<pdk::kernel::Object *>(context));\
       constexpr bool canPassSenderInfo = SlotArgInfo::canPassSenderInfo;\
       constexpr size_t signalArgNum = CallableInfo::argNum;\
       constexpr size_t slotArgNum = SlotArgInfo::value;\
@@ -216,31 +225,35 @@ constexpr decltype(auto) get_slot_args(SignalType signal, Object *sender, ArgTyp
             (auto&&... args) -> ReturnType{\
                return std::apply(std::move(callable),\
                                  pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
-                                                                                                  sender, std::forward<decltype(args)>(args)...));\
+                                                                                                     sender, std::forward<decltype(args)>(args)...));\
          });\
       } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
-         auto wrapper = [sender, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable)), context](auto&&... args) -> ReturnType{\
-            pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context),\
-               new pdk::kernel::internal::MetaCallEvent([=, callable = std::move(callable)](){\
-                  std::apply(std::move(callable),\
-                          pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
-                                                                                              sender, std::forward<decltype(args)>(args)...));\
-            }));\
-         };\
-         return m_## signalName ##Signal->connect(wrapper);\
-      } else {\
-         auto wrapper = [sender, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable)), context](auto&&... args) -> ReturnType{\
-            if (pdk::kernel::internal::is_in_current_thread(context)) {\
-               return std::apply(std::move(callable),\
-                                 pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
-                                                                                                     sender, std::forward<decltype(args)>(args)...));\
-            } else {\
-               pdk::kernel::internal::post_app_event_helper(const_cast<Object *>(context),\
+         auto wrapper = [sender, contextPtr, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable))](auto&&... args) -> ReturnType{\
+            if (contextPtr) {\
+               pdk::kernel::internal::post_app_event_helper(contextPtr.getData(),\
                   new pdk::kernel::internal::MetaCallEvent([=, callable = std::move(callable)](){\
                      std::apply(std::move(callable),\
                              pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                                                                                  sender, std::forward<decltype(args)>(args)...));\
                }));\
+            }\
+         };\
+         return m_## signalName ##Signal->connect(wrapper);\
+      } else {\
+         auto wrapper = [sender, contextPtr, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable))](auto&&... args) -> ReturnType{\
+            if (contextPtr) {\
+               if (pdk::kernel::internal::is_in_current_thread(contextPtr.getData())) {\
+                  return std::apply(std::move(callable),\
+                                    pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
+                                                                                                        sender, std::forward<decltype(args)>(args)...));\
+               } else {\
+                  pdk::kernel::internal::post_app_event_helper(contextPtr.getData(),\
+                     new pdk::kernel::internal::MetaCallEvent([=, callable = std::move(callable)](){\
+                        std::apply(std::move(callable),\
+                                pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo>(SignalType::PDK_SIGNAL_NAME(signalName),\
+                                                                                                    sender, std::forward<decltype(args)>(args)...));\
+                  }));\
+               }\
             }\
          };\
          return m_## signalName ##Signal->connect(wrapper);\

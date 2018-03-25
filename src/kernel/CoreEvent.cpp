@@ -132,7 +132,7 @@ int Event::registerEventType(int hint) noexcept
 Event::~Event()
 {
    if (m_posted && CoreApplication::getInstance()) {
-      CoreApplicationPrivate::removePostedEvent(this);  
+      CoreApplicationPrivate::removePostedEvent(this);
    }
    PDK_ASSERT_X(!m_implPtr, "Event", "Impossible, this can't happen: EventPrivate isn't defined anywhere");
 }

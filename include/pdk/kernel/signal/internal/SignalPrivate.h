@@ -618,7 +618,9 @@ public:
    {}
 
    virtual ~Signal()
-   {}
+   {
+      disconnectAllSlots();
+   }
    
    Signal(Signal &&other)
    {

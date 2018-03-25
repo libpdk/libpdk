@@ -18,7 +18,6 @@
 
 #include "pdk/global/Global.h"
 #include "pdk/base/os/thread/Atomic.h"
-#include "pdk/kernel/Object.h"
 #include "pdk/kernel/HashFuncs.h"
 
 namespace pdk {
@@ -26,6 +25,7 @@ namespace pdk {
 namespace kernel {
 template<typename T>
 class Pointer;
+class Object;
 } // kernel
 
 namespace utils {
