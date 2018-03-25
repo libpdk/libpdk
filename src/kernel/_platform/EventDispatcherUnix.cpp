@@ -419,7 +419,7 @@ bool EventDispatcherUNIX::processEvents(EventLoop::ProcessEventsFlags flags)
    PDK_D(EventDispatcherUNIX);
    implPtr->m_interrupt.store(0);
    // we are awake, broadcast it
-   // emit awake() signal;
+   emitAwakeSignal();
    CoreApplicationPrivate::sendPostedEvents(0, Event::Type::None, implPtr->m_threadData);
    const bool includeTimers = (flags & EventLoop::X11ExcludeTimers) == 0;
    const bool includeNotifiers = (flags & EventLoop::ExcludeSocketNotifiers) == 0;
@@ -428,7 +428,7 @@ bool EventDispatcherUNIX::processEvents(EventLoop::ProcessEventsFlags flags)
                          && !implPtr->m_interrupt.load()
                          && waitForEvents);
    if (canWait) {
-      // emit aboutToBlock();
+      emitAboutToBlockSignal();
    }
    if (implPtr->m_interrupt.load()) {
       return false;

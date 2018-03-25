@@ -43,6 +43,13 @@ class PDK_CORE_EXPORT AbstractEventDispatcher : public Object
 {
    PDK_DECLARE_PRIVATE(AbstractEventDispatcher);
 public:
+   using AboutToBlockHandlerType = void();
+   using AwakeHandlerType = void();
+   PDK_DEFINE_SIGNAL_ENUMS(AboutToBlock, Awake);
+   PDK_DEFINE_SIGNAL_EMITTER(AboutToBlock)
+   PDK_DEFINE_SIGNAL_EMITTER(Awake)
+   PDK_DEFINE_SIGNAL_BINDER(AboutToBlock)
+   PDK_DEFINE_SIGNAL_BINDER(Awake)
    struct TimerInfo
    {
       inline TimerInfo(int id, int interval, pdk::TimerType timerType)
@@ -83,10 +90,7 @@ public:
    void installNativeEventFilter(AbstractNativeEventFilter *filterObj);
    void removeNativeEventFilter(AbstractNativeEventFilter *filterObj);
    bool filterNativeEvent(const ByteArray &eventType, void *message, long *result);
-   
-   // signal
-   // void aboutToBlock();
-   // void awake();
+
 protected:
    virtual bool hasPendingEvents() = 0;
    AbstractEventDispatcher(AbstractEventDispatcherPrivate &,

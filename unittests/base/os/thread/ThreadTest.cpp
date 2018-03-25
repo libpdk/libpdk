@@ -60,6 +60,7 @@ using pdkunittest::TestEventLoop;
 using pdk::os::thread::Semaphore;
 using pdk::kernel::ElapsedTimer;
 using pdk::lang::String;
+using pdk::lang::Latin1String;
 
 class CurrentThread : public Thread
 {
@@ -967,41 +968,41 @@ public:
    }
 };
 
-TEST(ThreadTest, testWait3SlowDestructor)
-{
-   SlowSlotObject slow;
-   Thread thread;
-   thread.connectFinishedSignal(&slow, &SlowSlotObject::slowSlot, pdk::ConnectionType::DirectConnection);
-   thread.connectFinishedSignal([](Thread::SignalType signal, Object *sender) {}, &slow, pdk::ConnectionType::DirectConnection);
-   enum { WaitTime = 1800 };
-   ElapsedTimer timer;
-   thread.start();
-   thread.quit();
-   timer.start();
-   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
-   pdk::pint64 elapsed = timer.elapsed();
-   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
-   slow.m_cond.notify_one();
-   //now the thread should finish quickly
-   ASSERT_TRUE(thread.wait(one_minute));
-}
+//TEST(ThreadTest, testWait3SlowDestructor)
+//{
+//   SlowSlotObject slow;
+//   Thread thread;
+//   thread.connectFinishedSignal(&slow, &SlowSlotObject::slowSlot, pdk::ConnectionType::DirectConnection);
+//   thread.connectFinishedSignal([](Thread::SignalType signal, Object *sender) {}, &slow, pdk::ConnectionType::DirectConnection);
+//   enum { WaitTime = 1800 };
+//   ElapsedTimer timer;
+//   thread.start();
+//   thread.quit();
+//   timer.start();
+//   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
+//   pdk::pint64 elapsed = timer.elapsed();
+//   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+//   slow.m_cond.notify_one();
+//   //now the thread should finish quickly
+//   ASSERT_TRUE(thread.wait(one_minute));
+//}
 
-TEST(ThreadTest, testDestroyFinishRace)
-{
-   class MyThread : public Thread { void run() {} };
-   for (int i = 0; i < 15; i++) {
-      MyThread *thread = new MyThread;
-      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
-      Pointer<Thread> weak(static_cast<Thread *>(thread));
-      thread->start();
-      while (weak) {
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-      }
-   }
-}
+//TEST(ThreadTest, testDestroyFinishRace)
+//{
+//   class MyThread : public Thread { void run() {} };
+//   for (int i = 0; i < 15; i++) {
+//      MyThread *thread = new MyThread;
+//      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
+//      Pointer<Thread> weak(static_cast<Thread *>(thread));
+//      thread->start();
+//      while (weak) {
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//      }
+//   }
+//}
 
 //TEST(ThreadTest, testStartFinishRace)
 //{
@@ -1049,19 +1050,174 @@ TEST(ThreadTest, testDestroyFinishRace)
 //   }
 //}
 
-//class FinishedTestObject : public Object {
-//public:
-//   FinishedTestObject()
-//      : m_ok(false)
-//   {}
-//   bool m_ok;
-//public:
-//   void slotFinished()
-//   {
-//      Thread *t = dynamic_cast<Thread *>(getSender());
-//      m_ok = t && t->isFinished() && !t->isRunning();
-//   }
-//};
+class FinishedTestObject : public Object {
+public:
+   FinishedTestObject()
+      : m_ok(false)
+   {}
+   bool m_ok;
+public:
+   void slotFinished(Thread::SignalType signal, Object *sender)
+   {
+      Thread *t = dynamic_cast<Thread *>(sender);
+      m_ok = t && t->isFinished() && !t->isRunning();
+   }
+};
+
+TEST(ThreadTest, testIsRunningInFinished)
+{
+   for (int i = 0; i < 15; i++) {
+      Thread thread;
+      thread.start();
+      FinishedTestObject localObject;
+      FinishedTestObject inThreadObject;
+      localObject.setObjectName(Latin1String("..."));
+      inThreadObject.moveToThread(&thread);
+      thread.connectFinishedSignal(&localObject, &FinishedTestObject::slotFinished);
+      thread.connectFinishedSignal(&inThreadObject, &FinishedTestObject::slotFinished);
+      EventLoop loop;
+      thread.connectFinishedSignal(&loop, &EventLoop::quit);
+      CallableInvoker::invokeAsync(&thread, &Thread::quit);
+      loop.exec();
+      ASSERT_TRUE(!thread.isRunning());
+      ASSERT_TRUE(thread.isFinished());
+      ASSERT_TRUE(localObject.m_ok);
+      ASSERT_TRUE(inThreadObject.m_ok);
+   }
+}
+
+namespace pdk {
+namespace kernel {
+PDK_CORE_EXPORT uint global_posted_events_count();
+} // kernel
+} // pdk
+
+using pdk::kernel::global_posted_events_count;
+
+using pdk::kernel::AbstractEventDispatcher;
+using pdk::kernel::SocketNotifier;
+using pdk::os::thread::BasicAtomicInt;
+
+class DummyEventDispatcher : public AbstractEventDispatcher
+{
+public:
+   DummyEventDispatcher() : AbstractEventDispatcher()
+   {}
+   
+   bool processEvents(EventLoop::ProcessEventsFlags)
+   {
+      m_visited.store(true);
+      emitAwakeSignal();
+      CoreApplication::sendPostedEvents();
+      return false;
+   }
+   
+   bool hasPendingEvents()
+   {
+      return global_posted_events_count();
+   }
+   
+   void registerSocketNotifier(SocketNotifier *)
+   {}
+   
+   void unregisterSocketNotifier(SocketNotifier *)
+   {}
+   
+   void registerTimer(int, int, pdk::TimerType, Object *)
+   {}
+   
+   bool unregisterTimer(int )
+   {
+      return false;
+   }
+   
+   bool unregisterTimers(Object *)
+   {
+      return false;
+   }
+   
+   std::list<TimerInfo> getRegisteredTimers(Object *) const
+   {
+      return std::list<TimerInfo>();
+   }
+   
+   int remainingTime(int)
+   {
+      return 0;
+   }
+   
+   void wakeUp()
+   {}
+   
+   void interrupt()
+   {}
+   
+   void flush()
+   {}
+   
+   //#ifdef PDK_OS_WIN
+   //    bool registerEventNotifier(WinEventNotifier *) { return false; }
+   //    void unregisterEventNotifier(WinEventNotifier *) { }
+   //#endif
+   
+   BasicAtomicInt m_visited; // bool
+};
+
+
+class ThreadObj : public Object
+{
+public:
+   using VisitedHandlerType = void();
+   PDK_DEFINE_SIGNAL_ENUMS(Visited);
+   PDK_DEFINE_SIGNAL_EMITTER(Visited)
+   PDK_DEFINE_SIGNAL_BINDER(Visited)
+   
+   void visit()
+   {
+      emitVisitedSignal();
+   }
+public:
+   void visited();
+};
+
+
+TEST(ThreadTest, testCustomEventDispatcher)
+{
+   Thread thread;
+   // there should be no ED yet
+   ASSERT_TRUE(!thread.getEventDispatcher());
+   DummyEventDispatcher *ed = new DummyEventDispatcher;
+   thread.setEventDispatcher(ed);
+   // the new ED should be set
+   ASSERT_EQ(thread.getEventDispatcher(), ed);
+   // test the alternative API of AbstractEventDispatcher
+   ASSERT_EQ(AbstractEventDispatcher::getInstance(&thread), ed);
+   thread.start();
+   // start() should not overwrite the ED
+   ASSERT_EQ(thread.getEventDispatcher(), ed);
+   
+   ThreadObj obj;
+   obj.moveToThread(&thread);
+   // move was successful?
+   ASSERT_EQ(obj.getThread(), &thread);
+   EventLoop loop;
+   obj.connectVisitedSignal(&loop, &EventLoop::quit, pdk::ConnectionType::QueuedConnection);
+   CallableInvoker::invokeAsync([&obj]() {
+      obj.visit();
+   }, &obj);
+   loop.exec();
+   // test that the ED has really been used
+   ASSERT_TRUE(ed->m_visited.load());
+   
+   Pointer<DummyEventDispatcher> weak_ed(ed);
+   ASSERT_TRUE(!weak_ed.isNull());
+   thread.quit();
+   // wait for thread to be stopped
+   ASSERT_TRUE(thread.wait(30000));
+   // test that ED has been deleted
+   ASSERT_TRUE(weak_ed.isNull());
+}
+
 
 int main(int argc, char **argv)
 {

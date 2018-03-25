@@ -132,10 +132,9 @@ Thread *Thread::create(SlotFuncType &&func, Args &&... args)
    {
       (void)std::invoke(std::move(func), std::forward<decltype(largs)>(largs)...);
    };
-   
-//   return createThreadImpl(std::async(std::launch::deferred,
-//                                      std::move(threadFunction),
-//                                      std::forward<Args>(args)...));
+   return createThreadImpl(std::async(std::launch::deferred,
+                                      std::move(threadFunc),
+                                      std::forward<Args>(args)...));
 }
 
 } // thread
