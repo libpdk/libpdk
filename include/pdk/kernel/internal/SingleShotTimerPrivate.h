@@ -29,6 +29,8 @@ namespace internal {
 class SingleShotTimer : public Object
 {
 public:
+   PDK_DEFINE_SIGNAL_ENUMS(Timeout);
+   
    using TimeoutHandlerType = void();
    using SlotFuncHandlerType = TimeoutHandlerType;
    ~SingleShotTimer();

@@ -38,6 +38,8 @@ using pdk::kernel::signal::Signal;
 class PDK_CORE_EXPORT Timer : public Object
 {
 public:
+   PDK_DEFINE_SIGNAL_ENUMS(Timeout);
+   
    using TimeoutHandlerType = void();
    using SlotFuncType = void (Object *);
 public:

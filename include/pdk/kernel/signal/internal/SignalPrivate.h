@@ -38,7 +38,6 @@
 #include "pdk/kernel/signal/OptionalLastValue.h"
 #include "pdk/kernel/signal/Connection.h"
 #include "pdk/stdext/typetraits/FunctionTraits.h"
-#include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include <algorithm>
 #include <functional>
 #include <mutex>

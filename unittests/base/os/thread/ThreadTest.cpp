@@ -797,6 +797,7 @@ void test_native_thread_adoption(void *)
 class Syncronizer : public Object
 {
 public:
+   PDK_DEFINE_SIGNAL_ENUMS(PropChanged);
    void setProp(int p) {
       if(m_prop != p) {
          m_prop = p;
@@ -959,7 +960,7 @@ class SlowSlotObject : public Object {
 public:
    std::mutex m_mutex;
    std::condition_variable m_cond;
-   void slowSlot()
+   void slowSlot(Thread::SignalType signal, Object *sender)
    {
       std::unique_lock locker(m_mutex);
       m_cond.wait(locker);
@@ -971,6 +972,7 @@ TEST(ThreadTest, testWait3SlowDestructor)
    SlowSlotObject slow;
    Thread thread;
    thread.connectFinishedSignal(&slow, &SlowSlotObject::slowSlot, pdk::ConnectionType::DirectConnection);
+   thread.connectFinishedSignal([](Thread::SignalType signal, Object *sender) {}, &slow, pdk::ConnectionType::DirectConnection);
    enum { WaitTime = 1800 };
    ElapsedTimer timer;
    thread.start();
@@ -984,54 +986,82 @@ TEST(ThreadTest, testWait3SlowDestructor)
    ASSERT_TRUE(thread.wait(one_minute));
 }
 
-TEST(ThreadTest, testDestroyFinishRace)
-{
-   class MyThread : public Thread { void run() {} };
-   for (int i = 0; i < 15; i++) {
-      MyThread *thread = new MyThread;
-      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
-      Pointer<Thread> weak(static_cast<Thread *>(thread));
-      thread->start();
-      while (weak) {
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-      }
-   }
-}
+//TEST(ThreadTest, testDestroyFinishRace)
+//{
+//   class MyThread : public Thread { void run() {} };
+//   for (int i = 0; i < 15; i++) {
+//      MyThread *thread = new MyThread;
+//      thread->connectFinishedSignal(thread, &MyThread::deleteLater);
+//      Pointer<Thread> weak(static_cast<Thread *>(thread));
+//      thread->start();
+//      while (weak) {
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//      }
+//   }
+//}
 
-TEST(ThreadTest, testStartFinishRace)
-{
-   class MyThread : public Thread {
-   public:
-      MyThread() : m_i (50) {}
-      void run() {
-         m_i--;
-         if (!m_i) {
-            disconnectFinishedSignal(m_connection);
-         }
-      }
-      void start()
-      {
-         Thread::start(Priority::InheritPriority);
-      }
-      int m_i;
-      pdk::kernel::signal::Connection m_connection;
-   };
-   for (int i = 0; i < 15; i++) {
-      MyThread thread;
-      thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start);
-      thread.start();
-      while (!thread.isFinished() || thread.m_i != 0) {
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
-      }
-      ASSERT_EQ(thread.m_i, 0);
-   }
-}
+//TEST(ThreadTest, testStartFinishRace)
+//{
+//   class MyThread : public Thread {
+//   public:
+//      MyThread() : m_i (50) {}
+//      void run() {
+//         m_i--;
+//         if (!m_i) {
+//            disconnectFinishedSignal(m_connection);
+//         }
+//      }
+//      void start()
+//      {
+//         Thread::start(Priority::InheritPriority);
+//      }
+//      int m_i;
+//      pdk::kernel::signal::Connection m_connection;
+//   };
+//   for (int i = 0; i < 15; i++) {
+//      MyThread thread;
+//      thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start);
+//      thread.start();
+//      while (!thread.isFinished() || thread.m_i != 0) {
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//         PDK_RETRIEVE_APP_INSTANCE()->processEvents();
+//      }
+//      ASSERT_EQ(thread.m_i, 0);
+//   }
+//}
+
+//TEST(ThreadTest, testStartAndQuitCustomEventLoop)
+//{
+//   struct MyThread : Thread {
+//      void run() { EventLoop().exec(); }
+//   };
+
+//   for (int i = 0; i < 5; i++) {
+//      MyThread t;
+//      t.start();
+//      t.quit();
+//      t.wait();
+//   }
+//}
+
+//class FinishedTestObject : public Object {
+//public:
+//   FinishedTestObject()
+//      : m_ok(false)
+//   {}
+//   bool m_ok;
+//public:
+//   void slotFinished()
+//   {
+//      Thread *t = dynamic_cast<Thread *>(getSender());
+//      m_ok = t && t->isFinished() && !t->isRunning();
+//   }
+//};
 
 int main(int argc, char **argv)
 {

@@ -84,14 +84,7 @@ public:
       std::list<Pointer<Object>> m_eventFilters;
       String m_objectName;
    };
-     
-   struct Sender
-   {
-      Object *m_sender;
-      int m_signal;
-      int m_ref;
-   };
-   
+
    static ObjectPrivate *get(Object *object)
    {
       return object->getImplPtr();
@@ -107,15 +100,11 @@ public:
    void moveToThreadHelper();
    void setThreadDataHelper(ThreadData *currentData, ThreadData *targetData);
    void reregisterTimers(void *pointer);
-   
-   static inline Sender *setCurrentSender(Object *receiver, Sender *sender);
-   static inline void resetCurrentSender(Object *receiver, Sender *currentSender, Sender *previousSender);
 public:
    union {
       Object *m_currentChildBeingDeleted;
    };
    
-   Sender *m_currentSender;
    ExtraData *m_extraData;
    ThreadData *m_threadData;
    // these objects are all used to indicate that a Object was deleted
@@ -126,7 +115,5 @@ public:
 } // internal
 } // kernel
 } // pdk
-
-PDK_DECLARE_TYPEINFO(pdk::kernel::internal::ObjectPrivate::Sender, PDK_MOVABLE_TYPE);
 
 #endif // PDK_KERNEL_INTERNAL_OBJECT_PRIVATE_H

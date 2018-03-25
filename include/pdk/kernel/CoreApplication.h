@@ -72,6 +72,8 @@ public:
    using AppNameChangedHandlerType = InfoChangeHandlerType;
    using AppVersionChangedHandlerType = InfoChangeHandlerType;
    
+   PDK_DEFINE_SIGNAL_ENUMS(AboutToQuit, OrgNameChanged, OrgDomainChanged,
+                           AppNameChanged, AppVersionChanged);
    enum { 
       ApplicationFlags = 0x000001// PDK_VERSION
    };

@@ -86,11 +86,7 @@ public:
 class Object
 {
 public:
-   enum class SignalType
-   {
-      Destroyed,
-      ObjectNameChanged
-   };
+   PDK_DEFINE_SIGNAL_ENUMS(Destroyed, ObjectNameChanged);
    using DestroyedHandlerType = void(Object *);
    using ObjectNameChangedHandlerType = void(const String &);
 public:

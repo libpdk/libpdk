@@ -47,6 +47,8 @@ using pdk::kernel::CoreApplication;
 class PDK_CORE_EXPORT Thread : public pdk::kernel::Object
 {
 public:
+   PDK_DEFINE_SIGNAL_ENUMS(Started, Finished);
+   
    using FinishedHandlerType = void();
    using StartedHandlerType = void();
    static pdk::HANDLE getCurrentThreadId() noexcept PDK_DECL_PURE_FUNCTION;

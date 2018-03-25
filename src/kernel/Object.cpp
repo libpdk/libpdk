@@ -62,7 +62,6 @@ ObjectPrivate::ObjectPrivate(int version)
    m_extraData = nullptr;
    m_isWindow = false;
    m_deleteLaterCalled = false;
-   m_currentSender = nullptr;
 }
 
 ObjectPrivate::~ObjectPrivate()
@@ -225,11 +224,6 @@ Object::~Object()
    if (!implPtr->m_isWidget) {
       emitDestroyedSignal(this);
    }
-   // set ref to zero to indicate that this object has been deleted
-   if (implPtr->m_currentSender != nullptr) {
-      implPtr->m_currentSender->m_ref = 0;
-   }
-   implPtr->m_currentSender = nullptr;
    if (!implPtr->m_children.empty()) {
       implPtr->deleteChildren();
    }
@@ -418,11 +412,6 @@ void ObjectPrivate::setThreadDataHelper(ThreadData *currentData, ThreadData *tar
       targetData->m_eventDispatcher.load()->wakeUp();
    }
    
-   // the current emitting thread shouldn't restore currentSender after calling moveToThread()
-   if (m_currentSender) {
-      m_currentSender->m_ref = 0;
-   }
-   m_currentSender = nullptr;
    // set new thread data
    targetData->ref();
    m_threadData->deref();
