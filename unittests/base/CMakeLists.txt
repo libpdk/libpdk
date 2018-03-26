@@ -7,7 +7,7 @@ pdk_add_files(PDK_LANG_TEST_SRCS
    lang/string/DoubleData.h
    lang/string/StringTest.cpp)
 
-pdk_add_unittest(ModuleBaseUnittests LangTest ${PDK_LANG_TEST_SRCS})
+pdk_add_unittest(ModuleBaseUnittests PdkLangTest ${PDK_LANG_TEST_SRCS})
 
 set(PDK_OS_THREAD_TEST_SRCS)
 pdk_add_files(PDK_OS_THREAD_TEST_SRCS
@@ -31,7 +31,7 @@ pdk_add_files(PDK_DS_TEST_SRCS
    ds/BitArrayTest.cpp
    ds/RingBufferTest.cpp)
 
-pdk_add_unittest(ModuleBaseUnittests DsTest ${PDK_DS_TEST_SRCS})
+pdk_add_unittest(ModuleBaseUnittests PdkDsTest ${PDK_DS_TEST_SRCS})
 
 set(PDK_TEXT_TEST_SRCS)
 pdk_add_files(PDK_TEXT_TEST_SRCS

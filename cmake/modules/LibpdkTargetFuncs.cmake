@@ -625,7 +625,7 @@ function(pdk_add_unittest test_suite test_name)
     # libpthreads overrides some standard library symbols, so main
     # executable must be linked with it in order to provide consistent
     # API for all shared libaries loaded by this executable.
-    target_link_libraries(${test_name} gtest_main gtest ${PDK_PTHREAD_LIB} libpdk)
+    target_link_libraries(${test_name} GTest::Main GTest::GTest ${PDK_PTHREAD_LIB} pdk pdktest)
     add_dependencies(${test_suite} ${test_name})
     get_target_property(test_suite_folder ${test_suite} FOLDER)
     if (NOT ${test_suite_folder} STREQUAL "NOTFOUND")

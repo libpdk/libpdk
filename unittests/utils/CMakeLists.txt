@@ -14,4 +14,4 @@ pdk_add_files(PDK_UTILS_TEST_SRCS
     LockFreeListTest.cpp
     LocaleTest.cpp)
 
-pdk_add_unittest(UtilsUnittests UtilsTest ${PDK_UTILS_TEST_SRCS})
+pdk_add_unittest(UtilsUnittests PdkUtilsTest ${PDK_UTILS_TEST_SRCS})

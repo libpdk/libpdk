@@ -306,6 +306,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND PDK_ENABLE_UNITTEST)
     if(NOT PDK_FOUND_NATIVE_GTEST)
         add_subdirectory(thirdparty/unittest)
     endif()
+    add_subdirectory(testlib)
+    include_directories(BEFORE 
+       testlib)
+    set(PDK_BUILD_TESTLIB_LIB ON)
     add_subdirectory(unittests)
 endif()
 

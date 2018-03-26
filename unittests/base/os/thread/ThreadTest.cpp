@@ -46,6 +46,7 @@
 #include "pdk/stdext/typetraits/Sequence.h"
 #include "pdk/stdext/typetraits/CallableInfoTrait.h"
 #include "pdk/utils/ScopedPointer.h"
+#include "pdktest/Utils.h"
 
 enum { one_minute = 60 * 1000, five_minutes = 5 * one_minute };
 
@@ -196,16 +197,17 @@ public:
    }
 };
 
-//TEST(ThreadTest, testCurrentThreadId)
-//{
-//   CurrentThread thread;
-//   thread.m_id = 0;
-//   thread.m_thread = nullptr;
-//   thread.start();
-//   ASSERT_TRUE(thread.wait(five_minutes));
-//   ASSERT_TRUE(thread.m_id != 0);
-//   ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
-//}
+TEST(ThreadTest, testCurrentThreadId)
+{
+   CurrentThread thread;
+   thread.m_id = 0;
+   thread.m_thread = nullptr;
+   thread.start();
+   ASSERT_TRUE(thread.wait(five_minutes));
+   ASSERT_TRUE(thread.m_id != 0);
+   ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
+   pdktest::sleep(1);
+}
 
 //TEST(ThreadTest, testCurrentThread)
 //{

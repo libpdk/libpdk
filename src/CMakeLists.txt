@@ -211,7 +211,7 @@ else()
       ${KERNEL_BASE_DIR}/_platform/ElapsedTimerGeneric.cpp)
 endif()
 
-pdk_add_library(libpdk 
+pdk_add_library(pdk 
    ${PDK_HEADER_FILES} 
    ${PDK_BASE_SOURCES}
    ${PDK_BASE_MODULE_SOURCES}
