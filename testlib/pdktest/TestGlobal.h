@@ -18,7 +18,6 @@
 
 #include "pdk/global/Global.h"
 
-
 #if defined(PDK_STATIC)
 # define PDK_TESTLIB_EXPORT
 #else

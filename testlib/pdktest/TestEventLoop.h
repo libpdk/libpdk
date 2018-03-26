@@ -23,7 +23,7 @@
 #include "pdk/kernel/CallableInvoker.h"
 #include "pdk/base/os/thread/Thread.h"
 
-namespace pdkunittest {
+namespace pdktest {
 
 using pdk::kernel::Object;
 using pdk::kernel::Pointer;

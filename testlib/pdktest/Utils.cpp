@@ -19,7 +19,13 @@ namespace pdktest {
 
 void sleep(int ms)
 {
-   
+   PDK_ASSERT(ms > 0);
+#if defined(PDK_OS_WIN)
+   Sleep(uint(ms));
+#else
+   struct timespec ts = { time_t(ms / 1000), (ms % 1000) * 1000 * 1000 };
+   nanosleep(&ts, NULL);
+#endif
 }
 
 } // testlib
