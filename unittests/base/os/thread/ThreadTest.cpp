@@ -45,6 +45,7 @@
 #include "pdk/base/os/thread/Semaphore.h"
 #include "pdk/stdext/typetraits/Sequence.h"
 #include "pdk/stdext/typetraits/CallableInfoTrait.h"
+#include "pdk/utils/ScopedPointer.h"
 
 enum { one_minute = 60 * 1000, five_minutes = 5 * one_minute };
 
@@ -61,6 +62,7 @@ using pdk::os::thread::Semaphore;
 using pdk::kernel::ElapsedTimer;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
+using pdk::utils::ScopedPointer;
 
 class CurrentThread : public Thread
 {
@@ -437,7 +439,7 @@ public:
 //   bool signalCatched = false;
 //   thread.connectFinishedSignal([&](){
 //      signalCatched = true;
-//   });
+//   }, &thread, pdk::ConnectionType::DirectConnection);
 //   thread.start();
 //   ASSERT_TRUE(thread.wait(five_minutes));
 //   ASSERT_TRUE(signalCatched);
@@ -680,13 +682,13 @@ void test_native_thread_adoption(void *)
 //   ASSERT_TRUE(threadAdoptedOk);
 //}
 
-//void adopted_thread_affinity_function(void *arg)
-//{
-//   Thread **affinity = reinterpret_cast<Thread **>(arg);
-//   Thread *current = Thread::getCurrentThread();
-//   affinity[0] = current;
-//   affinity[1] = current->getThread();
-//}
+void adopted_thread_affinity_function(void *arg)
+{
+   Thread **affinity = reinterpret_cast<Thread **>(arg);
+   Thread *current = Thread::getCurrentThread();
+   affinity[0] = current;
+   affinity[1] = current->getThread();
+}
 
 //TEST(ThreadTest, testAdoptedThreadAffinity)
 //{
@@ -739,20 +741,20 @@ void test_native_thread_adoption(void *)
 //   nativeThread.join();
 //}
 
-//void adopted_thread_exec_function(void *)
-//{
-//   Thread  * const adoptedThread = Thread::getCurrentThread();
-//   EventLoop eventLoop(adoptedThread);
-//   const int code = 1;
-//   ExitObject o;
-//   o.m_thread = adoptedThread;
-//   o.m_code = code;
-//   Timer::singleShot(100, [&](){
-//      o.slot();
-//   });
-//   const int result = eventLoop.exec();
-//   ASSERT_EQ(result, code);
-//}
+void adopted_thread_exec_function(void *)
+{
+   Thread  * const adoptedThread = Thread::getCurrentThread();
+   EventLoop eventLoop(adoptedThread);
+   const int code = 1;
+   ExitObject o;
+   o.m_thread = adoptedThread;
+   o.m_code = code;
+   Timer::singleShot(100, [&](){
+      o.slot();
+   });
+   const int result = eventLoop.exec();
+   ASSERT_EQ(result, code);
+}
 
 //TEST(ThreadTest, testAdoptedThreadExec)
 //{
@@ -761,26 +763,29 @@ void test_native_thread_adoption(void *)
 //   nativeThread.join();
 //}
 
+// @TODO not understand
 //TEST(ThreadTest, testAdoptedThreadFinished)
 //{
-//   SimpleThread closureThread;
-//   closureThread.start();
-//   TestEventLoop *instance = &TestEventLoop::instance();
 //   NativeThreadWrapper nativeThread;
 //   nativeThread.setWaitForStop();
 //   nativeThread.startAndWait();
-//   nativeThread.m_pdkthread->connectFinishedSignal([&](){
-//      std::cout << "xxxx" << std::endl;
-//     // instance->exitLoop();
-//   });
-
-
-//   ASSERT_TRUE(closureThread.wait(five_minutes));
+//   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
 //   nativeThread.stop();
 //   nativeThread.join();
+//   TestEventLoop::instance().enterLoop(5);
+//   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+//}
 
-//   TestEventLoop *temp = &TestEventLoop::instance();
-//   temp->enterLoop(5);
+// @TODO not understand
+//TEST(ThreadTest, testAdoptedThreadExecFinished)
+//{
+//   NativeThreadWrapper nativeThread;
+//   nativeThread.setWaitForStop();
+//   nativeThread.startAndWait(adopted_thread_exec_function);
+//   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
+//   nativeThread.stop();
+//   nativeThread.join();
+//   TestEventLoop::instance().enterLoop(5);
 //   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
 //}
 
@@ -802,10 +807,10 @@ public:
    void setProp(int p) {
       if(m_prop != p) {
          m_prop = p;
+         std::cout << "set prop" << std::endl;
          emitPropChangedSignal(std::move(p));
       }
    }
-   void propChanged(int);
    ~Syncronizer()
    {
       
@@ -847,9 +852,9 @@ public:
    }
 };
 
-//TEST(ThreadTest, exitAndStart)
+//TEST(ThreadTest, testExitAndStart)
 //{
-//   CurrentThread1 thread;
+//   Thread thread;
 //   thread.exit(555); //should do nothing
 //   thread.start();
 //   Syncronizer sync1;
@@ -857,7 +862,7 @@ public:
 //   Syncronizer sync2;
 //   sync2.moveToThread(&thread);
 //   sync2.connectPropChangedSignal(&sync1, &Syncronizer::setProp, pdk::ConnectionType::QueuedConnection);
-//   sync1.connectPropChangedSignal(&thread, &CurrentThread1::quit, pdk::ConnectionType::QueuedConnection);
+//   sync1.connectPropChangedSignal(&thread, &Thread::quit, pdk::ConnectionType::QueuedConnection);
 //   CallableInvoker::invokeAsync([&sync2](int value) {
 //      sync2.setProp(value);
 //   }, &sync2, 89);
@@ -925,21 +930,21 @@ public:
 //   ASSERT_TRUE(p.isNull());
 //}
 
-class WaitingThread : public Thread
-{
-public:
-   enum { WaitTime = 800 };
-   std::mutex m_mutex;
-   std::condition_variable m_cond1;
-   std::condition_variable m_cond2;
+//class WaitingThread : public Thread
+//{
+//public:
+//   enum { WaitTime = 800 };
+//   std::mutex m_mutex;
+//   std::condition_variable m_cond1;
+//   std::condition_variable m_cond2;
    
-   void run()
-   {
-      std::unique_lock locker(m_mutex);
-      m_cond1.wait(locker);
-      m_cond2.wait_for(locker, std::chrono::milliseconds(WaitTime));
-   }
-};
+//   void run()
+//   {
+//      std::unique_lock locker(m_mutex);
+//      m_cond1.wait(locker);
+//      m_cond2.wait_for(locker, std::chrono::milliseconds(WaitTime));
+//   }
+//};
 
 //TEST(ThreadTest, testWait2)
 //{
@@ -957,16 +962,16 @@ public:
 //   ASSERT_TRUE(elapsed - WaitingThread::WaitTime >= -1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
 //}
 
-class SlowSlotObject : public Object {
-public:
-   std::mutex m_mutex;
-   std::condition_variable m_cond;
-   void slowSlot(Thread::SignalType signal, Object *sender)
-   {
-      std::unique_lock locker(m_mutex);
-      m_cond.wait(locker);
-   }
-};
+//class SlowSlotObject : public Object {
+//public:
+//   std::mutex m_mutex;
+//   std::condition_variable m_cond;
+//   void slowSlot(Thread::SignalType signal, Object *sender)
+//   {
+//      std::unique_lock locker(m_mutex);
+//      m_cond.wait(locker);
+//   }
+//};
 
 //TEST(ThreadTest, testWait3SlowDestructor)
 //{
@@ -1050,19 +1055,19 @@ public:
 //   }
 //}
 
-class FinishedTestObject : public Object {
-public:
-   FinishedTestObject()
-      : m_ok(false)
-   {}
-   bool m_ok;
-public:
-   void slotFinished(Thread::SignalType signal, Object *sender)
-   {
-      Thread *t = dynamic_cast<Thread *>(sender);
-      m_ok = t && t->isFinished() && !t->isRunning();
-   }
-};
+//class FinishedTestObject : public Object {
+//public:
+//   FinishedTestObject()
+//      : m_ok(false)
+//   {}
+//   bool m_ok;
+//public:
+//   void slotFinished(Thread::SignalType signal, Object *sender)
+//   {
+//      Thread *t = dynamic_cast<Thread *>(sender);
+//      m_ok = t && t->isFinished() && !t->isRunning();
+//   }
+//};
 
 //TEST(ThreadTest, testIsRunningInFinished)
 //{
@@ -1086,209 +1091,469 @@ public:
 //   }
 //}
 
-namespace pdk {
-namespace kernel {
-PDK_CORE_EXPORT uint global_posted_events_count();
-} // kernel
-} // pdk
+//namespace pdk {
+//namespace kernel {
+//PDK_CORE_EXPORT uint global_posted_events_count();
+//} // kernel
+//} // pdk
 
-using pdk::kernel::global_posted_events_count;
+//using pdk::kernel::global_posted_events_count;
 
-using pdk::kernel::AbstractEventDispatcher;
-using pdk::kernel::SocketNotifier;
-using pdk::os::thread::BasicAtomicInt;
+//using pdk::kernel::AbstractEventDispatcher;
+//using pdk::kernel::SocketNotifier;
+//using pdk::os::thread::BasicAtomicInt;
 
-class DummyEventDispatcher : public AbstractEventDispatcher
-{
-public:
-   DummyEventDispatcher() : AbstractEventDispatcher()
-   {}
+//class DummyEventDispatcher : public AbstractEventDispatcher
+//{
+//public:
+//   DummyEventDispatcher() : AbstractEventDispatcher()
+//   {}
    
-   bool processEvents(EventLoop::ProcessEventsFlags)
-   {
-      m_visited.store(true);
-      emitAwakeSignal();
-      CoreApplication::sendPostedEvents();
-      return false;
-   }
+//   bool processEvents(EventLoop::ProcessEventsFlags)
+//   {
+//      m_visited.store(true);
+//      emitAwakeSignal();
+//      CoreApplication::sendPostedEvents();
+//      return false;
+//   }
    
-   bool hasPendingEvents()
-   {
-      return global_posted_events_count();
-   }
+//   bool hasPendingEvents()
+//   {
+//      return global_posted_events_count();
+//   }
    
-   void registerSocketNotifier(SocketNotifier *)
-   {}
+//   void registerSocketNotifier(SocketNotifier *)
+//   {}
    
-   void unregisterSocketNotifier(SocketNotifier *)
-   {}
+//   void unregisterSocketNotifier(SocketNotifier *)
+//   {}
    
-   void registerTimer(int, int, pdk::TimerType, Object *)
-   {}
+//   void registerTimer(int, int, pdk::TimerType, Object *)
+//   {}
    
-   bool unregisterTimer(int )
-   {
-      return false;
-   }
+//   bool unregisterTimer(int )
+//   {
+//      return false;
+//   }
    
-   bool unregisterTimers(Object *)
-   {
-      return false;
-   }
+//   bool unregisterTimers(Object *)
+//   {
+//      return false;
+//   }
    
-   std::list<TimerInfo> getRegisteredTimers(Object *) const
-   {
-      return std::list<TimerInfo>();
-   }
+//   std::list<TimerInfo> getRegisteredTimers(Object *) const
+//   {
+//      return std::list<TimerInfo>();
+//   }
    
-   int remainingTime(int)
-   {
-      return 0;
-   }
+//   int remainingTime(int)
+//   {
+//      return 0;
+//   }
    
-   void wakeUp()
-   {}
+//   void wakeUp()
+//   {}
    
-   void interrupt()
-   {}
+//   void interrupt()
+//   {}
    
-   void flush()
-   {}
+//   void flush()
+//   {}
    
-   //#ifdef PDK_OS_WIN
-   //    bool registerEventNotifier(WinEventNotifier *) { return false; }
-   //    void unregisterEventNotifier(WinEventNotifier *) { }
-   //#endif
+//   //#ifdef PDK_OS_WIN
+//   //    bool registerEventNotifier(WinEventNotifier *) { return false; }
+//   //    void unregisterEventNotifier(WinEventNotifier *) { }
+//   //#endif
    
-   BasicAtomicInt m_visited; // bool
-};
+//   BasicAtomicInt m_visited; // bool
+//};
 
-
-class ThreadObj : public Object
-{
-public:
-   using VisitedHandlerType = void();
-   PDK_DEFINE_SIGNAL_ENUMS(Visited);
-   PDK_DEFINE_SIGNAL_EMITTER(Visited)
-   PDK_DEFINE_SIGNAL_BINDER(Visited)
+//class ThreadObj : public Object
+//{
+//public:
+//   using VisitedHandlerType = void();
+//   PDK_DEFINE_SIGNAL_ENUMS(Visited);
+//   PDK_DEFINE_SIGNAL_EMITTER(Visited)
+//   PDK_DEFINE_SIGNAL_BINDER(Visited)
    
-   void visit()
-   {
-      emitVisitedSignal();
-   }
-public:
-   void visited();
-};
+//   void visit()
+//   {
+//      emitVisitedSignal();
+//   }
+//public:
+//   void visited();
+//};
 
-TEST(ThreadTest, testCustomEventDispatcher)
-{
-   Thread thread;
-   // there should be no ED yet
-   ASSERT_TRUE(!thread.getEventDispatcher());
-   DummyEventDispatcher *ed = new DummyEventDispatcher;
-   thread.setEventDispatcher(ed);
-   // the new ED should be set
-   ASSERT_EQ(thread.getEventDispatcher(), ed);
-   // test the alternative API of AbstractEventDispatcher
-   ASSERT_EQ(AbstractEventDispatcher::getInstance(&thread), ed);
-   thread.start();
-   // start() should not overwrite the ED
-   ASSERT_EQ(thread.getEventDispatcher(), ed);
-
-   ThreadObj obj;
-   obj.moveToThread(&thread);
-   // move was successful?
-   ASSERT_EQ(obj.getThread(), &thread);
-   EventLoop loop;
-   obj.connectVisitedSignal(&loop, &EventLoop::quit, pdk::ConnectionType::QueuedConnection);
-   CallableInvoker::invokeAsync([&obj]() {
-      obj.visit();
-   }, &obj);
-   loop.exec();
-   // test that the ED has really been used
-   ASSERT_TRUE(ed->m_visited.load());
-
-   Pointer<DummyEventDispatcher> weak_ed(ed);
-   ASSERT_TRUE(!weak_ed.isNull());
-   thread.quit();
-   // wait for thread to be stopped
-   ASSERT_TRUE(thread.wait(30000));
-   // test that ED has been deleted
-   ASSERT_TRUE(weak_ed.isNull());
-}
-
-using pdk::kernel::EventLoopLocker;
-
-class Job : public Object
-{
-public:
-   Job(Thread *thread, int deleteDelay, bool *flag, Object *parent = nullptr)
-      : Object(parent),
-        m_quitLocker(thread),
-        m_exitThreadCalled(*flag)
-   {
-      m_exitThreadCalled = false;
-      moveToThread(thread);
-//      std::cout << "Job current thread " << getThread() << std::endl;
-      Timer::singleShot(deleteDelay, this, &Job::deleteLater);
-      Timer::singleShot(1000, this, &Job::exitThread);
-   }
-   void deleteLater()
-   {
-//      std::cout << "deleteLater >> " << Thread::getCurrentThread() << std::endl;
-//      std::cout << "job >> " << this << std::endl;
-      Object::deleteLater();
-   }
-   ~Job()
-   {
-//      std::cout << "destroy" << std::endl;
-   }
+//TEST(ThreadTest, testCustomEventDispatcher)
+//{
+//   Thread thread;
+//   // there should be no ED yet
+//   ASSERT_TRUE(!thread.getEventDispatcher());
+//   DummyEventDispatcher *ed = new DummyEventDispatcher;
+//   thread.setEventDispatcher(ed);
+//   // the new ED should be set
+//   ASSERT_EQ(thread.getEventDispatcher(), ed);
+//   // test the alternative API of AbstractEventDispatcher
+//   ASSERT_EQ(AbstractEventDispatcher::getInstance(&thread), ed);
+//   thread.start();
+//   // start() should not overwrite the ED
+//   ASSERT_EQ(thread.getEventDispatcher(), ed);
    
-public:
-   void exitThread()
-   {
-//      std::cout << "exitThread" << std::endl;
-      m_exitThreadCalled = true;
-      getThread()->exit(1);
-   }
+//   ThreadObj obj;
+//   obj.moveToThread(&thread);
+//   // move was successful?
+//   ASSERT_EQ(obj.getThread(), &thread);
+//   EventLoop loop;
+//   obj.connectVisitedSignal(&loop, &EventLoop::quit, pdk::ConnectionType::QueuedConnection);
+//   CallableInvoker::invokeAsync([&obj]() {
+//      obj.visit();
+//   }, &obj);
+//   loop.exec();
+//   // test that the ED has really been used
+//   ASSERT_TRUE(ed->m_visited.load());
    
-private:
-   EventLoopLocker m_quitLocker;
-public:
-   bool &m_exitThreadCalled;
-};
+//   Pointer<DummyEventDispatcher> weak_ed(ed);
+//   ASSERT_TRUE(!weak_ed.isNull());
+//   thread.quit();
+//   // wait for thread to be stopped
+//   ASSERT_TRUE(thread.wait(30000));
+//   // test that ED has been deleted
+//   ASSERT_TRUE(weak_ed.isNull());
+//}
 
-class MyEventLoop : public EventLoop
-{
-public:
-   void quit()
-   {
-//      std::cout << "quit" << std::endl;
-      exit(0);
-   }
-};
+//using pdk::kernel::EventLoopLocker;
 
-TEST(ThreadTest, testQuitLock)
-{
-   Object *x = new Object;
-   Thread thread;
-   delete x;
-   bool exitThreadCalled;
-   MyEventLoop loop;
-   thread.connectFinishedSignal(&loop, &MyEventLoop::quit);
-   Job *job;
-   thread.start();
-   job = new Job(&thread, 500, &exitThreadCalled);
-   ASSERT_EQ(job->getThread(), &thread);
-   loop.exec();
+//class Job : public Object
+//{
+//public:
+//   Job(Thread *thread, int deleteDelay, bool *flag, Object *parent = nullptr)
+//      : Object(parent),
+//        m_quitLocker(thread),
+//        m_exitThreadCalled(*flag)
+//   {
+//      m_exitThreadCalled = false;
+//      moveToThread(thread);
+//      //      std::cout << "Job current thread " << getThread() << std::endl;
+//      Timer::singleShot(deleteDelay, this, &Job::deleteLater);
+//      Timer::singleShot(1000, this, &Job::exitThread);
+//   }
+//   void deleteLater()
+//   {
+//      //      std::cout << "deleteLater >> " << Thread::getCurrentThread() << std::endl;
+//      //      std::cout << "job >> " << this << std::endl;
+//      Object::deleteLater();
+//   }
+//   ~Job()
+//   {
+//      //      std::cout << "destroy" << std::endl;
+//   }
    
-   ASSERT_TRUE(!exitThreadCalled);
-   thread.start();
-   job = new Job(&thread, 1000, &exitThreadCalled);
-   ASSERT_EQ(job->getThread(), &thread);
-   loop.exec();
-   ASSERT_TRUE(exitThreadCalled);
-}
+//public:
+//   void exitThread()
+//   {
+//      //      std::cout << "exitThread" << std::endl;
+//      m_exitThreadCalled = true;
+//      getThread()->exit(1);
+//   }
+   
+//private:
+//   EventLoopLocker m_quitLocker;
+//public:
+//   bool &m_exitThreadCalled;
+//};
+
+//class MyEventLoop : public EventLoop
+//{
+//public:
+//   void quit()
+//   {
+//      //      std::cout << "quit" << std::endl;
+//      exit(0);
+//   }
+//};
+
+//TEST(ThreadTest, testQuitLock)
+//{
+//   Object *x = new Object;
+//   Thread thread;
+//   delete x;
+//   bool exitThreadCalled;
+//   MyEventLoop loop;
+//   thread.connectFinishedSignal(&loop, &MyEventLoop::quit);
+//   Job *job;
+//   thread.start();
+//   job = new Job(&thread, 500, &exitThreadCalled);
+//   ASSERT_EQ(job->getThread(), &thread);
+//   loop.exec();
+
+//   ASSERT_TRUE(!exitThreadCalled);
+//   thread.start();
+//   job = new Job(&thread, 1000, &exitThreadCalled);
+//   ASSERT_EQ(job->getThread(), &thread);
+//   loop.exec();
+//   ASSERT_TRUE(exitThreadCalled);
+//}
+
+//class StopableJob : public Object
+//{
+//public:
+//   using FinishedHandlerType = void();
+//   PDK_DEFINE_SIGNAL_ENUMS(Finished);
+//   PDK_DEFINE_SIGNAL_EMITTER(Finished)
+//   PDK_DEFINE_SIGNAL_BINDER(Finished)
+//   StopableJob (Semaphore &sem)
+//      : m_sem(sem) {}
+//   Semaphore &m_sem;
+//public:
+//   void run()
+//   {
+//      m_sem.release();
+//      while (!getThread()->isInterruptionRequested()) {
+//         PDK_RETRIEVE_APP_INSTANCE()->getThread()->msleep(10);
+//      }
+//      m_sem.release();
+//      emitFinishedSignal();
+//   }
+//};
+
+//TEST(ThreadTest, testCreate)
+//{
+//   {
+//      const auto &function = [](){};
+//      ScopedPointer<Thread> thread(Thread::create(function));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//   }
+//   {
+//      // no side effects before starting
+//      int i = 0;
+//      const auto &function = [&i]() { i = 42; };
+//      ScopedPointer<Thread> thread(Thread::create(function));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      ASSERT_EQ(i, 0);
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//      ASSERT_EQ(i, 42);
+//   }
+   
+//   {
+//      // control thread progress
+//      Semaphore semaphore1;
+//      Semaphore semaphore2;
+//      const auto &function = [&semaphore1, &semaphore2]() -> void
+//      {
+//         semaphore1.acquire();
+//         semaphore2.release();
+//      };
+//      ScopedPointer<Thread> thread(Thread::create(function));
+//      ASSERT_TRUE(thread);
+//      thread->start();
+//      Thread::getCurrentThread()->msleep(5000);
+//      ASSERT_TRUE(thread->isRunning());
+//      semaphore1.release();
+//      semaphore2.acquire();
+//      ASSERT_TRUE(thread->wait());
+//      ASSERT_TRUE(!thread->isRunning());
+//   }
+   
+//   {
+//      // ignore return values
+//      const auto &function = []() { return 42; };
+//      ScopedPointer<Thread> thread(Thread::create(function));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//   }
+   
+//   {
+//      // move-only parameters
+//      struct MoveOnlyValue
+//      {
+//         explicit MoveOnlyValue(int v) : v(v) {}
+//         ~MoveOnlyValue() = default;
+//         MoveOnlyValue(const MoveOnlyValue &) = delete;
+//         MoveOnlyValue(MoveOnlyValue &&) = default;
+//         MoveOnlyValue &operator=(const MoveOnlyValue &) = delete;
+//         MoveOnlyValue &operator=(MoveOnlyValue &&) = default;
+//         int v;
+//      };
+      
+//      struct MoveOnlyFunctor {
+//         explicit MoveOnlyFunctor(int *i) : i(i) {}
+//         ~MoveOnlyFunctor() = default;
+//         MoveOnlyFunctor(const MoveOnlyFunctor &) = delete;
+//         MoveOnlyFunctor(MoveOnlyFunctor &&) = default;
+//         MoveOnlyFunctor &operator=(const MoveOnlyFunctor &) = delete;
+//         MoveOnlyFunctor &operator=(MoveOnlyFunctor &&) = default;
+//         int operator()() { return (*i = 42); }
+//         int *i;
+//      };
+      
+//      {
+//         int i = 0;
+//         MoveOnlyFunctor f(&i);
+//         ScopedPointer<Thread> thread(Thread::create(std::move(f)));
+//         ASSERT_TRUE(thread);
+//         ASSERT_TRUE(!thread->isRunning());
+//         thread->start();
+//         ASSERT_TRUE(thread->wait());
+//         ASSERT_EQ(i, 42);
+//      }
+      
+//      {
+//         int i = 0;
+//         MoveOnlyValue mo(123);
+//         auto moveOnlyFunction = [&i, mo = std::move(mo)]() { i = mo.v; };
+//         ScopedPointer<Thread> thread(Thread::create(std::move(moveOnlyFunction)));
+//         ASSERT_TRUE(thread);
+//         ASSERT_TRUE(!thread->isRunning());
+//         thread->start();
+//         ASSERT_TRUE(thread->wait());
+//         ASSERT_EQ(i, 123);
+//      }
+      
+//      {
+//         int i = 0;
+//         const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
+//         ScopedPointer<Thread> thread(Thread::create(function, MoveOnlyValue(123)));
+//         ASSERT_TRUE(thread);
+//         ASSERT_TRUE(!thread->isRunning());
+//         thread->start();
+//         ASSERT_TRUE(thread->wait());
+//         ASSERT_EQ(i, 123);
+//      }
+      
+//      {
+//         int i = 0;
+//         const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
+//         MoveOnlyValue mo(-1);
+//         ScopedPointer<Thread> thread(Thread::create(function, std::move(mo)));
+//         ASSERT_TRUE(thread);
+//         ASSERT_TRUE(!thread->isRunning());
+//         thread->start();
+//         ASSERT_TRUE(thread->wait());
+//         ASSERT_EQ(i, -1);
+//      }
+//   } // move
+//   {
+//      // simple parameter passing
+//      int i = 0;
+//      const auto &function = [&i](int j, int k) { i = j * k; };
+//      ScopedPointer<Thread> thread(Thread::create(function, 3, 4));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      ASSERT_EQ(i, 0);
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//      ASSERT_EQ(i, 12);
+//   }
+   
+//   {
+//      // ignore return values (with parameters)
+//      const auto &function = [](double d) { return d * 2.0; };
+//      ScopedPointer<Thread> thread(Thread::create(function, 3.14));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//   }
+   
+//   {
+//      // handling of pointers to member functions, std::ref, etc.
+//      struct S {
+//         S() : v(0) {}
+//         void doSomething() { ++v; }
+//         int v;
+//      };
+      
+//      S object;
+      
+//      ASSERT_EQ(object.v, 0);
+      
+//      ScopedPointer<Thread> thread;
+//      thread.reset(Thread::create(&S::doSomething, object));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+      
+//      ASSERT_EQ(object.v, 0); // a copy was passed, this should still be 0
+      
+//      thread.reset(Thread::create(&S::doSomething, std::ref(object)));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+      
+//      ASSERT_EQ(object.v, 1);
+      
+//      thread.reset(Thread::create(&S::doSomething, &object));
+//      ASSERT_TRUE(thread);
+//      ASSERT_TRUE(!thread->isRunning());
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+      
+//      ASSERT_EQ(object.v, 2);
+//   }
+   
+//   {
+//      // std::ref into ordinary reference
+//      int i = 42;
+//      const auto &function = [](int &i) { i *= 2; };
+//      ScopedPointer<Thread> thread(Thread::create(function, std::ref(i)));
+//      ASSERT_TRUE(thread);
+//      thread->start();
+//      ASSERT_TRUE(thread->wait());
+//      ASSERT_EQ(i, 84);
+//   }
+//   {
+//      // exceptions when copying/decaying the arguments are thrown at build side and won't terminate
+//      class ThreadException : public std::exception
+//      {
+//      };
+      
+//      struct ThrowWhenCopying
+//      {
+//         ThrowWhenCopying() = default;
+//         ThrowWhenCopying(const ThrowWhenCopying &)
+//         {
+//            throw ThreadException();
+//         }
+//         ~ThrowWhenCopying() = default;
+//         ThrowWhenCopying &operator=(const ThrowWhenCopying &) = default;
+//      };
+      
+//      const auto &function = [](const ThrowWhenCopying &){};
+//      ScopedPointer<Thread> thread;
+//      ThrowWhenCopying t;
+//      ASSERT_THROW(thread.reset(Thread::create(function, t)), ThreadException);
+//      ASSERT_TRUE(!thread);
+//   }
+//}
+
+//TEST(ThreadTest, testRequestTermination)
+//{
+//   Thread thread;
+//   ASSERT_TRUE(!thread.isInterruptionRequested());
+//   Semaphore sem;
+//   StopableJob *j  = new StopableJob(sem);
+//   j->moveToThread(&thread);
+//   thread.connectStartedSignal(j, &StopableJob::run);
+//   j->connectFinishedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
+//   thread.connectFinishedSignal(j, &Object::deleteLater);
+//   thread.start();
+//   ASSERT_TRUE(!thread.isInterruptionRequested());
+//   sem.acquire();
+//   ASSERT_TRUE(!thread.wait(1000));
+//   thread.requestInterruption();
+//   sem.acquire();
+//   ASSERT_TRUE(thread.wait(1000));
+//   ASSERT_TRUE(!thread.isInterruptionRequested());
+//}
 
 int main(int argc, char **argv)
 {

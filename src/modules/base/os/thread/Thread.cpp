@@ -254,7 +254,7 @@ void Thread::setPriority(Priority priority)
    PDK_D(Thread);
    std::scoped_lock locker(implPtr->m_mutex);
    if (!implPtr->m_running) {
-      warning_stream("Thread::setPriority: Cannot set priority, thread is not running");
+      //warning_stream("Thread::setPriority: Cannot set priority, thread is not running");
       return;
    }
    implPtr->setPriority(priority);

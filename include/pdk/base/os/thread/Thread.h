@@ -106,6 +106,7 @@ public:
    
    PDK_DEFINE_SIGNAL_BINDER(Started)
    PDK_DEFINE_SIGNAL_BINDER(Finished)
+   
    template <typename SlotFuncType, typename... Args>
    static Thread *create(SlotFuncType &&f, Args &&... args);
 protected:
