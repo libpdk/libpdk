@@ -35,6 +35,56 @@
 # define PDK_TESTLIB_EXPORT
 #endif
 
+#define PDK_TRY_LOOP_IMPL(expr, timeoutValue, step) \
+   if (!(expr)) {\
+      pdktest::wait(0);\
+   } \
+   int pdkTestIndex = 0;\
+   for (; pdkTestIndex < timeoutValue && !(expr); pdkTestIndex += step) {\
+      pdktest::wait(step);\
+   }
+
+
+#define PDK_TRY_TIMEOUT_DEBUG_IMPL(expr, timeoutValue, step)\
+    if (!(expr)) { \
+        PDK_TRY_LOOP_IMPL((expr), (2 * timeoutValue), step);\
+        if (expr) { \
+            pdk::lang::String msg = pdk::lang::String::fromUtf8("pdktest: This test case check (\"%1\") failed because the requested timeout (%2 ms) was too short, %3 ms would have been sufficient this time."); \
+            msg = msg.arg(pdk::lang::String::fromUtf8(#expr)).arg(timeoutValue).arg(timeoutValue + pdkTestIndex); \
+            Fail() << pdk_printable(msg); \
+        } \
+    }
+
+#define PDK_TRY_IMPL(expr, timeout)\
+    const int pdkTestStep = 50; \
+    const int pdkTestTimeoutValue = timeout; \
+    PDK_TRY_LOOP_IMPL((expr), pdkTestTimeoutValue, pdkTestStep); \
+    PDK_TRY_TIMEOUT_DEBUG_IMPL((expr), pdkTestTimeoutValue, pdkTestStep)\
+   
+#define PDK_TRY_VERIFY_WITH_TIMEOUT(expr, timeout) \
+do { \
+    PDK_TRY_IMPL((expr), timeout);\
+    ASSERT_TRUE(expr); \
+} while (false)
+
+#define PDK_TRY_VERIFY(expr) PDK_TRY_VERIFY_WITH_TIMEOUT((expr), 5000)
+
+#define PDK_TRY_VERIFY2_WITH_TIMEOUT(expr, messageExpression, timeout) \
+do { \
+    PDK_TRY_IMPL((expr), timeout);\
+    ASSERT_TRUE(expr) << messageExpression; \
+} while (false)
+
+#define PDK_TRY_VERIFY2(expr, messageExpression) PDK_TRY_VERIFY2_WITH_TIMEOUT((expr), (messageExpression), 5000)
+
+#define PDK_TRY_COMPARE_WITH_TIMEOUT(expr, expected, timeout) \
+do { \
+    PDK_TRY_IMPL(((expr) == (expected)), timeout);\
+    ASSERT_EQ((expr), expected); \
+} while (false)
+
+#define PDK_TRY_COMPARE(expr, expected) PDK_TRY_COMPARE_WITH_TIMEOUT((expr), expected, 5000)
+
 namespace pdktest {
 
 }

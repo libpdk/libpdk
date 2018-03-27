@@ -63,7 +63,7 @@ PDK_REQUIRED_RESULT bool waitfor(Functor predicate, int timeout = 5000)
    return predicate(); // Last chance
 }
 
-PDK_DECL_UNUSED static void wait(int ms)
+PDK_DECL_UNUSED void wait(int ms)
 {
    // Ideally this method would be implemented in terms of qWaitFor, with
    // a predicate that always returns false, but due to a compiler bug in

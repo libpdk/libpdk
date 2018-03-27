@@ -120,12 +120,12 @@ public:
       return m_implPtr.get() != nullptr;
    }
    
-   inline T& localData()
+   inline T& getLocalData()
    {
       return thread_storage_localdata(m_implPtr, reinterpret_cast<T *>(0));
    }
    
-   inline T localData() const
+   inline T getLocalData() const
    {
       return thread_storage_localdata_const(m_implPtr, reinterpret_cast<T *>(0));
    }

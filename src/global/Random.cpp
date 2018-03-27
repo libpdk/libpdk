@@ -608,7 +608,7 @@ void srand(uint seed)
 #if defined(PDK_OS_UNIX) && !defined(PDK_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && (_POSIX_THREAD_SAFE_FUNCTIONS - 0 > 0)
    SeedStorage *seedStorage = sg_randTLS();
    if (seedStorage) {
-      SeedStorageType *pseed = seedStorage->localData();
+      SeedStorageType *pseed = seedStorage->getLocalData();
       if (!pseed)
          seedStorage->setLocalData(pseed = new SeedStorageType);
       *pseed = seed;
@@ -632,7 +632,7 @@ int rand()
 #if defined(PDK_OS_UNIX) && !defined(PDK_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && (_POSIX_THREAD_SAFE_FUNCTIONS - 0 > 0)
    SeedStorage *seedStorage = sg_randTLS();
    if (seedStorage) {
-      SeedStorageType *pseed = seedStorage->localData();
+      SeedStorageType *pseed = seedStorage->getLocalData();
       if (!pseed) {
          seedStorage->setLocalData(pseed = new SeedStorageType);
          *pseed = 1;

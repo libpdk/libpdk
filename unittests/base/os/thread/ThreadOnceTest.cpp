@@ -169,6 +169,7 @@ void exception_helper(int &val)
 
 TEST(ThreadOnceTest, testReentering)
 {
+   FAIL();
    const int WantedRecursions = 5;
    int count = 0;
    SingletonObject::sm_runCount = 0;
