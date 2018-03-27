@@ -14,6 +14,7 @@
 // Created by softboy on 2018/01/08.
 
 #include "pdk/base/os/thread/Semaphore.h"
+#include "pdk/kernel/DeadlineTimer.h"
 #include <condition_variable>
 #include <mutex>
 #include <chrono>
@@ -28,17 +29,18 @@ class SemaphorePrivate
 {
 public:
    inline SemaphorePrivate(int num)
-      : m_num(num)
+      : m_avail(num)
    {}
    
    std::mutex m_mutex;
    std::condition_variable m_condVar;
-   int m_num;
+   int m_avail;
 };
 
 } // internal
 
 using internal::SemaphorePrivate;
+using pdk::kernel::DeadlineTimer;
 
 Semaphore::Semaphore(int num)
 {
@@ -55,56 +57,54 @@ void Semaphore::acquire(int num)
 {
    PDK_ASSERT_X(num >= 0, "Semaphore::acquire", "parameter 'num' must be non-negative");
    std::unique_lock<std::mutex> locker(m_implPtr->m_mutex);
-   while (num > m_implPtr->m_num) {
+   while (num > m_implPtr->m_avail) {
       m_implPtr->m_condVar.wait(locker);
    }
-   m_implPtr->m_num -= num;
+   m_implPtr->m_avail -= num;
 }
 
 void Semaphore::release(int num)
 {
    PDK_ASSERT_X(num >= 0, "Semaphore", "parameter 'num' must be non-negative");
    std::unique_lock<std::mutex> locker(m_implPtr->m_mutex);
-   m_implPtr->m_num += num;
+   m_implPtr->m_avail += num;
    m_implPtr->m_condVar.notify_all();
 }
 
 int Semaphore::available() const
 {
    std::unique_lock<std::mutex> locker(m_implPtr->m_mutex);
-   return m_implPtr->m_num;
+   return m_implPtr->m_avail;
 }
 
 bool Semaphore::tryAcquire(int num)
 {
    PDK_ASSERT_X(num >= 0, "Semaphore", "parameter 'num' must be non-negative");
    std::unique_lock<std::mutex> locker(m_implPtr->m_mutex);
-   if (num > m_implPtr->m_num) {
+   if (num > m_implPtr->m_avail) {
       return false;
    }
-   m_implPtr->m_num -= num;
+   m_implPtr->m_avail -= num;
    return true;
 }
 
 bool Semaphore::tryAcquire(int num, int timeout)
 {
    PDK_ASSERT_X(num >= 0, "Semaphore", "parameter 'num' must be non-negative");
+   timeout = std::max(timeout, -1);
+   DeadlineTimer timer(timeout);
    std::unique_lock<std::mutex> locker(m_implPtr->m_mutex);
-   if (timeout < 0) {
-      while (num > m_implPtr->m_num) {
-         m_implPtr->m_condVar.wait(locker);
+   pdk::pint64 remainingTime = timer.getRemainingTime();
+   while (num > m_implPtr->m_avail && remainingTime != 0) {
+      if (std::cv_status::timeout == m_implPtr->m_condVar.wait_for(locker, std::chrono::milliseconds(remainingTime))) {
+         return false;
       }
-   } else {
-      std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-      while (num > m_implPtr->m_num) {
-         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count();
-         if (timeout - elapsed <= 0 ||
-             std::cv_status::timeout == m_implPtr->m_condVar.wait_for(locker, std::chrono::milliseconds(timeout - elapsed))) {
-            return false;
-         }
-      }
+      remainingTime = timer.getRemainingTime();
    }
-   m_implPtr->m_num -= num;
+   if (num > m_implPtr->m_avail) {
+      return false;
+   }
+   m_implPtr->m_avail -= num;
    return true;
 }
 

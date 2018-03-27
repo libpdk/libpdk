@@ -94,7 +94,7 @@ void ThreadPoolThread::run()
          QueuePage *page = m_manager->m_queue.front();
          runnable = page->pop();
          if (page->isFinished()) {
-            m_manager->m_queue.pop_back();
+            m_manager->m_queue.pop_front();
             delete page;
          }
       } while (true);
@@ -152,8 +152,9 @@ bool ThreadPoolPrivate::tryStart(Runnable *task)
    if (m_waitingThreads.size() > 0) {
       // recycle an available thread
       enqueueTask(task);
-      m_waitingThreads.front()->m_runnableReady.notify_one();
+      ThreadPoolThread *thread = m_waitingThreads.front();
       m_waitingThreads.pop_front();
+      thread->m_runnableReady.notify_one();
       return true;
    }
    
@@ -344,7 +345,7 @@ bool ThreadPool::tryTake(Runnable *runnable)
 
 ThreadPool::ThreadPool(Object *parent)
    : Object(*new ThreadPoolPrivate, parent)
-{ }
+{}
 
 ThreadPool::~ThreadPool()
 {
@@ -367,8 +368,9 @@ void ThreadPool::start(Runnable *runnable, int priority)
    if (!implPtr->tryStart(runnable)) {
       implPtr->enqueueTask(runnable, priority);
       if (!implPtr->m_waitingThreads.empty()) {
-         implPtr->m_waitingThreads.front()->m_runnableReady.notify_one();
+         ThreadPoolThread *thread = implPtr->m_waitingThreads.front();
          implPtr->m_waitingThreads.pop_front();
+         thread->m_runnableReady.notify_one();
       }
    }
 }

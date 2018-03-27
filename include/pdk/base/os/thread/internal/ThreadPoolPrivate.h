@@ -56,7 +56,8 @@ public:
       return m_firstIndex > m_lastIndex;
    }
    
-   void push(Runnable *runnable) {
+   void push(Runnable *runnable)
+   {
       PDK_ASSERT(runnable != nullptr);
       PDK_ASSERT(!isFull());
       m_lastIndex += 1;

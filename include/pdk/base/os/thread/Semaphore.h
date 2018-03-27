@@ -44,6 +44,65 @@ private:
    internal::SemaphorePrivate *m_implPtr;
 };
 
+class SemaphoreReleaser
+{
+public:
+   SemaphoreReleaser() = default;
+   explicit SemaphoreReleaser(Semaphore &sem, int n = 1) noexcept
+      : m_sem(&sem),
+        m_n(n)
+   {}
+   
+   explicit SemaphoreReleaser(Semaphore *sem, int n = 1) noexcept
+      : m_sem(sem),
+        m_n(n)
+   {}
+   
+   SemaphoreReleaser(SemaphoreReleaser &&other) noexcept
+      : m_sem(other.m_sem),
+        m_n(other.m_n)
+   {
+      other.m_sem = nullptr;
+   }
+   
+   SemaphoreReleaser &operator=(SemaphoreReleaser &&other) noexcept
+   {
+      SemaphoreReleaser moved(std::move(other));
+      swap(moved);
+      return *this;
+   }
+   
+   ~SemaphoreReleaser()
+   {
+      if (m_sem) {
+         m_sem->release(m_n);
+      }
+      
+   }
+   
+   void swap(SemaphoreReleaser &other) noexcept
+   {
+      std::swap(m_sem, other.m_sem);
+      std::swap(m_n, other.m_n);
+   }
+   
+   Semaphore *getSemaphore() const noexcept
+   {
+      return m_sem;
+   }
+   
+   Semaphore *cancel() noexcept
+   {
+      Semaphore *old = m_sem;
+      m_sem = nullptr;
+      return old;
+   }
+   
+private:
+   Semaphore *m_sem = nullptr;
+   int m_n;
+};
+
 } // thread
 } // os
 } // pdk
