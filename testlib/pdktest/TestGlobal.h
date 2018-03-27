@@ -51,7 +51,7 @@
         if (expr) { \
             pdk::lang::String msg = pdk::lang::String::fromUtf8("pdktest: This test case check (\"%1\") failed because the requested timeout (%2 ms) was too short, %3 ms would have been sufficient this time."); \
             msg = msg.arg(pdk::lang::String::fromUtf8(#expr)).arg(timeoutValue).arg(timeoutValue + pdkTestIndex); \
-            Fail() << pdk_printable(msg); \
+            FAIL() << pdk_printable(msg); \
         } \
     }
 

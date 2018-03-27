@@ -16,7 +16,7 @@
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/ThreadStorage.h"
 #include "pdk/base/os/thread/Thread.h"
-#include "pdktest/TestEventLoop.h"
+#include "pdktest/PdkTest.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -177,6 +177,6 @@ TEST(ThreadStorageTest, testAdoptedThreads)
     TestEventLoop::instance().enterLoop(2);
     ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
 
-    //QTRY_COMPARE(Pointer::count, c);
+    PDK_TRY_COMPARE(Pointer::sm_count, c);
 }
 

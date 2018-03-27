@@ -64,6 +64,7 @@ using pdk::kernel::ElapsedTimer;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::utils::ScopedPointer;
+using pdk::os::thread::AtomicInt;
 
 class CurrentThread : public Thread
 {
@@ -566,6 +567,7 @@ class NativeThreadWrapper
 public:
    NativeThreadWrapper()
       : m_pdkthread(0),
+        m_locker(m_mutex, std::defer_lock),
         m_waitForStop(false)
    {}
    
@@ -583,6 +585,7 @@ public:
    Thread *m_pdkthread;
    std::condition_variable m_startCondition;
    std::mutex m_mutex;
+   std::unique_lock<std::mutex> m_locker;
    bool m_waitForStop;
    std::condition_variable m_stopCondition;
 protected:
@@ -765,31 +768,114 @@ TEST(ThreadTest, testAdoptedThreadExec)
    nativeThread.join();
 }
 
-// @TODO not understand
-//TEST(ThreadTest, testAdoptedThreadFinished)
-//{
-//   NativeThreadWrapper nativeThread;
-//   nativeThread.setWaitForStop();
-//   nativeThread.startAndWait();
-//   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
-//   nativeThread.stop();
-//   nativeThread.join();
-//   TestEventLoop::instance().enterLoop(5);
-//   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
-//}
+TEST(ThreadTest, testAdoptedThreadFinished)
+{
+   NativeThreadWrapper nativeThread;
+   nativeThread.setWaitForStop();
+   nativeThread.startAndWait();
+   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
+   nativeThread.stop();
+   nativeThread.join();
+   TestEventLoop::instance().enterLoop(5);
+   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+}
 
-// @TODO not understand
-//TEST(ThreadTest, testAdoptedThreadExecFinished)
-//{
-//   NativeThreadWrapper nativeThread;
-//   nativeThread.setWaitForStop();
-//   nativeThread.startAndWait(adopted_thread_exec_function);
-//   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
-//   nativeThread.stop();
-//   nativeThread.join();
-//   TestEventLoop::instance().enterLoop(5);
-//   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
-//}
+TEST(ThreadTest, testAdoptedThreadExecFinished)
+{
+   NativeThreadWrapper nativeThread;
+   nativeThread.setWaitForStop();
+   nativeThread.startAndWait(adopted_thread_exec_function);
+   nativeThread.m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop, pdk::ConnectionType::DirectConnection);
+   nativeThread.stop();
+   nativeThread.join();
+   TestEventLoop::instance().enterLoop(5);
+   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+}
+
+class SignalRecorder : public Object
+{
+public:
+   AtomicInt m_activationCount;
+   inline SignalRecorder()
+      : m_activationCount(0)
+   {}
+   
+   bool wasActivated()
+   {
+      return m_activationCount.load() > 0;
+   }
+   
+public:
+   void slot();
+};
+
+void SignalRecorder::slot()
+{
+   m_activationCount.ref();
+}
+
+TEST(ThreadTest, testAdoptMultipleThreads)
+{
+#if defined(PDK_OS_WIN)
+   // need to test lots of threads, so that we exceed MAXIMUM_WAIT_OBJECTS in qt_adopted_thread_watcher()
+   const int numThreads = 200;
+#else
+   const int numThreads = 5;
+#endif
+   std::vector<NativeThreadWrapper*> nativeThreads;
+   SignalRecorder recorder;
+   for (int i = 0; i < numThreads; ++i) {
+      nativeThreads.push_back(new NativeThreadWrapper());
+      nativeThreads.at(i)->setWaitForStop();
+      nativeThreads.at(i)->startAndWait();
+      nativeThreads.at(i)->m_pdkthread->connectFinishedSignal(&recorder, &SignalRecorder::slot);
+   }
+   nativeThreads.at(numThreads - 1)->m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop);
+   for (int i = 0; i < numThreads; ++i) {
+      nativeThreads.at(i)->stop();
+      nativeThreads.at(i)->join();
+      delete nativeThreads.at(i);
+   }
+   
+   TestEventLoop::instance().enterLoop(5);
+   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+   ASSERT_EQ(recorder.m_activationCount.load(), numThreads);
+}
+
+TEST(ThreadTest, testAdoptMultipleThreadsOverlap)
+{
+#if defined(PDK_OS_WIN)
+   // need to test lots of threads, so that we exceed MAXIMUM_WAIT_OBJECTS in qt_adopted_thread_watcher()
+   const int numThreads = 200;
+#else
+   const int numThreads = 5;
+#endif
+   std::vector<NativeThreadWrapper*> nativeThreads;
+   
+   SignalRecorder recorder;
+   
+   for (int i = 0; i < numThreads; ++i) {
+      nativeThreads.push_back(new NativeThreadWrapper());
+      nativeThreads.at(i)->setWaitForStop();
+      nativeThreads.at(i)->m_locker.lock();
+      nativeThreads.at(i)->start();
+   }
+   for (int i = 0; i < numThreads; ++i) {
+      nativeThreads.at(i)->m_startCondition.wait(nativeThreads.at(i)->m_locker);
+      nativeThreads.at(i)->m_pdkthread->connectFinishedSignal(&recorder, &SignalRecorder::slot);
+      nativeThreads.at(i)->m_locker.unlock();
+   }
+   nativeThreads.at(numThreads - 1)->m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop);
+   
+   for (int i = 0; i < numThreads; ++i) {
+      nativeThreads.at(i)->stop();
+      nativeThreads.at(i)->join();
+      delete nativeThreads.at(i);
+   }
+   TestEventLoop::instance().enterLoop(5);
+   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+   ASSERT_EQ(recorder.m_activationCount.load(), numThreads);
+}
 
 //TEST(ThreadTest, testStress)
 //{
@@ -872,7 +958,7 @@ TEST(ThreadTest, testExitAndStart)
    while(!thread.wait(10)) {
       pdktest::wait(50);
    }
-   
+
    ASSERT_EQ(sync2.m_prop, 89);
    ASSERT_EQ(sync1.m_prop, 89);
 }
@@ -1199,7 +1285,7 @@ TEST(ThreadTest, testCustomEventDispatcher)
    thread.start();
    // start() should not overwrite the ED
    ASSERT_EQ(thread.getEventDispatcher(), ed);
-   
+
    ThreadObj obj;
    obj.moveToThread(&thread);
    // move was successful?
@@ -1212,7 +1298,7 @@ TEST(ThreadTest, testCustomEventDispatcher)
    loop.exec();
    // test that the ED has really been used
    ASSERT_TRUE(ed->m_visited.load());
-   
+
    Pointer<DummyEventDispatcher> weak_ed(ed);
    ASSERT_TRUE(!weak_ed.isNull());
    thread.quit();
@@ -1339,7 +1425,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_EQ(i, 42);
    }
-   
+
    {
       // control thread progress
       Semaphore semaphore1;
@@ -1359,7 +1445,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_TRUE(!thread->isRunning());
    }
-   
+
    {
       // ignore return values
       const auto &function = []() { return 42; };
@@ -1369,7 +1455,7 @@ TEST(ThreadTest, testCreate)
       thread->start();
       ASSERT_TRUE(thread->wait());
    }
-   
+
    {
       // move-only parameters
       struct MoveOnlyValue
@@ -1382,7 +1468,7 @@ TEST(ThreadTest, testCreate)
          MoveOnlyValue &operator=(MoveOnlyValue &&) = default;
          int v;
       };
-      
+
       struct MoveOnlyFunctor {
          explicit MoveOnlyFunctor(int *i) : i(i) {}
          ~MoveOnlyFunctor() = default;
@@ -1393,7 +1479,7 @@ TEST(ThreadTest, testCreate)
          int operator()() { return (*i = 42); }
          int *i;
       };
-      
+
       {
          int i = 0;
          MoveOnlyFunctor f(&i);
@@ -1404,7 +1490,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 42);
       }
-      
+
       {
          int i = 0;
          MoveOnlyValue mo(123);
@@ -1416,7 +1502,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 123);
       }
-      
+
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
@@ -1427,7 +1513,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 123);
       }
-      
+
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
@@ -1452,7 +1538,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_EQ(i, 12);
    }
-   
+
    {
       // ignore return values (with parameters)
       const auto &function = [](double d) { return d * 2.0; };
@@ -1462,7 +1548,7 @@ TEST(ThreadTest, testCreate)
       thread->start();
       ASSERT_TRUE(thread->wait());
    }
-   
+
    {
       // handling of pointers to member functions, std::ref, etc.
       struct S {
@@ -1470,37 +1556,37 @@ TEST(ThreadTest, testCreate)
          void doSomething() { ++v; }
          int v;
       };
-      
+
       S object;
-      
+
       ASSERT_EQ(object.v, 0);
-      
+
       ScopedPointer<Thread> thread;
       thread.reset(Thread::create(&S::doSomething, object));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-      
+
       ASSERT_EQ(object.v, 0); // a copy was passed, this should still be 0
-      
+
       thread.reset(Thread::create(&S::doSomething, std::ref(object)));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-      
+
       ASSERT_EQ(object.v, 1);
-      
+
       thread.reset(Thread::create(&S::doSomething, &object));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-      
+
       ASSERT_EQ(object.v, 2);
    }
-   
+
    {
       // std::ref into ordinary reference
       int i = 42;
@@ -1516,7 +1602,7 @@ TEST(ThreadTest, testCreate)
       class ThreadException : public std::exception
       {
       };
-      
+
       struct ThrowWhenCopying
       {
          ThrowWhenCopying() = default;
@@ -1527,7 +1613,7 @@ TEST(ThreadTest, testCreate)
          ~ThrowWhenCopying() = default;
          ThrowWhenCopying &operator=(const ThrowWhenCopying &) = default;
       };
-      
+
       const auto &function = [](const ThrowWhenCopying &){};
       ScopedPointer<Thread> thread;
       ThrowWhenCopying t;

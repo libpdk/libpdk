@@ -157,7 +157,7 @@ ThreadData *get_thread_data()
 #ifdef PDK_HAVE_TLS
    return sg_currentThreadData;
 #else
-   pthread_once(&sg_currentThreadDataOnce, sg_currentThreadDataKey);
+   pthread_once(&sg_currentThreadDataOnce, create_current_thread_data_key);
    return reinterpret_cast<ThreadData *>(pthread_getspecific(sg_currentThreadDataKey));
 #endif
 }
@@ -166,10 +166,9 @@ void set_thread_data(ThreadData *data)
 {
 #ifdef PDK_HAVE_TLS
    sg_currentThreadData = data;
-#else
-   pthread_once(&sg_currentThreadDataOnce, sg_currentThreadDataKey);
+#endif // PDK_HAVE_TLS
+   pthread_once(&sg_currentThreadDataOnce, create_current_thread_data_key);
    pthread_setspecific(sg_currentThreadDataKey, data);
-#endif
 }
 
 static void clear_thread_data()
@@ -177,7 +176,6 @@ static void clear_thread_data()
 #ifdef PDK_HAVE_TLS
    sg_currentThreadData = nullptr;
 #else
-   pthread_once(&sg_currentThreadDataOnce, sg_currentThreadDataKey);
    pthread_setspecific(sg_currentThreadDataKey, nullptr);
 #endif
 }
