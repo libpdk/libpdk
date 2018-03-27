@@ -70,5 +70,4 @@ void OnceControl::done()
     m_extra &= ~MustRunCode;
 }
 
-
 } // pdkunittest

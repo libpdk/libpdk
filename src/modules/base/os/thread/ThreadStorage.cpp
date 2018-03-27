@@ -17,12 +17,33 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/global/GlobalStatic.h"
+#include "pdk/global/Logging.h"
 #include <mutex>
 #include <string>
 
 namespace pdk {
 namespace os {
 namespace thread {
+
+#ifdef THREADSTORAGE_DEBUG
+#  define DEBUG_MSG qtsDebug
+
+#  include <stdio.h>
+#  include <stdarg.h>
+void pdk_debug(const char *fmt, ...)
+{
+   va_list va;
+   va_start(va, fmt);
+   
+   fprintf(stderr, "ThreadStorage: ");
+   vfprintf(stderr, fmt, va);
+   fprintf(stderr, "\n");
+   va_end(va);
+}
+#else
+#  define DEBUG_MSG if(false)debug_stream
+#endif
+
 
 static std::mutex sg_destructorsMutex;
 typedef std::vector<void (*)(void *)> DestructorMap;
@@ -42,7 +63,7 @@ ThreadStorageData::ThreadStorageData(void (*func)(void *))
       // no where to store it, and no way to actually call it.
       internal::ThreadData *data = internal::ThreadData::current();
       m_id = data->m_tls.size();
-      // DEBUG_MSG("ThreadStorageData: Allocated id %d, destructor %p cannot be stored", id, func);
+      DEBUG_MSG("ThreadStorageData: Allocated id %d, destructor %p cannot be stored", m_id, (void *)func);
       return;
    }
    for (m_id = 0; static_cast<size_t>(m_id) < destr->size(); ++m_id) {
@@ -55,7 +76,7 @@ ThreadStorageData::ThreadStorageData(void (*func)(void *))
    } else {
       (*destr)[m_id] = func;
    }
-   // DEBUG_MSG("ThreadStorageData: Allocated id %d, destructor %p", m_id, func);
+   DEBUG_MSG("ThreadStorageData: Allocated id %d, destructor %p", m_id, (void *)func);
 }
 
 ThreadStorageData::~ThreadStorageData()
@@ -71,7 +92,7 @@ void **ThreadStorageData::get() const
 {
    internal::ThreadData *data = internal::ThreadData::current();
    if (!data) {
-      // warning_stream("ThreadStorage::get: ThreadStorage can only be used with threads started with Thread");
+      warning_stream("ThreadStorage::get: ThreadStorage can only be used with threads started with Thread");
       return 0;
    }
    std::vector<void *> &tls = data->m_tls;
@@ -80,10 +101,10 @@ void **ThreadStorageData::get() const
    }
    void **value = &tls[m_id];
    
-   //   DEBUG_MSG("ThreadStorageData: Returning storage %d, data %p, for thread %p",
-   //             m_id,
-   //             *v,
-   //             data->thread.load());
+   DEBUG_MSG("ThreadStorageData: Returning storage %d, data %p, for thread %p",
+             m_id,
+             *value,
+             (void *)data->m_thread.load());
    
    return *value ? value : nullptr;
 }
@@ -92,7 +113,7 @@ void **ThreadStorageData::set(void *p)
 {
    internal::ThreadData *data = internal::ThreadData::current();
    if (!data) {
-      // warning_stream("ThreadStorage::set: ThreadStorage can only be used with threads started with Thread");
+      warning_stream("ThreadStorage::set: ThreadStorage can only be used with threads started with Thread");
       return 0;
    }
    std::vector<void *> &tls = data->m_tls;
@@ -102,10 +123,10 @@ void **ThreadStorageData::set(void *p)
    void *&value = tls[m_id];
    // delete any previous data
    if (value != 0) {
-      //      DEBUG_MSG("QThreadStorageData: Deleting previous storage %d, data %p, for thread %p",
-      //                m_id,
-      //                value,
-      //                data->thread.load());
+      DEBUG_MSG("ThreadStorageData: Deleting previous storage %d, data %p, for thread %p",
+                m_id,
+                value,
+                (void *)data->m_thread.load());
       
       std::unique_lock locker(sg_destructorsMutex);
       DestructorMap *destr = sg_destructors();
@@ -117,11 +138,11 @@ void **ThreadStorageData::set(void *p)
       if (destructor) {
          destructor(q);
       }
-         
+      
    }
    // store new data
    value = p;
-   // DEBUG_MSG("ThreadStorageData: Set storage %d for thread %p to %p", m_id, data->m_thread.load(), p);
+   DEBUG_MSG("ThreadStorageData: Set storage %d for thread %p to %p", m_id, (void *)data->m_thread.load(), (void *)p);
    return &value;
 }
 
@@ -132,7 +153,7 @@ void ThreadStorageData::finish(void **p)
       return; // nothing to do
    }
    
-   // DEBUG_MSG("QThreadStorageData: Destroying storage for thread %p", QThread::currentThread());
+   DEBUG_MSG("ThreadStorageData: Destroying storage for thread %p", (void *)Thread::getCurrentThread());
    while (!tls->empty()) {
       void *&value = tls->back();
       void *q = value;
@@ -150,8 +171,8 @@ void ThreadStorageData::finish(void **p)
       
       if (!destructor) {
          if (Thread::getCurrentThread()) {
-            //                warning_stream("QThreadStorage: Thread %p exited after QThreadStorage %d destroyed",
-            //                         QThread::currentThread(), i);
+            warning_stream("ThreadStorage: Thread %p exited after QThreadStorage %d destroyed",
+                           (void *)Thread::getCurrentThread(), i);
             continue;
          }
       }
