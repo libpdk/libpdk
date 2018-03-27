@@ -16,7 +16,10 @@ pdk_add_files(PDK_OS_THREAD_TEST_SRCS
    os/thread/AtomicPointerTest.cpp
    os/thread/ReadWriteLockTest.cpp
    os/thread/SemaphoreTest.cpp
-   os/thread/ThreadTest.cpp)
+   os/thread/ThreadTest.cpp
+   os/thread/ThreadOnce.h
+   os/thread/ThreadOnce.cpp
+   os/thread/ThreadOnceTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests OsThreadTest ${PDK_OS_THREAD_TEST_SRCS})
 
