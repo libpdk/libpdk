@@ -211,7 +211,7 @@ private:
 #endif
       
       PDK_STATIC_ASSERT_X(std::is_trivially_destructible<RandomEngine>::value,
-                        "std::mersenne_twister not trivially destructible as expected");
+                          "std::mersenne_twister not trivially destructible as expected");
       constexpr Storage();
    };
    uint m_type;
@@ -234,7 +234,7 @@ public:
    {
       return generate64();
    }
-
+   
    RandomGenerator64(pdk::puint32 seedValue = 1)
       : RandomGenerator(seedValue)
    {}
@@ -260,7 +260,7 @@ public:
    void discard(unsigned long long z)
    {
       PDK_ASSERT_X(z * 2 > z, "RandomGenerator64::discard",
-                 "Overflow. Are you sure you want to skip over 9 pdk::puintillion samples?");
+                   "Overflow. Are you sure you want to skip over 9 pdk::puintillion samples?");
       RandomGenerator::discard(z * 2);
    }
    

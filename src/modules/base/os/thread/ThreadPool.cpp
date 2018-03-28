@@ -19,6 +19,7 @@
 #include "pdk/kernel/ElapsedTimer.h"
 #include "pdk/global/GlobalStatic.h"
 #include "pdk/global/Logging.h"
+#include "pdk/global/Random.h"
 #include "pdk/stdext/utility/Algorithms.h"
 #include <algorithm>
 #include <chrono>
@@ -98,6 +99,7 @@ void ThreadPoolThread::run()
             delete page;
          }
       } while (true);
+      
       if (m_manager->m_isExiting) {
          registerThreadInactive();
          break;
@@ -109,14 +111,20 @@ void ThreadPoolThread::run()
          m_manager->m_waitingThreads.push_back(this);
          registerThreadInactive();
          // wait for work, exiting after the expiry timeout is reached
-         
-         m_runnableReady.wait_for(locker, std::chrono::milliseconds(m_manager->m_expiryTimeout));
+         // @TODO issue not fixed
+         // here the fix method is a temporary workaround, not very good, but it works
+         // i will come back
+         m_runnableReady.wait_for(locker, 
+                                  std::chrono::milliseconds(m_manager->m_expiryTimeout + pdk::RandomGenerator::global()->bounded(64)));
          ++m_manager->m_activeThreads;
          auto iter = std::find(m_manager->m_waitingThreads.begin(), 
                                m_manager->m_waitingThreads.end(), this);
          if (iter != m_manager->m_waitingThreads.end()) {
+            size_t oldSize = m_manager->m_waitingThreads.size();
             m_manager->m_waitingThreads.erase(iter);
-            expired = true;
+            if (oldSize != m_manager->m_waitingThreads.size()){
+               expired = true;
+            }
          }
       }
       if (expired) {
@@ -149,7 +157,7 @@ bool ThreadPoolPrivate::tryStart(Runnable *task)
    if (getActiveThreadCount() >= m_maxThreadCount) {
       return false;
    }
-   if (m_waitingThreads.size() > 0) {
+   if (!m_waitingThreads.empty()) {
       // recycle an available thread
       enqueueTask(task);
       ThreadPoolThread *thread = m_waitingThreads.front();
@@ -157,7 +165,6 @@ bool ThreadPoolPrivate::tryStart(Runnable *task)
       thread->m_runnableReady.notify_one();
       return true;
    }
-   
    if (!m_expiredThreads.empty()) {
       // restart an expired thread
       ThreadPoolThread *thread = m_expiredThreads.front();
@@ -282,7 +289,6 @@ bool ThreadPoolPrivate::waitForDone(int msecs)
              ((t = msecs - timer.elapsed()) > 0)) {
          m_noActiveThreads.wait_for(locker, std::chrono::milliseconds(t));
       }
-      
    }
    return m_queue.empty() && m_activeThreads == 0;
 }
@@ -325,12 +331,13 @@ bool ThreadPool::tryTake(Runnable *runnable)
    }
    {
       std::unique_lock<std::mutex> locker(implPtr->m_mutex);
-      
       for (QueuePage *page : std::as_const(implPtr->m_queue)) {
          if (page->tryTake(runnable)) {
             if (page->isFinished()) {
                auto iter = std::find(implPtr->m_queue.begin(), implPtr->m_queue.end(), page);
-               implPtr->m_queue.erase(iter);
+               if (iter != implPtr->m_queue.end()) {
+                  implPtr->m_queue.erase(iter);
+               }
                delete page;
             }
             if (runnable->autoDelete()) {
@@ -362,7 +369,6 @@ void ThreadPool::start(Runnable *runnable, int priority)
    if (!runnable) {
       return;
    }
-   
    PDK_D(ThreadPool);
    std::unique_lock<std::mutex> locker(implPtr->m_mutex);
    if (!implPtr->tryStart(runnable)) {
@@ -373,6 +379,7 @@ void ThreadPool::start(Runnable *runnable, int priority)
          thread->m_runnableReady.notify_one();
       }
    }
+   
 }
 
 bool ThreadPool::tryStart(Runnable *runnable)
@@ -382,7 +389,7 @@ bool ThreadPool::tryStart(Runnable *runnable)
    }
    PDK_D(ThreadPool);
    std::lock_guard<std::mutex> locker(implPtr->m_mutex);
-   if (implPtr->m_allThreads.empty() == false && 
+   if (!implPtr->m_allThreads.empty() && 
        implPtr->getActiveThreadCount() >= implPtr->m_maxThreadCount) {
       return false;
    }  

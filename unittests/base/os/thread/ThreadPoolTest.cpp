@@ -22,6 +22,7 @@
 #include "pdk/base/time/Time.h"
 #include "pdk/base/lang/String.h"
 #include "pdktest/PdkTest.h"
+#include "pdk/global/Random.h"
 #include <mutex>
 #include <iostream>
 
@@ -88,64 +89,64 @@ void no_sleep_test_function_mutex()
    sg_funcTestMutex.unlock();
 }
 
-//TEST(ThreadPoolTest, testRunFunction)
-//{
-//   {
-//      ThreadPool manager;
-//      testFunctionCount = 0;
-//      manager.start(create_task(no_sleep_test_function));
-//   }
-//   ASSERT_EQ(testFunctionCount, 1);
-//}
+TEST(ThreadPoolTest, testRunFunction)
+{
+   {
+      ThreadPool manager;
+      testFunctionCount = 0;
+      manager.start(create_task(no_sleep_test_function));
+   }
+   ASSERT_EQ(testFunctionCount, 1);
+}
 
-//TEST(ThreadPoolTest, testCreateThreadRunFunction)
-//{
-//   {
-//      ThreadPool manager;
-//      testFunctionCount = 0;
-//      manager.start(create_task(no_sleep_test_function));
-//   }
-//   ASSERT_EQ(testFunctionCount, 1);
-//}
+TEST(ThreadPoolTest, testCreateThreadRunFunction)
+{
+   {
+      ThreadPool manager;
+      testFunctionCount = 0;
+      manager.start(create_task(no_sleep_test_function));
+   }
+   ASSERT_EQ(testFunctionCount, 1);
+}
 
-//TEST(ThreadPoolTest, testRunMultiple)
-//{
-//   const int runs = 10;
-//   {
-//      ThreadPool manager;
-//      testFunctionCount = 0;
-//      for (int i = 0; i < runs; ++i) {
-//         manager.start(create_task(sleep_test_function_mutex));
-//      }
-//   }
-//   ASSERT_EQ(testFunctionCount, runs);
+TEST(ThreadPoolTest, testRunMultiple)
+{
+   const int runs = 10;
+   {
+      ThreadPool manager;
+      testFunctionCount = 0;
+      for (int i = 0; i < runs; ++i) {
+         manager.start(create_task(sleep_test_function_mutex));
+      }
+   }
+   ASSERT_EQ(testFunctionCount, runs);
 
-//   {
-//      ThreadPool manager;
-//      testFunctionCount = 0;
-//      for (int i = 0; i < runs; ++i) {
-//         manager.start(create_task(sleep_test_function_mutex));
-//      }
-//   }
-//   ASSERT_EQ(testFunctionCount, runs);
-//   {
-//      ThreadPool manager;
-//      for (int i = 0; i < 500; ++i) {
-//         manager.start(create_task(empty_function));
-//      }
-//   }
-//}
+   {
+      ThreadPool manager;
+      testFunctionCount = 0;
+      for (int i = 0; i < runs; ++i) {
+         manager.start(create_task(sleep_test_function_mutex));
+      }
+   }
+   ASSERT_EQ(testFunctionCount, runs);
+   {
+      ThreadPool manager;
+      for (int i = 0; i < 500; ++i) {
+         manager.start(create_task(empty_function));
+      }
+   }
+}
 
-//TEST(ThreadPoolTest, testWaitcomplete)
-//{
-//   testFunctionCount = 0;
-//   const int runs = 500;
-//   for (int i = 0; i < 500; ++i) {
-//      ThreadPool pool;
-//      pool.start(create_task(no_sleep_test_function));
-//   }
-//   ASSERT_EQ(testFunctionCount, runs);
-//}
+TEST(ThreadPoolTest, testWaitcomplete)
+{
+   testFunctionCount = 0;
+   const int runs = 500;
+   for (int i = 0; i < 500; ++i) {
+      ThreadPool pool;
+      pool.start(create_task(no_sleep_test_function));
+   }
+   ASSERT_EQ(testFunctionCount, runs);
+}
 
 AtomicInt ran; // bool
 class TestTask : public Runnable
@@ -157,20 +158,20 @@ public:
    }
 };
 
-//TEST(ThreadPoolTest, testRunTask)
-//{
-//   ThreadPool manager;
-//   ran.store(false);
-//   manager.start(new TestTask());
-//   PDK_TRY_VERIFY(ran.load());
-//}
+TEST(ThreadPoolTest, testRunTask)
+{
+   ThreadPool manager;
+   ran.store(false);
+   manager.start(new TestTask());
+   PDK_TRY_VERIFY(ran.load());
+}
 
-//TEST(ThreadPoolTest, testSingleton)
-//{
-//   ran.store(false);
-//   ThreadPool::getGlobalInstance()->start(new TestTask());
-//   PDK_TRY_VERIFY(ran.load());
-//}
+TEST(ThreadPoolTest, testSingleton)
+{
+   ran.store(false);
+   ThreadPool::getGlobalInstance()->start(new TestTask());
+   PDK_TRY_VERIFY(ran.load());
+}
 
 AtomicInt *value = nullptr;
 class IntAccessor : public Runnable
@@ -257,7 +258,7 @@ public:
    }
 };
 
-TEST(ThreadPoopTest, testExpiryTimeout)
+TEST(ThreadPoolTest, testExpiryTimeout)
 {
    ExpiryTimeoutTask task;
 
@@ -293,7 +294,6 @@ TEST(ThreadPoopTest, testExpiryTimeout)
    ASSERT_EQ(threadPool.getExpiryTimeout(), expiryTimeout);
 }
 
-
 TEST(ThreadPoolTest, testExpiryTimeoutRace)
 {
 #ifdef PDK_OS_WIN
@@ -308,7 +308,7 @@ TEST(ThreadPoolTest, testExpiryTimeoutRace)
       threadPool.start(&task);
       Thread::msleep(50); // exactly the same as the expiry timeout
    }
-   ASSERT_TRUE(task.m_semaphore.tryAcquire(numTasks, 10000));
+   ASSERT_TRUE(task.m_semaphore.tryAcquire(numTasks, 100000000));
    ASSERT_EQ(task.m_runCount.load(), numTasks);
    ASSERT_TRUE(threadPool.waitForDone(2000));
 }

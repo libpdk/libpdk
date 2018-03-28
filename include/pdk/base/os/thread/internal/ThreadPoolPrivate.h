@@ -79,7 +79,8 @@ public:
       return runnable;
    }
    
-   Runnable *pop() {
+   Runnable *pop()
+   {
       PDK_ASSERT(!isFinished());
       Runnable *runnable = first();
       PDK_ASSERT(runnable);

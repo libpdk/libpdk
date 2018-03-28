@@ -617,13 +617,13 @@ void srand(uint seed)
       //except after being deleted by QGlobalStaticDeleter.
       //But since it still can be called from destructor of another
       //global static object, fallback to srand(seed)
-      srand(seed);
+      ::srand(seed);
    }
 #else
    // On Windows srand() and rand() already use Thread-Local-Storage
    // to store the seed between calls
    // this is also valid for PDK_NO_THREAD
-   srand(seed);
+   ::srand(seed);
 #endif
 }
 
@@ -640,16 +640,16 @@ int rand()
       return rand_r(pseed);
    } else {
       //global static seed storage should always exist,
-      //except after being deleted by QGlobalStaticDeleter.
+      //except after being deleted by GlobalStaticDeleter.
       //But since it still can be called from destructor of another
       //global static object, fallback to rand()
-      return rand();
+      return ::rand();
    }
 #else
    // On Windows srand() and rand() already use Thread-Local-Storage
    // to store the seed between calls
    // this is also valid for PDK_NO_THREAD
-   return rand();
+   return ::rand();
 #endif
 }
 
