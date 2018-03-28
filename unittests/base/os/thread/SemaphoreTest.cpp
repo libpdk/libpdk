@@ -22,10 +22,52 @@
 
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/Semaphore.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/kernel/ElapsedTimer.h"
+#include "pdktest/PdkTest.h"
 
 using pdk::os::thread::Semaphore;
+using pdk::os::thread::Thread;
+using pdk::kernel::ElapsedTimer;
+using pdk::os::thread::SemaphoreReleaser;
 
-static Semaphore *semaphore = 0;
+static Semaphore *semaphore = nullptr;
+
+class ThreadOne : public Thread
+{
+public:
+   ThreadOne() {}
+   
+protected:
+   void run()
+   {
+      int i = 0;
+      while ( i < 100 ) {
+         semaphore->acquire();
+         i++;
+         semaphore->release();
+      }
+   }
+};
+
+class ThreadN : public Thread
+{
+   int N;
+   
+public:
+   ThreadN(int n) :N(n) { }
+   
+protected:
+   void run()
+   {
+      int i = 0;
+      while ( i < 100 ) {
+         semaphore->acquire(N);
+         i++;
+         semaphore->release(N);
+      }
+   }
+};
 
 namespace {
 
@@ -57,21 +99,25 @@ TEST(SemaphoreTest, testAcquire)
       ASSERT_TRUE(!semaphore);
       semaphore = new Semaphore();
       semaphore->release();
-      std::thread thread1(one_num_semaphore_handler);
-      std::thread thread2(one_num_semaphore_handler);
-      thread1.join();
-      thread2.join();
+      ThreadOne t1;
+      ThreadOne t2;
+      t1.start();
+      t2.start();
+      ASSERT_TRUE(t1.wait(4000));
+      ASSERT_TRUE(t2.wait(4000));
       delete semaphore;
       semaphore = nullptr;
    }
    {
       ASSERT_TRUE(!semaphore);
-      semaphore = new Semaphore(4);
-      semaphore->release();
-      std::thread thread1(n_num_semaphore_handler, 2);
-      std::thread thread2(n_num_semaphore_handler, 3);
-      thread1.join();
-      thread2.join();
+      semaphore = new Semaphore();
+      semaphore->release(4);
+      ThreadN t1(2);
+      ThreadN t2(3);
+      t1.start();
+      t2.start();
+      ASSERT_TRUE(t1.wait(4000));
+      ASSERT_TRUE(t2.wait(4000));
       delete semaphore;
       semaphore = nullptr;
    }
@@ -242,27 +288,81 @@ TEST(SemaphoreTest, testTryAcquireWithTimeout)
 
 TEST(SemaphoreTest, testTryAcquireTimeoutStarvation)
 {
-   Semaphore startup;
-   Semaphore *semaphorePtr;
-   int amountToConsume;
-   int timeout;
+   class MyThread : public Thread
+   {
+   public:
+      Semaphore m_startup;
+      Semaphore *m_semaphore;
+      int m_amountToConsume;
+      int m_timeout;
+
+      void run()
+      {
+         m_startup.release();
+         while(true) {
+            if (!m_semaphore->tryAcquire(m_amountToConsume, m_timeout)) {
+               break;
+            }
+            m_semaphore->release(m_amountToConsume);
+         }
+      }
+   };
    Semaphore semaphore;
    semaphore.release(1);
-   semaphorePtr = &semaphore;
-   amountToConsume = 1;
-   timeout = 1000;
-   std::thread thread([&](Semaphore &startup, Semaphore *semaphorePtr){
-      startup.release();
-      while(true) {
-         if (!semaphorePtr->tryAcquire(amountToConsume, timeout))
-            break;
-         semaphorePtr->release(amountToConsume);
-      }
-   }, std::ref(startup), semaphorePtr);
-   startup.acquire();
-   ASSERT_TRUE(!semaphore.tryAcquire(amountToConsume * 2, timeout * 2));
+   MyThread consumer;
+   consumer.m_semaphore = &semaphore;
+   consumer.m_amountToConsume = 1;
+   consumer.m_timeout = 1000;
+
+   // start the thread and wait for it to start consuming
+   consumer.start();
+   consumer.m_startup.acquire();
+
+   ASSERT_TRUE(!semaphore.tryAcquire(consumer.m_amountToConsume * 2, consumer.m_timeout * 2));
    semaphore.acquire();
-   thread.join();
+   ASSERT_TRUE(consumer.wait());
+}
+
+namespace {
+
+void try_acquire_with_timeout_forever_data(std::list<int> &data)
+{
+   data.push_back(-1);
+   data.push_back(INT_MIN);
+}
+
+} // anonymous namespace
+
+TEST(SemaphoreTest, testTryAcquireWithTimeoutForever)
+{
+   enum { WaitTime = 1000 };
+   class MyThread : public Thread {
+   public:
+      Semaphore m_sem;
+
+      void run() override
+      {
+         pdktest::wait(WaitTime);
+         m_sem.release(2);
+      }
+   };
+
+   std::list<int> data;
+   try_acquire_with_timeout_forever_data(data);
+   for (int timeout: data) {
+      MyThread thread;
+      thread.m_sem.release(11);
+      ASSERT_TRUE(thread.m_sem.tryAcquire(1, timeout));
+      ASSERT_TRUE(thread.m_sem.tryAcquire(10, timeout));
+      ElapsedTimer timer;
+      timer.start();
+      thread.start();
+      ASSERT_TRUE(thread.wait());
+      ASSERT_TRUE(thread.m_sem.tryAcquire(1, timeout));
+      // @TODO i have no idea why wake up ahead of schedul
+      ASSERT_TRUE(timer.elapsed() >= WaitTime - 10);
+      ASSERT_EQ(thread.m_sem.available(), 1);
+   }
 }
 
 const char alphabet[] = "ACGTH";
@@ -282,36 +382,101 @@ const int DataSize = ProducerChunkSize * ConsumerChunkSize * BufferSize * Multip
 Semaphore freeSpace(BufferSize);
 Semaphore usedSpace;
 
-TEST(SemaphoreTest, testSemaphoreTest)
+class Producer : public Thread
 {
-   std::thread producer([&](){
-      for (int i = 0; i < DataSize; ++i) {
-         freeSpace.acquire();
-         buffer[i % BufferSize] = alphabet[i % AlphabetSize];
-         usedSpace.release();
+public:
+   void run();
+};
+
+static const int Timeout = 60 * 1000; // 1min
+
+
+void Producer::run()
+{
+   for (int i = 0; i < DataSize; ++i) {
+      ASSERT_TRUE(freeSpace.tryAcquire(1, Timeout));
+      buffer[i % BufferSize] = alphabet[i % AlphabetSize];
+      usedSpace.release();
+   }
+   for (int i = 0; i < DataSize; ++i) {
+      if ((i % ProducerChunkSize) == 0) {
+         ASSERT_TRUE(freeSpace.tryAcquire(ProducerChunkSize, Timeout));
       }
-      for (int i = 0; i < DataSize; ++i) {
-         if ((i % ProducerChunkSize) == 0)
-            freeSpace.acquire(ProducerChunkSize);
-         buffer[i % BufferSize] = alphabet[i % AlphabetSize];
-         if ((i % ProducerChunkSize) == (ProducerChunkSize - 1))
-            usedSpace.release(ProducerChunkSize);
+      buffer[i % BufferSize] = alphabet[i % AlphabetSize];
+      if ((i % ProducerChunkSize) == (ProducerChunkSize - 1)) {
+         usedSpace.release(ProducerChunkSize);
       }
-   });
-   std::thread consumer([&](){
-      for (int i = 0; i < DataSize; ++i) {
-         usedSpace.acquire();
-         ASSERT_EQ(buffer[i % BufferSize], alphabet[i % AlphabetSize]);
-         freeSpace.release();
+   }
+}
+
+class Consumer : public Thread
+{
+public:
+   void run();
+};
+
+void Consumer::run()
+{
+   for (int i = 0; i < DataSize; ++i) {
+      usedSpace.acquire();
+      ASSERT_EQ(buffer[i % BufferSize], alphabet[i % AlphabetSize]);
+      freeSpace.release();
+   }
+   for (int i = 0; i < DataSize; ++i) {
+      if ((i % ConsumerChunkSize) == 0) {
+         usedSpace.acquire(ConsumerChunkSize);
       }
-      for (int i = 0; i < DataSize; ++i) {
-         if ((i % ConsumerChunkSize) == 0)
-            usedSpace.acquire(ConsumerChunkSize);
-         ASSERT_EQ(buffer[i % BufferSize], alphabet[i % AlphabetSize]);
-         if ((i % ConsumerChunkSize) == (ConsumerChunkSize - 1))
-            freeSpace.release(ConsumerChunkSize);
+      ASSERT_EQ(buffer[i % BufferSize], alphabet[i % AlphabetSize]);
+      if ((i % ConsumerChunkSize) == (ConsumerChunkSize - 1)) {
+         freeSpace.release(ConsumerChunkSize);
       }
-   });
-   producer.join();
-   consumer.join();
+   }
+}
+
+TEST(SemaphoreTest, testProducerConsumer)
+{
+   Producer producer;
+   Consumer consumer;
+   producer.start();
+   consumer.start();
+   producer.wait();
+   consumer.wait();
+}
+
+TEST(SemaphoreTest, testRaii)
+{
+   Semaphore sem;
+   ASSERT_EQ(sem.available(), 0);
+   // basic operation:
+   {
+      SemaphoreReleaser r0;
+      const SemaphoreReleaser r1(sem);
+      const SemaphoreReleaser r2(sem, 2);
+      
+      ASSERT_EQ(r0.getSemaphore(), nullptr);
+      ASSERT_EQ(r1.getSemaphore(), &sem);
+      ASSERT_EQ(r2.getSemaphore(), &sem);
+   }
+   ASSERT_EQ(sem.available(), 3);
+   // cancel:
+   {
+      const SemaphoreReleaser r1(sem);
+      SemaphoreReleaser r2(sem, 2);
+      
+      ASSERT_EQ(r2.cancel(), &sem);
+      ASSERT_EQ(r2.getSemaphore(), nullptr);
+   }
+   ASSERT_EQ(sem.available(), 4);
+   
+   // move-assignment:
+   {
+      const SemaphoreReleaser r1(sem);
+      SemaphoreReleaser r2(sem, 2);
+      ASSERT_EQ(sem.available(), 4);
+      r2 = SemaphoreReleaser();
+      ASSERT_EQ(sem.available(), 6);
+      r2 = SemaphoreReleaser(sem, 42);
+      ASSERT_EQ(sem.available(), 6);
+   }
+   ASSERT_EQ(sem.available(), 49);
 }
