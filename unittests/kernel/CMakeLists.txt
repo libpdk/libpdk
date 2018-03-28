@@ -15,6 +15,12 @@ pdk_add_files(PDK_KERNEL_TEST_SRCS
     signal/TrackTest.cpp
     signal/SharedConnectionBlockTest.cpp
     signal/DeconstructTest.cpp
-    signal/ThreadingModelTest.cpp)
+    signal/ThreadingModelTest.cpp
+    CoreApplicationTest.cpp
+    EventLoopTest.cpp
+    DeadLineTimerTest.cpp
+    ElapsedTimerTest.cpp
+    TimerTest.cpp
+    )
 
 pdk_add_unittest(KerneUnittests KernelTest ${PDK_KERNEL_TEST_SRCS})
