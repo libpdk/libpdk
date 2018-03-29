@@ -75,7 +75,7 @@ struct BasicAtomicBitField
    }
 };
 
-using UserEventTypeRegistry = BasicAtomicBitField<static_cast<int>(Event::Type::MaxUser) - static_cast<int>(Event::Type::User) + 1>;
+using UserEventTypeRegistry = BasicAtomicBitField<pdk::as_integer<Event::Type>(Event::Type::MaxUser) - pdk::as_integer<Event::Type>(Event::Type::User) + 1>;
 static UserEventTypeRegistry sg_userEventTypeRegistry;
 
 static inline int register_event_type_zero_based(int id) noexcept
