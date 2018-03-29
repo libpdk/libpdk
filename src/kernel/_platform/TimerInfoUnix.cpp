@@ -503,12 +503,11 @@ bool TimerInfoList::unregisterTimers(Object *object)
       return false;
    }
    TimerInfoList::iterator iter = begin();
-   TimerInfoList::iterator endMark = end();
-   while (iter != endMark) {
+   while (iter != end()) {
       TimerInfo *t = *iter;
       if (t->m_obj == object) {
          // object found
-         erase(iter);
+         iter = erase(iter);
          if (t == m_firstTimerInfo) {
             m_firstTimerInfo = nullptr;
          }  
@@ -517,8 +516,9 @@ bool TimerInfoList::unregisterTimers(Object *object)
          }
          delete t;
          // move back one so that we don't skip the new current item
+      } else {
+         ++iter;
       }
-      ++iter;
    }
    return true;
 }
