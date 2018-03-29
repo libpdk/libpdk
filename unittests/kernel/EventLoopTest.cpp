@@ -40,7 +40,7 @@ class EventLoopExiter : public Object
 {
    EventLoop *m_eventLoop;
 public:
-   inline EventLoopExiter(EventLoop *el)
+   inline explicit EventLoopExiter(EventLoop *el)
       : m_eventLoop(el)
    {}
 public:
@@ -139,9 +139,8 @@ class EventLoopExecutor : public Object
    EventLoop *m_eventLoop;
 public:
    int m_returnCode;
-   EventLoopExecutor(EventLoop *eventLoop)
-      : Object(),
-        m_eventLoop(eventLoop),
+   explicit EventLoopExecutor(EventLoop *eventLoop)
+      : m_eventLoop(eventLoop),
         m_returnCode(-42)
    {
    }
@@ -256,4 +255,9 @@ TEST(EventLoopTest, testExec)
       ASSERT_EQ(returnCode, 0);
       ASSERT_EQ(executor.m_returnCode, -1);
    }
+}
+
+TEST(EventLoopTest, testReexec)
+{
+   
 }

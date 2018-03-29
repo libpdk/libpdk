@@ -117,7 +117,7 @@ public:
    
    bool nolockNograbBlocked() const
    {
-      return nolockNograbConnected() == false || blocked();
+      return nolockNograbConnected() || blocked();
    }
    
    bool nolockNograbConnected() const
@@ -201,7 +201,7 @@ public:
          return;
       }
       bool expired = slot().expired();
-      if(expired == true)
+      if(expired)
       {
          nolockDisconnect(lock);
       }
@@ -283,7 +283,7 @@ public:
    {}
    
    // move support
-   Connection(Connection &&other)
+   Connection(Connection &&other) noexcept
       : m_weakConnectionBody(std::move(other.m_weakConnectionBody))
    {
       // make sure other is reset, in case it is a ScopedConnection (so it
@@ -291,7 +291,7 @@ public:
       other.m_weakConnectionBody.reset();
    }
    
-   Connection &operator=(Connection &&other)
+   Connection &operator=(Connection &&other) noexcept
    {
       if(&other == this) {
          return *this;
@@ -400,7 +400,7 @@ public:
    }
    
    // move support
-   ScopedConnection(ScopedConnection &&other)
+   ScopedConnection(ScopedConnection &&other) noexcept
       : Connection(std::move(other))
    {}
    
@@ -408,7 +408,7 @@ public:
       : Connection(std::move(other))
    {}
    
-   ScopedConnection &operator=(ScopedConnection &&other)
+   ScopedConnection &operator=(ScopedConnection &&other) noexcept
    {
       if(&other == this) {
          return *this;

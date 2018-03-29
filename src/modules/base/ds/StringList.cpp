@@ -48,7 +48,7 @@ String stringlist_join(const StringList *that, const Character *sep, int seplen)
    }
    res.reserve(totalLength);
    for (int i = 0; i < size; ++i) {
-      if (i) {
+      if (i != 0) {
          res.append(sep, seplen);
       }
       res += that->at(i);

@@ -85,7 +85,7 @@ public:
    {}
    
    constexpr inline explicit Latin1String(const char *str) noexcept
-      : m_size(str ? std::strlen(str) : 0),
+      : m_size(nullptr != str ? std::strlen(str) : 0),
         m_data(str)
    {}
    
@@ -119,12 +119,12 @@ public:
    
    constexpr bool isNull() const noexcept
    {
-      return !getRawData();
+      return nullptr != getRawData();
    }
    
    constexpr bool isEmpty() const noexcept
    {
-      return !size();
+      return 0 != size();
    }
    
    constexpr Latin1Character at(int i) const
@@ -287,12 +287,12 @@ public:
       return stringprivate::trimmed(*this);
    }
    
-   inline bool operator==(const String &s) const noexcept;
-   inline bool operator!=(const String &s) const noexcept;
-   inline bool operator>(const String &s) const noexcept;
-   inline bool operator<(const String &s) const noexcept;
-   inline bool operator>=(const String &s) const noexcept;
-   inline bool operator<=(const String &s) const noexcept;
+   inline bool operator==(const String &str) const noexcept;
+   inline bool operator!=(const String &str) const noexcept;
+   inline bool operator>(const String &str) const noexcept;
+   inline bool operator<(const String &str) const noexcept;
+   inline bool operator>=(const String &str) const noexcept;
+   inline bool operator<=(const String &str) const noexcept;
    
 private:
    int m_size;
@@ -386,7 +386,8 @@ public:
    template <int N>
    inline String &operator =(const char (&str)[N])
    {
-      return (*this = fromUtf8(str, N - 1));
+      *this = fromUtf8(str, N - 1);
+      return *this;
    }
    
    inline String(String &&other) noexcept
@@ -780,18 +781,18 @@ public:
    
    static inline String fromLatin1(const char *str, int size = -1)
    {
-      StringDataPtr dataPtr = { fromLatin1Helper(str, (str && size == -1) ? static_cast<int>(std::strlen(str)) : size) };
+      StringDataPtr dataPtr = { fromLatin1Helper(str, (nullptr != str && size == -1) ? static_cast<int>(std::strlen(str)) : size) };
       return String(dataPtr);
    }
    
    static inline String fromUtf8(const char *str, int size = -1)
    {
-      return fromUtf8Helper(str, (str && size == -1) ? static_cast<int>(std::strlen(str)) : size);
+      return fromUtf8Helper(str, (nullptr != str && size == -1) ? static_cast<int>(std::strlen(str)) : size);
    }
    
    static inline String fromLocal8Bit(const char *str, int size = -1)
    {
-      return fromLocal8BitHelper(str, (str && size == -1) ? int(std::strlen(str)) : size);
+      return fromLocal8BitHelper(str, (nullptr != str && size == -1) ? int(std::strlen(str)) : size);
    }
    
    static inline String fromLatin1(const ByteArray &str)
@@ -856,7 +857,7 @@ public:
    static inline int compare(Latin1String lhs, const String &rhs,
                              pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) noexcept
    {
-      return -rhs.compare(lhs);   
+      return -rhs.compare(lhs, cs);   
    }
    
    static inline int compare(const String &lhs, const StringRef &rhs,
@@ -882,16 +883,16 @@ public:
    float toFloat(bool *ok = nullptr) const;
    double toDouble(bool *ok = nullptr) const;
    
-   String &setNum(short, int base=10);
-   String &setNum(ushort, int base=10);
-   String &setNum(int, int base=10);
-   String &setNum(uint, int base=10);
-   String &setNum(long, int base=10);
-   String &setNum(ulong, int base=10);
-   String &setNum(pdk::plonglong, int base=10);
-   String &setNum(pdk::pulonglong, int base=10);
-   String &setNum(float, char f='g', int prec=6);
-   String &setNum(double, char f='g', int prec=6);
+   String &setNum(short value, int base=10);
+   String &setNum(ushort value, int base=10);
+   String &setNum(int value, int base=10);
+   String &setNum(uint value, int base=10);
+   String &setNum(long value, int base=10);
+   String &setNum(ulong value, int base=10);
+   String &setNum(pdk::plonglong value, int base=10);
+   String &setNum(pdk::pulonglong value, int base=10);
+   String &setNum(float value, char f='g', int prec=6);
+   String &setNum(double value, char f='g', int prec=6);
    
    static String number(int, int base=10);
    static String number(uint, int base=10);
@@ -1095,9 +1096,9 @@ private:
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(String::SectionFlags)
 
-inline String String::section(Character asep, int astart, int aend, SectionFlags aflags) const
+inline String String::section(Character separator, int start, int end, SectionFlags flags) const
 {
-   return section(String(asep), astart, aend, aflags);
+   return section(String(separator), start, end, flags);
 }
 
 String StringView::toString() const
@@ -1233,7 +1234,7 @@ inline void String::clear()
 
 inline int String::capacity() const
 {
-   return m_data->m_alloc ? m_data->m_alloc - 1 : 0;
+   return m_data->m_alloc != 0 ? m_data->m_alloc - 1 : 0;
 }
 
 inline void String::reserve(int size)
@@ -1241,8 +1242,8 @@ inline void String::reserve(int size)
    if (m_data->m_ref.isShared() || static_cast<uint>(size) >= m_data->m_alloc) {
       reallocData(std::max(size, m_data->m_size) + 1u);
    }
-   if (!m_data->m_capacityReserved) {
-      m_data->m_capacityReserved = true;
+   if (0 == m_data->m_capacityReserved) {
+      m_data->m_capacityReserved = (uint)true;
    }
 }
 
@@ -1252,8 +1253,8 @@ inline void String::squeeze()
    {
       reallocData(static_cast<uint>(m_data->m_size) + 1u);
    }
-   if (m_data->m_capacityReserved) {
-      m_data->m_capacityReserved = false;
+   if (0 != m_data->m_capacityReserved) {
+      m_data->m_capacityReserved = (uint)false;
    }
 }
 
@@ -1263,9 +1264,8 @@ inline int String::toWCharArray(wchar_t *array) const
    if (sizeof(wchar_t) == sizeof(Character)) {
       std::memcpy(array, m_data->getData(), sizeof(Character) * length);
       return length;
-   } else {
-      return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
    }
+   return toUcs4Helper(m_data->getData(), length, reinterpret_cast<char32_t *>(array));
 }
 
 inline String String::fromWCharArray(const wchar_t *string, int size)
@@ -1395,37 +1395,37 @@ inline std::u32string String::toStdU32String() const
    return u32Str;
 }
 
-inline String &String::setNum(short n, int base)
+inline String &String::setNum(short value, int base)
 {
-   return setNum(static_cast<pdk::plonglong>(n), base);
+   return setNum(static_cast<pdk::plonglong>(value), base);
 }
 
-inline String &String::setNum(ushort n, int base)
+inline String &String::setNum(ushort value, int base)
 {
-   return setNum(static_cast<pdk::pulonglong>(n), base);
+   return setNum(static_cast<pdk::pulonglong>(value), base);
 }
 
-inline String &String::setNum(int n, int base)
+inline String &String::setNum(int value, int base)
 {
-   return setNum(static_cast<pdk::plonglong>(n), base);
+   return setNum(static_cast<pdk::plonglong>(value), base);
 }
-inline String &String::setNum(uint n, int base)
+inline String &String::setNum(uint value, int base)
 {
-   return setNum(static_cast<pdk::pulonglong>(n), base);
+   return setNum(static_cast<pdk::pulonglong>(value), base);
 }
-inline String &String::setNum(long n, int base)
+inline String &String::setNum(long value, int base)
 {
-   return setNum(static_cast<pdk::plonglong>(n), base);
-}
-
-inline String &String::setNum(ulong n, int base)
-{
-   return setNum(static_cast<pdk::pulonglong>(n), base);
+   return setNum(static_cast<pdk::plonglong>(value), base);
 }
 
-inline String &String::setNum(float n, char f, int prec)
+inline String &String::setNum(ulong value, int base)
 {
-   return setNum(static_cast<double>(n),f,prec);
+   return setNum(static_cast<pdk::pulonglong>(value), base);
+}
+
+inline String &String::setNum(float value, char f, int prec)
+{
+   return setNum(static_cast<double>(value),f,prec);
 }
 
 inline String String::arg(int a, int fieldWidth, int base, Character fillChar) const
@@ -1514,39 +1514,47 @@ inline String String::arg(const String &a1, const String &a2, const String &a3,
    return multiArg(9, args);
 }
 
-inline bool operator ==(String::Null, String::Null)
+inline bool operator ==(String::Null lhs, String::Null rhs)
 {
+   PDK_UNUSED(lhs);
+   PDK_UNUSED(rhs);
    return true;
 }
 
-inline bool operator ==(String::Null, const String &rhs)
+inline bool operator ==(String::Null lhs, const String &rhs)
 {
+   PDK_UNUSED(lhs);
    return rhs.isNull();
 }
 
-inline bool operator ==(const String &lhs, String::Null)
+inline bool operator ==(const String &lhs, String::Null rhs)
 {
+   PDK_UNUSED(rhs);
    return lhs.isNull();
 }
 
-inline bool operator !=(String::Null, String::Null)
+inline bool operator !=(String::Null lhs, String::Null rhs)
 {
+   PDK_UNUSED(lhs);
+   PDK_UNUSED(rhs);
    return false;
 }
 
-inline bool operator !=(String::Null, const String &rhs)
+inline bool operator !=(String::Null lhs, const String &rhs)
 {
+   PDK_UNUSED(lhs);
    return !rhs.isNull();
 }
 
-inline bool operator !=(const String &lhs, String::Null)
+inline bool operator !=(const String &lhs, String::Null rhs)
 {
+   PDK_UNUSED(rhs);
    return !lhs.isNull();
 }
 
 inline bool operator ==(Latin1String lhs, Latin1String rhs) noexcept
 {
-   return lhs.size() == rhs.size() && (!lhs.size() || !std::memcmp(lhs.latin1(), rhs.latin1(), lhs.size()));
+   return lhs.size() == rhs.size() && (0 == lhs.size() || 0 == std::memcmp(lhs.latin1(), rhs.latin1(), lhs.size()));
 }
 
 inline bool operator !=(Latin1String lhs, Latin1String rhs) noexcept
@@ -1557,7 +1565,7 @@ inline bool operator !=(Latin1String lhs, Latin1String rhs) noexcept
 inline bool operator <(Latin1String lhs, Latin1String rhs) noexcept
 {
    const int length = std::min(lhs.size(), rhs.size());
-   const int result = length ? std::memcmp(lhs.latin1(), rhs.latin1(), length) : 0;
+   const int result = 0 != length ? std::memcmp(lhs.latin1(), rhs.latin1(), length) : 0;
    return result < 0 || (result == 0 && lhs.size() < rhs.size());
 }
 
@@ -1678,27 +1686,32 @@ public:
    
    inline CharacterRef &operator =(const CharacterRef &c)
    {
-      return operator =(Character(c));
+      operator =(Character(c));
+      return *this;
    }
    
    inline CharacterRef &operator =(ushort c)
    {
-      return operator =(Character(c));
+      operator =(Character(c));
+      return *this;
    }
    
    inline CharacterRef &operator =(short c)
    {
-      return operator =(Character(c));
+      operator =(Character(c));
+      return *this;
    }
    
    inline CharacterRef &operator =(uint c)
    {
-      return operator =(Character(c));
+      operator =(Character(c));
+      return *this;
    }
    
    inline CharacterRef &operator =(int c)
    {
-      return operator =(Character(c));
+      operator =(Character(c));
+      return *this;
    }
    
    inline bool isNull() const
@@ -1991,7 +2004,7 @@ public:
    inline StringRef &operator =(const String *str);
    inline const Character *unicode() const 
    {
-      if (!m_str) {
+      if (nullptr == m_str) {
          return reinterpret_cast<const Character *>(String::Data::getSharedNull()->getData());
       }
       return m_str->unicode() + m_position;
@@ -2126,14 +2139,14 @@ inline StringRef::StringRef(const String *str, int position, int size)
 inline StringRef::StringRef(const String *str)
    : m_str(str),
      m_position(0),
-     m_size(str ? str->size() : 0)
+     m_size(nullptr != str ? str->size() : 0)
 {}
 
 inline StringRef &StringRef::operator =(const String *str)
 {
    m_str = str;
    m_position = 0;
-   m_size = str ? str->size() : 0;
+   m_size = nullptr != str ? str->size() : 0;
    return *this;
 }
 
@@ -2585,32 +2598,32 @@ inline bool operator>=(Latin1String lhs, StringView rhs) noexcept
    return stringprivate::compare_strings(lhs, rhs) >= 0;
 }
 
-inline bool operator ==(const String &lhs, nullptr_t)
+inline bool operator ==(const String &lhs, std::nullptr_t)
 {
    return lhs.isNull() || lhs.isEmpty();
 }
 
-inline bool operator ==(nullptr_t, const String &rhs)
+inline bool operator ==(std::nullptr_t, const String &rhs)
 {
    return rhs.isNull() || rhs.isEmpty();
 }
 
-inline bool operator ==(const StringRef &lhs, nullptr_t)
+inline bool operator ==(const StringRef &lhs, std::nullptr_t)
 {
    return lhs.isNull() || lhs.isEmpty();
 }
 
-inline bool operator ==(nullptr_t, const StringRef &rhs)
+inline bool operator ==(std::nullptr_t, const StringRef &rhs)
 {
    return rhs.isNull() || rhs.isEmpty();
 }
 
-inline bool operator ==(StringView lhs, nullptr_t)
+inline bool operator ==(StringView lhs, std::nullptr_t)
 {
    return lhs.isNull() || lhs.isEmpty();
 }
 
-inline bool operator ==(nullptr_t, StringView rhs)
+inline bool operator ==(std::nullptr_t, StringView rhs)
 {
    return rhs.isNull() || rhs.isEmpty();
 }

@@ -114,7 +114,7 @@ public:
    void run()
    {
       SimpleThread::run();
-      if (m_object) {
+      if (nullptr != m_object) {
          m_object->m_thread = this;
          m_object->m_code = m_code;
          Timer::singleShot(100, m_object, &ExitObject::slot);
@@ -159,7 +159,7 @@ public:
    void run()
    {
       SimpleThread::run();
-      if (m_object) {
+      if (nullptr != m_object) {
          m_object->m_thread = this;
          Timer::singleShot(100, [&](){
             m_object->slot();
@@ -644,8 +644,9 @@ void *NativeThreadWrapper::runUnix(void *that)
    // Wait for stop.
    {
       std::unique_lock<std::mutex> lock(nativeThreadWrapper->m_mutex);
-      if (nativeThreadWrapper->m_waitForStop)
+      if (nativeThreadWrapper->m_waitForStop) {
          nativeThreadWrapper->m_stopCondition.wait(lock);
+      } 
    }
    return nullptr;
 }
@@ -1104,7 +1105,7 @@ TEST(ThreadTest, testStartFinishRace)
       MyThread() : m_i (50) {}
       void run() {
          m_i--;
-         if (!m_i) {
+         if (0 == m_i) {
             disconnectFinishedSignal(m_connection);
          }
       }
@@ -1150,10 +1151,10 @@ public:
    {}
    bool m_ok;
 public:
-   void slotFinished(Thread::SignalType signal, Object *sender)
+   void slotFinished(Thread::SignalType, Object *sender)
    {
       Thread *t = dynamic_cast<Thread *>(sender);
-      m_ok = t && t->isFinished() && !t->isRunning();
+      m_ok = t != nullptr && t->isFinished() && !t->isRunning();
    }
 };
 
@@ -1194,7 +1195,7 @@ using pdk::os::thread::BasicAtomicInt;
 class DummyEventDispatcher : public AbstractEventDispatcher
 {
 public:
-   DummyEventDispatcher() : AbstractEventDispatcher()
+   DummyEventDispatcher()
    {}
    
    bool processEvents(EventLoop::ProcessEventsFlags)
@@ -1207,7 +1208,7 @@ public:
    
    bool hasPendingEvents()
    {
-      return global_posted_events_count();
+      return global_posted_events_count() != 0;
    }
    
    void registerSocketNotifier(SocketNotifier *)
