@@ -13,3 +13,83 @@
 //
 // Created by softboy on 2018/03/28.
 
+#include "gtest/gtest.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/global/Global.h"
+#include "pdktest/PdkTest.h"
+#include "pdk/kernel/Timer.h"
+#include "pdk/base/os/thread/Thread.h"
+
+#if defined PDK_OS_UNIX
+#include <unistd.h>
+#endif
+
+using pdk::kernel::Object;
+using pdk::kernel::Timer;
+using pdk::kernel::CoreApplication;
+
+class TimerHelper : public Object
+{
+public:
+   TimerHelper() 
+      : m_count(0),
+        m_remainingTime(-1)
+   {
+   }
+   
+   int m_count;
+   int m_remainingTime;
+   
+public:
+   void timeout();
+   void fetchRemainingTime(Timer::SignalType signal, Object *sender);
+};
+
+void TimerHelper::timeout()
+{
+   ++m_count;
+}
+
+void TimerHelper::fetchRemainingTime(Timer::SignalType signal, Object *sender)
+{
+   Timer *timer = static_cast<Timer *>(sender);
+   m_remainingTime = timer->getRemainingTime();
+}
+
+TEST(TimerTest, testZeroTimer)
+{
+   TimerHelper helper;
+   Timer timer;
+   timer.setInterval(0);
+   timer.start();
+   timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
+   CoreApplication::processEvents();
+   ASSERT_EQ(helper.m_count, 1);
+}
+
+TEST(TimerTest, testSingleShotTimeout)
+{
+   TimerHelper helper;
+   Timer timer;
+   timer.setSingleShot(true);
+   timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
+   timer.start(100);
+   pdktest::wait(500);
+   ASSERT_EQ(helper.m_count, 1);
+   pdktest::wait(500);
+   ASSERT_EQ(helper.m_count, 1);
+}
+
+#define TIMEOUT_TIMEOUT 200
+
+TEST(TimerTest, testTimeout)
+{
+   TimerHelper helper;
+   Timer timer;
+   timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
+   timer.start(100);
+   ASSERT_EQ(helper.m_count, 0);
+   PDK_TRY_VERIFY_WITH_TIMEOUT(helper.m_count > 0, TIMEOUT_TIMEOUT);
+   int oldCount = helper.m_count;
+   PDK_TRY_VERIFY_WITH_TIMEOUT(helper.m_count > oldCount, TIMEOUT_TIMEOUT);
+}
