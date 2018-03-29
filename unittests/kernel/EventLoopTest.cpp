@@ -17,6 +17,7 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/kernel/CoreEvent.h"
 #include "pdk/kernel/EventLoop.h"
+#include "pdk/kernel/CallableInvoker.h"
 #include "pdk/kernel/internal/EventLoopPrivate.h"
 #include "pdk/kernel/AbstractEventDispatcher.h"
 #if defined(PDK_OS_UNIX)
@@ -27,6 +28,7 @@
 #include "pdk/kernel/Timer.h"
 #include <condition_variable>
 #include <mutex>
+#include <iostream>
 
 using pdk::kernel::EventLoop;
 using pdk::kernel::Object;
@@ -35,12 +37,13 @@ using pdk::kernel::Event;
 using pdk::kernel::Timer;
 using pdk::kernel::AbstractEventDispatcher;
 using pdk::kernel::CoreApplication;
+using pdk::kernel::CallableInvoker;
 
 class EventLoopExiter : public Object
 {
    EventLoop *m_eventLoop;
 public:
-   inline explicit EventLoopExiter(EventLoop *el)
+   inline EventLoopExiter(EventLoop *el)
       : m_eventLoop(el)
    {}
 public:
@@ -139,8 +142,9 @@ class EventLoopExecutor : public Object
    EventLoop *m_eventLoop;
 public:
    int m_returnCode;
-   explicit EventLoopExecutor(EventLoop *eventLoop)
-      : m_eventLoop(eventLoop),
+   EventLoopExecutor(EventLoop *eventLoop)
+      : Object(),
+        m_eventLoop(eventLoop),
         m_returnCode(-42)
    {
    }
@@ -187,6 +191,8 @@ TEST(EventLoopTest, testProcessEvents)
    ASSERT_TRUE(awakeCount > 0);
    ASSERT_TRUE(awakeCount >= aboutToBlockCount);
    object.killTimer(timerId);
+   eventDispatcher->disconnectAboutToBlockSignal();
+   eventDispatcher->disconnectAwakeSignal();
 }
 
 #define EXEC_TIMEOUT 100
@@ -259,5 +265,18 @@ TEST(EventLoopTest, testExec)
 
 TEST(EventLoopTest, testReexec)
 {
+   EventLoop loop;
+   CallableInvoker::invokeAsync([&loop](){
+      loop.quit();
+   }, &loop);
+   // exec once
+   ASSERT_EQ(loop.exec(), 0);
    
+   // and again
+   CallableInvoker::invokeAsync([&loop](){
+      loop.quit();
+   }, &loop);
+
+   // exec once
+   ASSERT_EQ(loop.exec(), 0);
 }

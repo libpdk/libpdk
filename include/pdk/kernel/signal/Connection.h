@@ -117,7 +117,7 @@ public:
    
    bool nolockNograbBlocked() const
    {
-      return nolockNograbConnected() || blocked();
+      return !nolockNograbConnected() || blocked();
    }
    
    bool nolockNograbConnected() const

@@ -119,12 +119,12 @@ public:
    
    constexpr bool isNull() const noexcept
    {
-      return nullptr != getRawData();
+      return nullptr == getRawData();
    }
    
    constexpr bool isEmpty() const noexcept
    {
-      return 0 != size();
+      return 0 == size();
    }
    
    constexpr Latin1Character at(int i) const
