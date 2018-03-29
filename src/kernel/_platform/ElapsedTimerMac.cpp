@@ -104,19 +104,19 @@ pdk::pint64 ElapsedTimer::restart() noexcept
    return absolute_to_msecs(m_t1 - old);
 }
 
-pdk::pint64 ElapsedTimer::nsecsElapsed() const noexcept
+pdk::pint64 ElapsedTimer::getNsecsElapsed() const noexcept
 {
    uint64_t cpuTime = mach_absolute_time();
    return absolute_to_nsecs(cpuTime - m_t1);
 }
 
-pdk::pint64 ElapsedTimer::elapsed() const noexcept
+pdk::pint64 ElapsedTimer::getElapsed() const noexcept
 {
    uint64_t cpuTime = mach_absolute_time();
    return absolute_to_msecs(cpuTime - m_t1);
 }
 
-pdk::pint64 ElapsedTimer::msecsSinceReference() const noexcept
+pdk::pint64 ElapsedTimer::getMsecsSinceReference() const noexcept
 {
    return absolute_to_msecs(m_t1);
 }

@@ -360,7 +360,7 @@ TEST(SemaphoreTest, testTryAcquireWithTimeoutForever)
       ASSERT_TRUE(thread.wait());
       ASSERT_TRUE(thread.m_sem.tryAcquire(1, timeout));
       // @TODO i have no idea why wake up ahead of schedul
-      ASSERT_TRUE(timer.elapsed() >= WaitTime - 10);
+      ASSERT_TRUE(timer.getElapsed() >= WaitTime - 10);
       ASSERT_EQ(thread.m_sem.available(), 1);
    }
 }

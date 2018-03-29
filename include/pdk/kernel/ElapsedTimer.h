@@ -47,11 +47,11 @@ public:
    void invalidate() noexcept;
    bool isValid() const noexcept;
    
-   pdk::pint64 nsecsElapsed() const noexcept;
-   pdk::pint64 elapsed() const noexcept;
+   pdk::pint64 getNsecsElapsed() const noexcept;
+   pdk::pint64 getElapsed() const noexcept;
    bool hasExpired(pdk::pint64 timeout) const noexcept;
    
-   pdk::pint64 msecsSinceReference() const noexcept;
+   pdk::pint64 getMsecsSinceReference() const noexcept;
    pdk::pint64 msecsTo(const ElapsedTimer &other) const noexcept;
    pdk::pint64 secsTo(const ElapsedTimer &other) const noexcept;
    

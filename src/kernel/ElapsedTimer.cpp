@@ -34,7 +34,7 @@ bool ElapsedTimer::hasExpired(pdk::pint64 timeout) const noexcept
 {
     // if timeout is -1, quint64(timeout) is LLINT_MAX, so this will be
     // considered as never expired
-    return pdk::puint64(elapsed()) > pdk::puint64(timeout);
+    return pdk::puint64(getElapsed()) > pdk::puint64(timeout);
 }
 
 } // kernel

@@ -120,7 +120,7 @@ void EventLoop::processEvents(ProcessEventsFlags flags, int maxTime)
    ElapsedTimer start;
    start.start();
    while (processEvents(flags & ~WaitForMoreEvents)) {
-      if (start.elapsed() > maxTime) {
+      if (start.getElapsed() > maxTime) {
          break;
       }
    }

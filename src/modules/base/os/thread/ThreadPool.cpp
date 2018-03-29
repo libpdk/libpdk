@@ -286,7 +286,7 @@ bool ThreadPoolPrivate::waitForDone(int msecs)
       timer.start();
       int t;
       while (!(m_queue.empty() && m_activeThreads == 0) &&
-             ((t = msecs - timer.elapsed()) > 0)) {
+             ((t = msecs - timer.getElapsed()) > 0)) {
          m_noActiveThreads.wait_for(locker, std::chrono::milliseconds(t));
       }
    }

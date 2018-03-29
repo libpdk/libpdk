@@ -1107,14 +1107,14 @@ String format_log_message(pdk::MsgType type, const MessageLogContext &context, c
          String timeFormat = *iter;
          timeArgsIdx++;
          if (timeFormat == Latin1String("process")) {
-            pdk::puint64 ms = pattern->m_timer.elapsed();
+            pdk::puint64 ms = pattern->m_timer.getElapsed();
             message.append(String::asprintf("%6d.%03d", uint(ms / 1000), uint(ms % 1000)));
          } else if (timeFormat ==  Latin1String("boot")) {
             // just print the milliseconds since the elapsed timer reference
             // like the Linux kernel does
             ElapsedTimer now;
             now.start();
-            uint ms = now.msecsSinceReference();
+            uint ms = now.getMsecsSinceReference();
             message.append(String::asprintf("%6d.%03d", uint(ms / 1000), uint(ms % 1000)));
 #if PDK_CONFIG(datestring)
          } else if (timeFormat.isEmpty()) {

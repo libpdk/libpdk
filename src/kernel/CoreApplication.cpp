@@ -984,7 +984,7 @@ void CoreApplication::processEvents(EventLoop::ProcessEventsFlags flags, int max
    ElapsedTimer start;
    start.start();
    while (data->m_eventDispatcher.load()->processEvents(flags & ~EventLoop::WaitForMoreEvents)) {
-      if (start.elapsed() > maxtime) {
+      if (start.getElapsed() > maxtime) {
          break;
       }
    }

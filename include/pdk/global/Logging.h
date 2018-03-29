@@ -148,13 +148,13 @@ private:
 #define PDK_MESSAGELOG_FUNC nullptr
 #endif
 
-#define debug_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).debug
-#define info_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).info
-#define warning_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).warning
-#define critical_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).critical
-#define fatal_stream MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).fatal
+#define debug_stream pdk::MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).debug
+#define info_stream pdk::MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).info
+#define warning_stream pdk::MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).warning
+#define critical_stream pdk::MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).critical
+#define fatal_stream pdk::MessageLogger(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC).fatal
 
-#define PDK_NO_DEBUG_MACRO while (false) MessageLogger().noDebug
+#define PDK_NO_DEBUG_MACRO while (false) pdk::MessageLogger().noDebug
 
 #if defined(PDK_NO_DEBUG_OUTPUT)
 #  undef debug_stream

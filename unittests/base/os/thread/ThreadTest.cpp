@@ -1041,12 +1041,12 @@ TEST(ThreadTest, testWait2)
    thread.start();
    timer.start();
    ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
-   pdk::pint64 elapsed = timer.elapsed();
+   pdk::pint64 elapsed = timer.getElapsed();
    ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 10) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
    timer.start();
    thread.m_cond1.notify_one();
    ASSERT_TRUE(thread.wait(/*WaitingThread::WaitTime * 1.4*/));
-   elapsed = timer.elapsed();
+   elapsed = timer.getElapsed();
    ASSERT_TRUE(elapsed - WaitingThread::WaitTime >= -1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
 }
 
@@ -1073,7 +1073,7 @@ TEST(ThreadTest, testWait3SlowDestructor)
    thread.quit();
    timer.start();
    ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
-   pdk::pint64 elapsed = timer.elapsed();
+   pdk::pint64 elapsed = timer.getElapsed();
    ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
    slow.m_cond.notify_one();
    //now the thread should finish quickly
