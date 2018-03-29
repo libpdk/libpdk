@@ -286,9 +286,9 @@ uint pdk_hash(Latin1String key, uint seed) noexcept
 /*!
   
     Private copy of the implementation of the Qt 4 qHash algorithm for strings,
-    (that is, QChar-based arrays, so all String-like classes),
+    (that is, lang/Character-based arrays, so all String-like classes),
     to be used wherever the result is somehow stored or reused across multiple
-    Qt versions. The public qHash implementation can change at any time,
+    libpdk versions. The public pdk_hash implementation can change at any time,
     therefore one must not rely on the fact that it will always give the same
     results.
     

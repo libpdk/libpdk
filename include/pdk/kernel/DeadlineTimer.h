@@ -199,7 +199,7 @@ public:
       }
    }
    
-   std::chrono::nanoseconds remainingTimeAsDuration() const noexcept
+   std::chrono::nanoseconds getRemainingTimeAsDuration() const noexcept
    {
       if (isForever()) {
          return std::chrono::nanoseconds::max();

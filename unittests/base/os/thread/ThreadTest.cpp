@@ -37,6 +37,7 @@
 #include <mutex>
 #include <tuple>
 #include <condition_variable>
+#include <iostream>
 
 #ifndef PDK_NO_EXCEPTIONS
 #include <exception>
@@ -268,10 +269,10 @@ TEST(ThreadTest, testSetPriority)
    ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::TimeCriticalPriority);
    ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
-
+   
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-
+   
    ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::IdlePriority);
    ASSERT_EQ(thread.getPriority(), Thread::IdlePriority);
@@ -287,10 +288,10 @@ TEST(ThreadTest, testSetPriority)
    ASSERT_EQ(thread.getPriority(), Thread::HighestPriority);
    thread.setPriority(Thread::TimeCriticalPriority);
    ASSERT_EQ(thread.getPriority(), Thread::TimeCriticalPriority);
-
+   
    thread.m_cond.wait(locker);
    ASSERT_TRUE(thread.wait(five_minutes));
-
+   
    ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::IdlePriority);
    ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
@@ -329,7 +330,7 @@ TEST(ThreadTest, testExit)
    ASSERT_TRUE(!thread.isRunning());
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-
+   
    ASSERT_TRUE(thread.isRunning());
    ASSERT_TRUE(!thread.isFinished());
    thread.m_cond.wait(locker);
@@ -338,7 +339,7 @@ TEST(ThreadTest, testExit)
    ASSERT_TRUE(!thread.isRunning());
    ASSERT_EQ(thread.m_result, thread.m_code);
    delete thread.m_object;
-
+   
    ExitThread thread2;
    thread2.m_object = nullptr;
    thread2.m_code = 53;
@@ -363,7 +364,7 @@ TEST(ThreadTest, testStart)
       Thread::Priority::TimeCriticalPriority,
       Thread::Priority::InheritPriority
    };
-
+   
    const int priorityCount = sizeof(priorities) / sizeof(Thread::Priority);
    for (int i = 0; i < priorityCount; ++i) {
       SimpleThread thread;
@@ -401,7 +402,7 @@ TEST(ThreadTest, testQuit)
    thread.m_result = -1;
    ASSERT_TRUE(!thread.isFinished());
    ASSERT_TRUE(!thread.isRunning());
-
+   
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
    ASSERT_TRUE(!thread.isFinished());
@@ -412,7 +413,7 @@ TEST(ThreadTest, testQuit)
    ASSERT_TRUE(!thread.isRunning());
    ASSERT_EQ(thread.m_result, 0);
    delete thread.m_object;
-
+   
    QuitThread thread2;
    thread2.m_object = 0;
    thread2.m_result = -1;
@@ -472,12 +473,12 @@ TEST(ThreadTest, testExec)
    public:
       int m_res1;
       int m_res2;
-
+      
       MultipleExecThread()
          : m_res1(-2),
            m_res2(-2)
       {}
-
+      
       void run()
       {
          {
@@ -680,10 +681,10 @@ TEST(ThreadTest, testNativeThreadAdoption)
    nativeThread.setWaitForStop();
    nativeThread.startAndWait(test_native_thread_adoption);
    ASSERT_TRUE(nativeThread.m_pdkthread);
-
+   
    nativeThread.stop();
    nativeThread.join();
-
+   
    ASSERT_TRUE(threadAdoptedOk);
 }
 
@@ -710,7 +711,7 @@ TEST(ThreadTest, testAdoptedThreadSetPriority)
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
    nativeThread.startAndWait();
-
+   
    // change the priority of a running thread
    ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::InheritPriority);
    nativeThread.m_pdkthread->setPriority(Thread::IdlePriority);
@@ -727,7 +728,7 @@ TEST(ThreadTest, testAdoptedThreadSetPriority)
    ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighestPriority);
    nativeThread.m_pdkthread->setPriority(Thread::TimeCriticalPriority);
    ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::TimeCriticalPriority);
-
+   
    nativeThread.stop();
    nativeThread.join();
 }
@@ -736,12 +737,12 @@ TEST(ThreadTest, testAdoptedThreadExit)
 {
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
-
+   
    nativeThread.startAndWait();
    ASSERT_TRUE(nativeThread.m_pdkthread);
    ASSERT_TRUE(nativeThread.m_pdkthread->isRunning());
    ASSERT_TRUE(!nativeThread.m_pdkthread->isFinished());
-
+   
    nativeThread.stop();
    nativeThread.join();
 }
@@ -953,12 +954,12 @@ TEST(ThreadTest, testExitAndStart)
    CallableInvoker::invokeAsync([&sync2](int value) {
       sync2.setProp(value);
    }, &sync2, 89);
-
+   
    pdktest::wait(50);
    while(!thread.wait(10)) {
       pdktest::wait(50);
    }
-
+   
    ASSERT_EQ(sync2.m_prop, 89);
    ASSERT_EQ(sync1.m_prop, 89);
 }
@@ -994,7 +995,7 @@ TEST(ThreadTest, testExitAndExec)
    CallableInvoker::invokeAsync([&sync2](int value) {
       sync2.setProp(value);
    }, &sync2, 89);
-
+   
    pdktest::wait(50);
    while(!thread.wait(10)) {
       pdktest::wait(10);
@@ -1133,7 +1134,7 @@ TEST(ThreadTest, testStartAndQuitCustomEventLoop)
    struct MyThread : Thread {
       void run() { EventLoop().exec(); }
    };
-
+   
    for (int i = 0; i < 5; i++) {
       MyThread t;
       t.start();
@@ -1285,7 +1286,7 @@ TEST(ThreadTest, testCustomEventDispatcher)
    thread.start();
    // start() should not overwrite the ED
    ASSERT_EQ(thread.getEventDispatcher(), ed);
-
+   
    ThreadObj obj;
    obj.moveToThread(&thread);
    // move was successful?
@@ -1298,7 +1299,7 @@ TEST(ThreadTest, testCustomEventDispatcher)
    loop.exec();
    // test that the ED has really been used
    ASSERT_TRUE(ed->m_visited.load());
-
+   
    Pointer<DummyEventDispatcher> weak_ed(ed);
    ASSERT_TRUE(!weak_ed.isNull());
    thread.quit();
@@ -1372,7 +1373,7 @@ TEST(ThreadTest, testQuitLock)
    job = new Job(&thread, 500, &exitThreadCalled);
    ASSERT_EQ(job->getThread(), &thread);
    loop.exec();
-
+   
    ASSERT_TRUE(!exitThreadCalled);
    thread.start();
    job = new Job(&thread, 1000, &exitThreadCalled);
@@ -1425,7 +1426,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_EQ(i, 42);
    }
-
+   
    {
       // control thread progress
       Semaphore semaphore1;
@@ -1445,7 +1446,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_TRUE(!thread->isRunning());
    }
-
+   
    {
       // ignore return values
       const auto &function = []() { return 42; };
@@ -1455,7 +1456,7 @@ TEST(ThreadTest, testCreate)
       thread->start();
       ASSERT_TRUE(thread->wait());
    }
-
+   
    {
       // move-only parameters
       struct MoveOnlyValue
@@ -1468,7 +1469,7 @@ TEST(ThreadTest, testCreate)
          MoveOnlyValue &operator=(MoveOnlyValue &&) = default;
          int v;
       };
-
+      
       struct MoveOnlyFunctor {
          explicit MoveOnlyFunctor(int *i) : i(i) {}
          ~MoveOnlyFunctor() = default;
@@ -1479,7 +1480,7 @@ TEST(ThreadTest, testCreate)
          int operator()() { return (*i = 42); }
          int *i;
       };
-
+      
       {
          int i = 0;
          MoveOnlyFunctor f(&i);
@@ -1490,7 +1491,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 42);
       }
-
+      
       {
          int i = 0;
          MoveOnlyValue mo(123);
@@ -1502,7 +1503,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 123);
       }
-
+      
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
@@ -1513,7 +1514,7 @@ TEST(ThreadTest, testCreate)
          ASSERT_TRUE(thread->wait());
          ASSERT_EQ(i, 123);
       }
-
+      
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
@@ -1538,7 +1539,7 @@ TEST(ThreadTest, testCreate)
       ASSERT_TRUE(thread->wait());
       ASSERT_EQ(i, 12);
    }
-
+   
    {
       // ignore return values (with parameters)
       const auto &function = [](double d) { return d * 2.0; };
@@ -1548,7 +1549,7 @@ TEST(ThreadTest, testCreate)
       thread->start();
       ASSERT_TRUE(thread->wait());
    }
-
+   
    {
       // handling of pointers to member functions, std::ref, etc.
       struct S {
@@ -1556,37 +1557,37 @@ TEST(ThreadTest, testCreate)
          void doSomething() { ++v; }
          int v;
       };
-
+      
       S object;
-
+      
       ASSERT_EQ(object.v, 0);
-
+      
       ScopedPointer<Thread> thread;
       thread.reset(Thread::create(&S::doSomething, object));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-
+      
       ASSERT_EQ(object.v, 0); // a copy was passed, this should still be 0
-
+      
       thread.reset(Thread::create(&S::doSomething, std::ref(object)));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-
+      
       ASSERT_EQ(object.v, 1);
-
+      
       thread.reset(Thread::create(&S::doSomething, &object));
       ASSERT_TRUE(thread);
       ASSERT_TRUE(!thread->isRunning());
       thread->start();
       ASSERT_TRUE(thread->wait());
-
+      
       ASSERT_EQ(object.v, 2);
    }
-
+   
    {
       // std::ref into ordinary reference
       int i = 42;
@@ -1602,7 +1603,7 @@ TEST(ThreadTest, testCreate)
       class ThreadException : public std::exception
       {
       };
-
+      
       struct ThrowWhenCopying
       {
          ThrowWhenCopying() = default;
@@ -1613,7 +1614,7 @@ TEST(ThreadTest, testCreate)
          ~ThrowWhenCopying() = default;
          ThrowWhenCopying &operator=(const ThrowWhenCopying &) = default;
       };
-
+      
       const auto &function = [](const ThrowWhenCopying &){};
       ScopedPointer<Thread> thread;
       ThrowWhenCopying t;
