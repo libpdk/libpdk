@@ -26,6 +26,7 @@
 #endif
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/kernel/Timer.h"
+#include "pdktest/PdkTest.h"
 #include <condition_variable>
 #include <mutex>
 #include <iostream>
@@ -74,7 +75,8 @@ public:
    PDK_DEFINE_SIGNAL_ENUMS(CheckPoint);
    PDK_DEFINE_SIGNAL_BINDER(CheckPoint)
    PDK_DEFINE_SIGNAL_EMITTER(CheckPoint)
-   public:
+
+public:
       EventLoop *m_eventLoop;
    void run();
 };
@@ -94,7 +96,7 @@ class MultipleExecThread : public Thread
    PDK_DEFINE_SIGNAL_ENUMS(CheckPoint);
    PDK_DEFINE_SIGNAL_BINDER(CheckPoint)
    PDK_DEFINE_SIGNAL_EMITTER(CheckPoint)
-   public:
+public:
       std::mutex m_mutex;
    std::condition_variable m_cond;
    volatile int m_result1;
@@ -129,7 +131,7 @@ class MultipleExecThread : public Thread
 class StartStopEvent: public Event
 {
 public:
-   explicit StartStopEvent(int type, EventLoop *loop = 0)
+   explicit StartStopEvent(Event::Type type, EventLoop *loop = nullptr)
       : Event(Type(type)),
         m_el(loop)
    { }
@@ -158,11 +160,27 @@ public:
    }
 };
 
+class EventDispatcherSignalUnlock
+{
+public:
+   EventDispatcherSignalUnlock(AbstractEventDispatcher *dispatcher)
+      :m_dispatcher(dispatcher)
+   {}
+   ~EventDispatcherSignalUnlock()
+   {
+      m_dispatcher->disconnectAboutToBlockSignal();
+      m_dispatcher->disconnectAwakeSignal();
+   }
+private:
+   AbstractEventDispatcher *m_dispatcher;
+};
+
 TEST(EventLoopTest, testProcessEvents)
 {
    int aboutToBlockCount = 0;
    int awakeCount = 0;
    AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
+   EventDispatcherSignalUnlock signalLocker(eventDispatcher);
    eventDispatcher->connectAboutToBlockSignal([&aboutToBlockCount](){
       aboutToBlockCount++;
    });
@@ -191,8 +209,6 @@ TEST(EventLoopTest, testProcessEvents)
    ASSERT_TRUE(awakeCount > 0);
    ASSERT_TRUE(awakeCount >= aboutToBlockCount);
    object.killTimer(timerId);
-   eventDispatcher->disconnectAboutToBlockSignal();
-   eventDispatcher->disconnectAwakeSignal();
 }
 
 #define EXEC_TIMEOUT 100
@@ -276,7 +292,67 @@ TEST(EventLoopTest, testReexec)
    CallableInvoker::invokeAsync([&loop](){
       loop.quit();
    }, &loop);
-
+   
    // exec once
    ASSERT_EQ(loop.exec(), 0);
+}
+
+TEST(EventLoopTest, testWakeUp)
+{
+   int awakeCount = 0;
+   
+   EventLoopThread thread;
+   EventLoop eventLoop;
+   thread.connectCheckPointSignal(&eventLoop, &EventLoop::quit);
+   thread.connectFinishedSignal(&eventLoop, &EventLoop::quit);
+   
+   thread.start();
+   (void) eventLoop.exec();
+   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
+   EventDispatcherSignalUnlock signalLocker(eventDispatcher);
+   eventDispatcher->connectAwakeSignal([&awakeCount](){
+      ++awakeCount;
+   });
+   thread.m_eventLoop->wakeUp();
+   // give the thread time to wake up
+   Timer::singleShot(1000, &eventLoop, &EventLoop::quit);
+   (void) eventLoop.exec();
+   ASSERT_TRUE(awakeCount);
+   thread.quit();
+   (void) eventLoop.exec();
+}
+
+TEST(EventLoopTest, testQuit)
+{
+   EventLoop eventLoop;
+   int returnCode;
+   Timer::singleShot(100, &eventLoop, &EventLoop::quit);
+   returnCode = eventLoop.exec();
+   ASSERT_EQ(returnCode, 0);
+}
+
+class EventLoopObject: public Object
+{
+public:
+   void customEvent(Event *event)
+   {
+      if (event->getType() == Event::Type::User) {
+          EventLoop loop;
+          CoreApplication::postEvent(this, new StartStopEvent(Event::Type::MaxUser, &loop));
+          loop.exec();
+      } else {
+          static_cast<StartStopEvent *>(event)->m_el->exit();
+      }
+   }
+};
+
+TEST(EventLoopTest, testNestedLoops)
+{
+   EventLoopObject obj;
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+   
+   // without the fix, this will *wedge* and never return
+   pdktest::wait(1000);
 }
