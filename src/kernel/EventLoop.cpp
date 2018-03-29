@@ -60,7 +60,7 @@ int EventLoop::exec(ProcessEventsFlags flags)
       return -1;
    }
    if (implPtr->m_inExec) {
-      warning_stream("EventLoop::exec: instance %p has already called exec()", (void *)this);
+      //warning_stream("EventLoop::exec: instance %p has already called exec()", (void *)this);
       return -1;
    }
    struct LoopReference
