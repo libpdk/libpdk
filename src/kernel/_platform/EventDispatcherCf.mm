@@ -514,7 +514,7 @@ std::list<AbstractEventDispatcher::TimerInfo> EventDispatcherCoreFoundation::get
    return m_timerInfoList.getRegisteredTimers(object);
 }
 
-int EventDispatcherCoreFoundation::remainingTime(int timerId)
+int EventDispatcherCoreFoundation::getRemainingTime(int timerId)
 {
    PDK_ASSERT(timerId > 0);
    return m_timerInfoList.timerRemainingTime(timerId);

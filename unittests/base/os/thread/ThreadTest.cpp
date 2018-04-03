@@ -1198,7 +1198,7 @@ public:
    DummyEventDispatcher()
    {}
    
-   bool processEvents(EventLoop::ProcessEventsFlags)
+   bool processEvents(EventLoop::ProcessEventsFlags) override
    {
       m_visited.store(true);
       emitAwakeSignal();
@@ -1206,47 +1206,47 @@ public:
       return false;
    }
    
-   bool hasPendingEvents()
+   bool hasPendingEvents() override
    {
       return global_posted_events_count() != 0;
    }
    
-   void registerSocketNotifier(SocketNotifier *)
+   void registerSocketNotifier(SocketNotifier *) override
    {}
    
-   void unregisterSocketNotifier(SocketNotifier *)
+   void unregisterSocketNotifier(SocketNotifier *) override
    {}
    
-   void registerTimer(int, int, pdk::TimerType, Object *)
+   void registerTimer(int, int, pdk::TimerType, Object *) override
    {}
    
-   bool unregisterTimer(int )
+   bool unregisterTimer(int ) override
    {
       return false;
    }
    
-   bool unregisterTimers(Object *)
+   bool unregisterTimers(Object *) override
    {
       return false;
    }
    
-   std::list<TimerInfo> getRegisteredTimers(Object *) const
+   std::list<TimerInfo> getRegisteredTimers(Object *) const override
    {
       return std::list<TimerInfo>();
    }
    
-   int remainingTime(int)
+   int getRemainingTime(int) override
    {
       return 0;
    }
    
-   void wakeUp()
+   void wakeUp() override
    {}
    
-   void interrupt()
+   void interrupt() override
    {}
    
-   void flush()
+   void flush() override
    {}
    
    //#ifdef PDK_OS_WIN

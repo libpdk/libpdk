@@ -87,7 +87,7 @@ public:
    bool unregisterTimers(Object *object) final;
    std::list<TimerInfo> getRegisteredTimers(Object *object) const final;
    
-   int remainingTime(int timerId) final;
+   int getRemainingTime(int timerId) final;
    
    void wakeUp() final;
    void interrupt() final;

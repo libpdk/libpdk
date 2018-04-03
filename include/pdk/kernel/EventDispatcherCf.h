@@ -151,7 +151,7 @@ public:
    bool unregisterTimers(Object *object) override;
    std::list<AbstractEventDispatcher::TimerInfo> getRegisteredTimers(Object *object) const override;
    
-   int remainingTime(int timerId) override;
+   int getRemainingTime(int timerId) override;
    
    void wakeUp() override;
    void interrupt() override;

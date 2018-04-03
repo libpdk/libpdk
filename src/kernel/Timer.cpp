@@ -116,7 +116,7 @@ void Timer::setInterval(int msec)
 int Timer::getRemainingTime() const
 {
    if (m_id != INV_TIMER) {
-      return AbstractEventDispatcher::getInstance()->remainingTime(m_id);
+      return AbstractEventDispatcher::getInstance()->getRemainingTime(m_id);
    }
    return -1;
 }

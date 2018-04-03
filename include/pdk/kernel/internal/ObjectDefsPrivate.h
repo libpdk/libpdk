@@ -194,7 +194,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
       } else {\
          auto wrapper = [memberFunc, sender, receiverPtr](auto&&... args) -> ReturnType{\
             if (receiverPtr) {\
-               if (pdk::kernel::internal::is_in_current_thread(receiverPtr)) {\
+               if (sender->getThread() == receiverPtr->getThread() || pdk::kernel::internal::is_in_current_thread(receiverPtr.getData())) {\
                   return std::apply(std::mem_fn(memberFunc),\
                      pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo, SignalArgTypes>(dynamic_cast<Class *>(receiverPtr.getData()), \
                           SignalType::PDK_SIGNAL_NAME(signalName), sender, std::make_index_sequence<signalArgNum>(), args...));\
@@ -262,7 +262,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
       } else {\
          auto wrapper = [sender, contextPtr, callable = static_cast<DecayedSlotFuncType>(std::forward<SlotFuncType>(callable))](auto&&... args) -> ReturnType{\
             if (contextPtr) {\
-               if (pdk::kernel::internal::is_in_current_thread(contextPtr.getData())) {\
+               if (sender->getThread() == contextPtr->getThread() || pdk::kernel::internal::is_in_current_thread(contextPtr.getData())) {\
                   return std::apply(std::move(callable),\
                                     pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo, SignalArgTypes>(SignalType::PDK_SIGNAL_NAME(signalName),\
                                        sender, std::make_index_sequence<signalArgNum>(), args...));\

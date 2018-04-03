@@ -74,7 +74,7 @@ public:
    virtual bool unregisterTimer(int timerId) = 0;
    virtual bool unregisterTimers(Object *object) = 0;
    virtual std::list<TimerInfo> getRegisteredTimers(Object *object) const = 0;
-   virtual int remainingTime(int timerId) = 0;
+   virtual int getRemainingTime(int timerId) = 0;
    
 #ifdef PDK_OS_WIN
    virtual bool registerEventNotifier(WinEventNotifier *notifier) = 0;

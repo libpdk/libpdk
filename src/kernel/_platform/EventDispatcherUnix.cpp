@@ -475,7 +475,7 @@ bool EventDispatcherUNIX::hasPendingEvents()
    return global_posted_events_count();
 }
 
-int EventDispatcherUNIX::remainingTime(int timerId)
+int EventDispatcherUNIX::getRemainingTime(int timerId)
 {
 #ifndef PDK_NO_DEBUG
    if (timerId < 1) {

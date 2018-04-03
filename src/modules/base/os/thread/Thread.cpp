@@ -353,7 +353,11 @@ namespace internal {
 
 DaemonThread::DaemonThread(Object *parent)
    : Thread(parent)
-{}
+{
+   connectStartedSignal([](){
+      ThreadData::current()->m_requiresCoreApplication = false;
+   }, this);
+}
 
 DaemonThread::~DaemonThread()
 {}

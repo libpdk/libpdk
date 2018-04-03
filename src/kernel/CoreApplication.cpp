@@ -382,7 +382,7 @@ bool CoreApplicationPrivate::sm_isAppClosing = false;
 AbstractEventDispatcher *CoreApplicationPrivate::sm_eventDispatcher = nullptr;
 
 CoreApplicationPrivate::CoreApplicationPrivate(int &argc, char **argv, uint flags)
-   : ObjectPrivate(),
+   : 
      #if defined(PDK_OS_WIN)
      m_origArgc(0),
      m_origArgv(nullptr),
@@ -1001,7 +1001,7 @@ int CoreApplication::exec()
       return -1;
    }
    if (!threadData->m_eventLoops.empty()) {
-      warning_stream("CoreApplication::exec: The event loop is already running");
+      //warning_stream("CoreApplication::exec: The event loop is already running");
       return -1;
    }
    threadData->m_quitNow = false;
@@ -1534,7 +1534,6 @@ StringList CoreApplication::getArguments()
    }
    const int ac = sm_self->getImplPtr()->m_argc;
    char ** const av = sm_self->getImplPtr()->m_argv;
-   list.resize(ac);
    
 #if defined(PDK_OS_WIN)
    // On Windows, it is possible to pass Unicode arguments on
