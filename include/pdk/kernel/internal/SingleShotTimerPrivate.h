@@ -36,7 +36,7 @@ public:
    ~SingleShotTimer();
    template <typename SlotFuncType,
              typename = std::enable_if_t<pdk::stdext::IsCallable<SlotFuncType>::value>>
-   SingleShotTimer(int msec, pdk::TimerType timerType, const Object *context, SlotFuncType &&slotFunc);
+   SingleShotTimer(int msec, pdk::TimerType timerType, const Object *context, const SlotFuncType &slotFunc);
    template <typename MemberFuncPointer,
              typename = std::enable_if_t<std::is_member_function_pointer<MemberFuncPointer>::value>>
    SingleShotTimer(int msec, pdk::TimerType timerType, const Object *receiver, MemberFuncPointer memberFunc);
@@ -66,7 +66,7 @@ SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Objec
 }
 
 template <typename SlotFuncType, typename>
-SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *context, SlotFuncType &&slotFunc)
+SingleShotTimer::SingleShotTimer(int msec, pdk::TimerType timerType, const Object *context, const SlotFuncType &slotFunc)
    : Object(AbstractEventDispatcher::getInstance()),
      m_hasValidReceiver(context), 
      m_receiver(context),

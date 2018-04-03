@@ -77,7 +77,7 @@ ObjectPrivate::~ObjectPrivate()
             AbstractEventDispatcherPrivate::releaseTimerId(m_extraData->m_runningTimers.at(i));
          }
       } else {
-         warning_stream("Object::~Object: Timers cannot be stopped from another thread");
+         //warning_stream("Object::~Object: Timers cannot be stopped from another thread");
       }
    }
    if (m_postedEvents) {
@@ -283,7 +283,7 @@ bool Object::event(Event *event)
              // do not to release our timer ids back to the pool (since the timer ids are moving to a new thread).
             eventDispatcher->unregisterTimers(this);
             PDK_D(Object);
-            CallableInvoker::invokeAsync([&](std::list<AbstractEventDispatcher::TimerInfo> *list){
+            CallableInvoker::invokeAsync([implPtr](std::list<AbstractEventDispatcher::TimerInfo> *list){
                implPtr->reregisterTimers(list);
             }, this, new std::list<AbstractEventDispatcher::TimerInfo>(timers));
          }
@@ -533,7 +533,7 @@ void Object::killTimer(int id)
 {
    PDK_D(Object);
    if (PDK_UNLIKELY(getThread() != Thread::getCurrentThread())) {
-      warning_stream("Object::killTimer: Timers cannot be stopped from another thread");
+      //warning_stream("Object::killTimer: Timers cannot be stopped from another thread");
       return;
    }
    if (id) {
