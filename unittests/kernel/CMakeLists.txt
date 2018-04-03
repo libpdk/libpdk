@@ -21,6 +21,7 @@ pdk_add_files(PDK_KERNEL_TEST_SRCS
     DeadLineTimerTest.cpp
     ElapsedTimerTest.cpp
     TimerTest.cpp
+    PointerTest.cpp
     )
 
 pdk_add_unittest(KerneUnittests KernelTest ${PDK_KERNEL_TEST_SRCS})
