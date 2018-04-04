@@ -30,6 +30,10 @@ using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdktest::TestEventLoop;
 
+PDKTEST_DECLARE_APP_STARTUP_ARGS();
+
+namespace {
+
 class Pointer
 {
 public:
@@ -46,53 +50,6 @@ public:
 };
 
 int Pointer::sm_count = 0;
-
-TEST(ThreadStorageTest, testHasLocalData)
-{
-   ThreadStorage<Pointer *> pointers;
-   ASSERT_TRUE(!pointers.hasLocalData());
-   pointers.setLocalData(new Pointer);
-   ASSERT_TRUE(pointers.hasLocalData());
-   pointers.setLocalData(0);
-   ASSERT_TRUE(!pointers.hasLocalData());
-}
-
-TEST(ThreadStorageTest, testGetLocalData)
-{
-   ThreadStorage<Pointer*> pointers;
-   Pointer *p = new Pointer;
-   ASSERT_TRUE(!pointers.hasLocalData());
-   pointers.setLocalData(p);
-   ASSERT_TRUE(pointers.hasLocalData());
-   ASSERT_EQ(pointers.getLocalData(), p);
-   pointers.setLocalData(0);
-   ASSERT_EQ(pointers.getLocalData(), (Pointer *)0);
-   ASSERT_TRUE(!pointers.hasLocalData());
-}
-
-TEST(ThreadStorageTest, testGetLocalDataConst)
-{
-   ThreadStorage<Pointer *> pointers;
-   const ThreadStorage<Pointer *> &const_pointers = pointers;
-   Pointer *p = new Pointer;
-   ASSERT_TRUE(!pointers.hasLocalData());
-   pointers.setLocalData(p);
-   ASSERT_TRUE(pointers.hasLocalData());
-   ASSERT_EQ(const_pointers.getLocalData(), p);
-   pointers.setLocalData(0);
-   ASSERT_EQ(const_pointers.getLocalData(), (Pointer *)0);
-   ASSERT_TRUE(!pointers.hasLocalData());
-}
-
-TEST(ThreadStorageTest, testSetLocalData)
-{
-   ThreadStorage<Pointer *> pointers;
-   ASSERT_TRUE(!pointers.hasLocalData());
-   pointers.setLocalData(new Pointer);
-   ASSERT_TRUE(pointers.hasLocalData());
-   pointers.setLocalData(0);
-   ASSERT_TRUE(!pointers.hasLocalData());
-}
 
 class MyThread : public Thread
 {
@@ -115,8 +72,66 @@ public:
    }
 };
 
+} // anonymous namespace
+
+TEST(ThreadStorageTest, testHasLocalData)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ThreadStorage<Pointer *> pointers;
+   ASSERT_TRUE(!pointers.hasLocalData());
+   pointers.setLocalData(new Pointer);
+   ASSERT_TRUE(pointers.hasLocalData());
+   pointers.setLocalData(0);
+   ASSERT_TRUE(!pointers.hasLocalData());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(ThreadStorageTest, testGetLocalData)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ThreadStorage<Pointer*> pointers;
+   Pointer *p = new Pointer;
+   ASSERT_TRUE(!pointers.hasLocalData());
+   pointers.setLocalData(p);
+   ASSERT_TRUE(pointers.hasLocalData());
+   ASSERT_EQ(pointers.getLocalData(), p);
+   pointers.setLocalData(0);
+   ASSERT_EQ(pointers.getLocalData(), (Pointer *)0);
+   ASSERT_TRUE(!pointers.hasLocalData());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(ThreadStorageTest, testGetLocalDataConst)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ThreadStorage<Pointer *> pointers;
+   const ThreadStorage<Pointer *> &const_pointers = pointers;
+   Pointer *p = new Pointer;
+   ASSERT_TRUE(!pointers.hasLocalData());
+   pointers.setLocalData(p);
+   ASSERT_TRUE(pointers.hasLocalData());
+   ASSERT_EQ(const_pointers.getLocalData(), p);
+   pointers.setLocalData(0);
+   ASSERT_EQ(const_pointers.getLocalData(), (Pointer *)0);
+   ASSERT_TRUE(!pointers.hasLocalData());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(ThreadStorageTest, testSetLocalData)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ThreadStorage<Pointer *> pointers;
+   ASSERT_TRUE(!pointers.hasLocalData());
+   pointers.setLocalData(new Pointer);
+   ASSERT_TRUE(pointers.hasLocalData());
+   pointers.setLocalData(0);
+   ASSERT_TRUE(!pointers.hasLocalData());
+   PDKTEST_END_APP_CONTEXT();
+}
+
 TEST(ThreadStorageTest, testAutoDelete)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    ThreadStorage<Pointer *> pointers;
    ASSERT_TRUE(!pointers.hasLocalData());
    MyThread thread(pointers);
@@ -130,7 +145,10 @@ TEST(ThreadStorageTest, testAutoDelete)
    }
    thread.wait();
    ASSERT_EQ(Pointer::sm_count, c);
+   PDKTEST_END_APP_CONTEXT();
 }
+
+namespace {
 
 bool threadStorageOk;
 void test_adopted_thread_storage_win(void *p)
@@ -159,8 +177,11 @@ void *test_adopted_thread_storage_unix(void *pointers)
    return 0;
 }
 
+} // anonymous namespace
+
 TEST(ThreadStorageTest, testAdoptedThreads)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TestEventLoop::instance(); // Make sure the instance is created in this thread.
    ThreadStorage<Pointer *> pointers;
    int c = Pointer::sm_count;
@@ -183,7 +204,10 @@ TEST(ThreadStorageTest, testAdoptedThreads)
    ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
    
    PDK_TRY_COMPARE(Pointer::sm_count, c);
+   PDKTEST_END_APP_CONTEXT();
 }
+
+namespace {
 
 BasicAtomicInt cleanupOrder = PDK_BASIC_ATOMIC_INITIALIZER(0);
 
@@ -209,8 +233,11 @@ public:
 };
 int Second::sm_order = -1;
 
+} // anonymous namespace
+
 TEST(ThreadStorageTest, testEnsureCleanupOrder)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MyThread : public Thread
    {
    public:
@@ -240,7 +267,10 @@ TEST(ThreadStorageTest, testEnsureCleanupOrder)
    thread.wait();
    
    ASSERT_TRUE(First::sm_order < Second::sm_order);
+   PDKTEST_END_APP_CONTEXT();
 }
+
+namespace {
 
 class SPointer
 {
@@ -254,7 +284,7 @@ public:
    {
       sm_count.deref();
    }
-   
+
    inline SPointer(const SPointer & /* other */)
    {
       sm_count.ref();
@@ -284,16 +314,19 @@ public:
    }
 };
 
+} // anonymous namespace
+
 TEST(ThreadSTorageTest, testLeakInDestructor)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MyThread : public Thread
    {
    public:
       ThreadStorage<ThreadStorageLocalDataTester *> &m_tls;
-      
+
       MyThread(ThreadStorage<ThreadStorageLocalDataTester *> &t) : m_tls(t)
       {}
-      
+
       void run()
       {
          ASSERT_TRUE(!m_tls.hasLocalData());
@@ -302,30 +335,33 @@ TEST(ThreadSTorageTest, testLeakInDestructor)
       }
    };
    int c = SPointer::sm_count.load();
-   
+
    ThreadStorage<ThreadStorageLocalDataTester *> tls;
-   
+
    ASSERT_TRUE(!sg_threadStoragePointers1()->hasLocalData());
    ThreadStorage<int *> tls2; //add some more tls to make sure ids are not following each other too much
    ThreadStorage<int *> tls3;
    ASSERT_TRUE(!tls2.hasLocalData());
    ASSERT_TRUE(!tls3.hasLocalData());
    ASSERT_TRUE(!tls.hasLocalData());
-   
+
    MyThread t1(tls);
    MyThread t2(tls);
    MyThread t3(tls);
-   
+
    t1.start();
    t2.start();
    t3.start();
-   
+
    ASSERT_TRUE(t1.wait());
    ASSERT_TRUE(t2.wait());
    ASSERT_TRUE(t3.wait());
-   
+
    ASSERT_EQ(int(SPointer::sm_count.load()), c);
+   PDKTEST_END_APP_CONTEXT();
 }
+
+namespace {
 
 class ThreadStorageResetLocalDataTester
 {
@@ -342,8 +378,11 @@ ThreadStorageResetLocalDataTester::~ThreadStorageResetLocalDataTester()
    sg_threadStorageResetLocalDataTesterTls()->setLocalData(this);
 }
 
+} // anonymous namespace
+
 TEST(ThreadStorageTest, testResetInDestructor)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MyThread : public Thread
    {
    public:
@@ -355,7 +394,7 @@ TEST(ThreadStorageTest, testResetInDestructor)
       }
    };
    int c = SPointer::sm_count.load();
-   
+
    MyThread t1;
    MyThread t2;
    MyThread t3;
@@ -365,63 +404,65 @@ TEST(ThreadStorageTest, testResetInDestructor)
    ASSERT_TRUE(t1.wait());
    ASSERT_TRUE(t2.wait());
    ASSERT_TRUE(t3.wait());
-   
+
    //check all the constructed things have been destructed
    ASSERT_EQ(int(SPointer::sm_count.load()), c);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadStorageTest, testvalueBased)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    struct MyThread : Thread
    {
       ThreadStorage<SPointer> &tlsSPointer;
       ThreadStorage<String> &tlsString;
       ThreadStorage<int> &tlsInt;
-      
+
       int someNumber;
       String someString;
       MyThread(ThreadStorage<SPointer> &t1, ThreadStorage<String> &t2, ThreadStorage<int> &t3)
          : tlsSPointer(t1), tlsString(t2), tlsInt(t3)
       {}
-      
+
       void run()
       {
          /*ASSERT_TRUE(!tlsSPointer.hasLocalData());
             ASSERT_TRUE(!tlsString.hasLocalData());
             ASSERT_TRUE(!tlsInt.hasLocalData());*/
          SPointer pointercopy = tlsSPointer.getLocalData();
-         
+
          //Default constructed values
          ASSERT_TRUE(tlsString.getLocalData().isNull());
          ASSERT_EQ(tlsInt.getLocalData(), 0);
-         
+
          //setting
          tlsString.setLocalData(someString);
          tlsInt.setLocalData(someNumber);
-         
+
          ASSERT_EQ(tlsString.getLocalData(), someString);
          ASSERT_EQ(tlsInt.getLocalData(), someNumber);
-         
+
          //changing
          tlsSPointer.setLocalData(SPointer());
          tlsInt.getLocalData() += 42;
          tlsString.getLocalData().append(Latin1String(" world"));
-         
+
          ASSERT_EQ(tlsString.getLocalData(), (someString + Latin1String(" world")));
          ASSERT_EQ(tlsInt.getLocalData(), (someNumber + 42));
-         
+
          // operator=
          tlsString.getLocalData() = String::number(someNumber);
          ASSERT_EQ(tlsString.getLocalData().toInt(), someNumber);
       }
    };
-   
+
    ThreadStorage<SPointer> tlsSPointer;
    ThreadStorage<String> tlsString;
    ThreadStorage<int> tlsInt;
-   
+
    int c = SPointer::sm_count.load();
-   
+
    MyThread t1(tlsSPointer, tlsString, tlsInt);
    MyThread t2(tlsSPointer, tlsString, tlsInt);
    MyThread t3(tlsSPointer, tlsString, tlsInt);
@@ -431,16 +472,16 @@ TEST(ThreadStorageTest, testvalueBased)
    t1.someString = Latin1String("hello");
    t2.someString = Latin1String("australia");
    t3.someString = Latin1String("nokia");
-   
+
    t1.start();
    t2.start();
    t3.start();
-   
+
    ASSERT_TRUE(t1.wait());
    ASSERT_TRUE(t2.wait());
    ASSERT_TRUE(t3.wait());
-   
+
    ASSERT_EQ(c, int(SPointer::sm_count.load()));
-   
+   PDKTEST_END_APP_CONTEXT();
 }
 
