@@ -21,10 +21,12 @@
 
 #include "gtest/gtest.h"
 #include "pdk/base/os/thread/Atomic.h"
+#include "pdk/base/os/thread/Thread.h"
 
 using pdk::os::thread::BasicAtomicInt;
 using pdk::os::thread::BasicAtomicInteger;
 using pdk::os::thread::AtomicInt;
+using pdk::os::thread::Thread;
 
 namespace
 {
@@ -765,4 +767,41 @@ TEST(AtomicIntTest, testOperators)
    ASSERT_EQ(static_cast<int>(atomic), 0x13);
 }
 
+namespace {
 
+class FetchAndAddThread : public Thread
+{
+public:
+   void run()
+   {
+      for (int i = 0; i < m_iterations; ++i) {
+         m_val->fetchAndAddAcquire(1);
+      }
+      for (int i = 0; i < m_iterations; ++i) {
+         m_val->fetchAndAddAcquire(-1);
+      }
+   }
+   AtomicInt *m_val;
+   int m_iterations;
+};
+
+} // anonymous namespace
+
+TEST(AtomicIntTest, testFetchAndAddThreadedLoop)
+{
+    AtomicInt val;
+    FetchAndAddThread t1;
+    t1.m_val = &val;
+    t1.m_iterations = 1000000;
+
+    FetchAndAddThread t2;
+    t2.m_val = &val;
+    t2.m_iterations = 2000000;
+
+    t1.start();
+    t2.start();
+    t1.wait();
+    t2.wait();
+
+    ASSERT_EQ(val.load(), 0);
+}
