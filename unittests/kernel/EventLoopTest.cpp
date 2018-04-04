@@ -45,6 +45,10 @@ using pdk::kernel::CoreApplication;
 using pdk::kernel::CallableInvoker;
 using pdk::kernel::EventLoopLocker;
 
+PDKTEST_DECLARE_APP_STARTUP_ARGS();
+
+namespace {
+
 class EventLoopExiter : public Object
 {
    EventLoop *m_eventLoop;
@@ -180,173 +184,175 @@ private:
    AbstractEventDispatcher *m_dispatcher;
 };
 
-PDKTEST_DECLARE_APP_STARTUP_ARGS();
+} // anonymous namespace
 
-//TEST(EventLoopTest, testProcessEvents)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   int aboutToBlockCount = 0;
-//   int awakeCount = 0;
-//   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
-//   //EventDispatcherSignalUnlock signalLocker(eventDispatcher);
-//   eventDispatcher->connectAboutToBlockSignal([&aboutToBlockCount](){
-//      aboutToBlockCount++;
-//   });
-//   eventDispatcher->connectAwakeSignal([&awakeCount](){
-//      awakeCount++;
-//   });
-//   Object object;
-//   EventLoop eventLoop;
-//   CoreApplication::postEvent(&eventLoop, new Event(Event::Type::User));
-//   // process posted events, EventLoop::processEvents() should return
-//   // true
-//   ASSERT_TRUE(eventLoop.processEvents());
-//   ASSERT_EQ(aboutToBlockCount, 0);
-//   ASSERT_EQ(awakeCount, 1);
-   
-//   // allow any session manager to complete its handshake, so that
-//   // there are no pending events left. This tests that we are able
-//   // to process all events from the queue, otherwise it will hang.
-//   while (eventLoop.processEvents())
-//      ;
-//   // make sure the test doesn't block forever
-//   int timerId = object.startTimer(100);
-//   aboutToBlockCount = 0;
-//   awakeCount = 0;
-//   ASSERT_TRUE(eventLoop.processEvents(EventLoop::WaitForMoreEvents));
-//   ASSERT_TRUE(awakeCount > 0);
-//   ASSERT_TRUE(awakeCount >= aboutToBlockCount);
-//   object.killTimer(timerId);
-//   PDKTEST_END_APP_CONTEXT();
-//}
+TEST(EventLoopTest, testProcessEvents)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   int aboutToBlockCount = 0;
+   int awakeCount = 0;
+   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
+   //EventDispatcherSignalUnlock signalLocker(eventDispatcher);
+   eventDispatcher->connectAboutToBlockSignal([&aboutToBlockCount](){
+      aboutToBlockCount++;
+   });
+   eventDispatcher->connectAwakeSignal([&awakeCount](){
+      awakeCount++;
+   });
+   Object object;
+   EventLoop eventLoop;
+   CoreApplication::postEvent(&eventLoop, new Event(Event::Type::User));
+   // process posted events, EventLoop::processEvents() should return
+   // true
+   ASSERT_TRUE(eventLoop.processEvents());
+   ASSERT_EQ(aboutToBlockCount, 0);
+   ASSERT_EQ(awakeCount, 1);
+
+   // allow any session manager to complete its handshake, so that
+   // there are no pending events left. This tests that we are able
+   // to process all events from the queue, otherwise it will hang.
+   while (eventLoop.processEvents())
+      ;
+   // make sure the test doesn't block forever
+   int timerId = object.startTimer(100);
+   aboutToBlockCount = 0;
+   awakeCount = 0;
+   ASSERT_TRUE(eventLoop.processEvents(EventLoop::WaitForMoreEvents));
+   ASSERT_TRUE(awakeCount > 0);
+   ASSERT_TRUE(awakeCount >= aboutToBlockCount);
+   object.killTimer(timerId);
+   PDKTEST_END_APP_CONTEXT();
+}
 
 #define EXEC_TIMEOUT 100
 
-//TEST(EventLoopTest, testExec)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   {
-//      EventLoop eventLoop;
-//      EventLoopExiter exiter(&eventLoop);
-//      int returnCode;
-      
-//      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit);
-//      returnCode = eventLoop.exec();
-//      ASSERT_EQ(returnCode, 0);
-      
-//      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit1);
-//      returnCode = eventLoop.exec();
-//      ASSERT_EQ(returnCode, 1);
-      
-//      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit2);
-//      returnCode = eventLoop.exec();
-//      ASSERT_EQ(returnCode, 2);
-//   }
-   
-//   {
-//      // calling EventLoop::exec() after a thread loop has exit()ed should return immediately
-//      // Note: this behaviour differs from CoreApplication and EventLoop
-//      // see CoreApplicationTest::testEventLoopExecAfterExit, EventLoopTest::testReexec
-//      MultipleExecThread thread;
-      
-//      // start thread and wait for checkpoint
-//      std::unique_lock<std::mutex> locker(thread.m_mutex);
-//      thread.start();
-//      thread.m_cond.wait(locker);
-      
-//      // make sure the eventloop runs
-//      AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance(&thread);
-//      int awakeCount = 0;
-//      eventDispatcher->connectAwakeSignal([&awakeCount]() {
-//         ++awakeCount;
-//      });
-      
-//      thread.m_cond.notify_one();
-//      thread.m_cond.wait(locker);
-//      ASSERT_TRUE(awakeCount > 0);
-//      int v = thread.m_result1;
-//      ASSERT_EQ(v, 0);
-      
-//      // exec should return immediately
-//      awakeCount = 0;
-//      thread.m_cond.notify_one();
-//      thread.m_mutex.unlock();
-//      thread.wait();
-//      ASSERT_EQ(awakeCount, 0);
-//      v = thread.m_result2;
-//      ASSERT_EQ(v, -1);
-//   }
-   
-//   {
-//      // a single instance of EventLoop should not be allowed to recurse into exec()
-//      EventLoop eventLoop;
-//      EventLoopExecutor executor(&eventLoop);
-      
-//      Timer::singleShot(EXEC_TIMEOUT, &executor, &EventLoopExecutor::exec);
-//      int returnCode = eventLoop.exec();
-//      ASSERT_EQ(returnCode, 0);
-//      ASSERT_EQ(executor.m_returnCode, -1);
-//   }
-//   PDKTEST_END_APP_CONTEXT();
-//}
+TEST(EventLoopTest, testExec)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   {
+      EventLoop eventLoop;
+      EventLoopExiter exiter(&eventLoop);
+      int returnCode;
 
-//TEST(EventLoopTest, testReexec)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   EventLoop loop;
-//   CallableInvoker::invokeAsync([&loop](){
-//      loop.quit();
-//   }, &loop);
-//   // exec once
-//   ASSERT_EQ(loop.exec(), 0);
-   
-//   // and again
-//   CallableInvoker::invokeAsync([&loop](){
-//      loop.quit();
-//   }, &loop);
-   
-//   // exec once
-//   ASSERT_EQ(loop.exec(), 0);
-//   PDKTEST_END_APP_CONTEXT();
-//}
+      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit);
+      returnCode = eventLoop.exec();
+      ASSERT_EQ(returnCode, 0);
 
-//TEST(EventLoopTest, testWakeUp)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   int awakeCount = 0;
-   
-//   EventLoopThread thread;
-//   EventLoop eventLoop;
-//   thread.connectCheckPointSignal(&eventLoop, &EventLoop::quit);
-//   thread.connectFinishedSignal(&eventLoop, &EventLoop::quit);
-   
-//   thread.start();
-//   (void) eventLoop.exec();
-//   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
-//   EventDispatcherSignalUnlock signalLocker(eventDispatcher);
-//   eventDispatcher->connectAwakeSignal([&awakeCount](){
-//      ++awakeCount;
-//   });
-//   thread.m_eventLoop->wakeUp();
-//   // give the thread time to wake up
-//   Timer::singleShot(1000, &eventLoop, &EventLoop::quit);
-//   (void) eventLoop.exec();
-//   ASSERT_TRUE(awakeCount);
-//   thread.quit();
-//   (void) eventLoop.exec();
-//   PDKTEST_END_APP_CONTEXT();
-//}
+      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit1);
+      returnCode = eventLoop.exec();
+      ASSERT_EQ(returnCode, 1);
 
-//TEST(EventLoopTest, testQuit)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   EventLoop eventLoop;
-//   int returnCode;
-//   Timer::singleShot(100, &eventLoop, &EventLoop::quit);
-//   returnCode = eventLoop.exec();
-//   ASSERT_EQ(returnCode, 0);
-//   PDKTEST_END_APP_CONTEXT();
-//}
+      Timer::singleShot(EXEC_TIMEOUT, &exiter, &EventLoopExiter::exit2);
+      returnCode = eventLoop.exec();
+      ASSERT_EQ(returnCode, 2);
+   }
+
+   {
+      // calling EventLoop::exec() after a thread loop has exit()ed should return immediately
+      // Note: this behaviour differs from CoreApplication and EventLoop
+      // see CoreApplicationTest::testEventLoopExecAfterExit, EventLoopTest::testReexec
+      MultipleExecThread thread;
+
+      // start thread and wait for checkpoint
+      std::unique_lock<std::mutex> locker(thread.m_mutex);
+      thread.start();
+      thread.m_cond.wait(locker);
+
+      // make sure the eventloop runs
+      AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance(&thread);
+      int awakeCount = 0;
+      eventDispatcher->connectAwakeSignal([&awakeCount]() {
+         ++awakeCount;
+      });
+
+      thread.m_cond.notify_one();
+      thread.m_cond.wait(locker);
+      ASSERT_TRUE(awakeCount > 0);
+      int v = thread.m_result1;
+      ASSERT_EQ(v, 0);
+
+      // exec should return immediately
+      awakeCount = 0;
+      thread.m_cond.notify_one();
+      thread.m_mutex.unlock();
+      thread.wait();
+      ASSERT_EQ(awakeCount, 0);
+      v = thread.m_result2;
+      ASSERT_EQ(v, -1);
+   }
+
+   {
+      // a single instance of EventLoop should not be allowed to recurse into exec()
+      EventLoop eventLoop;
+      EventLoopExecutor executor(&eventLoop);
+
+      Timer::singleShot(EXEC_TIMEOUT, &executor, &EventLoopExecutor::exec);
+      int returnCode = eventLoop.exec();
+      ASSERT_EQ(returnCode, 0);
+      ASSERT_EQ(executor.m_returnCode, -1);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(EventLoopTest, testReexec)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   EventLoop loop;
+   CallableInvoker::invokeAsync([&loop](){
+      loop.quit();
+   }, &loop);
+   // exec once
+   ASSERT_EQ(loop.exec(), 0);
+
+   // and again
+   CallableInvoker::invokeAsync([&loop](){
+      loop.quit();
+   }, &loop);
+
+   // exec once
+   ASSERT_EQ(loop.exec(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(EventLoopTest, testWakeUp)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   int awakeCount = 0;
+
+   EventLoopThread thread;
+   EventLoop eventLoop;
+   thread.connectCheckPointSignal(&eventLoop, &EventLoop::quit);
+   thread.connectFinishedSignal(&eventLoop, &EventLoop::quit);
+
+   thread.start();
+   (void) eventLoop.exec();
+   AbstractEventDispatcher *eventDispatcher = AbstractEventDispatcher::getInstance();
+   EventDispatcherSignalUnlock signalLocker(eventDispatcher);
+   eventDispatcher->connectAwakeSignal([&awakeCount](){
+      ++awakeCount;
+   });
+   thread.m_eventLoop->wakeUp();
+   // give the thread time to wake up
+   Timer::singleShot(1000, &eventLoop, &EventLoop::quit);
+   (void) eventLoop.exec();
+   ASSERT_TRUE(awakeCount);
+   thread.quit();
+   (void) eventLoop.exec();
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(EventLoopTest, testQuit)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   EventLoop eventLoop;
+   int returnCode;
+   Timer::singleShot(100, &eventLoop, &EventLoop::quit);
+   returnCode = eventLoop.exec();
+   ASSERT_EQ(returnCode, 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
 
 class EventLoopObject: public Object
 {
@@ -363,19 +369,6 @@ public:
    }
 };
 
-//TEST(EventLoopTest, testNestedLoops)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   EventLoopObject obj;
-//   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
-//   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
-//   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
-   
-//   // without the fix, this will *wedge* and never return
-//   pdktest::wait(1000);
-//   PDKTEST_END_APP_CONTEXT();
-//}
-
 class TimerReceiver : public Object
 {
 public:
@@ -391,37 +384,52 @@ public:
    }
 };
 
-//TEST(EventLoopTest, testProcessEventsExcludeTimers)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   TimerReceiver timerReceiver;
-//   int timerId = timerReceiver.startTimer(0);
-   
-//   EventLoop eventLoop;
-   
-//   // normal process events will send timers
-//   eventLoop.processEvents();
-//   ASSERT_EQ(timerReceiver.m_gotTimerEvent, timerId);
-//   timerReceiver.m_gotTimerEvent = -1;
-//   // but not if we exclude timers
-//   eventLoop.processEvents(EventLoop::X11ExcludeTimers);
-   
-//#if defined(PDK_OS_UNIX)
-//   AbstractEventDispatcher *eventDispatcher = CoreApplication::getEventDispatcher();
-//   if (!dynamic_cast<EventDispatcherUNIX *>(eventDispatcher)
-//       )
-//#endif
-//      std::cerr << "X11ExcludeTimers only supported in the UNIX/Glib dispatchers" << std::endl;
-   
-//   ASSERT_EQ(timerReceiver.m_gotTimerEvent, -1);
-//   timerReceiver.m_gotTimerEvent = -1;
-   
-//   // resume timer processing
-//   eventLoop.processEvents();
-//   ASSERT_EQ(timerReceiver.m_gotTimerEvent, timerId);
-//   timerReceiver.m_gotTimerEvent = -1;
-//   PDKTEST_END_APP_CONTEXT();
-//}
+} // anonymous namespace
+
+TEST(EventLoopTest, testNestedLoops)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   EventLoopObject obj;
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+   CoreApplication::postEvent(&obj, new StartStopEvent(Event::Type::User));
+
+   // without the fix, this will *wedge* and never return
+   pdktest::wait(1000);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST(EventLoopTest, testProcessEventsExcludeTimers)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   TimerReceiver timerReceiver;
+   int timerId = timerReceiver.startTimer(0);
+
+   EventLoop eventLoop;
+
+   // normal process events will send timers
+   eventLoop.processEvents();
+   ASSERT_EQ(timerReceiver.m_gotTimerEvent, timerId);
+   timerReceiver.m_gotTimerEvent = -1;
+   // but not if we exclude timers
+   eventLoop.processEvents(EventLoop::X11ExcludeTimers);
+
+#if defined(PDK_OS_UNIX)
+   AbstractEventDispatcher *eventDispatcher = CoreApplication::getEventDispatcher();
+   if (!dynamic_cast<EventDispatcherUNIX *>(eventDispatcher)
+       )
+#endif
+      std::cerr << "X11ExcludeTimers only supported in the UNIX/Glib dispatchers" << std::endl;
+
+   ASSERT_EQ(timerReceiver.m_gotTimerEvent, -1);
+   timerReceiver.m_gotTimerEvent = -1;
+
+   // resume timer processing
+   eventLoop.processEvents();
+   ASSERT_EQ(timerReceiver.m_gotTimerEvent, timerId);
+   timerReceiver.m_gotTimerEvent = -1;
+   PDKTEST_END_APP_CONTEXT();
+}
 
 namespace DeliverInDefinedOrder {
 
@@ -464,43 +472,45 @@ public:
    }
 };
 
+} // DeliverInDefinedOrder
+
+TEST(EventLoopTest, testDeliverInDefinedOrder)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   using namespace DeliverInDefinedOrder;
+   Thread threads[NbThread];
+   MyObject objects[NbObject];
+   for (int t = 0; t < NbThread; t++) {
+      threads[t].start();
+   }
+
+   int event = 0;
+
+   for (int o = 0; o < NbObject; o++) {
+      objects[o].moveToThread(&threads[o % NbThread]);
+      for (int e = 0; e < NbEvent; e++) {
+         int q = e % NbEventQueue;
+         CoreApplication::postEvent(&objects[o], new CustomEvent(q, ++event) , pdk::EventPriority(q));
+         if (e % 7) {
+            CallableInvoker::invokeAsync([&objects, o](Thread *thread){
+               objects[o].moveToThread(thread);
+            }, &objects[o], &threads[(e+o)%NbThread]);
+         }
+      }
+   }
+   pdktest::wait(30);
+   for (int o = 0; o < NbObject; o++) {
+      PDK_TRY_COMPARE(objects[o].m_count, int(NbEvent));
+   }
+
+   for (int t = 0; t < NbThread; t++) {
+      threads[t].quit();
+      threads[t].wait();
+   }
+   PDKTEST_END_APP_CONTEXT();
 }
 
-//TEST(EventLoopTest, testDeliverInDefinedOrder)
-//{
-//   PDKTEST_BEGIN_APP_CONTEXT();
-//   using namespace DeliverInDefinedOrder;
-//   Thread threads[NbThread];
-//   MyObject objects[NbObject];
-//   for (int t = 0; t < NbThread; t++) {
-//      threads[t].start();
-//   }
-   
-//   int event = 0;
-   
-//   for (int o = 0; o < NbObject; o++) {
-//      objects[o].moveToThread(&threads[o % NbThread]);
-//      for (int e = 0; e < NbEvent; e++) {
-//         int q = e % NbEventQueue;
-//         CoreApplication::postEvent(&objects[o], new CustomEvent(q, ++event) , pdk::EventPriority(q));
-//         if (e % 7) {
-//            CallableInvoker::invokeAsync([&objects, o](Thread *thread){
-//               objects[o].moveToThread(thread);
-//            }, &objects[o], &threads[(e+o)%NbThread]);
-//         }
-//      }
-//   }
-//   pdktest::wait(30);
-//   for (int o = 0; o < NbObject; o++) {
-//      PDK_TRY_COMPARE(objects[o].m_count, int(NbEvent));
-//   }
-   
-//   for (int t = 0; t < NbThread; t++) {
-//      threads[t].quit();
-//      threads[t].wait();
-//   }
-//   PDKTEST_END_APP_CONTEXT();
-//}
+namespace {
 
 class JobObject : public Object
 {
@@ -537,26 +547,27 @@ private:
    EventLoopLocker m_locker;
 };
 
+} // anonymous namespace
+
 TEST(EventLoopTest, testQuitLock)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    EventLoop eventLoop;
    EventLoopPrivate* privateClass = static_cast<EventLoopPrivate*>(ObjectPrivate::get(&eventLoop));
-//   ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
-   JobObject *job1 = new JobObject(&eventLoop, PDK_RETRIEVE_APP_INSTANCE());
+   ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
+   JobObject *job1 = new JobObject(&eventLoop);
    job1->start(500);
-//   ASSERT_EQ(privateClass->m_quitLockRef.load(), 1);
+   ASSERT_EQ(privateClass->m_quitLockRef.load(), 1);
    eventLoop.exec();
-//   ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
-   job1 = new JobObject(&eventLoop, PDK_RETRIEVE_APP_INSTANCE());
+   ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
+   job1 = new JobObject(&eventLoop);
    job1->start(200);
    JobObject *previousJob = job1;
    for (int i = 0; i < 9; ++i) {
-      JobObject *subJob = new JobObject(&eventLoop, PDK_RETRIEVE_APP_INSTANCE());
+      JobObject *subJob = new JobObject(&eventLoop);
       previousJob->connectDoneSignal(subJob, &JobObject::start);
       previousJob = subJob;
    }
    eventLoop.exec();
-   std::cout << "event loop exit" << std::endl;
    PDKTEST_END_APP_CONTEXT();
 }

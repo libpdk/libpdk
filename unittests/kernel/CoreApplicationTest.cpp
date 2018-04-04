@@ -54,6 +54,8 @@ using pdk::utils::ScopedPointer;
 int sg_argc;
 char **sg_argv;
 
+namespace {
+
 class EventSpy : public Object
 {
 public:
@@ -97,6 +99,8 @@ public:
    bool m_requiresCoreApplication;
 };
 
+} // anonymous namespace
+
 TEST(CoreApplicationTest, testSendEventsOnProcessEvents)
 {
    int argc = 1;
@@ -138,7 +142,7 @@ TEST(CoreApplicationTest, testAppName)
    // The application name should still be available after destruction;
    // global statics often rely on this.
    ASSERT_EQ(CoreApplication::getAppName(), String::fromLatin1(appName));
-   // Setting the appname before creating the application should work (QTBUG-45283)
+   // Setting the appname before creating the application should work (BUG-45283)
    const String wantedAppName(Latin1String("YetAnotherApp"));
    {
       int argc = 1;
@@ -229,6 +233,8 @@ TEST(CoreApplicationTest, testArgc)
    }
 }
 
+namespace {
+
 class EventGenerator : public Object
 {  
 public:
@@ -247,6 +253,8 @@ public:
       return Object::event(event);
    }
 };
+
+} // anonymous namespace
 
 TEST(CoreApplicationTest, testPostEvent)
 {
@@ -412,6 +420,8 @@ TEST(CoreApplicationTest, testRemovePostedEvents)
    expected.clear();
 }
 
+namespace {
+
 class DeliverInDefinedOrderThread : public Thread
 {
 public:
@@ -513,6 +523,8 @@ public:
    }
 };
 
+} // anonymous namespace
+
 TEST(CoreApplicationTest, testDeliverInDefinedOrder)
 {
    int argc = 1;
@@ -539,6 +551,8 @@ PDK_CORE_EXPORT uint global_posted_events_count();
 } // kernel
 } // pdk
 
+namespace {
+
 class GlobalPostedEventsCountObject : public Object
 {
 public:
@@ -551,6 +565,8 @@ public:
       return Object::event(event);
    }
 };
+
+} // anonymous namespace
 
 TEST(CoreApplicationTest, testGlobalPostedEventsCount)
 {
@@ -577,6 +593,8 @@ TEST(CoreApplicationTest, testGlobalPostedEventsCount)
    ASSERT_EQ(x.m_globalPostedEventsCount, expected);
 }
 
+namespace {
+
 class ProcessEventsAlwaysSendsPostedEventsObject : public Object
 {
 public:
@@ -594,6 +612,8 @@ public:
       return Object::event(event);
    }
 };
+
+} // anonymous namespace
 
 TEST(CoreApplicationTest, testProcessEventsAlwaysSendsPostedEvents)
 {
@@ -655,6 +675,8 @@ TEST(CoreApplicationTest, testEventLoopExecAfterExit)
    CallableInvoker::invokeAsync(&loop, &EventLoop::quit);
    ASSERT_EQ(loop.exec(), 0);
 }
+
+namespace {
 
 class DummyEventDispatcher : public AbstractEventDispatcher
 {
@@ -722,6 +744,8 @@ public:
    bool m_visited;
 };
 
+} // anonymous namespace
+
 TEST(CoreApplicationTest, testCustomEventDispatcher)
 {
    PDK_RETRIEVE_APP_INSTANCE()->quit();
@@ -750,6 +774,8 @@ TEST(CoreApplicationTest, testCustomEventDispatcher)
    // ED has been deleted?
    ASSERT_TRUE(weak_ed.isNull());
 }
+
+namespace {
 
 class JobObject : public Object
 {
@@ -830,6 +856,8 @@ private:
       ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
    }
 };
+
+} // anonymous namespace
 
 TEST(CoreApplicationTest, testQuitLock)
 {
