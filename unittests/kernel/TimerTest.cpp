@@ -23,6 +23,7 @@
 #include "pdk/base/time/Time.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/kernel/CallableInvoker.h"
+#include "pdktest/PdkTest.h"
 
 #if defined PDK_OS_UNIX
 #include <unistd.h>
@@ -42,6 +43,8 @@ using pdk::kernel::BasicTimer;
 using pdk::time::Time;
 using pdk::utils::ScopedPointer;
 using pdk::kernel::CallableInvoker;
+
+PDKTEST_DECLARE_APP_STARTUP_ARGS();
 
 class TimerHelper : public Object
 {
@@ -73,6 +76,7 @@ void TimerHelper::fetchRemainingTime(Timer::SignalType signal, Object *sender)
 
 TEST(TimerTest, testZeroTimer)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper helper;
    Timer timer;
    timer.setInterval(0);
@@ -80,10 +84,12 @@ TEST(TimerTest, testZeroTimer)
    timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
    CoreApplication::processEvents();
    ASSERT_EQ(helper.m_count, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testSingleShotTimeout)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper helper;
    Timer timer;
    timer.setSingleShot(true);
@@ -93,12 +99,14 @@ TEST(TimerTest, testSingleShotTimeout)
    ASSERT_EQ(helper.m_count, 1);
    pdktest::wait(500);
    ASSERT_EQ(helper.m_count, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 #define TIMEOUT_TIMEOUT 200
 
 TEST(TimerTest, testTimeout)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper helper;
    Timer timer;
    timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
@@ -107,10 +115,12 @@ TEST(TimerTest, testTimeout)
    PDK_TRY_VERIFY_WITH_TIMEOUT(helper.m_count > 0, TIMEOUT_TIMEOUT);
    int oldCount = helper.m_count;
    PDK_TRY_VERIFY_WITH_TIMEOUT(helper.m_count > oldCount, TIMEOUT_TIMEOUT);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testRemainingTime)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper helper;
    Timer timer;
    timer.connectTimeoutSignal(&helper, &TimerHelper::timeout);
@@ -129,6 +139,7 @@ TEST(TimerTest, testRemainingTime)
    // the timer is still active, so it should have a non-zero remaining time
    remainingTime = timer.getRemainingTime();
    ASSERT_TRUE(remainingTime > 150) << pdk_printable(String::number(remainingTime));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 void remaining_time_during_activation_data(std::list<bool> &data)
@@ -141,6 +152,7 @@ void remaining_time_during_activation_data(std::list<bool> &data)
 // @TODO re think the mean
 TEST(TimerTest, testRemainingTimeDuringActivation)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    std::list<bool> data;
    remaining_time_during_activation_data(data);
    for (bool singleShot : data) {
@@ -169,6 +181,7 @@ TEST(TimerTest, testRemainingTimeDuringActivation)
          ASSERT_EQ(helper.m_remainingTime, timer.getRemainingTime());
       }
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 namespace {
@@ -183,6 +196,7 @@ std::chrono::milliseconds to_ms(T t)
 
 TEST(TimerTest, testBasicChrono)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    // duplicates zeroTimer, singleShotTimeout, interval and remainingTime
    using namespace std::chrono;
    TimerHelper helper;
@@ -202,16 +216,16 @@ TEST(TimerTest, testBasicChrono)
    int oldCount = helper.m_count;
    pdktest::wait(TIMEOUT_TIMEOUT);
    ASSERT_TRUE(helper.m_count > oldCount);
-
+   
    helper.m_count = 0;
    timer.start(to_ms(microseconds(200000)));
    ASSERT_EQ(timer.intervalAsDuration().count(), milliseconds::rep(200));
    pdktest::wait(50);
    ASSERT_EQ(helper.m_count, 0);
-
+   
    milliseconds rt = timer.remainingTimeAsDuration();
    ASSERT_TRUE(std::abs(rt.count() - 150) < 50) << pdk_printable(String::number(rt.count()));
-
+   
    helper.m_count = 0;
    timer.setSingleShot(true);
    timer.start(milliseconds(100));
@@ -220,6 +234,7 @@ TEST(TimerTest, testBasicChrono)
    pdktest::wait(500);
    ASSERT_EQ(helper.m_count, 1);
    helper.m_count = 0;
+   PDKTEST_END_APP_CONTEXT();
 }
 
 void live_lock_data(std::list<int> &data)
@@ -285,6 +300,7 @@ public:
 
 TEST(TimerTest, testLivelock)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    std::list<int> data;
    live_lock_data(data);
    /*
@@ -302,6 +318,7 @@ TEST(TimerTest, testLivelock)
       PDK_TRY_COMPARE(tester.m_timeoutsForSecond, 1);
       ASSERT_TRUE(tester.m_postEventAtRightTime);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class TimerInfiniteRecursionObject : public Object
@@ -345,6 +362,7 @@ void timer_infinite_recursion_data(std::list<int> &data)
 
 TEST(TimerTest, testTimerInfiniteRecursion)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    std::list<int> data;
    timer_infinite_recursion_data(data);
    for (bool interval: data) {
@@ -355,6 +373,7 @@ TEST(TimerTest, testTimerInfiniteRecursion)
       eventLoop.exec();
       ASSERT_TRUE(!object.m_timerEventRecursed);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class RecurringTimerObject : public Object
@@ -394,11 +413,12 @@ void recurring_timer_data(std::list<int> &data)
 
 TEST(TimerTest, testRecurringTimer)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    const int target = 5;
    std::list<int> data;
    recurring_timer_data(data);
    for (int interval: data){
-
+      
       {
          RecurringTimerObject object(target);
          object.connectDoneSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop);
@@ -416,10 +436,12 @@ TEST(TimerTest, testRecurringTimer)
          ASSERT_EQ(object.m_times, target);
       }
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testDeleteLaterOnTimer)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Timer *timer = new Timer;
    timer->connectTimeoutSignal(timer, &Timer::deleteLater);
    timer->connectDestroyedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop);
@@ -429,6 +451,7 @@ TEST(TimerTest, testDeleteLaterOnTimer)
    Pointer<Timer> pointer = timer;
    TestEventLoop::instance().enterLoop(5);
    ASSERT_TRUE(pointer.isNull());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 #define MOVETOTHREAD_TIMEOUT 200
@@ -436,6 +459,7 @@ TEST(TimerTest, testDeleteLaterOnTimer)
 
 TEST(TimerTest, testMoveToThread)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
 #if defined(PDK_OS_WIN32)
    SUCCEED() << "Does not work reliably on Windows :(";
 #elif defined(PDK_OS_MACOS)
@@ -466,6 +490,7 @@ TEST(TimerTest, testMoveToThread)
    ASSERT_TRUE((timer4.getTimerId() & 0xffffff) != (timer2.getTimerId() & 0xffffff));
    ASSERT_TRUE((timer3.getTimerId() & 0xffffff) != (timer2.getTimerId() & 0xffffff));
    ASSERT_TRUE((timer3.getTimerId() & 0xffffff) != (timer1.getTimerId() & 0xffffff));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class RestartedTimerFiresTooSoonObject : public Object
@@ -517,9 +542,11 @@ public:
 
 TEST(TimerTest, testRestartedTimerFiresTooSoon)
 {
-    RestartedTimerFiresTooSoonObject object;
-    object.timerFired();
-    ASSERT_EQ(object.m_eventLoop.exec(), 0);
+   PDKTEST_BEGIN_APP_CONTEXT();
+   RestartedTimerFiresTooSoonObject object;
+   object.timerFired();
+   ASSERT_EQ(object.m_eventLoop.exec(), 0);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class LongLastingSlotClass : public Object
@@ -557,6 +584,7 @@ void timer_fires_only_once_per_process_events_data(std::list<int> &data)
 
 TEST(TimerTest, testTimerFiresOnlyOncePerProcessEvents)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    std::list<int> data;
    timer_fires_only_once_per_process_events_data(data);
    for(int interval: data) {
@@ -566,10 +594,11 @@ TEST(TimerTest, testTimerFiresOnlyOncePerProcessEvents)
       timer.connectTimeoutSignal(&longSlot, &LongLastingSlotClass::longLastingSlot);
       // Loop because there may be other events pending.
       while (longSlot.m_count == 0) {
-          CoreApplication::processEvents(EventLoop::WaitForMoreEvents);
+         CoreApplication::processEvents(EventLoop::WaitForMoreEvents);
       }
       ASSERT_EQ(longSlot.m_count, 1);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class TimerIdPersistsAfterThreadExitThread : public Thread
@@ -602,6 +631,7 @@ public:
 
 TEST(TimerTest, testTimerIdPersistsAfterThreadExit)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerIdPersistsAfterThreadExitThread thread;
    thread.start();
    ASSERT_TRUE(thread.wait(30000));
@@ -611,10 +641,12 @@ TEST(TimerTest, testTimerIdPersistsAfterThreadExit)
    // have unregistered it)
    int timerId = thread.startTimer(100);
    ASSERT_TRUE((timerId & 0xffffff) != (thread.m_timerId & 0xffffff));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testCancelLongTimer)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Timer timer;
    timer.setSingleShot(true);
    timer.start(1000 * 60 * 60); //set timer for 1 hour
@@ -622,10 +654,12 @@ TEST(TimerTest, testCancelLongTimer)
    ASSERT_TRUE(timer.isActive()); //if the timer completes immediately with an error, then this will fail
    timer.stop();
    ASSERT_TRUE(!timer.isActive());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testSingleShotStaticFunctionZeroTimeout)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper helper;
    Timer::singleShot(0, &helper, &TimerHelper::timeout);
    pdktest::wait(500);
@@ -638,6 +672,7 @@ TEST(TimerTest, testSingleShotStaticFunctionZeroTimeout)
    ASSERT_EQ(nhelper.m_count, 1);
    CoreApplication::processEvents();
    ASSERT_EQ(nhelper.m_count, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class RecursOnTimeoutAndStopTimerTimer : public Object
@@ -660,6 +695,7 @@ public:
 
 TEST(TimerTest, testRecurseOnTimeoutAndStopTimer)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    EventLoop eventLoop;
    Timer::singleShot(1000, &eventLoop, &EventLoop::quit);
    RecursOnTimeoutAndStopTimerTimer t;
@@ -673,6 +709,7 @@ TEST(TimerTest, testRecurseOnTimeoutAndStopTimer)
    (void) eventLoop.exec();
    ASSERT_TRUE(!t.m_one->isActive());
    ASSERT_TRUE(!t.m_two->isActive());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 struct CountedStruct
@@ -720,68 +757,69 @@ public:
 
 TEST(TimerTest, testSingleShotToFunctors)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    int count = 0;
    sg_eventLoop.reset(new EventLoop);
    EventLoop e;
-
+   
    Timer::singleShot(0, CountedStruct(&count));
    CoreApplication::processEvents();
    ASSERT_EQ(count, 1);
-
+   
    Timer::singleShot(0, &StaticEventLoop::quitEventLoop);
    ASSERT_EQ(sg_eventLoop->exec(), 0);
-
+   
    Timer::singleShot(0, &StaticEventLoop::quitEventLoopNoexcept);
    ASSERT_EQ(sg_eventLoop->exec(), 0);
-
+   
    Thread t1;
    Object c1;
    c1.moveToThread(&t1);
    t1.connectStartedSignal(&e, &EventLoop::quit);
    t1.start();
    ASSERT_EQ(e.exec(), 0);
-
+   
    Timer::singleShot(0, &c1, CountedStruct(&count, &t1));
    pdktest::wait(500);
    ASSERT_EQ(count, 2);
-
+   
    t1.quit();
    t1.wait();
-
+   
    sg_thread = new Thread;
    Object c2;
    c2.moveToThread(sg_thread);
    sg_thread->connectStartedSignal(&e, &EventLoop::quit);
    sg_thread->start();
    ASSERT_EQ(e.exec(), 0);
-
+   
    Timer::singleShot(0, &c2, &StaticEventLoop::quitEventLoop);
    ASSERT_EQ(sg_eventLoop->exec(), 0);
-
+   
    sg_thread->quit();
    sg_thread->wait();
    sg_thread->deleteLater();
    sg_thread = nullptr;
-
+   
    {
       Object c3;
       Timer::singleShot(500, &c3, CountedStruct(&count));
    }
    pdktest::wait(800);
    ASSERT_EQ(count, 2);
-
+   
    Timer::singleShot(0, [&count] { ++count; });
    CoreApplication::processEvents();
    ASSERT_EQ(count, 3);
-
+   
    Object context;
    Thread thread;
-
+   
    context.moveToThread(&thread);
    thread.connectStartedSignal(&e, &EventLoop::quit);
    thread.start();
    ASSERT_EQ(e.exec(), 0);
-
+   
    Timer::singleShot(0, &context, [&count, &thread]()
    { 
       ++count;
@@ -789,53 +827,56 @@ TEST(TimerTest, testSingleShotToFunctors)
    });
    pdktest::wait(500);
    ASSERT_EQ(count, 4);
-
+   
    thread.quit();
    thread.wait();
-
+   
    sg_eventLoop.reset();
    sg_thread = nullptr;
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(TimerTest, testSingleShotChrono)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    // duplicates singleShotStaticFunctionZeroTimeout and singleShotToFunctors
    using namespace std::chrono;
    TimerHelper helper;
-
+   
    Timer::singleShot(hours(0), &helper, &TimerHelper::timeout);
    pdktest::wait(500);
    ASSERT_EQ(helper.m_count, 1);
    pdktest::wait(500);
    ASSERT_EQ(helper.m_count, 1);
-
+   
    TimerHelper nhelper;
-
+   
    Timer::singleShot(seconds(0), &nhelper, &TimerHelper::timeout);
    CoreApplication::processEvents();
    ASSERT_EQ(nhelper.m_count, 1);
    CoreApplication::processEvents();
    ASSERT_EQ(nhelper.m_count, 1);
-
+   
    int count = 0;
    Timer::singleShot(to_ms(microseconds(0)), CountedStruct(&count));
    CoreApplication::processEvents();
    ASSERT_EQ(count, 1);
-
+   
    sg_eventLoop.reset(new EventLoop);
    Timer::singleShot(0, &StaticEventLoop::quitEventLoop);
    ASSERT_EQ(sg_eventLoop->exec(), 0);
-
+   
    Object c3;
    Timer::singleShot(milliseconds(500), &c3, CountedStruct(&count));
    pdktest::wait(800);
    ASSERT_EQ(count, 2);
-
+   
    Timer::singleShot(0, [&count] { ++count; });
    CoreApplication::processEvents();
    ASSERT_EQ(count, 3);
-
+   
    sg_eventLoop.reset();
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class DontBlockEvents : public Object
@@ -890,9 +931,11 @@ void DontBlockEvents::paintEvent()
 // timeout that was restarted by the event handler could starve other timers.
 TEST(TimerTest, testDontBlockEvents)
 {
-    DontBlockEvents t;
-    pdktest::wait(60);
-    PDK_TRY_VERIFY(t.m_total > 2);
+   PDKTEST_BEGIN_APP_CONTEXT();
+   DontBlockEvents t;
+   pdktest::wait(60);
+   PDK_TRY_VERIFY(t.m_total > 2);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class SlotRepeater : public Object {
@@ -908,6 +951,7 @@ public:
 
 TEST(TimerTest, testPostedEventsShouldNotStarveTimers)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TimerHelper timerHelper;
    Timer timer;
    timer.connectTimeoutSignal(&timerHelper, &TimerHelper::timeout);
@@ -918,26 +962,29 @@ TEST(TimerTest, testPostedEventsShouldNotStarveTimers)
    slotRepeater.repeatThisSlot();
    pdktest::wait(100);
    ASSERT_TRUE(timerHelper.m_count > 5);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 struct DummyFunctor {
-    void operator()() {}
+   void operator()() {}
 };
 
 TEST(TimerTest, testCrossThreadSingleShotToFunctor)
 {
-    // We're testing for crashes here, so the test simply running to
-    // completion is considered a success
-    Thread t;
-    t.start();
-    Object* o = new Object();
-    o->moveToThread(&t);
-
-    for (int i = 0; i < 10000; i++) {
-        Timer::singleShot(0, o, DummyFunctor());
-    }
-    t.quit();
-    t.wait();
-    delete o;
+   PDKTEST_BEGIN_APP_CONTEXT();
+   // We're testing for crashes here, so the test simply running to
+   // completion is considered a success
+   Thread t;
+   t.start();
+   Object* o = new Object();
+   o->moveToThread(&t);
+   
+   for (int i = 0; i < 10000; i++) {
+      Timer::singleShot(0, o, DummyFunctor());
+   }
+   t.quit();
+   t.wait();
+   delete o;
+   PDKTEST_END_APP_CONTEXT();
 }
 

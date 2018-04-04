@@ -115,7 +115,7 @@ public:
    }
 };
 
-TEST(ThreadTest, testAutoDelete)
+TEST(ThreadStorageTest, testAutoDelete)
 {
    ThreadStorage<Pointer *> pointers;
    ASSERT_TRUE(!pointers.hasLocalData());

@@ -49,6 +49,9 @@
 #include "pdk/utils/ScopedPointer.h"
 #include "pdktest/TestSystem.h"
 
+int sg_argc;
+char **sg_argv;
+
 enum { one_minute = 60 * 1000, five_minutes = 5 * one_minute };
 
 using pdk::os::thread::Thread;
@@ -201,145 +204,160 @@ public:
 
 TEST(ThreadTest, testCurrentThreadId)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    CurrentThread thread;
    thread.m_id = 0;
    thread.m_thread = nullptr;
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(thread.m_id != 0);
-   ASSERT_TRUE(thread.m_id != Thread::getCurrentThreadId());
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.m_id != 0);
+   EXPECT_TRUE(thread.m_id != Thread::getCurrentThreadId());
    pdktest::sleep(1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testCurrentThread)
 {
-   ASSERT_TRUE(Thread::getCurrentThread() != nullptr);
+   PDKTEST_BEGIN_APP_CONTEXT();
+   EXPECT_TRUE(Thread::getCurrentThread() != nullptr);
    CurrentThread thread;
    thread.m_id = 0;
    thread.m_thread = nullptr;
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_EQ(thread.m_thread, dynamic_cast<Thread *>(&thread));
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_EQ(thread.m_thread, dynamic_cast<Thread *>(&thread));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testIdealThreadCount)
 {
-   ASSERT_TRUE(Thread::getIdealThreadCount() > 0);
+   PDKTEST_BEGIN_APP_CONTEXT();
+   EXPECT_TRUE(Thread::getIdealThreadCount() > 0);
    std::clog << "Ideal thread count:" << Thread::getIdealThreadCount();
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testIsFinished)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
-   ASSERT_TRUE(!thread.isFinished());
+   EXPECT_TRUE(!thread.isFinished());
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-   ASSERT_TRUE(!thread.isFinished());
+   EXPECT_TRUE(!thread.isFinished());
    thread.m_cond.wait(locker);
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(thread.isFinished());
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.isFinished());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testIsRunning)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
-   ASSERT_TRUE(!thread.isRunning());
+   EXPECT_TRUE(!thread.isRunning());
    std::unique_lock<std::mutex> locker;
    thread.start();
-   ASSERT_TRUE(thread.isRunning());
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(!thread.isRunning());
+   EXPECT_TRUE(thread.isRunning());
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(!thread.isRunning());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testSetPriority)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::IdlePriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::LowestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::LowPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::NormalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::HighPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::HighestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::TimeCriticalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
-   
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
+
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-   
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::IdlePriority);
-   ASSERT_EQ(thread.getPriority(), Thread::IdlePriority);
+   EXPECT_EQ(thread.getPriority(), Thread::IdlePriority);
    thread.setPriority(Thread::LowestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::LowestPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::LowestPriority);
    thread.setPriority(Thread::LowPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::LowPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::LowPriority);
    thread.setPriority(Thread::NormalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::NormalPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::NormalPriority);
    thread.setPriority(Thread::HighPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::HighPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::HighPriority);
    thread.setPriority(Thread::HighestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::HighestPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::HighestPriority);
    thread.setPriority(Thread::TimeCriticalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::TimeCriticalPriority);
-   
+   EXPECT_EQ(thread.getPriority(), Thread::TimeCriticalPriority);
+
    thread.m_cond.wait(locker);
-   ASSERT_TRUE(thread.wait(five_minutes));
-   
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_TRUE(thread.wait(five_minutes));
+
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::IdlePriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::LowestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::LowPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::NormalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::HighPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::HighestPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
    thread.setPriority(Thread::TimeCriticalPriority);
-   ASSERT_EQ(thread.getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(thread.getPriority(), Thread::InheritPriority);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testSetStackSize)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
-   ASSERT_EQ(thread.getStackSize(), 0u);
+   EXPECT_EQ(thread.getStackSize(), 0u);
    thread.setStackSize(8192u);
-   ASSERT_EQ(thread.getStackSize(), 8192u);
+   EXPECT_EQ(thread.getStackSize(), 8192u);
    thread.setStackSize(0u);
-   ASSERT_EQ(thread.getStackSize(), 0u);
+   EXPECT_EQ(thread.getStackSize(), 0u);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testExit)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    ExitThread thread;
    thread.m_object = new ExitObject;
    thread.m_object->moveToThread(&thread);
    thread.m_code = 42;
    thread.m_result = 0;
-   ASSERT_TRUE(!thread.isFinished());
-   ASSERT_TRUE(!thread.isRunning());
+   EXPECT_TRUE(!thread.isFinished());
+   EXPECT_TRUE(!thread.isRunning());
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-   
-   ASSERT_TRUE(thread.isRunning());
-   ASSERT_TRUE(!thread.isFinished());
+
+   EXPECT_TRUE(thread.isRunning());
+   EXPECT_TRUE(!thread.isFinished());
    thread.m_cond.wait(locker);
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(thread.isFinished());
-   ASSERT_TRUE(!thread.isRunning());
-   ASSERT_EQ(thread.m_result, thread.m_code);
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.isFinished());
+   EXPECT_TRUE(!thread.isRunning());
+   EXPECT_EQ(thread.m_result, thread.m_code);
    delete thread.m_object;
-   
+
    ExitThread thread2;
    thread2.m_object = nullptr;
    thread2.m_code = 53;
@@ -348,12 +366,14 @@ TEST(ThreadTest, testExit)
    thread2.start();
    thread2.exit(thread2.m_code);
    thread2.m_cond.wait(locker2);
-   ASSERT_TRUE(thread2.wait(five_minutes));
-   ASSERT_EQ(thread2.m_result, thread2.m_code);
+   EXPECT_TRUE(thread2.wait(five_minutes));
+   EXPECT_EQ(thread2.m_result, thread2.m_code);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testStart)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread::Priority priorities[] = {
       Thread::Priority::IdlePriority,
       Thread::Priority::LowestPriority,
@@ -364,56 +384,60 @@ TEST(ThreadTest, testStart)
       Thread::Priority::TimeCriticalPriority,
       Thread::Priority::InheritPriority
    };
-   
+
    const int priorityCount = sizeof(priorities) / sizeof(Thread::Priority);
    for (int i = 0; i < priorityCount; ++i) {
       SimpleThread thread;
-      ASSERT_TRUE(!thread.isFinished());
-      ASSERT_TRUE(!thread.isRunning());
+      EXPECT_TRUE(!thread.isFinished());
+      EXPECT_TRUE(!thread.isRunning());
       std::unique_lock<std::mutex> locker(thread.m_mutex);
       thread.start(priorities[i]);
-      ASSERT_TRUE(thread.isRunning());
-      ASSERT_TRUE(!thread.isFinished());
+      EXPECT_TRUE(thread.isRunning());
+      EXPECT_TRUE(!thread.isFinished());
       thread.m_cond.wait(locker);
-      ASSERT_TRUE(thread.wait(five_minutes));
-      ASSERT_TRUE(thread.isFinished());
-      ASSERT_TRUE(!thread.isRunning());
+      EXPECT_TRUE(thread.wait(five_minutes));
+      EXPECT_TRUE(thread.isFinished());
+      EXPECT_TRUE(!thread.isRunning());
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testTerminate)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TerminateThread thread;
    {
       std::unique_lock<std::mutex> locker(thread.m_mutex);
       thread.start();
-      ASSERT_TRUE(std::cv_status::no_timeout == thread.m_cond.wait_for(locker, std::chrono::milliseconds(five_minutes)));
+      EXPECT_TRUE(std::cv_status::no_timeout == thread.m_cond.wait_for(locker, std::chrono::milliseconds(five_minutes)));
       thread.terminate();
       thread.m_cond.notify_one();
    }
-   ASSERT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.wait(five_minutes));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testQuit)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    QuitThread thread;
    thread.m_object = new QuitObject;
    thread.m_object->moveToThread(&thread);
    thread.m_result = -1;
-   ASSERT_TRUE(!thread.isFinished());
-   ASSERT_TRUE(!thread.isRunning());
-   
+   EXPECT_TRUE(!thread.isFinished());
+   EXPECT_TRUE(!thread.isRunning());
+
    std::unique_lock<std::mutex> locker(thread.m_mutex);
    thread.start();
-   ASSERT_TRUE(!thread.isFinished());
-   ASSERT_TRUE(thread.isRunning());
+   EXPECT_TRUE(!thread.isFinished());
+   EXPECT_TRUE(thread.isRunning());
    thread.m_cond.wait(locker);
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(thread.isFinished());
-   ASSERT_TRUE(!thread.isRunning());
-   ASSERT_EQ(thread.m_result, 0);
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.isFinished());
+   EXPECT_TRUE(!thread.isRunning());
+   EXPECT_EQ(thread.m_result, 0);
    delete thread.m_object;
-   
+
    QuitThread thread2;
    thread2.m_object = 0;
    thread2.m_result = -1;
@@ -421,36 +445,42 @@ TEST(ThreadTest, testQuit)
    thread2.start();
    thread2.quit();
    thread2.m_cond.wait(locker2);
-   ASSERT_TRUE(thread2.wait(five_minutes));
-   ASSERT_EQ(thread2.m_result, 0);
+   EXPECT_TRUE(thread2.wait(five_minutes));
+   EXPECT_EQ(thread2.m_result, 0);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testStarted)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
    bool signalCatched = false;
    thread.connectStartedSignal([&](){
       signalCatched = true;
    }, CoreApplication::getInstance(), pdk::ConnectionType::DirectConnection);
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(signalCatched);
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(signalCatched);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testFinished)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SimpleThread thread;
    bool signalCatched = false;
    thread.connectFinishedSignal([&](){
       signalCatched = true;
    }, &thread, pdk::ConnectionType::DirectConnection);
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(signalCatched);
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(signalCatched);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testTerminated)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    TerminateThread thread;
    bool signalCatched = false;
    thread.connectFinishedSignal([&](){
@@ -463,22 +493,24 @@ TEST(ThreadTest, testTerminated)
       thread.terminate();
       thread.m_cond.notify_one();
    }
-   ASSERT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.wait(five_minutes));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testExec)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MultipleExecThread : public Thread
    {
    public:
       int m_res1;
       int m_res2;
-      
+
       MultipleExecThread()
          : m_res1(-2),
            m_res2(-2)
       {}
-      
+
       void run()
       {
          {
@@ -503,49 +535,56 @@ TEST(ThreadTest, testExec)
    };
    MultipleExecThread thread;
    thread.start();
-   ASSERT_TRUE(thread.wait());
-   ASSERT_EQ(thread.m_res1, 1);
-   ASSERT_EQ(thread.m_res2, 2);
+   EXPECT_TRUE(thread.wait());
+   EXPECT_EQ(thread.m_res1, 1);
+   EXPECT_EQ(thread.m_res2, 2);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testSleep)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SleepThread thread;
    thread.m_sleepType = SleepThread::Second;
    thread.m_interval = 2;
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
-   ASSERT_TRUE(thread.m_elapsed >= 2000);
+   EXPECT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.m_elapsed >= 2000);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testMSleep)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SleepThread thread;
    thread.m_sleepType = SleepThread::Millisecond;
    thread.m_interval = 120;
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.wait(five_minutes));
 #if defined(PDK_OS_WIN)
    // Since the resolution of Time is so coarse...
-   ASSERT_TRUE(thread.m_elapsed >= 100)
+   EXPECT_TRUE(thread.m_elapsed >= 100)
       #else
-   ASSERT_TRUE(thread.m_elapsed >= 120);
+   EXPECT_TRUE(thread.m_elapsed >= 120);
 #endif
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testUSleep)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SleepThread thread;
    thread.m_sleepType = SleepThread::Microsecond;
    thread.m_interval = 120000;
    thread.start();
-   ASSERT_TRUE(thread.wait(five_minutes));
+   EXPECT_TRUE(thread.wait(five_minutes));
 #if defined(PDK_OS_WIN)
    // Since the resolution of Time is so coarse...
-   ASSERT_TRUE(thread.m_elapsed >= 100)
+   EXPECT_TRUE(thread.m_elapsed >= 100)
       #else
-   ASSERT_TRUE(thread.m_elapsed >= 120);
+   EXPECT_TRUE(thread.m_elapsed >= 120);
 #endif
+   PDKTEST_END_APP_CONTEXT();
 }
 
 using FuncPtr = void (*)(void *);
@@ -676,17 +715,19 @@ void test_native_thread_adoption(void *)
 
 TEST(ThreadTest, testNativeThreadAdoption)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    threadAdoptedOk = false;
    mainThread = Thread::getCurrentThread();
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
    nativeThread.startAndWait(test_native_thread_adoption);
-   ASSERT_TRUE(nativeThread.m_pdkthread);
-   
+   EXPECT_TRUE(nativeThread.m_pdkthread);
+
    nativeThread.stop();
    nativeThread.join();
-   
-   ASSERT_TRUE(threadAdoptedOk);
+
+   EXPECT_TRUE(threadAdoptedOk);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 void adopted_thread_affinity_function(void *arg)
@@ -699,53 +740,59 @@ void adopted_thread_affinity_function(void *arg)
 
 TEST(ThreadTest, testAdoptedThreadAffinity)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread *affinity[2] = { 0, 0 };
    NativeThreadWrapper thread;
    thread.startAndWait(adopted_thread_affinity_function, affinity);
    thread.join();
    // adopted thread should have affinity to itself
-   ASSERT_EQ(affinity[0], affinity[1]);
+   EXPECT_EQ(affinity[0], affinity[1]);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testAdoptedThreadSetPriority)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
    nativeThread.startAndWait();
-   
+
    // change the priority of a running thread
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::InheritPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::InheritPriority);
    nativeThread.m_pdkthread->setPriority(Thread::IdlePriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::IdlePriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::IdlePriority);
    nativeThread.m_pdkthread->setPriority(Thread::LowestPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::LowestPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::LowestPriority);
    nativeThread.m_pdkthread->setPriority(Thread::LowPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::LowPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::LowPriority);
    nativeThread.m_pdkthread->setPriority(Thread::NormalPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::NormalPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::NormalPriority);
    nativeThread.m_pdkthread->setPriority(Thread::HighPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighPriority);
    nativeThread.m_pdkthread->setPriority(Thread::HighestPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighestPriority);
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::HighestPriority);
    nativeThread.m_pdkthread->setPriority(Thread::TimeCriticalPriority);
-   ASSERT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::TimeCriticalPriority);
-   
+   EXPECT_EQ(nativeThread.m_pdkthread->getPriority(), Thread::TimeCriticalPriority);
+
    nativeThread.stop();
    nativeThread.join();
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testAdoptedThreadExit)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
-   
+
    nativeThread.startAndWait();
-   ASSERT_TRUE(nativeThread.m_pdkthread);
-   ASSERT_TRUE(nativeThread.m_pdkthread->isRunning());
-   ASSERT_TRUE(!nativeThread.m_pdkthread->isFinished());
-   
+   EXPECT_TRUE(nativeThread.m_pdkthread);
+   EXPECT_TRUE(nativeThread.m_pdkthread->isRunning());
+   EXPECT_TRUE(!nativeThread.m_pdkthread->isFinished());
+
    nativeThread.stop();
    nativeThread.join();
+   PDKTEST_END_APP_CONTEXT();
 }
 
 void adopted_thread_exec_function(void *)
@@ -760,18 +807,21 @@ void adopted_thread_exec_function(void *)
       o.slot();
    });
    const int result = eventLoop.exec();
-   ASSERT_EQ(result, code);
+   EXPECT_EQ(result, code);
 }
 
 TEST(ThreadTest, testAdoptedThreadExec)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    NativeThreadWrapper nativeThread;
    nativeThread.start(adopted_thread_exec_function);
    nativeThread.join();
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testAdoptedThreadFinished)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
    nativeThread.startAndWait();
@@ -779,11 +829,13 @@ TEST(ThreadTest, testAdoptedThreadFinished)
    nativeThread.stop();
    nativeThread.join();
    TestEventLoop::instance().enterLoop(5);
-   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+   EXPECT_TRUE(!TestEventLoop::instance().getTimeout());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testAdoptedThreadExecFinished)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    NativeThreadWrapper nativeThread;
    nativeThread.setWaitForStop();
    nativeThread.startAndWait(adopted_thread_exec_function);
@@ -791,7 +843,8 @@ TEST(ThreadTest, testAdoptedThreadExecFinished)
    nativeThread.stop();
    nativeThread.join();
    TestEventLoop::instance().enterLoop(5);
-   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
+   EXPECT_TRUE(!TestEventLoop::instance().getTimeout());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class SignalRecorder : public Object
@@ -818,6 +871,7 @@ void SignalRecorder::slot()
 
 TEST(ThreadTest, testAdoptMultipleThreads)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
 #if defined(PDK_OS_WIN)
    // need to test lots of threads, so that we exceed MAXIMUM_WAIT_OBJECTS in qt_adopted_thread_watcher()
    const int numThreads = 200;
@@ -838,14 +892,16 @@ TEST(ThreadTest, testAdoptMultipleThreads)
       nativeThreads.at(i)->join();
       delete nativeThreads.at(i);
    }
-   
+
    TestEventLoop::instance().enterLoop(5);
-   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
-   ASSERT_EQ(recorder.m_activationCount.load(), numThreads);
+   EXPECT_TRUE(!TestEventLoop::instance().getTimeout());
+   EXPECT_EQ(recorder.m_activationCount.load(), numThreads);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testAdoptMultipleThreadsOverlap)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
 #if defined(PDK_OS_WIN)
    // need to test lots of threads, so that we exceed MAXIMUM_WAIT_OBJECTS in qt_adopted_thread_watcher()
    const int numThreads = 200;
@@ -853,9 +909,9 @@ TEST(ThreadTest, testAdoptMultipleThreadsOverlap)
    const int numThreads = 5;
 #endif
    std::vector<NativeThreadWrapper*> nativeThreads;
-   
+
    SignalRecorder recorder;
-   
+
    for (int i = 0; i < numThreads; ++i) {
       nativeThreads.push_back(new NativeThreadWrapper());
       nativeThreads.at(i)->setWaitForStop();
@@ -868,27 +924,30 @@ TEST(ThreadTest, testAdoptMultipleThreadsOverlap)
       nativeThreads.at(i)->m_locker.unlock();
    }
    nativeThreads.at(numThreads - 1)->m_pdkthread->connectFinishedSignal(&TestEventLoop::instance(), &TestEventLoop::exitLoop);
-   
+
    for (int i = 0; i < numThreads; ++i) {
       nativeThreads.at(i)->stop();
       nativeThreads.at(i)->join();
       delete nativeThreads.at(i);
    }
    TestEventLoop::instance().enterLoop(5);
-   ASSERT_TRUE(!TestEventLoop::instance().getTimeout());
-   ASSERT_EQ(recorder.m_activationCount.load(), numThreads);
+   EXPECT_TRUE(!TestEventLoop::instance().getTimeout());
+   EXPECT_EQ(recorder.m_activationCount.load(), numThreads);
+   PDKTEST_END_APP_CONTEXT();
 }
 
-//TEST(ThreadTest, testStress)
-//{
-//   Time t;
-//   t.start();
-//   while (t.elapsed() < one_minute) {
-//      CurrentThread t;
-//      t.start();
-//      t.wait(one_minute);
-//   }
-//}
+TEST(ThreadTest, testStress)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Time t;
+   t.start();
+   while (t.elapsed() < one_minute) {
+      CurrentThread t;
+      t.start();
+      t.wait(one_minute);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
 
 class Syncronizer : public Object
 {
@@ -902,17 +961,17 @@ public:
    }
    ~Syncronizer()
    {
-      
+
    }
    using PropChangedHandlerType = void(int);
    PDK_DEFINE_SIGNAL_BINDER(PropChanged)
    PDK_DEFINE_SIGNAL_EMITTER(PropChanged)
-   
+
    public:
       Syncronizer() 
     : m_prop(42)
    {}
-   
+
    int m_prop;
 };
 
@@ -923,26 +982,27 @@ class CurrentThread1 : public Thread
 public:
    pdk::HANDLE m_id;
    Thread *m_thread;
-   
+
    void run()
    {
       exec();
    }
-   
+
    void quit()
    {
-      
+
       Thread::quit();
    }
-   
+
    void propChanged(int val)
    {
-      
+
    }
 };
 
 TEST(ThreadTest, testExitAndStart)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread thread;
    thread.exit(555); //should do nothing
    thread.start();
@@ -955,18 +1015,20 @@ TEST(ThreadTest, testExitAndStart)
    CallableInvoker::invokeAsync([&sync2](int value) {
       sync2.setProp(value);
    }, &sync2, 89);
-   
+
    pdktest::wait(50);
    while(!thread.wait(10)) {
       pdktest::wait(50);
    }
-   
-   ASSERT_EQ(sync2.m_prop, 89);
-   ASSERT_EQ(sync1.m_prop, 89);
+
+   EXPECT_EQ(sync2.m_prop, 89);
+   EXPECT_EQ(sync1.m_prop, 89);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testExitAndExec)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MyThread : public Thread {
    public:
       Semaphore m_sem1;
@@ -986,7 +1048,7 @@ TEST(ThreadTest, testExitAndExec)
    thread.m_sem1.release();
    thread.m_sem2.acquire();
    int v = thread.m_value;
-   ASSERT_EQ(v, 556);
+   EXPECT_EQ(v, 556);
    Syncronizer sync1;
    sync1.moveToThread(&thread);
    Syncronizer sync2;
@@ -996,27 +1058,30 @@ TEST(ThreadTest, testExitAndExec)
    CallableInvoker::invokeAsync([&sync2](int value) {
       sync2.setProp(value);
    }, &sync2, 89);
-   
+
    pdktest::wait(50);
    while(!thread.wait(10)) {
       pdktest::wait(10);
    }
-   ASSERT_EQ(sync2.m_prop, 89);
-   ASSERT_EQ(sync1.m_prop, 89);
+   EXPECT_EQ(sync2.m_prop, 89);
+   EXPECT_EQ(sync1.m_prop, 89);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testConnectThreadFinishedSignalToObjectDeleteLaterSlot)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread thread;
    Object *object = new Object;
    Pointer<Object> p = object;
-   ASSERT_TRUE(!p.isNull());
+   EXPECT_TRUE(!p.isNull());
    thread.connectStartedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
    thread.connectFinishedSignal(object, &Object::deleteLater);
    object->moveToThread(&thread);
    thread.start();
-   ASSERT_TRUE(thread.wait(30000));
-   ASSERT_TRUE(p.isNull());
+   EXPECT_TRUE(thread.wait(30000));
+   EXPECT_TRUE(p.isNull());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class WaitingThread : public Thread
@@ -1026,7 +1091,7 @@ public:
    std::mutex m_mutex;
    std::condition_variable m_cond1;
    std::condition_variable m_cond2;
-   
+
    void run()
    {
       std::unique_lock locker(m_mutex);
@@ -1037,18 +1102,20 @@ public:
 
 TEST(ThreadTest, testWait2)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    ElapsedTimer timer;
    WaitingThread thread;
    thread.start();
    timer.start();
-   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
+   EXPECT_TRUE(!thread.wait(WaitingThread::WaitTime));
    pdk::pint64 elapsed = timer.getElapsed();
-   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 10) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+   EXPECT_TRUE(elapsed >= WaitingThread::WaitTime - 10) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
    timer.start();
    thread.m_cond1.notify_one();
-   ASSERT_TRUE(thread.wait(/*WaitingThread::WaitTime * 1.4*/));
+   EXPECT_TRUE(thread.wait(/*WaitingThread::WaitTime * 1.4*/));
    elapsed = timer.getElapsed();
-   ASSERT_TRUE(elapsed - WaitingThread::WaitTime >= -1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+   EXPECT_TRUE(elapsed - WaitingThread::WaitTime >= -1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class SlowSlotObject : public Object {
@@ -1064,6 +1131,7 @@ public:
 
 TEST(ThreadTest, testWait3SlowDestructor)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    SlowSlotObject slow;
    Thread thread;
    thread.connectFinishedSignal(&slow, &SlowSlotObject::slowSlot, pdk::ConnectionType::DirectConnection);
@@ -1073,16 +1141,18 @@ TEST(ThreadTest, testWait3SlowDestructor)
    thread.start();
    thread.quit();
    timer.start();
-   ASSERT_TRUE(!thread.wait(WaitingThread::WaitTime));
+   EXPECT_TRUE(!thread.wait(WaitingThread::WaitTime));
    pdk::pint64 elapsed = timer.getElapsed();
-   ASSERT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
+   EXPECT_TRUE(elapsed >= WaitingThread::WaitTime - 1) << pdk_printable(String::fromLatin1("elapsed: %1").arg(elapsed));
    slow.m_cond.notify_one();
    //now the thread should finish quickly
-   ASSERT_TRUE(thread.wait(one_minute));
+   EXPECT_TRUE(thread.wait(one_minute));
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testDestroyFinishRace)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    class MyThread : public Thread { void run() {} };
    for (int i = 0; i < 15; i++) {
       MyThread *thread = new MyThread;
@@ -1096,6 +1166,7 @@ TEST(ThreadTest, testDestroyFinishRace)
          PDK_RETRIEVE_APP_INSTANCE()->processEvents();
       }
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testStartFinishRace)
@@ -1116,6 +1187,7 @@ TEST(ThreadTest, testStartFinishRace)
       int m_i;
       pdk::kernel::signal::Connection m_connection;
    };
+   PDKTEST_BEGIN_APP_CONTEXT();
    for (int i = 0; i < 15; i++) {
       MyThread thread;
       thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start);
@@ -1126,22 +1198,25 @@ TEST(ThreadTest, testStartFinishRace)
          PDK_RETRIEVE_APP_INSTANCE()->processEvents();
          PDK_RETRIEVE_APP_INSTANCE()->processEvents();
       }
-      ASSERT_EQ(thread.m_i, 0);
+      EXPECT_EQ(thread.m_i, 0);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testStartAndQuitCustomEventLoop)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    struct MyThread : Thread {
       void run() { EventLoop().exec(); }
    };
-   
+
    for (int i = 0; i < 5; i++) {
       MyThread t;
       t.start();
       t.quit();
       t.wait();
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class FinishedTestObject : public Object {
@@ -1160,6 +1235,7 @@ public:
 
 TEST(ThreadTest, testIsRunningInFinished)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    for (int i = 0; i < 15; i++) {
       Thread thread;
       thread.start();
@@ -1173,11 +1249,12 @@ TEST(ThreadTest, testIsRunningInFinished)
       thread.connectFinishedSignal(&loop, &EventLoop::quit);
       CallableInvoker::invokeAsync(&thread, &Thread::quit);
       loop.exec();
-      ASSERT_TRUE(!thread.isRunning());
-      ASSERT_TRUE(thread.isFinished());
-      ASSERT_TRUE(localObject.m_ok);
-      ASSERT_TRUE(inThreadObject.m_ok);
+      EXPECT_TRUE(!thread.isRunning());
+      EXPECT_TRUE(thread.isFinished());
+      EXPECT_TRUE(localObject.m_ok);
+      EXPECT_TRUE(inThreadObject.m_ok);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 namespace pdk {
@@ -1197,7 +1274,7 @@ class DummyEventDispatcher : public AbstractEventDispatcher
 public:
    DummyEventDispatcher()
    {}
-   
+
    bool processEvents(EventLoop::ProcessEventsFlags) override
    {
       m_visited.store(true);
@@ -1205,55 +1282,55 @@ public:
       CoreApplication::sendPostedEvents();
       return false;
    }
-   
+
    bool hasPendingEvents() override
    {
       return global_posted_events_count() != 0;
    }
-   
+
    void registerSocketNotifier(SocketNotifier *) override
    {}
-   
+
    void unregisterSocketNotifier(SocketNotifier *) override
    {}
-   
+
    void registerTimer(int, int, pdk::TimerType, Object *) override
    {}
-   
+
    bool unregisterTimer(int ) override
    {
       return false;
    }
-   
+
    bool unregisterTimers(Object *) override
    {
       return false;
    }
-   
+
    std::list<TimerInfo> getRegisteredTimers(Object *) const override
    {
       return std::list<TimerInfo>();
    }
-   
+
    int getRemainingTime(int) override
    {
       return 0;
    }
-   
+
    void wakeUp() override
    {}
-   
+
    void interrupt() override
    {}
-   
+
    void flush() override
    {}
-   
+
    //#ifdef PDK_OS_WIN
    //    bool registerEventNotifier(WinEventNotifier *) { return false; }
    //    void unregisterEventNotifier(WinEventNotifier *) { }
    //#endif
-   
+
    BasicAtomicInt m_visited; // bool
 };
 
@@ -1264,7 +1341,7 @@ public:
    PDK_DEFINE_SIGNAL_ENUMS(Visited);
    PDK_DEFINE_SIGNAL_EMITTER(Visited)
    PDK_DEFINE_SIGNAL_BINDER(Visited)
-   
+
    void visit()
    {
       emitVisitedSignal();
@@ -1275,23 +1352,24 @@ public:
 
 TEST(ThreadTest, testCustomEventDispatcher)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread thread;
    // there should be no ED yet
-   ASSERT_TRUE(!thread.getEventDispatcher());
+   EXPECT_TRUE(!thread.getEventDispatcher());
    DummyEventDispatcher *ed = new DummyEventDispatcher;
    thread.setEventDispatcher(ed);
    // the new ED should be set
-   ASSERT_EQ(thread.getEventDispatcher(), ed);
+   EXPECT_EQ(thread.getEventDispatcher(), ed);
    // test the alternative API of AbstractEventDispatcher
-   ASSERT_EQ(AbstractEventDispatcher::getInstance(&thread), ed);
+   EXPECT_EQ(AbstractEventDispatcher::getInstance(&thread), ed);
    thread.start();
    // start() should not overwrite the ED
-   ASSERT_EQ(thread.getEventDispatcher(), ed);
-   
+   EXPECT_EQ(thread.getEventDispatcher(), ed);
+
    ThreadObj obj;
    obj.moveToThread(&thread);
    // move was successful?
-   ASSERT_EQ(obj.getThread(), &thread);
+   EXPECT_EQ(obj.getThread(), &thread);
    EventLoop loop;
    obj.connectVisitedSignal(&loop, &EventLoop::quit, pdk::ConnectionType::QueuedConnection);
    CallableInvoker::invokeAsync([&obj]() {
@@ -1299,15 +1377,16 @@ TEST(ThreadTest, testCustomEventDispatcher)
    }, &obj);
    loop.exec();
    // test that the ED has really been used
-   ASSERT_TRUE(ed->m_visited.load());
-   
+   EXPECT_TRUE(ed->m_visited.load());
+
    Pointer<DummyEventDispatcher> weak_ed(ed);
-   ASSERT_TRUE(!weak_ed.isNull());
+   EXPECT_TRUE(!weak_ed.isNull());
    thread.quit();
    // wait for thread to be stopped
-   ASSERT_TRUE(thread.wait(30000));
+   EXPECT_TRUE(thread.wait(30000));
    // test that ED has been deleted
-   ASSERT_TRUE(weak_ed.isNull());
+   EXPECT_TRUE(weak_ed.isNull());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 using pdk::kernel::EventLoopLocker;
@@ -1336,7 +1415,7 @@ public:
    {
       //      std::cout << "destroy" << std::endl;
    }
-   
+
 public:
    void exitThread()
    {
@@ -1344,7 +1423,7 @@ public:
       m_exitThreadCalled = true;
       getThread()->exit(1);
    }
-   
+
 private:
    EventLoopLocker m_quitLocker;
 public:
@@ -1363,6 +1442,7 @@ public:
 
 TEST(ThreadTest, testQuitLock)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Object *x = new Object;
    Thread thread;
    delete x;
@@ -1372,15 +1452,16 @@ TEST(ThreadTest, testQuitLock)
    Job *job;
    thread.start();
    job = new Job(&thread, 500, &exitThreadCalled);
-   ASSERT_EQ(job->getThread(), &thread);
+   EXPECT_EQ(job->getThread(), &thread);
    loop.exec();
-   
-   ASSERT_TRUE(!exitThreadCalled);
+
+   EXPECT_TRUE(!exitThreadCalled);
    thread.start();
    job = new Job(&thread, 1000, &exitThreadCalled);
-   ASSERT_EQ(job->getThread(), &thread);
+   EXPECT_EQ(job->getThread(), &thread);
    loop.exec();
-   ASSERT_TRUE(exitThreadCalled);
+   EXPECT_TRUE(exitThreadCalled);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 class StopableJob : public Object
@@ -1407,27 +1488,28 @@ public:
 
 TEST(ThreadTest, testCreate)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    {
       const auto &function = [](){};
       ScopedPointer<Thread> thread(Thread::create(function));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
+      EXPECT_TRUE(thread->wait());
    }
    {
       // no side effects before starting
       int i = 0;
       const auto &function = [&i]() { i = 42; };
       ScopedPointer<Thread> thread(Thread::create(function));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
-      ASSERT_EQ(i, 0);
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
+      EXPECT_EQ(i, 0);
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      ASSERT_EQ(i, 42);
+      EXPECT_TRUE(thread->wait());
+      EXPECT_EQ(i, 42);
    }
-   
+
    {
       // control thread progress
       Semaphore semaphore1;
@@ -1438,26 +1520,26 @@ TEST(ThreadTest, testCreate)
          semaphore2.release();
       };
       ScopedPointer<Thread> thread(Thread::create(function));
-      ASSERT_TRUE(thread);
+      EXPECT_TRUE(thread);
       thread->start();
       Thread::getCurrentThread()->msleep(5000);
-      ASSERT_TRUE(thread->isRunning());
+      EXPECT_TRUE(thread->isRunning());
       semaphore1.release();
       semaphore2.acquire();
-      ASSERT_TRUE(thread->wait());
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread->wait());
+      EXPECT_TRUE(!thread->isRunning());
    }
-   
+
    {
       // ignore return values
       const auto &function = []() { return 42; };
       ScopedPointer<Thread> thread(Thread::create(function));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
+      EXPECT_TRUE(thread->wait());
    }
-   
+
    {
       // move-only parameters
       struct MoveOnlyValue
@@ -1470,7 +1552,7 @@ TEST(ThreadTest, testCreate)
          MoveOnlyValue &operator=(MoveOnlyValue &&) = default;
          int v;
       };
-      
+
       struct MoveOnlyFunctor {
          explicit MoveOnlyFunctor(int *i) : i(i) {}
          ~MoveOnlyFunctor() = default;
@@ -1481,51 +1563,51 @@ TEST(ThreadTest, testCreate)
          int operator()() { return (*i = 42); }
          int *i;
       };
-      
+
       {
          int i = 0;
          MoveOnlyFunctor f(&i);
          ScopedPointer<Thread> thread(Thread::create(std::move(f)));
-         ASSERT_TRUE(thread);
-         ASSERT_TRUE(!thread->isRunning());
+         EXPECT_TRUE(thread);
+         EXPECT_TRUE(!thread->isRunning());
          thread->start();
-         ASSERT_TRUE(thread->wait());
-         ASSERT_EQ(i, 42);
+         EXPECT_TRUE(thread->wait());
+         EXPECT_EQ(i, 42);
       }
-      
+
       {
          int i = 0;
          MoveOnlyValue mo(123);
          auto moveOnlyFunction = [&i, mo = std::move(mo)]() { i = mo.v; };
          ScopedPointer<Thread> thread(Thread::create(std::move(moveOnlyFunction)));
-         ASSERT_TRUE(thread);
-         ASSERT_TRUE(!thread->isRunning());
+         EXPECT_TRUE(thread);
+         EXPECT_TRUE(!thread->isRunning());
          thread->start();
-         ASSERT_TRUE(thread->wait());
-         ASSERT_EQ(i, 123);
+         EXPECT_TRUE(thread->wait());
+         EXPECT_EQ(i, 123);
       }
-      
+
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
          ScopedPointer<Thread> thread(Thread::create(function, MoveOnlyValue(123)));
-         ASSERT_TRUE(thread);
-         ASSERT_TRUE(!thread->isRunning());
+         EXPECT_TRUE(thread);
+         EXPECT_TRUE(!thread->isRunning());
          thread->start();
-         ASSERT_TRUE(thread->wait());
-         ASSERT_EQ(i, 123);
+         EXPECT_TRUE(thread->wait());
+         EXPECT_EQ(i, 123);
       }
-      
+
       {
          int i = 0;
          const auto &function = [&i](MoveOnlyValue &&mo) { i = mo.v; };
          MoveOnlyValue mo(-1);
          ScopedPointer<Thread> thread(Thread::create(function, std::move(mo)));
-         ASSERT_TRUE(thread);
-         ASSERT_TRUE(!thread->isRunning());
+         EXPECT_TRUE(thread);
+         EXPECT_TRUE(!thread->isRunning());
          thread->start();
-         ASSERT_TRUE(thread->wait());
-         ASSERT_EQ(i, -1);
+         EXPECT_TRUE(thread->wait());
+         EXPECT_EQ(i, -1);
       }
    } // move
    {
@@ -1533,24 +1615,24 @@ TEST(ThreadTest, testCreate)
       int i = 0;
       const auto &function = [&i](int j, int k) { i = j * k; };
       ScopedPointer<Thread> thread(Thread::create(function, 3, 4));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
-      ASSERT_EQ(i, 0);
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
+      EXPECT_EQ(i, 0);
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      ASSERT_EQ(i, 12);
+      EXPECT_TRUE(thread->wait());
+      EXPECT_EQ(i, 12);
    }
-   
+
    {
       // ignore return values (with parameters)
       const auto &function = [](double d) { return d * 2.0; };
       ScopedPointer<Thread> thread(Thread::create(function, 3.14));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
+      EXPECT_TRUE(thread->wait());
    }
-   
+
    {
       // handling of pointers to member functions, std::ref, etc.
       struct S {
@@ -1558,53 +1640,53 @@ TEST(ThreadTest, testCreate)
          void doSomething() { ++v; }
          int v;
       };
-      
+
       S object;
-      
-      ASSERT_EQ(object.v, 0);
-      
+
+      EXPECT_EQ(object.v, 0);
+
       ScopedPointer<Thread> thread;
       thread.reset(Thread::create(&S::doSomething, object));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      
-      ASSERT_EQ(object.v, 0); // a copy was passed, this should still be 0
-      
+      EXPECT_TRUE(thread->wait());
+
+      EXPECT_EQ(object.v, 0); // a copy was passed, this should still be 0
+
       thread.reset(Thread::create(&S::doSomething, std::ref(object)));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      
-      ASSERT_EQ(object.v, 1);
-      
+      EXPECT_TRUE(thread->wait());
+
+      EXPECT_EQ(object.v, 1);
+
       thread.reset(Thread::create(&S::doSomething, &object));
-      ASSERT_TRUE(thread);
-      ASSERT_TRUE(!thread->isRunning());
+      EXPECT_TRUE(thread);
+      EXPECT_TRUE(!thread->isRunning());
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      
-      ASSERT_EQ(object.v, 2);
+      EXPECT_TRUE(thread->wait());
+
+      EXPECT_EQ(object.v, 2);
    }
-   
+
    {
       // std::ref into ordinary reference
       int i = 42;
       const auto &function = [](int &i) { i *= 2; };
       ScopedPointer<Thread> thread(Thread::create(function, std::ref(i)));
-      ASSERT_TRUE(thread);
+      EXPECT_TRUE(thread);
       thread->start();
-      ASSERT_TRUE(thread->wait());
-      ASSERT_EQ(i, 84);
+      EXPECT_TRUE(thread->wait());
+      EXPECT_EQ(i, 84);
    }
    {
       // exceptions when copying/decaying the arguments are thrown at build side and won't terminate
       class ThreadException : public std::exception
       {
       };
-      
+
       struct ThrowWhenCopying
       {
          ThrowWhenCopying() = default;
@@ -1615,19 +1697,21 @@ TEST(ThreadTest, testCreate)
          ~ThrowWhenCopying() = default;
          ThrowWhenCopying &operator=(const ThrowWhenCopying &) = default;
       };
-      
+
       const auto &function = [](const ThrowWhenCopying &){};
       ScopedPointer<Thread> thread;
       ThrowWhenCopying t;
       ASSERT_THROW(thread.reset(Thread::create(function, t)), ThreadException);
-      ASSERT_TRUE(!thread);
+      EXPECT_TRUE(!thread);
    }
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadTest, testRequestTermination)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    Thread thread;
-   ASSERT_TRUE(!thread.isInterruptionRequested());
+   EXPECT_TRUE(!thread.isInterruptionRequested());
    Semaphore sem;
    StopableJob *j  = new StopableJob(sem);
    j->moveToThread(&thread);
@@ -1635,23 +1719,20 @@ TEST(ThreadTest, testRequestTermination)
    j->connectFinishedSignal(&thread, &Thread::quit, pdk::ConnectionType::DirectConnection);
    thread.connectFinishedSignal(j, &Object::deleteLater);
    thread.start();
-   ASSERT_TRUE(!thread.isInterruptionRequested());
+   EXPECT_TRUE(!thread.isInterruptionRequested());
    sem.acquire();
-   ASSERT_TRUE(!thread.wait(1000));
+   EXPECT_TRUE(!thread.wait(1000));
    thread.requestInterruption();
    sem.acquire();
-   ASSERT_TRUE(thread.wait(1000));
-   ASSERT_TRUE(!thread.isInterruptionRequested());
+   EXPECT_TRUE(thread.wait(1000));
+   EXPECT_TRUE(!thread.isInterruptionRequested());
+   PDKTEST_END_APP_CONTEXT();
 }
 
 int main(int argc, char **argv)
 {
-   CoreApplication app(argc, argv);
-   int retCode = 0;
+   sg_argc = argc;
+   sg_argv = argv;
    ::testing::InitGoogleTest(&argc, argv);
-   CallableInvoker::invokeAsync([&retCode]() {
-      retCode = RUN_ALL_TESTS();
-   }, &app);
-   app.exec();
-   return retCode;
+   return RUN_ALL_TESTS();
 }

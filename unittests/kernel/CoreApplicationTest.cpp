@@ -51,8 +51,8 @@ using pdk::lang::Latin1String;
 using pdk::kernel::Pointer;
 using pdk::utils::ScopedPointer;
 
-static int sg_argc;
-static char **sg_argv;
+int sg_argc;
+char **sg_argv;
 
 class EventSpy : public Object
 {

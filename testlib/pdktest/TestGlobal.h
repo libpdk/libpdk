@@ -85,8 +85,13 @@ do { \
 
 #define PDK_TRY_COMPARE(expr, expected) PDK_TRY_COMPARE_WITH_TIMEOUT((expr), expected, 5000)
 
-namespace pdktest {
-
-}
+#define PDKTEST_DECLARE_APP_STARTUP_ARGS() extern int sg_argc;\
+extern char **sg_argv
+#define PDKTEST_BEGIN_APP_CONTEXT() pdk::kernel::CoreApplication app(sg_argc, sg_argv);\
+   pdk::kernel::CallableInvoker::invokeAsync([](){
+#define PDKTEST_END_APP_CONTEXT() \
+   PDK_RETRIEVE_APP_INSTANCE()->quit();\
+   }, &app);\
+   app.exec()\
 
 #endif // PDK_TESTLIB_GLOBAL_H
