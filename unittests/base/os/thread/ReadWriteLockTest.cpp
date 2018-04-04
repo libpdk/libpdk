@@ -13,16 +13,39 @@
 //
 // Created by softboy on 2017/01/08.
 
+#include "gtest/gtest.h"
+#include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/base/os/thread/Semaphore.h"
+#include "pdk/base/os/thread/Atomic.h"
+#include "pdk/kernel/CoreApplication.h"
+#include "pdk/base/time/Time.h"
+
 #include <limits.h>
 #include <cstdio>
 #include <list>
 #include <utility>
 #include <tuple>
+#include <condition_variable>
+#include <mutex>
 
-#include "gtest/gtest.h"
-#include "pdk/base/os/thread/ReadWriteLock.h"
+#ifdef PDK_OS_UNIX
+#include <unistd.h>
+#endif
+
+//on solaris, threads that loop on the release bool variable
+//needs to sleep more than 1 usec.
+#ifdef PDK_OS_SOLARIS
+# define RWTESTSLEEP usleep(10);
+#else
+# define RWTESTSLEEP usleep(1);
+#endif
 
 using pdk::os::thread::ReadWriteLock;
+using pdk::os::thread::Semaphore;
+using pdk::os::thread::AtomicInt;
+using pdk::os::thread::Thread;
+using pdk::time::Time;
 
 TEST(ReadWriteLockTest, testConstructDestruct)
 {
@@ -79,7 +102,7 @@ TEST(ReadWriteLockTest, testReadLockLoop)
 
 TEST(ReadWriteLockTest, testWriteLockLoop)
 {
-  /*
+   /*
    * If you include this, the test should print one line
    * and then block.
    */
@@ -104,4 +127,103 @@ TEST(ReadWriteLockTest, testReadWriteLockUnlockLoop)
    }
 }
 
+AtomicInt sg_lockCount(0);
+ReadWriteLock sg_readWriteLock;
+Semaphore sg_testsTurn;
+Semaphore sg_threadsTurn;
 
+TEST(ReadWriteLockTest, testTryReadLock)
+{
+   ReadWriteLock rwlock;
+   ASSERT_TRUE(rwlock.tryLockForRead());
+   rwlock.unlock();
+   ASSERT_TRUE(rwlock.tryLockForRead());
+   rwlock.unlock();
+   
+   rwlock.lockForRead();
+   rwlock.lockForRead();
+   ASSERT_TRUE(rwlock.tryLockForRead());
+   rwlock.unlock();
+   rwlock.unlock();
+   rwlock.unlock();
+   
+   rwlock.lockForWrite();
+   ASSERT_TRUE(!rwlock.tryLockForRead());
+   rwlock.unlock();
+   
+   // functionality test
+   {
+      class MyThread : public Thread
+      {
+      public:
+         void run()
+         {
+            sg_testsTurn.release();
+            
+            sg_threadsTurn.acquire();
+            ASSERT_TRUE(!sg_readWriteLock.tryLockForRead());
+            sg_testsTurn.release();
+            
+            sg_threadsTurn.acquire();
+            ASSERT_TRUE(sg_readWriteLock.tryLockForRead());
+            sg_lockCount.ref();
+            ASSERT_TRUE(sg_readWriteLock.tryLockForRead());
+            sg_lockCount.ref();
+            sg_lockCount.deref();
+            sg_readWriteLock.unlock();
+            sg_lockCount.deref();
+            sg_readWriteLock.unlock();
+            sg_testsTurn.release();
+            
+            sg_threadsTurn.acquire();
+            Time timer;
+            timer.start();
+            ASSERT_TRUE(!sg_readWriteLock.tryLockForRead(1000));
+            ASSERT_TRUE(timer.elapsed() >= 1000);
+            sg_testsTurn.release();
+            
+            sg_threadsTurn.acquire();
+            timer.start();
+            ASSERT_TRUE(sg_readWriteLock.tryLockForRead(1000));
+            ASSERT_TRUE(timer.elapsed() <= 1000);
+            sg_lockCount.ref();
+            ASSERT_TRUE(sg_readWriteLock.tryLockForRead(1000));
+            sg_lockCount.ref();
+            sg_lockCount.deref();
+            sg_readWriteLock.unlock();
+            sg_lockCount.deref();
+            sg_readWriteLock.unlock();
+            sg_testsTurn.release();
+            
+            sg_threadsTurn.acquire();
+         }
+      };
+      MyThread thread;
+      thread.start();
+      
+      sg_testsTurn.acquire();
+      sg_readWriteLock.lockForWrite();
+      ASSERT_TRUE(sg_lockCount.testAndSetRelaxed(0, 1));
+      sg_threadsTurn.release();
+      
+      sg_testsTurn.acquire();
+      ASSERT_TRUE(sg_lockCount.testAndSetRelaxed(1, 0));
+      sg_readWriteLock.unlock();
+      sg_threadsTurn.release();
+      
+      sg_testsTurn.acquire();
+      sg_readWriteLock.lockForWrite();
+      ASSERT_TRUE(sg_lockCount.testAndSetRelaxed(0, 1));
+      sg_threadsTurn.release();
+      
+      sg_testsTurn.acquire();
+      ASSERT_TRUE(sg_lockCount.testAndSetRelaxed(1, 0));
+      sg_readWriteLock.unlock();
+      sg_threadsTurn.release();
+      
+      sg_testsTurn.acquire();
+      sg_threadsTurn.release();
+      
+      thread.wait();
+   }
+}
