@@ -20,7 +20,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <map>
-#include <thread>
 
 namespace pdk {
 namespace os {
@@ -59,8 +58,8 @@ public:
    int m_waitingWriters;
    const bool m_recursive;
    int m_id;
-   std::thread::id m_currentWriter;
-   std::map<std::thread::id, int> m_currentReaders;
+   pdk::HANDLE m_currentWriter;
+   std::map<pdk::HANDLE, int> m_currentReaders;
 };
 
 } // internal

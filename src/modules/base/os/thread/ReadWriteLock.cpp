@@ -17,6 +17,8 @@
 #include "pdk/base/os/thread/internal/ReadWriteLockPrivate.h"
 #include "pdk/utils/internal/LockFreeListPrivate.h"
 #include "pdk/global/GlobalStatic.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/kernel/ElapsedTimer.h"
 
 #include <thread>
 #include <chrono>
@@ -41,6 +43,8 @@ namespace thread {
 
 using internal::ReadWriteLockPrivate;
 using SystemClock = std::chrono::system_clock;
+using pdk::os::thread::Thread;
+using pdk::kernel::ElapsedTimer;
 
 namespace
 {
@@ -119,16 +123,16 @@ bool ReadWriteLockPrivate::lockForRead(int timeout, std::unique_lock<std::mutex>
 
 bool ReadWriteLockPrivate::lockForWrite(int timeout, std::unique_lock<std::mutex> &mutexLocker)
 {
-   typename SystemClock::time_point start;
+   ElapsedTimer timer;
    if (timeout > 0) {
-      start = SystemClock::now();
+      timer.start();
    }
    while (m_readerCount || m_writerCount) {
       if (timeout == 0) {
          return false;
       }
       if (timeout > 0) {
-         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(SystemClock::now() - start).count();
+         auto elapsed = timer.getElapsed();
          if (elapsed > timeout) {
             if (m_waitingReaders && !m_waitingWriters && !m_writerCount) {
                // We timed out and now there is no more writers or waiting writers, but some
@@ -164,8 +168,8 @@ bool ReadWriteLockPrivate::recursiveLockForRead(int timeout)
 {
    PDK_ASSERT(m_recursive);
    std::unique_lock<std::mutex> locker(m_mutex);
-   std::thread::id self = std::this_thread::get_id();
-   std::map<std::thread::id, int>::iterator iter = m_currentReaders.find(self);
+   pdk::HANDLE self = Thread::getCurrentThreadId();
+   std::map<pdk::HANDLE, int>::iterator iter = m_currentReaders.find(self);
    if (iter != m_currentReaders.end()) {
       iter->second = iter->second + 1;
       return true;
@@ -181,7 +185,7 @@ bool ReadWriteLockPrivate::recursiveLockForWrite(int timeout)
 {
    PDK_ASSERT(m_recursive);
    std::unique_lock<std::mutex> locker(m_mutex);
-   std::thread::id self = std::this_thread::get_id();
+   pdk::HANDLE self = Thread::getCurrentThreadId();
    if (m_currentWriter == self) {
       ++m_writerCount;
       return true;
@@ -197,14 +201,14 @@ void ReadWriteLockPrivate::recursiveUnlock()
 {
    PDK_ASSERT(m_recursive);
    std::unique_lock<std::mutex> locker(m_mutex);
-   std::thread::id self = std::this_thread::get_id();
+   pdk::HANDLE self = Thread::getCurrentThreadId();
    if (self == m_currentWriter) {
       if (--m_writerCount > 0) {
          return;
       }
       m_writerCount = 0;
    } else {
-      std::map<std::thread::id, int>::iterator iter = m_currentReaders.find(self);
+      std::map<pdk::HANDLE, int>::iterator iter = m_currentReaders.find(self);
       if (iter == m_currentReaders.end()) {
          // @TODO warning("ReadWriteLock::unlock: unlocking from a thread that did not lock");
          std::cerr << "ReadWriteLock::unlock: unlocking from a thread that did not lock" << std::endl;
@@ -345,7 +349,7 @@ bool ReadWriteLock::tryLockForWrite()
 bool ReadWriteLock::tryLockForWrite(int timeout)
 {
    // Fast case: non contended:
-   ReadWriteLockPrivate *dptr;
+   ReadWriteLockPrivate *dptr = nullptr;
    if (m_implPtr.testAndSetAcquire(nullptr, DUMMY_LOCKED_FOR_WRITE, dptr)) {
       return true;
    }
