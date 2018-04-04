@@ -1190,7 +1190,7 @@ TEST(ThreadTest, testStartFinishRace)
    PDKTEST_BEGIN_APP_CONTEXT();
    for (int i = 0; i < 15; i++) {
       MyThread thread;
-      thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start);
+      thread.m_connection = thread.connectFinishedSignal(&thread, &MyThread::start, pdk::ConnectionType::QueuedConnection);
       thread.start();
       while (!thread.isFinished() || thread.m_i != 0) {
          PDK_RETRIEVE_APP_INSTANCE()->processEvents();

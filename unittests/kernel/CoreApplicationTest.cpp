@@ -26,6 +26,7 @@
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/base/lang/String.h"
 #include "pdk/kernel/Pointer.h"
+#include "pdktest/PdkTest.h"
 #include <list>
 #include <string>
 #include <tuple>
@@ -89,7 +90,7 @@ class MyThread : public DaemonThread
    void run() override
    {
       ThreadData *data = ThreadData::current();
-      ASSERT_TRUE(!data->m_requiresCoreApplication);        // daemon thread
+      EXPECT_TRUE(!data->m_requiresCoreApplication);        // daemon thread
       data->m_requiresCoreApplication = m_requiresCoreApplication;
       Thread::run();
    }
@@ -113,7 +114,7 @@ TEST(CoreApplicationTest, testSendEventsOnProcessEvents)
    
    CoreApplication::postEvent(&app,  new Event(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)));
    CoreApplication::processEvents();
-   ASSERT_TRUE(spy.m_recordedEvents.end() != std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(spy.m_recordedEvents.end() != std::find(spy.m_recordedEvents.begin(),
                                                        spy.m_recordedEvents.end(),
                                                        Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)));
 }
@@ -123,10 +124,10 @@ TEST(CoreApplicationTest, testGetSetCheck)
    String version = CoreApplication::getAppVersion();
    version = Latin1String("1.0.0 alpha");
    CoreApplication::setAppVersion(version);
-   ASSERT_EQ(CoreApplication::getAppVersion(), version);
+   EXPECT_EQ(CoreApplication::getAppVersion(), version);
    version = String();
    CoreApplication::setAppVersion(version);
-   ASSERT_EQ(CoreApplication::getAppVersion(), version);
+   EXPECT_EQ(CoreApplication::getAppVersion(), version);
 }
 
 TEST(CoreApplicationTest, testAppName)
@@ -136,12 +137,12 @@ TEST(CoreApplicationTest, testAppName)
       int argc = 1;
       char *argv[] = { const_cast<char *>(appName) };
       CoreApplication app(argc, argv);
-      ASSERT_EQ(pdk::kernel::retrieve_app_name(), String::fromLatin1(appName));
-      ASSERT_EQ(CoreApplication::getAppName(), String::fromLatin1(appName));
+      EXPECT_EQ(pdk::kernel::retrieve_app_name(), String::fromLatin1(appName));
+      EXPECT_EQ(CoreApplication::getAppName(), String::fromLatin1(appName));
    }
    // The application name should still be available after destruction;
    // global statics often rely on this.
-   ASSERT_EQ(CoreApplication::getAppName(), String::fromLatin1(appName));
+   EXPECT_EQ(CoreApplication::getAppName(), String::fromLatin1(appName));
    // Setting the appname before creating the application should work (BUG-45283)
    const String wantedAppName(Latin1String("YetAnotherApp"));
    {
@@ -149,14 +150,14 @@ TEST(CoreApplicationTest, testAppName)
       char *argv[] = { const_cast<char*>(appName) };
       CoreApplication::setAppName(wantedAppName);
       CoreApplication app(argc, argv);
-      ASSERT_EQ(pdk::kernel::retrieve_app_name(), String::fromLatin1(appName));
-      ASSERT_EQ(CoreApplication::getAppName(), wantedAppName);
+      EXPECT_EQ(pdk::kernel::retrieve_app_name(), String::fromLatin1(appName));
+      EXPECT_EQ(CoreApplication::getAppName(), wantedAppName);
    }
-   ASSERT_EQ(CoreApplication::getAppName(), wantedAppName);
+   EXPECT_EQ(CoreApplication::getAppName(), wantedAppName);
    
    // Restore to initial value
    CoreApplication::setAppName(String());
-   ASSERT_EQ(CoreApplication::getAppName(), String());
+   EXPECT_EQ(CoreApplication::getAppName(), String());
 }
 
 TEST(CoreApplicationTest, testAppVersion)
@@ -173,10 +174,10 @@ TEST(CoreApplicationTest, testAppVersion)
       char *argv[] = { nullptr };
       CoreApplication app(argc, argv);
       CoreApplication::setAppVersion(String::fromLatin1(appVersion));
-      ASSERT_EQ(CoreApplication::getAppVersion(), String::fromLatin1(appVersion));
+      EXPECT_EQ(CoreApplication::getAppVersion(), String::fromLatin1(appVersion));
    }
    // The application version should still be available after destruction
-   ASSERT_EQ(CoreApplication::getAppVersion(), String::fromLatin1(appVersion));
+   EXPECT_EQ(CoreApplication::getAppVersion(), String::fromLatin1(appVersion));
    // Setting the appversion before creating the application should work
    const String wantedAppVersion(Latin1String("0.0.1"));
    {
@@ -184,13 +185,13 @@ TEST(CoreApplicationTest, testAppVersion)
       char *argv[] = { nullptr };
       CoreApplication::setAppVersion(wantedAppVersion);
       CoreApplication app(argc, argv);
-      ASSERT_EQ(CoreApplication::getAppVersion(), wantedAppVersion);
+      EXPECT_EQ(CoreApplication::getAppVersion(), wantedAppVersion);
    }
-   ASSERT_EQ(CoreApplication::getAppVersion(), wantedAppVersion);
+   EXPECT_EQ(CoreApplication::getAppVersion(), wantedAppVersion);
    
    // Restore to initial value
    CoreApplication::setAppVersion(String());
-   ASSERT_EQ(CoreApplication::getAppVersion(), String());
+   EXPECT_EQ(CoreApplication::getAppVersion(), String());
 }
 
 TEST(CoreApplicationTest, testArgc)
@@ -200,8 +201,8 @@ TEST(CoreApplicationTest, testArgc)
       int argc = 1;
       char *argv[] = {const_cast<char *>(str.c_str())};
       CoreApplication app(argc, argv);
-      ASSERT_EQ(argc, 1);
-      ASSERT_EQ(app.getArguments().size(), 1ul);
+      EXPECT_EQ(argc, 1);
+      EXPECT_EQ(app.getArguments().size(), 1ul);
    }
    
    {
@@ -211,16 +212,16 @@ TEST(CoreApplicationTest, testArgc)
                        const_cast<char *>("arg2"),
                        const_cast<char *>("arg3") };
       CoreApplication app(argc, argv);
-      ASSERT_EQ(argc, 4);
-      ASSERT_EQ(app.getArguments().size(), 4ul);
+      EXPECT_EQ(argc, 4);
+      EXPECT_EQ(app.getArguments().size(), 4ul);
    }
    
    {
       int argc = 0;
       char **argv = 0;
       CoreApplication app(argc, argv);
-      ASSERT_EQ(argc, 0);
-      ASSERT_EQ(app.getArguments().size(), 0ul);
+      EXPECT_EQ(argc, 0);
+      EXPECT_EQ(app.getArguments().size(), 0ul);
    }
    
    {
@@ -228,8 +229,8 @@ TEST(CoreApplicationTest, testArgc)
       char *argv[] = { const_cast<char*>(str.c_str()),
                        const_cast<char*>("-jsdebugger=port:3768,block") };
       CoreApplication app(argc, argv);
-      ASSERT_EQ(argc, 2);
-      ASSERT_EQ(app.getArguments().size(), 2ul);
+      EXPECT_EQ(argc, 2);
+      EXPECT_EQ(app.getArguments().size(), 2ul);
    }
 }
 
@@ -289,7 +290,7 @@ TEST(CoreApplicationTest, testPostEvent)
    
    CoreApplication::sendPostedEvents();
    // live lock protection ensures that we only send the initial events
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    
    expected.clear();
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 66));
@@ -302,7 +303,7 @@ TEST(CoreApplicationTest, testPostEvent)
    spy.m_recordedEvents.clear();
    CoreApplication::sendPostedEvents();
    // expect next sequence events
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    
    // have the generators call sendPostedEvents() on each other in
    // response to an event
@@ -321,7 +322,7 @@ TEST(CoreApplicationTest, testPostEvent)
    
    spy.m_recordedEvents.clear();
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    
    expected.clear();
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 6666));
@@ -333,13 +334,13 @@ TEST(CoreApplicationTest, testPostEvent)
    
    spy.m_recordedEvents.clear();
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    
    // no more events
    expected.clear();
    spy.m_recordedEvents.clear();
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
 }
 
 TEST(CoreApplicationTest, testRemovePostedEvents)
@@ -369,7 +370,7 @@ TEST(CoreApplicationTest, testRemovePostedEvents)
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 5));
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 6));
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    spy.m_recordedEvents.clear();
    expected.clear();
    
@@ -382,7 +383,7 @@ TEST(CoreApplicationTest, testRemovePostedEvents)
    CoreApplication::postEvent(&two, new Event(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 12)));
    CoreApplication::removePostedEvents(0);
    CoreApplication::sendPostedEvents();
-   ASSERT_TRUE(spy.m_recordedEvents.empty());
+   EXPECT_TRUE(spy.m_recordedEvents.empty());
    
    // remove a specific type of event for one object
    CoreApplication::postEvent(&one, new Event(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 13)));
@@ -398,7 +399,7 @@ TEST(CoreApplicationTest, testRemovePostedEvents)
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 15));
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 16));
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 17));
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    spy.m_recordedEvents.clear();
    expected.clear();
    
@@ -415,7 +416,7 @@ TEST(CoreApplicationTest, testRemovePostedEvents)
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 19));
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 21));
    expected.push_back(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 21));
-   ASSERT_EQ(spy.m_recordedEvents, expected);
+   EXPECT_EQ(spy.m_recordedEvents, expected);
    spy.m_recordedEvents.clear();
    expected.clear();
 }
@@ -468,7 +469,7 @@ public:
 public:
    void startThread()
    {
-      ASSERT_TRUE(!m_thread);
+      EXPECT_TRUE(!m_thread);
       m_thread = new DeliverInDefinedOrderThread();
       m_thread->connectProgressSignal(this, &DeliverInDefinedOrderObject::threadProgress);
       m_thread->connectFinishedSignal(this, &DeliverInDefinedOrderObject::threadFinished);
@@ -480,13 +481,13 @@ public:
    void threadProgress(int v)
    {
       ++m_count;
-      ASSERT_EQ(v, m_count);
+      EXPECT_EQ(v, m_count);
       CoreApplication::postEvent(this, new Event(Event::Type::MaxUser), pdk::EventPriority(-1));
    }
    
    void threadFinished()
    {
-      ASSERT_EQ(m_count, 7);
+      EXPECT_EQ(m_count, 7);
       m_count = 0;
       m_thread->deleteLater();
       CoreApplication::postEvent(this, new Event(Event::Type::MaxUser), pdk::EventPriority(-1));
@@ -542,7 +543,7 @@ TEST(CoreApplicationTest, testDeliverInDefinedOrder)
 
 TEST(CoreApplicationTest, testGetAppPid)
 {
-   ASSERT_TRUE(CoreApplication::getAppPid() > 0);
+   EXPECT_TRUE(CoreApplication::getAppPid() > 0);
 }
 
 namespace pdk {
@@ -576,7 +577,7 @@ TEST(CoreApplicationTest, testGlobalPostedEventsCount)
    CoreApplication app(argc, argv);
    
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(pdk::kernel::global_posted_events_count(), 0u);
+   EXPECT_EQ(pdk::kernel::global_posted_events_count(), 0u);
    
    GlobalPostedEventsCountObject x;
    CoreApplication::postEvent(&x, new Event(Event::Type::User));
@@ -584,13 +585,13 @@ TEST(CoreApplicationTest, testGlobalPostedEventsCount)
    CoreApplication::postEvent(&x, new Event(Event::Type::User));
    CoreApplication::postEvent(&x, new Event(Event::Type::User));
    CoreApplication::postEvent(&x, new Event(Event::Type::User));
-   ASSERT_EQ(pdk::kernel::global_posted_events_count(), 5u);
+   EXPECT_EQ(pdk::kernel::global_posted_events_count(), 5u);
    
    CoreApplication::sendPostedEvents();
-   ASSERT_EQ(pdk::kernel::global_posted_events_count(), 0u);
+   EXPECT_EQ(pdk::kernel::global_posted_events_count(), 0u);
    
    std::list<int> expected{4, 3, 2, 1, 0};
-   ASSERT_EQ(x.m_globalPostedEventsCount, expected);
+   EXPECT_EQ(x.m_globalPostedEventsCount, expected);
 }
 
 namespace {
@@ -629,7 +630,7 @@ TEST(CoreApplicationTest, testProcessEventsAlwaysSendsPostedEvents)
    do {
       CoreApplication::postEvent(&object, new Event(Event::Type::User));
       CoreApplication::processEvents();
-      ASSERT_EQ(object.m_counter, i);
+      EXPECT_EQ(object.m_counter, i);
       ++i;
    } while (t.elapsed() < 1000);
 }
@@ -642,10 +643,10 @@ TEST(CoreApplicationTest, testReexec)
    CoreApplication app(argc, argv);
    CallableInvoker::invokeAsync(&CoreApplication::quit, &app);
    // exec once
-   ASSERT_EQ(app.exec(), 0);
+   EXPECT_EQ(app.exec(), 0);
    // and again
    CallableInvoker::invokeAsync(&CoreApplication::quit, &app);
-   ASSERT_EQ(app.exec(), 0);
+   EXPECT_EQ(app.exec(), 0);
 }
 
 TEST(CoreApplicationTest, testExecAfterExit)
@@ -657,7 +658,7 @@ TEST(CoreApplicationTest, testExecAfterExit)
    
    app.exit(1);
    CallableInvoker::invokeAsync(&CoreApplication::quit, &app);
-   ASSERT_EQ(app.exec(), 0);
+   EXPECT_EQ(app.exec(), 0);
 }
 
 TEST(CoreApplicationTest, testEventLoopExecAfterExit)
@@ -669,11 +670,11 @@ TEST(CoreApplicationTest, testEventLoopExecAfterExit)
    
    // exec once and exit
    CallableInvoker::invokeAsync(&CoreApplication::quit, &app);
-   ASSERT_EQ(app.exec(), 0);
+   EXPECT_EQ(app.exec(), 0);
    // and again, but this time using a EventLoop
    EventLoop loop;
    CallableInvoker::invokeAsync(&loop, &EventLoop::quit);
-   ASSERT_EQ(loop.exec(), 0);
+   EXPECT_EQ(loop.exec(), 0);
 }
 
 namespace {
@@ -750,29 +751,29 @@ TEST(CoreApplicationTest, testCustomEventDispatcher)
 {
    PDK_RETRIEVE_APP_INSTANCE()->quit();
    // there should be no ED yet
-   ASSERT_TRUE(!CoreApplication::getEventDispatcher());
+   EXPECT_TRUE(!CoreApplication::getEventDispatcher());
    DummyEventDispatcher *ed = new DummyEventDispatcher;
    CoreApplication::setEventDispatcher(ed);
    // the new ED should be set
-   ASSERT_EQ(CoreApplication::getEventDispatcher(), ed);
+   EXPECT_EQ(CoreApplication::getEventDispatcher(), ed);
    // test the alternative API of AbstractEventDispatcher
-   ASSERT_EQ(AbstractEventDispatcher::getInstance(), ed);
+   EXPECT_EQ(AbstractEventDispatcher::getInstance(), ed);
    Pointer<DummyEventDispatcher> weak_ed(ed);
-   ASSERT_TRUE(!weak_ed.isNull());
+   EXPECT_TRUE(!weak_ed.isNull());
    {
       int argc = 1;
       std::string str("CoreAplicationTest");
       char *argv[] = {const_cast<char *>(str.c_str())};
       CoreApplication app(argc, argv);
       // instantiating app should not overwrite the ED
-      ASSERT_EQ(CoreApplication::getEventDispatcher(), ed);
+      EXPECT_EQ(CoreApplication::getEventDispatcher(), ed);
       CallableInvoker::invokeAsync(&CoreApplication::quit, &app);
       app.exec();
       // the custom ED has really been used?
-      ASSERT_TRUE(ed->m_visited);
+      EXPECT_TRUE(ed->m_visited);
    }
    // ED has been deleted?
-   ASSERT_TRUE(weak_ed.isNull());
+   EXPECT_TRUE(weak_ed.isNull());
 }
 
 namespace {
@@ -828,32 +829,32 @@ private:
       CoreApplicationPrivate *privateClass = static_cast<CoreApplicationPrivate*>(ObjectPrivate::get(PDK_RETRIEVE_APP_INSTANCE()));
       
       {
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 0);
          // Test with a lock active so that the refcount doesn't drop to zero during these tests, causing a quit.
          // (until we exit the scope)
          EventLoopLocker locker;
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 1);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 1);
          JobObject *job1 = new JobObject(this);
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 2);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 2);
          delete job1;
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 1);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 1);
          job1 = new JobObject(this);
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 2);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 2);
          JobObject *job2 = new JobObject(this);
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 3);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 3);
          delete job1;
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 2);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 2);
          JobObject *job3 = new JobObject(job2);
          PDK_UNUSED(job3);
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 3);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 3);
          JobObject *job4 = new JobObject(job2);
          PDK_UNUSED(job4);
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 4);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 4);
          delete job2;
-         ASSERT_EQ(privateClass->m_quitLockRef.load(), 1);
+         EXPECT_EQ(privateClass->m_quitLockRef.load(), 1);
          
       }
-      ASSERT_EQ(privateClass->m_quitLockRef.load(), 0);
+      EXPECT_EQ(privateClass->m_quitLockRef.load(), 0);
    }
 };
 
@@ -890,14 +891,14 @@ TEST(CoreApplicationTest, testEventDestructorDeadLock)
    
    CoreApplication::postEvent(&app, new MyEvent);
    CoreApplication::processEvents();
-   ASSERT_TRUE(std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(std::find(spy.m_recordedEvents.begin(),
                          spy.m_recordedEvents.end(),
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)) != spy.m_recordedEvents.end());
-   ASSERT_TRUE(std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(std::find(spy.m_recordedEvents.begin(),
                          spy.m_recordedEvents.end(),
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 2)) == spy.m_recordedEvents.end());
    CoreApplication::processEvents();
-   ASSERT_TRUE(std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(std::find(spy.m_recordedEvents.begin(),
                          spy.m_recordedEvents.end(),
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 2)) != spy.m_recordedEvents.end());
 }
@@ -916,7 +917,7 @@ TEST(CoreApplicationTest, testAppEventFiltersMainThread)
    CoreApplication::postEvent(&app,  new Event(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)));
    Timer::singleShot(10, &app, &CoreApplication::quit);
    app.exec();
-   ASSERT_TRUE(std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(std::find(spy.m_recordedEvents.begin(),
                          spy.m_recordedEvents.end(), 
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)) != spy.m_recordedEvents.end());
 }
@@ -939,11 +940,11 @@ TEST(CoreApplicationTest, testAppEventFiltersAuxThread)
    Timer::singleShot(1000, &app, &CoreApplication::quit);
    thread.start();
    app.exec();
-   ASSERT_TRUE(thread.wait(1000));
-   ASSERT_TRUE(std::find(receiver.m_recordedEvents.begin(),
+   EXPECT_TRUE(thread.wait(1000));
+   EXPECT_TRUE(std::find(receiver.m_recordedEvents.begin(),
                          receiver.m_recordedEvents.end(),
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)) != receiver.m_recordedEvents.end());
-   ASSERT_TRUE(std::find(spy.m_recordedEvents.begin(),
+   EXPECT_TRUE(std::find(spy.m_recordedEvents.begin(),
                          spy.m_recordedEvents.end(),
                          Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)) == spy.m_recordedEvents.end());
 }
@@ -978,8 +979,8 @@ TEST(CoreApplicationTest, testThreadedEventDelivery)
       CoreApplication::postEvent(&receiver, new Event(Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)));
       
       thread.start();
-      ASSERT_TRUE(thread.wait(1000000000));
-      ASSERT_EQ(std::find(receiver.m_recordedEvents.begin(),
+      EXPECT_TRUE(thread.wait(1000000000));
+      EXPECT_EQ(std::find(receiver.m_recordedEvents.begin(),
                           receiver.m_recordedEvents.end(),
                           Event::Type(pdk::as_integer<Event::Type>(Event::Type::User) + 1)) != receiver.m_recordedEvents.end(), eventsReceived);
    }

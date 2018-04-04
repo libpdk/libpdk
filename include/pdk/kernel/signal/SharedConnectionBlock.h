@@ -55,7 +55,7 @@ public:
       {
          // Make _blocker non-empty so the blocking() method still returns the correct value
          // after the connection has expired.
-         m_blocker.reset(static_cast<int *>(nullptr));
+         m_blocker.reset(static_cast<int *>(new int(0)));
          return;
       }
       m_blocker = connectionBody->getBlocker();
@@ -68,8 +68,7 @@ public:
    
    bool blocking() const
    {
-      std::shared_ptr<void> empty;
-      return m_blocker < empty || empty < m_blocker;
+      return static_cast<bool>(m_blocker);
    }
    
    Connection connection() const

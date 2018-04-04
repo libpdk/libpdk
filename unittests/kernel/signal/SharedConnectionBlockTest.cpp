@@ -63,7 +63,6 @@ TEST(SharedConnectionBlockTest, testSharedBlockConnection)
       Signals::SharedConnectionBlock block(conn);
       testOutput.str("");
       signal0();
-      std::cout << testOutput.str() << std::endl;
       ASSERT_EQ(testOutput.str(), "023");
       // Unblocking 1
       block.unblock();
