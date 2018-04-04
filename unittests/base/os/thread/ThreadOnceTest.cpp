@@ -18,6 +18,7 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/Semaphore.h"
 #include "ThreadOnce.h"
+#include "pdktest/PdkTest.h"
 #include <condition_variable>
 
 using pdk::kernel::Object;
@@ -25,6 +26,8 @@ using pdk::os::thread::Thread;
 using pdk::os::thread::BasicAtomicInt;
 using pdkunittest::Singleton;
 using pdk::os::thread::Semaphore;
+
+PDKTEST_DECLARE_APP_STARTUP_ARGS();
 
 class SingletonObject: public Object
 {
@@ -94,6 +97,7 @@ void samethread_data(std::list<int> &data)
 
 TEST(ThreadOnceTest, testSameThread)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    static int controlVariable = 0;
    PDK_ONCE {
       ASSERT_EQ(controlVariable, 0);
@@ -108,10 +112,12 @@ TEST(ThreadOnceTest, testSameThread)
       s->m_val.ref();
    }
    ASSERT_EQ(SingletonObject::sm_runCount, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadOnceTest, testMultipleThreads)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    const int NumberOfThreads = 100;
    int controlVariable = 0;
    Semaphore sem1;
@@ -132,10 +138,12 @@ TEST(ThreadOnceTest, testMultipleThreads)
    ASSERT_EQ(controlVariable, 1);
    ASSERT_EQ((int)IncrementThread::sm_runCount.load(), NumberOfThreads);
    ASSERT_EQ(SingletonObject::sm_runCount, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadOnceTest, testNesting)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    int variable = 0;
    PDK_ONCE {
       PDK_ONCE {
@@ -143,6 +151,7 @@ TEST(ThreadOnceTest, testNesting)
       }
    }
    ASSERT_EQ(variable, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 namespace {
@@ -169,18 +178,20 @@ void exception_helper(int &val)
 
 TEST(ThreadOnceTest, testReentering)
 {
-   FAIL();
+   PDKTEST_BEGIN_APP_CONTEXT();
    const int WantedRecursions = 5;
    int count = 0;
    SingletonObject::sm_runCount = 0;
    reentrant(WantedRecursions, count);
    // reentrancy is undefined behavior:
-   ASSERT_TRUE(count == 1 || count == WantedRecursions);
+   EXPECT_TRUE(count == 1 || count == WantedRecursions);
    ASSERT_EQ(SingletonObject::sm_runCount, 1);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 TEST(ThreadOnceTest, testException)
 {
+   PDKTEST_BEGIN_APP_CONTEXT();
    int count = 0;
    
    try {
@@ -193,7 +204,8 @@ TEST(ThreadOnceTest, testException)
    try {
       exception_helper(count);
    } catch (...) {
-      ASSERT_TRUE(false) << "Exception shouldn't have been thrown...";
+      EXPECT_TRUE(false) << "Exception shouldn't have been thrown...";
    }
    ASSERT_EQ(count, 2);
+   PDKTEST_END_APP_CONTEXT();
 }
