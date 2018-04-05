@@ -45,5 +45,7 @@
 #define PDK_SHARED_POINTER_BACKTRACE_SUPPORT
 
 #cmakedefine PDK_BUILD_TESTLIB_LIB
+#cmakedefine PDK_DEBUG
+#cmakedefine PDK_IODEVICE_DEBUG
 
 #endif // PDK_CONFIG_H

@@ -50,6 +50,29 @@ using pdk::lang::String;
 class PDK_CORE_EXPORT IoDevice : public Object
 {
 public:
+   using ReadyReadHandlerType = void();
+   using ChannelReadyReadHandlerType = void(int);
+   using BytesWrittenHandlerType = void(pdk::pint64);
+   using AboutToCloseHandlerType = void();
+   using ChannelBytesWrittenHandlerType = void(int, pdk::pint64);
+   using ReadChannelFinishedHandlerType = void();
+   
+   PDK_DEFINE_SIGNAL_ENUMS(ReadyRead, ChannelReadyRead, BytesWritten, 
+                           AboutToClose, ReadChannelFinished, ChannelBytesWritten);
+   PDK_DEFINE_SIGNAL_BINDER(ReadyRead)
+   PDK_DEFINE_SIGNAL_BINDER(ChannelReadyRead)
+   PDK_DEFINE_SIGNAL_BINDER(BytesWritten)
+   PDK_DEFINE_SIGNAL_BINDER(AboutToClose)
+   PDK_DEFINE_SIGNAL_BINDER(ChannelBytesWritten)
+   PDK_DEFINE_SIGNAL_BINDER(ReadChannelFinished)
+   
+   PDK_DEFINE_SIGNAL_EMITTER(ReadyRead)
+   PDK_DEFINE_SIGNAL_EMITTER(ChannelReadyRead)
+   PDK_DEFINE_SIGNAL_EMITTER(BytesWritten)
+   PDK_DEFINE_SIGNAL_EMITTER(AboutToClose)
+   PDK_DEFINE_SIGNAL_EMITTER(ChannelBytesWritten)
+   PDK_DEFINE_SIGNAL_EMITTER(ReadChannelFinished)
+   
    enum class OpenMode
    {
       NotOpen = 0x0000,
@@ -90,8 +113,8 @@ public:
    virtual bool atEnd() const;
    virtual bool reset();
    
-   virtual pdk::pint64 bytesAvailable() const;
-   virtual pdk::pint64 bytesToWrite() const;
+   virtual pdk::pint64 getBytesAvailable() const;
+   virtual pdk::pint64 getBytesToWrite() const;
    
    pdk::pint64 read(char *data, pdk::pint64 maxLength);
    ByteArray read(pdk::pint64 maxLength);
@@ -124,13 +147,7 @@ public:
    bool getChar(char *c);
    
    String getErrorString() const;
-   // SIGNALS:
-   // void readyRead();
-   // void channelReadyRead(int channel);
-   // void bytesWritten(pdk::pint64 bytes);
-   // void channelBytesWritten(int channel, pdk::pint64 bytes);
-   // void aboutToClose();
-   // void readChannelFinished();
+   
 protected:
    IoDevice(IoDevicePrivate &dd, Object *parent = nullptr);
    virtual pdk::pint64 readData(char *data, pdk::pint64 maxLength) = 0;
@@ -147,6 +164,11 @@ private:
 };
 
 PDK_DECLARE_OPERATORS_FOR_FLAGS(IoDevice::OpenModes)
+
+#ifndef PDK_NO_DEBUG_STREAM
+class Debug;
+PDK_CORE_EXPORT Debug operator <<(Debug debug, IoDevice::OpenMode modes);
+#endif
 
 } // io
 } // pdk

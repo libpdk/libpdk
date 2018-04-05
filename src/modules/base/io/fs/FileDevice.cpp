@@ -208,7 +208,7 @@ bool FileDevice::atEnd() const
       return false;
    }
    // Fall back to checking how much is available (will stat files).
-   return bytesAvailable() == 0;
+   return getBytesAvailable() == 0;
 }
 
 bool FileDevice::seek(pdk::pint64 off)
