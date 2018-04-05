@@ -18,7 +18,6 @@
 #include "pdk/base/os/thread/Thread.h"
 #include "pdk/base/os/thread/Semaphore.h"
 #include "pdk/kernel/CoreApplication.h"
-#include <iostream>
 
 using pdk::kernel::Object;
 using pdk::os::thread::Thread;

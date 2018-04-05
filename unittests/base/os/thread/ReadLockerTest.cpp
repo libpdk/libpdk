@@ -12,3 +12,151 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by softboy on 2018/04/05.
+
+#include "gtest/gtest.h"
+#include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/os/thread/Thread.h"
+#include "pdk/base/os/thread/Semaphore.h"
+#include "pdk/kernel/CoreApplication.h"
+
+using pdk::kernel::Object;
+using pdk::os::thread::Thread;
+using pdk::os::thread::Semaphore;
+using pdk::os::thread::ReadWriteLock;
+using pdk::os::thread::ReadLocker;
+
+namespace {
+
+class ReadLockerThread : public Thread
+{
+public:
+   ReadWriteLock m_lock;
+   Semaphore m_semaphore;
+   Semaphore m_testSemaphore;
+   
+   void waitForTest()
+   {
+      m_semaphore.release();
+      m_testSemaphore.acquire();
+   }
+};
+
+ReadLockerThread *sg_thread = nullptr;
+
+void wait_for_thread()
+{
+   sg_thread->m_semaphore.acquire();
+}
+void release_thread()
+{
+   sg_thread->m_testSemaphore.release();
+}
+
+} // anonymous namespace
+
+TEST(ReadLockerTest, testScope)
+{
+   class ScopeTestThread : public ReadLockerThread
+   {
+   public:
+      void run()
+      {
+         waitForTest();
+         {
+            ReadLocker locker(&m_lock);
+            waitForTest();
+         }
+         waitForTest();
+      }
+   };
+   sg_thread = new ScopeTestThread;
+   sg_thread->start();
+   wait_for_thread();
+   // lock should be unlocked before entering the scope that creates the ReadLocker
+   ASSERT_TRUE(sg_thread->m_lock.tryLockForWrite());
+   sg_thread->m_lock.unlock();
+   release_thread();
+   wait_for_thread();
+   // lock should be locked by the ReadLocker
+   ASSERT_TRUE(!sg_thread->m_lock.tryLockForWrite());
+   release_thread();
+   wait_for_thread();
+   // lock should be unlocked when the ReadLocker goes out of scope
+   ASSERT_TRUE(sg_thread->m_lock.tryLockForWrite());
+   sg_thread->m_lock.unlock();
+   release_thread();
+   ASSERT_TRUE(sg_thread->wait());
+   delete sg_thread;
+   sg_thread = nullptr;
+}
+
+TEST(ReadLockerTest, testUnlockAndRelock)
+{
+   class UnlockAndRelockThread : public ReadLockerThread
+   {
+   public:
+      void run()
+      {
+         ReadLocker locker(&m_lock);
+         waitForTest();
+         locker.unlock();
+         waitForTest();
+         locker.relock();
+         waitForTest();
+      }
+   };
+   sg_thread = new UnlockAndRelockThread;
+   sg_thread->start();
+   wait_for_thread();
+   // lock should be locked by the ReadLocker
+   ASSERT_TRUE(!sg_thread->m_lock.tryLockForWrite());
+   release_thread();
+   wait_for_thread();
+   // lock has been explicitly unlocked via ReadLocker
+   ASSERT_TRUE(sg_thread->m_lock.tryLockForWrite());
+   sg_thread->m_lock.unlock();
+   release_thread();
+   wait_for_thread();
+   // lock has been explicitly relocked via ReadLocker
+   ASSERT_TRUE(!sg_thread->m_lock.tryLockForWrite());
+   release_thread();
+   ASSERT_TRUE(sg_thread->wait());
+   delete sg_thread;
+   sg_thread = nullptr;
+}
+
+TEST(ReadLockerTest, testLockerState)
+{
+   class LockerStateThread : public ReadLockerThread
+   {
+   public:
+      void run()
+      {
+         {
+            ReadLocker locker(&m_lock);
+            locker.relock();
+            locker.unlock();
+            waitForTest();
+         }
+         waitForTest();
+      }
+   };
+   sg_thread = new LockerStateThread;
+   sg_thread->start();
+   wait_for_thread();
+   // even though we relock() after creating the ReadLocker, it shouldn't lock the lock more than once
+   ASSERT_TRUE(sg_thread->m_lock.tryLockForWrite());
+   sg_thread->m_lock.unlock();
+   release_thread();
+   
+   wait_for_thread();
+   // if we call ReadLocker::unlock(), its destructor should do nothing
+   ASSERT_TRUE(sg_thread->m_lock.tryLockForWrite());
+   sg_thread->m_lock.unlock();
+   release_thread();
+   
+   ASSERT_TRUE(sg_thread->wait());
+   
+   delete sg_thread;
+   sg_thread = nullptr;
+}
