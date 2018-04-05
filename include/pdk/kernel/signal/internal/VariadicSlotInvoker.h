@@ -110,8 +110,8 @@ public:
    using ResultType = R;
    using result_type = ResultType;
    
-   VariadicSlotInvoker(Args&&... args)
-      : m_args(std::forward<Args>(args)...)
+   VariadicSlotInvoker(Args... args)
+      : m_args(args...)
    {}
    
    template<typename ConnectionBodyType>

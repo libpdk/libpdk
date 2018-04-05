@@ -209,6 +209,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
          };\
          connection = std::move(m_## signalName ##Signal->connect(wrapper));\
       }\
+      connectNotify(pdk::as_integer<SignalType>(SignalType::PDK_SIGNAL_NAME(signalName)));\
       return connection;\
    }\
    template <typename SlotFuncType>\
@@ -278,18 +279,24 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
          };\
          connection = std::move(m_## signalName ##Signal->connect(wrapper));\
       }\
+      connectNotify(pdk::as_integer<SignalType>(SignalType::PDK_SIGNAL_NAME(signalName)));\
       return connection;\
    }\
    void disconnect## signalName ##Signal(const pdk::kernel::signal::Connection &connection)\
    {\
       if (m_## signalName ##Signal) {\
+         disconnectNotify(pdk::as_integer<SignalType>(SignalType::PDK_SIGNAL_NAME(signalName)));\
          m_## signalName ##Signal->disconnect(connection);\
       }\
    }\
    void disconnect## signalName ## Signal()\
    {\
       if (m_## signalName ##Signal) {\
+         std::size_t slots = m_## signalName ##Signal->getNumSlots();\
          m_## signalName ##Signal->disconnectAllSlots();\
+         while (slots-- > 0) {\
+            disconnectNotify(pdk::as_integer<SignalType>(SignalType::PDK_SIGNAL_NAME(signalName)));\
+         }\
       }\
    }
 

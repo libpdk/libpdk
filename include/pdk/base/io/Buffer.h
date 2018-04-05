@@ -43,13 +43,13 @@ public:
    Buffer(ByteArray *buf, Object *parent = nullptr);
    ~Buffer();
    
-   ByteArray &buffer();
-   const ByteArray &buffer() const;
+   ByteArray &getBuffer();
+   const ByteArray &getBuffer() const;
    void setBuffer(ByteArray *a);
    
    void setData(const ByteArray &data);
    inline void setData(const char *data, int len);
-   const ByteArray &data() const;
+   const ByteArray &getData() const;
    
    bool open(OpenModes openMode) override;
    
@@ -61,16 +61,12 @@ public:
    bool canReadLine() const override;
    
 protected:
-//   void connectNotify(const QMetaMethod &) override;
-//   void disconnectNotify(const QMetaMethod &) override;
    pdk::pint64 readData(char *data, pdk::pint64 maxlen) override;
    pdk::pint64 writeData(const char *data, pdk::pint64 len) override;
    
 private:
    PDK_DECLARE_PRIVATE(Buffer);
    PDK_DISABLE_COPY(Buffer);
-   
-//   PDK_PRIVATE_SLOT(d_func(), void _q_emitSignals())
 };
 
 inline void Buffer::setData(const char *data, int len)

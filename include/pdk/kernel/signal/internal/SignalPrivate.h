@@ -257,7 +257,7 @@ public:
    }
    
    // emit signal
-   ResultType operator ()(Args&& ...args)
+   ResultType operator ()(Args ...args)
    {
       std::shared_ptr<InvocationState> localState;
       {
@@ -271,7 +271,7 @@ public:
          // during invocation. 
          localState = m_sharedState;
       }
-      SlotInvoker invoker = SlotInvoker(std::forward<Args>(args)...);
+      SlotInvoker invoker = SlotInvoker(args...);
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return CombinerInvoker<typename CombinerType::ResultType>()
@@ -282,7 +282,7 @@ public:
                );
    }
    
-   ResultType operator ()(Args&& ...args) const
+   ResultType operator ()(Args ...args) const
    {
       std::shared_ptr<InvocationState> localState;
       {
@@ -296,7 +296,7 @@ public:
          // during invocation.
          localState = m_sharedState;
       }
-      SlotInvoker invoker = SlotInvoker(std::forward<Args>(args)...);
+      SlotInvoker invoker = SlotInvoker(args...);
       SlotCallIteratorCacheType cache(invoker);
       InvocationJanitor janitor(cache, *this, &localState->connectionBodies());
       return internal::CombinerInvoker<typename CombinerType::ResultType>()(
@@ -675,14 +675,14 @@ public:
       (*m_pimpl).disconnect(connection);
    }
    
-   ResultType operator ()(Args&&... args)
+   ResultType operator ()(Args... args)
    {
-      return (*m_pimpl)(std::forward<Args>(args)...);
+      return (*m_pimpl)(args...);
    }
    
-   ResultType operator ()(Args&&... args) const
+   ResultType operator ()(Args... args) const
    {
-      return (*m_pimpl)(std::forward<Args>(args)...);
+      return (*m_pimpl)(args...);
    }
    
    std::size_t getNumSlots() const

@@ -89,6 +89,10 @@ public:
    PDK_DEFINE_SIGNAL_ENUMS(Destroyed, ObjectNameChanged);
    using DestroyedHandlerType = void(Object *);
    using ObjectNameChangedHandlerType = void(const String &);
+   PDK_DEFINE_SIGNAL_BINDER(Destroyed)
+   PDK_DEFINE_SIGNAL_EMITTER(Destroyed)
+   PDK_DEFINE_SIGNAL_BINDER(ObjectNameChanged)
+   PDK_DEFINE_SIGNAL_EMITTER(ObjectNameChanged)
 public:
    explicit Object(Object *parent = nullptr);
    virtual ~Object();
@@ -136,11 +140,8 @@ protected:
    virtual void timerEvent(TimerEvent *event);
    virtual void childEvent(ChildEvent *event);
    virtual void customEvent(Event *event);
-   
-   PDK_DEFINE_SIGNAL_BINDER(Destroyed)
-   PDK_DEFINE_SIGNAL_EMITTER(Destroyed)
-   PDK_DEFINE_SIGNAL_BINDER(ObjectNameChanged)
-   PDK_DEFINE_SIGNAL_EMITTER(ObjectNameChanged)
+   virtual void connectNotify(pdk::puint32 signal);
+   virtual void disconnectNotify(pdk::puint32 signal);
    
 protected:
    Object(ObjectPrivate &dd, Object *parent = nullptr);

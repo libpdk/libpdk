@@ -301,14 +301,30 @@ bool Object::event(Event *event)
    return true;
 }
 
-void Object::timerEvent(TimerEvent *)
-{}
+void Object::timerEvent(TimerEvent *event)
+{
+   PDK_UNUSED(event);
+}
 
-void Object::childEvent(ChildEvent * /* event */)
-{}
+void Object::childEvent(ChildEvent *event)
+{
+   PDK_UNUSED(event);
+}
 
-void Object::customEvent(Event * /* event */)
-{}
+void Object::customEvent(Event *event)
+{
+   PDK_UNUSED(event);
+}
+
+void Object::connectNotify(pdk::puint32 signal)
+{
+   PDK_UNUSED(signal);
+}
+
+void Object::disconnectNotify(pdk::puint32 signal)
+{
+   PDK_UNUSED(signal);
+}
 
 bool Object::eventFilter(Object * /* watched */, Event * /* event */)
 {

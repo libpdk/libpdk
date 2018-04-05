@@ -16,11 +16,16 @@
 #include "pdk/base/io/Buffer.h"
 #include "pdk/base/io/internal/IoDevicePrivate.h"
 #include "pdk/base/io/Debug.h"
+#include "pdk/kernel/CallableInvoker.h"
 
 namespace pdk {
 namespace io {
 
+using pdk::kernel::CallableInvoker;
+
 namespace internal {
+
+using pdk::io::Buffer;
 
 class BufferPrivate : public IoDevicePrivate
 {
@@ -41,23 +46,22 @@ public:
    virtual pdk::pint64 peek(char *data, pdk::pint64 maxSize) override;
    virtual ByteArray peek(pdk::pint64 maxSize) override;
    
-   // private slots
-   //   void _q_emitSignals();
+private:
+   void emitSignals();
    
    pdk::pint64 m_writtenSinceLastEmit;
    int m_signalConnectionCount;
    bool m_signalsEmitted;
 };
 
-//void BufferPrivate::_q_emitSignals()
-//{
-//   PDK_Q(Buffer);
-//   // @TODO emit signals
-//   // emit q->bytesWritten(writtenSinceLastEmit);
-//   writtenSinceLastEmit = 0;
-//   //emit q->readyRead();
-//   signalsEmitted = false;
-//}
+void BufferPrivate::emitSignals()
+{
+   PDK_Q(Buffer);
+   apiPtr->emitBytesWrittenSignal(m_writtenSinceLastEmit);
+   m_writtenSinceLastEmit = 0;
+   apiPtr->emitReadyReadSignal();
+   m_signalsEmitted = false;
+}
 
 pdk::pint64 BufferPrivate::peek(char *data, pdk::pint64 maxSize)
 {
@@ -102,7 +106,7 @@ void Buffer::setBuffer(ByteArray *byteArray)
 {
    PDK_D(Buffer);
    if (isOpen()) {
-       warning_stream("Buffer::setBuffer: Buffer is open");
+      warning_stream("Buffer::setBuffer: Buffer is open");
       return;
    }
    if (byteArray) {
@@ -113,19 +117,19 @@ void Buffer::setBuffer(ByteArray *byteArray)
    implPtr->m_defaultBuf.clear();
 }
 
-ByteArray &Buffer::buffer()
+ByteArray &Buffer::getBuffer()
 {
    PDK_D(Buffer);
    return *implPtr->m_buf;
 }
 
-const ByteArray &Buffer::buffer() const
+const ByteArray &Buffer::getBuffer() const
 {
    PDK_D(const Buffer);
    return *implPtr->m_buf;
 }
 
-const ByteArray &Buffer::data() const
+const ByteArray &Buffer::getData() const
 {
    PDK_D(const Buffer);
    return *implPtr->m_buf;
@@ -135,7 +139,7 @@ void Buffer::setData(const ByteArray &data)
 {
    PDK_D(Buffer);
    if (isOpen()) {
-       warning_stream("Buffer::setData: Buffer is open");
+      warning_stream("Buffer::setData: Buffer is open");
       return;
    }
    *implPtr->m_buf = data;
@@ -148,16 +152,16 @@ bool Buffer::open(OpenModes flags)
    if ((flags & (OpenMode::Append | OpenMode::Truncate)) != 0) {
       flags |= OpenMode::WriteOnly;
    }
-      
+   
    if ((flags & (OpenMode::ReadOnly | OpenMode::WriteOnly)) == 0) {
-      // warning_stream("Buffer::open: Buffer access not specified");
+      warning_stream("Buffer::open: Buffer access not specified");
       return false;
    }
    
    if ((flags & OpenMode::Truncate).getUnderData() == pdk::as_integer<OpenMode>(OpenMode::Truncate)) {
       implPtr->m_buf->resize(0);
    }
-
+   
    return IoDevice::open(flags | IoDevice::OpenMode::Unbuffered);
 }
 
@@ -205,9 +209,9 @@ bool Buffer::atEnd() const
 bool Buffer::canReadLine() const
 {
    PDK_D(const Buffer);
-   if (!isOpen())
+   if (!isOpen()) {
       return false;
-   
+   }
    return implPtr->m_buf->indexOf('\n', int(getPosition())) != -1 || IoDevice::canReadLine();
 }
 
@@ -229,20 +233,19 @@ pdk::pint64 Buffer::writeData(const char *data, pdk::pint64 len)
       int newSize = implPtr->m_buf->size() + extraBytes;
       implPtr->m_buf->resize(newSize);
       if (implPtr->m_buf->size() != newSize) { // could not resize
-          warning_stream("Buffer::writeData: Memory allocation error");
+         warning_stream("Buffer::writeData: Memory allocation error");
          return -1;
       }
    }
    
    std::memcpy(implPtr->m_buf->getRawData() + getPosition(), data, int(len));
    
-//#ifndef PDK_NO_Object
-//   implPtr->m_writtenSinceLastEmit += len;
-//   if (implPtr->signalConnectionCount && !implPtr->signalsEmitted && !signalsBlocked()) {
-//      d->signalsEmitted = true;
-//      QMetaObject::invokeMethod(this, "_q_emitSignals", Qt::QueuedConnection);
-//   }
-//#endif
+   implPtr->m_writtenSinceLastEmit += len;
+   // @TODO need workaround that signal been block
+   if (implPtr->m_signalConnectionCount && !implPtr->m_signalsEmitted) {
+      implPtr->m_signalsEmitted = true;
+      CallableInvoker::invokeAsync(this, &BufferPrivate::emitSignals);
+   }
    return len;
 }
 
