@@ -177,7 +177,7 @@ Object::Object(ObjectPrivate &dd, Object *parent)
    : m_implPtr(&dd)
 {
    PDK_D(Object);
-   m_implPtr->m_apiPtr = this;
+   implPtr->m_apiPtr = this;
    implPtr->m_threadData = (parent && !parent->getThread()) ? parent->getImplPtr()->m_threadData : ThreadData::current();
    implPtr->m_threadData->ref();
    if (parent) {

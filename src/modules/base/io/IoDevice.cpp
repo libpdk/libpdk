@@ -651,20 +651,20 @@ pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
    PDK_D(IoDevice);
    
 #if defined PDK_IODEVICE_DEBUG
-   printf("%p pdk::io::IoDevice::read(%p, %lld), m_implPtr->m_pos = %lld, m_implPtr->m_buffer.size() = %lld\n",
-          (void *)this, (void *)data, maxLength, m_implPtr->m_pos, m_implPtr->m_buffer.size());
+   printf("%p pdk::io::IoDevice::read(%p, %lld), implPtr->m_pos = %lld, implPtr->m_buffer.size() = %lld\n",
+          (void *)this, (void *)data, maxLength, implPtr->m_pos, implPtr->m_buffer.size());
 #endif
-   const bool sequential = m_implPtr->isSequential();
+   const bool sequential = implPtr->isSequential();
    
    // Short-cut for getChar(), unless we need to keep the data in the buffer.
-   if (maxLength == 1 && !(sequential && m_implPtr->m_transactionStarted)) {
+   if (maxLength == 1 && !(sequential && implPtr->m_transactionStarted)) {
       int chint;
-      while ((chint = m_implPtr->m_buffer.getChar()) != -1) {
+      while ((chint = implPtr->m_buffer.getChar()) != -1) {
          if (!sequential) {
-            ++m_implPtr->m_pos;
+            ++implPtr->m_pos;
          }
          char c = char(uchar(chint));
-         if (c == '\r' && (m_implPtr->m_openMode & OpenMode::Text)) {
+         if (c == '\r' && (implPtr->m_openMode & OpenMode::Text)) {
             continue;
          }
          
@@ -673,7 +673,7 @@ pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
          printf("%p \tread 0x%hhx (%c) returning 1 (shortcut)\n", (void *)this,
                 c, isprint(c) ? c : '?');
 #endif
-         if (m_implPtr->m_buffer.isEmpty()) {
+         if (implPtr->m_buffer.isEmpty()) {
             readData(data, 0);
          }
          return static_cast<pdk::pint64>(1);
@@ -683,7 +683,7 @@ pdk::pint64 IoDevice::read(char *data, pint64 maxLength)
    CHECK_MAXLEN(read, static_cast<pdk::pint64>(-1));
    CHECK_READABLE(read, static_cast<pdk::pint64>(-1));
    
-   const pdk::pint64 readBytes = m_implPtr->read(data, maxLength);
+   const pdk::pint64 readBytes = implPtr->read(data, maxLength);
    
 #if defined PDK_IODEVICE_DEBUG
    printf("%p \treturning %lld, implPtr->m_pos == %lld, implPtr->m_buffer.size() == %lld\n", (void *)this,

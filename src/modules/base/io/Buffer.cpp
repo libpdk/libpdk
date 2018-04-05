@@ -33,12 +33,14 @@ class BufferPrivate : public IoDevicePrivate
    
 public:
    BufferPrivate()
-      : m_buf(nullptr)
-      , m_writtenSinceLastEmit(0),
+      : m_buf(nullptr), 
+        m_writtenSinceLastEmit(0),
         m_signalConnectionCount(0),
         m_signalsEmitted(false)
-   { }
-   ~BufferPrivate() { }
+   {}
+   
+   ~BufferPrivate()
+   {}
    
    ByteArray *m_buf;
    ByteArray m_defaultBuf;

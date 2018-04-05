@@ -22,10 +22,10 @@ using pdk::ds::ByteArray;
 
 TEST(BufferTest, testGetSetCheck)
 {
-   //Buffer obj1;
-//   ByteArray var1("Bogus data");
-//   obj1.setData(var1);
-//   ASSERT_EQ(var1, obj1.data());
-//   obj1.setData(ByteArray());
-//   ASSERT_EQ(ByteArray(), obj1.data());
+   Buffer obj1;
+   ByteArray var1("Bogus data");
+   obj1.setData(var1);
+   ASSERT_EQ(var1, obj1.getData());
+   obj1.setData(ByteArray());
+   ASSERT_EQ(ByteArray(), obj1.getData());
 }
