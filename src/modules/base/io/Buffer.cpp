@@ -249,25 +249,21 @@ pdk::pint64 Buffer::writeData(const char *data, pdk::pint64 len)
    return len;
 }
 
-//void Buffer::connectNotify(const QMetaMethod &signal)
-//{
-//    static const QMetaMethod readyReadSignal = QMetaMethod::fromSignal(&Buffer::readyRead);
-//    static const QMetaMethod bytesWrittenSignal = QMetaMethod::fromSignal(&Buffer::bytesWritten);
-//    if (signal == readyReadSignal || signal == bytesWrittenSignal)
-//        d_func()->signalConnectionCount++;
-//}
+void Buffer::connectNotify(pdk::puint32 signal)
+{
+   SignalType signalEnum = SignalType(signal);
+   if (signalEnum == SignalType::ReadyRead || signalEnum == SignalType::BytesWritten) {
+      getImplPtr()->m_signalConnectionCount++;
+   }
+}
 
-//void Buffer::disconnectNotify(const QMetaMethod &signal)
-//{
-//    if (signal.isValid()) {
-//        static const QMetaMethod readyReadSignal = QMetaMethod::fromSignal(&Buffer::readyRead);
-//        static const QMetaMethod bytesWrittenSignal = QMetaMethod::fromSignal(&Buffer::bytesWritten);
-//        if (signal == readyReadSignal || signal == bytesWrittenSignal)
-//            d_func()->signalConnectionCount--;
-//    } else {
-//        d_func()->signalConnectionCount = 0;
-//    }
-//}
+void Buffer::disconnectNotify(pdk::puint32 signal)
+{
+   SignalType signalEnum = SignalType(signal);
+   if (signalEnum == SignalType::ReadyRead || signalEnum == SignalType::BytesWritten) {
+      getImplPtr()->m_signalConnectionCount--;
+   }
+}
 
 } // io
 } // pdk

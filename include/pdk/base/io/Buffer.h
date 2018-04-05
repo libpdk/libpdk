@@ -61,6 +61,8 @@ public:
    bool canReadLine() const override;
    
 protected:
+   void connectNotify(pdk::puint32 signal) override;
+   void disconnectNotify(pdk::puint32 signal) override;
    pdk::pint64 readData(char *data, pdk::pint64 maxlen) override;
    pdk::pint64 writeData(const char *data, pdk::pint64 len) override;
    
