@@ -246,9 +246,15 @@ pdk::pint64 Buffer::writeData(const char *data, pdk::pint64 len)
    // @TODO need workaround that signal been block
    if (implPtr->m_signalConnectionCount && !implPtr->m_signalsEmitted) {
       implPtr->m_signalsEmitted = true;
-      CallableInvoker::invokeAsync(this, &BufferPrivate::emitSignals);
+      CallableInvoker::invokeAsync(this, &Buffer::emitSignals);
    }
    return len;
+}
+
+void Buffer::emitSignals()
+{
+   PDK_D(Buffer);
+   implPtr->emitSignals();
 }
 
 void Buffer::connectNotify(pdk::puint32 signal)

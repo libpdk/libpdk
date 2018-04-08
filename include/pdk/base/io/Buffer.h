@@ -65,7 +65,7 @@ protected:
    void disconnectNotify(pdk::puint32 signal) override;
    pdk::pint64 readData(char *data, pdk::pint64 maxlen) override;
    pdk::pint64 writeData(const char *data, pdk::pint64 len) override;
-   
+   void emitSignals();
 private:
    PDK_DECLARE_PRIVATE(Buffer);
    PDK_DISABLE_COPY(Buffer);

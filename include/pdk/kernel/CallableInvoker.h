@@ -55,6 +55,8 @@ public:
    static void invokeAsync(pdk::kernel::Object *receiver, RetType Class::* memberFunc, ArgTypes... args)
    {
       CoreApplication::postEvent(receiver, new internal::MetaCallEvent([=](){
+         Class *target = dynamic_cast<Class *>(receiver);
+         PDK_ASSERT(target != nullptr);
           (dynamic_cast<Class *>(receiver)->*memberFunc)(args...);
       }));
    }

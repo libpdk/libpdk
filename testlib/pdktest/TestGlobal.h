@@ -88,7 +88,7 @@ do { \
 #define PDKTEST_DECLARE_APP_STARTUP_ARGS() extern int sg_argc;\
 extern char **sg_argv
 #define PDKTEST_BEGIN_APP_CONTEXT() pdk::kernel::CoreApplication app(sg_argc, sg_argv);\
-   pdk::kernel::CallableInvoker::invokeAsync([](){
+   pdk::kernel::CallableInvoker::invokeAsync([&](){
 #define PDKTEST_END_APP_CONTEXT() \
    PDK_RETRIEVE_APP_INSTANCE()->quit();\
    }, &app);\
