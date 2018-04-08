@@ -1,0 +1,5 @@
+pdk_add_files(SHARED_HEADERS
+   Filesystem.h)
+
+set(SHARED_HEADERS ${SHARED_HEADERS}
+   PARENT_SCOPE)

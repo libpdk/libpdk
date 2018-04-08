@@ -47,6 +47,12 @@ pdk_add_unittest(ModuleBaseUnittests TextTest ${PDK_TEXT_TEST_SRCS})
 
 set(PDK_IO_TEST_SRCS)
 pdk_add_files(PDK_IO_TEST_SRCS
-   io/BufferTest.cpp)
+   io/BufferTest.cpp
+   io/DirTest.cpp)
+
+list(APPEND PDK_IO_TEST_SRCS ${SHARED_HEADERS})
 
 pdk_add_unittest(ModuleBaseUnittests IoTest ${PDK_IO_TEST_SRCS})
+target_compile_definitions(IoTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io")
+
+

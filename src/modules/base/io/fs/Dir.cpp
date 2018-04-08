@@ -580,9 +580,6 @@ String Dir::fromNativeSeparators(const String &pathName)
    return pathName;
 }
 
-namespace
-{
-
 PDK_UNITTEST_EXPORT String normalize_path_segments(const String &name, bool allowUncPaths,
                                                    bool *ok = nullptr)
 {
@@ -706,6 +703,9 @@ PDK_UNITTEST_EXPORT String normalize_path_segments(const String &name, bool allo
    
    return String::fromUtf16(out + used, len - used);
 }
+
+namespace
+{
 
 String clean_path(const String &path, bool *ok = nullptr)
 {
