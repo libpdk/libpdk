@@ -139,3 +139,5 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     set(PDK_USE_NO_UNINITIALIZED ${PDK_HAS_UNINITIALIZED})
   endif()
 endif()
+
+include(CheckThirdPartyLibraries)

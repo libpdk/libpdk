@@ -218,3 +218,5 @@ pdk_add_library(pdk
    ${PDK_THIRDPARTY_SOURCES})
 
 target_compile_definitions(pdk PRIVATE PDK_BUILD_CORE_LIB)
+target_link_libraries(pdk PUBLIC Pcre2::16Bit)
+
