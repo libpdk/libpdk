@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
+#include <iostream>
 
 namespace pdk {
 namespace io {
@@ -1022,13 +1023,15 @@ bool Dir::removeRecursively()
          ok = File::remove(filePath);
          if (!ok) { // Read-only files prevent directory deletion on Windows, retry with Write permission.
             const File::Permissions permissions = File::permissions(filePath);
-            if (!(permissions & File::Permission::WriteUser))
+            if (!(permissions & File::Permission::WriteUser)) {
                ok = File::setPermissions(filePath, permissions | File::Permission::WriteUser)
                      && File::remove(filePath);
+            }
          }
       }
-      if (!ok)
+      if (!ok) {
          success = false;
+      }
    }
    
    if (success) {
