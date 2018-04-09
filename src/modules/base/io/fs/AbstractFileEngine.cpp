@@ -109,7 +109,6 @@ AbstractFileEngine *pdk_custom_file_engine_handler_create(const String &path)
          }
       }
    }
-   
    return engine;
 }
 

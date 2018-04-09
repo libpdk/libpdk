@@ -55,6 +55,6 @@ pdk_add_files(PDK_IO_TEST_SRCS
 list(APPEND PDK_IO_TEST_SRCS ${SHARED_HEADERS})
 
 pdk_add_unittest(ModuleBaseUnittests IoTest ${PDK_IO_TEST_SRCS})
-target_compile_definitions(IoTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io")
+target_compile_definitions(IoTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
 

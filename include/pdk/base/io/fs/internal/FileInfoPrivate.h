@@ -98,8 +98,9 @@ public:
    {
       //If the file engine is not null, this maybe a "mount point" for a custom file engine
       //in which case we can't trust the metadata
-      if (m_fileEngine)
+      if (m_fileEngine) {
          m_metaData = FileSystemMetaData();
+      }
    }
    
    inline FileInfoPrivate(const FileSystemEntry &file, const FileSystemMetaData &data, AbstractFileEngine *engine)

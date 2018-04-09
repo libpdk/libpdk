@@ -67,6 +67,7 @@ bool pdk_resolve_entry_and_create_legacy_engine_recursive(FileSystemEntry &entry
    if ((engine = pdk_custom_file_engine_handler_create(filePath))) {
       return pdk_check_entry(engine, resolvingEntry);
    }
+#if defined(PDK_BUILD_CORE_LIB)
    for (int prefixSeparator = 0; prefixSeparator < filePath.size(); ++prefixSeparator) {
       Character const ch = filePath[prefixSeparator];
       if (ch == Latin1Character('/')) {
@@ -99,6 +100,7 @@ bool pdk_resolve_entry_and_create_legacy_engine_recursive(FileSystemEntry &entry
       //  if (!ch.isLetterOrNumber())
       //      break;
    }
+#endif
    return pdk_check_entry(entry, data, resolvingEntry);
 }
 
@@ -159,14 +161,14 @@ String FileSystemEngine::slowCanonicalized(const String &path)
 AbstractFileEngine *FileSystemEngine::resolveEntryAndCreateLegacyEngine(
       FileSystemEntry &entry, FileSystemMetaData &data) {
    FileSystemEntry copy = entry;
-   AbstractFileEngine *engine = 0;
+   AbstractFileEngine *engine = nullptr;
    
-   if (pdk_resolve_entry_and_create_legacy_engine_recursive(copy, data, engine))
+   if (pdk_resolve_entry_and_create_legacy_engine_recursive(copy, data, engine)) {
       // Reset entry to resolved copy.
       entry = copy;
-   else
+   } else {
       data.clear();
-   
+   }
    return engine;
 }
 

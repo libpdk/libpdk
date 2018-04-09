@@ -29,6 +29,7 @@
 #include <vector>
 #include <stack>
 #include <set>
+#include <iostream>
 
 namespace pdk {
 namespace io {
@@ -155,7 +156,6 @@ inline bool DirIteratorPrivate::entryMatches(const String &fileName, const FileI
       //We found a matching entry.
       return true;
    }
-   
    return false;
 }
 
@@ -182,6 +182,7 @@ void DirIteratorPrivate::advance()
          // Find the next valid iterator that matches the filters.
          FileSystemIterator *iter;
          while (iter = m_nativeIterators.top(), iter->advance(nextEntry, nextMetaData)) {
+            std::cout << nextEntry.getFilePath().toStdString() << std::endl;
             FileInfo info(new FileInfoPrivate(nextEntry, nextMetaData));
             if (entryMatches(nextEntry.getFileName(), info)) {
                return;
@@ -229,7 +230,7 @@ void DirIteratorPrivate::checkAndPushDirectory(const FileInfo &fileInfo)
    pushDirectory(fileInfo);
 }
 
-bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &fi) const
+bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &file) const
 {
    PDK_ASSERT(!fileName.isEmpty());
    // filter . and ..?
@@ -248,7 +249,7 @@ bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &
    // name filter
    //#ifndef PDK_NO_REGEXP
    //   // Pass all entries through name filters, except dirs if the AllDirs
-   //   if (!m_nameFilters.isEmpty() && !((filters & Dir::Filter::AllDirs) && fi.isDir())) {
+   //   if (!m_nameFilters.isEmpty() && !((filters & Dir::Filter::AllDirs) && file.isDir())) {
    //      bool matched = false;
    //      for (std::vector<QRegExp>::const_iterator iter = m_nameRegExps.constBegin(),
    //           end = nameRegExps.constEnd();
@@ -268,34 +269,34 @@ bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &
    // skip symlinks
    const bool skipSymlinks = (m_filters & Dir::Filter::NoSymLinks);
    const bool includeSystem = (m_filters & Dir::Filter::System);
-   if(skipSymlinks && fi.isSymLink()) {
+   if(skipSymlinks && file.isSymLink()) {
       // The only reason to save this file is if it is a broken link and we are requesting system files.
-      if(!includeSystem || fi.exists()) {
+      if(!includeSystem || file.exists()) {
          return false;
       } 
    }
    
    // filter hidden
    const bool includeHidden = (m_filters & Dir::Filter::Hidden);
-   if (!includeHidden && !dotOrDotDot && fi.isHidden()) {
+   if (!includeHidden && !dotOrDotDot && file.isHidden()) {
       return false;
    }
    
    // filter system files
-   if (!includeSystem && (!(fi.isFile() || fi.isDir() || fi.isSymLink())
-                          || (!fi.exists() && fi.isSymLink()))) {
+   if (!includeSystem && (!(file.isFile() || file.isDir() || file.isSymLink())
+                          || (!file.exists() && file.isSymLink()))) {
       return false;
    }
    // skip directories
    const bool skipDirs = !(m_filters & (pdk::as_integer<Dir::Filter>(Dir::Filter::Dirs) | 
                                         pdk::as_integer<Dir::Filter>(Dir::Filter::AllDirs)));
-   if (skipDirs && fi.isDir()) {
+   if (skipDirs && file.isDir()) {
       return false;
    }
    
    // skip files
    const bool skipFiles = !(m_filters & Dir::Filter::Files);
-   if (skipFiles && fi.isFile()) {
+   if (skipFiles && file.isFile()) {
       // Basically we need a reason not to exclude this file otherwise we just eliminate it.
       return false;
    }
@@ -306,9 +307,9 @@ bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &
    const bool doExecutable = !filterPermissions || (m_filters & Dir::Filter::Executable);
    const bool doReadable = !filterPermissions || (m_filters & Dir::Filter::Readable);
    if (filterPermissions
-       && ((doReadable && !fi.isReadable())
-           || (doWritable && !fi.isWritable())
-           || (doExecutable && !fi.isExecutable()))) {
+       && ((doReadable && !file.isReadable())
+           || (doWritable && !file.isWritable())
+           || (doExecutable && !file.isExecutable()))) {
       return false;
    }
    return true;
