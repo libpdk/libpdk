@@ -20,12 +20,22 @@
 #include "pdk/base/lang/StringMatcher.h"
 #include <vector>
 
+// forward declare class with namespace
+namespace pdk {
+namespace text {
+
+class RegularExpression;
+
+} // text
+} // pdk
+
 namespace pdk {
 namespace ds {
 
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Character;
+using pdk::text::RegularExpression;
 
 class StringList : public std::list<String>
 {
@@ -97,6 +107,21 @@ public:
    inline String join(Latin1String sep) const;
    inline String join(Character sep) const;
    inline int removeDuplicates();
+   
+   inline StringList filter(const String &str, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+   inline StringList &replaceInStrings(const String &before, const String &after,
+                                       pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
+   
+#ifndef PDK_NO_REGULAREXPRESSION
+    inline StringList filter(const RegularExpression &regex) const;
+    inline StringList &replaceInStrings(const RegularExpression &regex, const String &after);
+#endif // PDK_NO_REGULAREXPRESSION
+   
+#ifndef PDK_NO_REGULAREXPRESSION
+    inline int indexOf(const RegularExpression &regex, int from = 0) const;
+    inline int lastIndexOf(const RegularExpression &regex, int from = -1) const;
+#endif // PDK_NO_REGULAREXPRESSION
+    
    StringList &operator +=(const StringList &other)
    {
       StringList::const_iterator iter = other.cbegin();
@@ -165,6 +190,13 @@ bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, const String &s
 bool PDK_CORE_EXPORT stringlist_contains(const StringList *that, Latin1String str, pdk::CaseSensitivity cs);
 int PDK_CORE_EXPORT stringlist_remove_duplicates(StringList *that);
 
+#ifndef PDK_NO_REGULAREXPRESSION
+    void PDK_CORE_EXPORT stringlist_replace_in_strings(StringList *that, const RegularExpression &regex, const String &after);
+    StringList PDK_CORE_EXPORT stringlist_filter(const StringList *that, const RegularExpression &regex);
+    int PDK_CORE_EXPORT stringlist_index_of(const StringList *that, const RegularExpression &regex, int from);
+    int PDK_CORE_EXPORT stringlist_last_index_of(const StringList *that, const RegularExpression &regex, int from);
+#endif // PDK_NO_REGULAREXPRESSION
+
 } // internal
 
 inline int StringList::removeDuplicates()
@@ -202,6 +234,31 @@ inline void StringList::swap(int i, int j)
                 "StringList::swap", "index out of range");
    std::swap((*this)[i], (*this)[j]);
 }
+
+#ifndef PDK_NO_REGULAREXPRESSION
+
+inline StringList &StringList::replaceInStrings(const RegularExpression &regex, const String &after)
+{
+    internal::stringlist_replace_in_strings(this, regex, after);
+    return *this;
+}
+
+inline StringList StringList::filter(const RegularExpression &regex) const
+{
+    return internal::stringlist_filter(this, regex);
+}
+
+inline int StringList::indexOf(const RegularExpression &regex, int from) const
+{
+    return internal::stringlist_index_of(this, regex, from);
+}
+
+inline int StringList::lastIndexOf(const RegularExpression &regex, int from) const
+{
+    return internal::stringlist_last_index_of(this, regex, from);
+}
+
+#endif // PDK_NO_REGULAREXPRESSION
 
 } // ds
 } // pdk
