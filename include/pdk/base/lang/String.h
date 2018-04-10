@@ -40,6 +40,16 @@ PDK_FORWARD_DECLARE_CF_TYPE(CFString);
 PDK_FORWARD_DECLARE_OBJC_CLASS(NSString);
 #endif
 
+// forward declare class with namespace
+namespace pdk {
+namespace text {
+
+class RegularExpression;
+class RegularExpressionMatch;
+
+} // text
+} // pdk
+
 namespace pdk {
 
 #if !defined(PDK_NO_DATASTREAM)
@@ -57,6 +67,8 @@ class StringList;
 namespace lang {
 
 using pdk::ds::ByteArray;
+using pdk::text::RegularExpression;
+using pdk::text::RegularExpressionMatch;
 
 class CharacterRef;
 class String;
@@ -538,8 +550,18 @@ public:
    int count(const String &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    int count(const StringRef &needle, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    
+#ifndef PDK_NO_REGULAREXPRESSION
+    int indexOf(const RegularExpression &regex, int from = 0, RegularExpressionMatch *rmatch = nullptr) const;
+    int lastIndexOf(const RegularExpression &regex, int from = -1, RegularExpressionMatch *rmatch = nullptr) const;
+    bool contains(const RegularExpression &regex, RegularExpressionMatch *match = nullptr) const;
+    int count(const RegularExpression &regex) const;
+#endif
+   
    String section(Character separator, int start, int end = -1, SectionFlags flags = SectionFlag::Default) const;
    String section(const String &separator, int start, int end = -1, SectionFlags flags = SectionFlag::Default) const;
+#ifndef PDK_NO_REGULAREXPRESSION
+   String section(const RegularExpression &regex, int start, int end = -1, SectionFlags flags = SectionFlag::Default) const;
+#endif
    
    PDK_REQUIRED_RESULT String left(int n) const;
    PDK_REQUIRED_RESULT String right(int n) const;
@@ -733,6 +755,14 @@ public:
    String &replace(Character c, Latin1String after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    String &replace(Character c, const String &after, pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive);
    
+#ifndef PDK_NO_REGULAREXPRESSION
+   String &replace(const RegularExpression &regex, const String &after);
+   inline String &remove(const RegularExpression &regex)
+   {
+      return replace(regex, String());
+   }
+#endif
+   
    PDK_REQUIRED_RESULT StringList split(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
                                         pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    PDK_REQUIRED_RESULT std::vector<StringRef> splitRef(const String &separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
@@ -741,6 +771,12 @@ public:
                                         pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
    PDK_REQUIRED_RESULT std::vector<StringRef> splitRef(Character separator, SplitBehavior behavior = SplitBehavior::KeepEmptyParts,
                                                        pdk::CaseSensitivity cs = pdk::CaseSensitivity::Sensitive) const;
+#ifndef PDK_NO_REGULAREXPRESSION
+   PDK_REQUIRED_RESULT StringList split(const RegularExpression &separator, 
+                                        SplitBehavior behavior = SplitBehavior::KeepEmptyParts) const;
+   PDK_REQUIRED_RESULT std::vector<StringRef> splitRef(const RegularExpression &separator,
+                                                       SplitBehavior behavior = SplitBehavior::KeepEmptyParts) const;
+#endif
    
    PDK_REQUIRED_RESULT String normalized(NormalizationForm mode, 
                                          Character::UnicodeVersion version = Character::UnicodeVersion::Unicode_Unassigned) const;

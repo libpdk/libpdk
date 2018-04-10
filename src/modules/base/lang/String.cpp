@@ -26,6 +26,7 @@
 #include "pdk/kernel/Algorithms.h"
 #include "pdk/pal/kernel/Simd.h"
 #include "pdk/global/Endian.h"
+#include "pdk/base/text/RegularExpression.h"
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/text/codecs/internal/UtfCodecPrivate.h"
 #include "pdk/base/io/DataStream.h"
@@ -76,6 +77,7 @@ using pdk::text::codecs::internal::Utf32;
 using pdk::ds::VarLengthArray;
 using pdk::lang::StringIterator;
 using pdk::text::codecs::TextCodec;
+using pdk::text::RegularExpressionMatchIterator;
 using pdk::io::DataStream;
 using pdk::utils::Locale;
 
@@ -1512,6 +1514,132 @@ String &String::replace(Character c, Latin1String after, pdk::CaseSensitivity cs
    return replace(&c, 1, reinterpret_cast<const Character *>(a.getRawData()), alen, cs);
 }
 
+#ifndef PDK_NO_REGULAREXPRESSION
+struct StringCapture
+{
+   int m_pos;
+   int m_len;
+   int m_no;
+};
+} // lang
+} // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::lang::StringCapture, PDK_PRIMITIVE_TYPE);
+
+namespace pdk {
+namespace lang {
+#endif
+
+#ifndef PDK_NO_REGULAREXPRESSION
+String &String::replace(const RegularExpression &regex, const String &after)
+{
+   if (!regex.isValid()) {
+      warning_stream("String::replace: invalid RegularExpression object");
+      return *this;
+   }
+   
+   const String copy(*this);
+   RegularExpressionMatchIterator iterator = regex.globalMatch(copy);
+   if (!iterator.hasNext()) {// no matches at all
+      return *this;
+   }
+   
+   reallocData(uint(m_data->m_size) + 1u);
+   
+   int numCaptures = regex.getCaptureCount();
+   
+   // 1. build the backreferences vector, holding where the backreferences
+   // are in the replacement string
+   std::vector<StringCapture> backReferences;
+   const int al = after.length();
+   const Character *ac = after.unicode();
+   
+   for (int i = 0; i < al - 1; i++) {
+      if (ac[i] == Latin1Character('\\')) {
+         int no = ac[i + 1].getDigitValue();
+         if (no > 0 && no <= numCaptures) {
+            StringCapture backReference;
+            backReference.m_pos = i;
+            backReference.m_len = 2;
+            
+            if (i < al - 2) {
+               int secondDigit = ac[i + 2].getDigitValue();
+               if (secondDigit != -1 && ((no * 10) + secondDigit) <= numCaptures) {
+                  no = (no * 10) + secondDigit;
+                  ++backReference.m_len;
+               }
+            }
+            
+            backReference.m_no = no;
+            backReferences.push_back(backReference);
+         }
+      }
+   }
+   
+   // 2. iterate on the matches. For every match, copy in chunks
+   // - the part before the match
+   // - the after string, with the proper replacements for the backreferences
+   
+   int newLength = 0; // length of the new string, with all the replacements
+   int lastEnd = 0;
+   std::vector<StringRef> chunks;
+   while (iterator.hasNext()) {
+      RegularExpressionMatch match = iterator.next();
+      int len;
+      // add the part before the match
+      len = match.getCapturedStart() - lastEnd;
+      if (len > 0) {
+         chunks.push_back(copy.substringRef(lastEnd, len));
+         newLength += len;
+      }
+      
+      lastEnd = 0;
+      // add the after string, with replacements for the backreferences
+      for (const StringCapture &backReference : std::as_const(backReferences)) {
+         // part of "after" before the backreference
+         len = backReference.m_pos - lastEnd;
+         if (len > 0) {
+            chunks.push_back(after.substringRef(lastEnd, len));
+            newLength += len;
+         }
+         // backreference itself
+         len = match.getCapturedLength(backReference.m_no);
+         if (len > 0) {
+            chunks.push_back(copy.substringRef(match.getCapturedStart(backReference.m_no), len));
+            newLength += len;
+         }
+         
+         lastEnd = backReference.m_pos + backReference.m_len;
+      }
+      // add the last part of the after string
+      len = after.length() - lastEnd;
+      if (len > 0) {
+         chunks.push_back(after.substringRef(lastEnd, len));
+         newLength += len;
+      }
+      lastEnd = match.getCapturedEnd();
+   }
+   
+   // 3. trailing string after the last match
+   if (copy.length() > lastEnd) {
+      chunks.push_back(copy.substringRef(lastEnd));
+      newLength += copy.length() - lastEnd;
+   }
+   
+   // 4. assemble the chunks together
+   resize(newLength);
+   int i = 0;
+   Character *uc = getRawData();
+   for (const StringRef &chunk : std::as_const(chunks)) {
+      int len = chunk.length();
+      std::memcpy(uc + i, chunk.unicode(), len * sizeof(Character));
+      i += len;
+   }
+   
+   return *this;
+}
+#endif
+
 bool operator ==(const String &lhs, const String &rhs) noexcept
 {
    if (lhs.m_data->m_size != rhs.m_data->m_size) {
@@ -1845,6 +1973,84 @@ int String::count(const StringRef &needle, CaseSensitivity cs) const
    return string_count(unicode(), size(), needle.unicode(), needle.size(), cs);
 }
 
+int String::indexOf(const RegularExpression &regex, int from, RegularExpressionMatch *rmatch) const
+{
+   if (!regex.isValid()) {
+      warning_stream("String::indexOf: invalid RegularExpression object");
+      return -1;
+   }
+   RegularExpressionMatch match = regex.match(*this, from);
+   if (match.hasMatch()) {
+      const int ret = match.getCapturedStart();
+      if (rmatch) {
+         *rmatch = std::move(match);
+      }
+      return ret;
+   }
+   
+   return -1;
+}
+
+#ifndef PDK_NO_REGULAREXPRESSION
+int String::lastIndexOf(const RegularExpression &regex, int from, RegularExpressionMatch *rmatch) const
+{
+   if (!regex.isValid()) {
+      warning_stream("String::lastIndexOf: invalid RegularExpression object");
+      return -1;
+   }
+   int endpos = (from < 0) ? (size() + from + 1) : (from + 1);
+   RegularExpressionMatchIterator iterator = regex.globalMatch(*this);
+   int lastIndex = -1;
+   while (iterator.hasNext()) {
+      RegularExpressionMatch match = iterator.next();
+      int start = match.getCapturedStart();
+      if (start < endpos) {
+         lastIndex = start;
+         if (rmatch) {
+            *rmatch = std::move(match);
+         }
+      } else {
+         break;
+      }
+   }
+   return lastIndex;
+}
+
+bool String::contains(const RegularExpression &regex, RegularExpressionMatch *match) const
+{
+   if (!regex.isValid()) {
+      warning_stream("String::contains: invalid RegularExpression object");
+      return false;
+   }
+   RegularExpressionMatch m = regex.match(*this);
+   bool hasMatch = m.hasMatch();
+   if (hasMatch && match) {
+      *match = std::move(m);
+   }
+   return hasMatch;
+}
+
+int String::count(const RegularExpression &regex) const
+{
+   if (!regex.isValid()) {
+      warning_stream("String::count: invalid RegularExpression object");
+      return 0;
+   }
+   int count = 0;
+   int index = -1;
+   int len = length();
+   while (index < len - 1) {
+      RegularExpressionMatch match = regex.match(*this, index + 1);
+      if (!match.hasMatch()) {
+         break;
+      }
+      index = match.getCapturedStart();
+      count++;
+   }
+   return count;
+}
+#endif
+
 String String::section(const String &separator, int start, int end, SectionFlags flags) const
 {
    const std::vector<StringRef> sections = splitRef(separator, SplitBehavior::KeepEmptyParts,
@@ -1904,6 +2110,135 @@ String String::section(const String &separator, int start, int end, SectionFlags
    }
    return ret;
 }
+
+#if !defined(PDK_NO_REGULAREXPRESSION)
+class RegexSectionChunk
+{
+public:
+    RegexSectionChunk() {}
+    RegexSectionChunk(int length, StringRef str) 
+       : m_length(length),
+         m_string(std::move(str))
+    {}
+    
+    int m_length;
+    StringRef m_string;
+};
+} // lang
+} // pdk
+
+PDK_DECLARE_TYPEINFO(pdk::lang::RegexSectionChunk, PDK_MOVABLE_TYPE);
+
+namespace pdk {
+namespace lang {
+
+namespace {
+
+String extract_sections(const std::vector<RegexSectionChunk> &sections,
+                        int start,
+                        int end,
+                        String::SectionFlags flags)
+{
+   const int sectionsSize = sections.size();
+   
+   if (!(flags & String::SectionFlag::SkipEmpty)) {
+      if (start < 0) {
+         start += sectionsSize;
+      }
+      
+      if (end < 0) {
+         end += sectionsSize;
+      }
+      
+   } else {
+      int skip = 0;
+      for (int k = 0; k < sectionsSize; ++k) {
+         const RegexSectionChunk &section = sections.at(k);
+         if (section.m_length == section.m_string.length()) {
+            skip++;
+         }
+      }
+      if (start < 0) {
+         start += sectionsSize - skip;
+      }
+      if (end < 0) {
+         end += sectionsSize - skip;
+      }   
+   }
+   if (start >= sectionsSize || end < 0 || start > end) {
+      return String();
+   }
+   String ret;
+   int x = 0;
+   int first_i = start, last_i = end;
+   for (int i = 0; x <= end && i < sectionsSize; ++i) {
+      const RegexSectionChunk &section = sections.at(i);
+      const bool empty = (section.m_length == section.m_string.length());
+      if (x >= start) {
+         if (x == start) {
+            first_i = i;
+         }
+         
+         if (x == end) {
+            last_i = i;
+         }
+         
+         if (x != start) {
+            ret += section.m_string;
+         } else {
+            ret += section.m_string.substring(section.m_length);
+         }
+         
+      }
+      if (!empty || !(flags & String::SectionFlag::SkipEmpty)) {
+         x++;
+      }
+   }
+   if ((flags & String::SectionFlag::IncludeLeadingSep) && first_i >= 0) {
+      const RegexSectionChunk &section = sections.at(first_i);
+      ret.prepend(section.m_string.left(section.m_length));
+   }
+   if ((flags & String::SectionFlag::IncludeTrailingSep)
+       && last_i < sectionsSize - 1) {
+      const RegexSectionChunk &section = sections.at(last_i+1);
+      ret += section.m_string.left(section.m_length);
+   }
+   return ret;
+}
+
+} // anonymous namespace
+
+#endif // PDK_NO_REGULAREXPRESSION
+
+#ifndef PDK_NO_REGULAREXPRESSION
+String String::section(const RegularExpression &regex, int start, int end, SectionFlags flags) const
+{
+   if (!regex.isValid()) {
+      warning_stream("String::section: invalid QRegularExpression object");
+      return String();
+   }   
+   const Character *uc = unicode();
+   if (!uc) {
+      return String();
+   }
+   RegularExpression sep(regex);
+   if (flags & SectionFlag::CaseInsensitiveSeps) {
+      sep.setPatternOptions(sep.getPatternOptions() | RegularExpression::PatternOption::CaseInsensitiveOption);
+   }
+   std::vector<RegexSectionChunk> sections;
+   int n = length(), m = 0, last_m = 0, last_len = 0;
+   RegularExpressionMatchIterator iterator = sep.globalMatch(*this);
+   while (iterator.hasNext()) {
+      RegularExpressionMatch match = iterator.next();
+      m = match.getCapturedStart();
+      sections.push_back(RegexSectionChunk(last_len, StringRef(this, last_m, m - last_m)));
+      last_m = m;
+      last_len = match.getCapturedLength();
+   }
+   sections.push_back(RegexSectionChunk(last_len, StringRef(this, last_m, n - last_m)));
+   return extract_sections(sections, start, end, flags);
+}
+#endif
 
 String String::left(int n) const
 {
@@ -3025,6 +3360,49 @@ std::vector<StringRef> StringRef::split(Character separator, String::SplitBehavi
 {
    return split_string<std::vector<StringRef>>(*this, &separator, behavior, cs, 1);
 }
+
+#ifndef PDK_NO_REGULAREXPRESSION
+
+namespace {
+template<class ResultList, typename MidMethod>
+static ResultList split_string(const String &source, MidMethod mid, const RegularExpression &regex,
+                              String::SplitBehavior behavior)
+{
+    ResultList list;
+    if (!regex.isValid()) {
+        warning_stream("String::split: invalid RegularExpression object");
+        return list;
+    }
+
+    int start = 0;
+    int end = 0;
+    RegularExpressionMatchIterator iterator = regex.globalMatch(source);
+    while (iterator.hasNext()) {
+        RegularExpressionMatch match = iterator.next();
+        end = match.getCapturedStart();
+        if (start != end || behavior == String::SplitBehavior::KeepEmptyParts) {
+           list.push_back((source.*mid)(start, end - start));
+        }
+        start = match.getCapturedEnd();
+    }
+    if (start != source.size() || behavior == String::SplitBehavior::KeepEmptyParts) {
+       list.push_back((source.*mid)(start, -1));
+    }
+    return list;
+}
+} // anonymous namespace
+
+StringList String::split(const RegularExpression &separator, SplitBehavior behavior) const
+{
+   return split_string<StringList>(*this, &String::substring, separator, behavior);
+}
+
+std::vector<StringRef> String::splitRef(const RegularExpression &separator, SplitBehavior behavior) const
+{
+   return split_string<std::vector<StringRef>>(*this, &String::substringRef, separator, behavior);
+}
+
+#endif // PDK_NO_REGULAREXPRESSION
 
 String String::repeated(int times) const
 {
