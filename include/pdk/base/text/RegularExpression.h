@@ -43,11 +43,20 @@ using pdk::utils::SharedDataPointer;
 
 class RegularExpressionMatch;
 class RegularExpressionMatchIterator;
-struct RegularExpressionPrivate;
 class RegularExpression;
 
 using pdk::io::DataStream;
 using pdk::io::Debug;
+
+namespace internal {
+struct RegularExpressionPrivate;
+struct RegularExpressionMatchPrivate;
+struct RegularExpressionMatchIteratorPrivate;
+} // internal
+
+using internal::RegularExpressionPrivate;
+using internal::RegularExpressionMatchPrivate;
+using internal::RegularExpressionMatchIteratorPrivate;
 
 PDK_CORE_EXPORT uint pdk_hash(const RegularExpression &key, uint seed = 0) noexcept;
 
@@ -99,6 +108,11 @@ public:
       return *this;
    }
    
+   void swap(RegularExpression &other) noexcept
+   {
+      m_implPtr.swap(other.m_implPtr);
+   }
+   
    String getPattern() const;
    void setPattern(const String &pattern);
    
@@ -106,13 +120,13 @@ public:
    int getPatternErrorOffset() const;
    String getErrorString() const;
    
-   int getCptureCount() const;
+   int getCaptureCount() const;
    StringList getNamedCaptureGroups() const;
    
    RegularExpressionMatch match(const String &subject,
                                 int offset                = 0,
-                                MatchType matchType       = NormalMatch,
-                                MatchOptions matchOptions = NoMatchOption) const;
+                                MatchType matchType       = MatchType::NormalMatch,
+                                MatchOptions matchOptions = MatchOption::NoMatchOption) const;
    
    RegularExpressionMatch match(const StringRef &subjectRef,
                                 int offset = 0,
@@ -162,7 +176,6 @@ PDK_CORE_EXPORT Debug operator <<(Debug debug, const RegularExpression &regex);
 PDK_CORE_EXPORT Debug operator <<(Debug debug, RegularExpression::PatternOptions patternOptions);
 #endif // PDK_NO_DEBUG_STREAM
 
-struct RegularExpressionMatchPrivate;
 class PDK_CORE_EXPORT RegularExpressionMatch
 {
 public:
@@ -229,7 +242,6 @@ private:
    
 };
 
-struct RegularExpressionMatchIteratorPrivate;
 class PDK_CORE_EXPORT RegularExpressionMatchIterator
 {
 public:
@@ -260,7 +272,7 @@ public:
    RegularExpression::MatchOptions getMatchOptions() const;
    
 private:
-   friend class QRegularExpression;
+   friend class RegularExpression;
    
    RegularExpressionMatchIterator(RegularExpressionMatchIteratorPrivate &dd);
    SharedDataPointer<RegularExpressionMatchIteratorPrivate> m_implPtr;

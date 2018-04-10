@@ -398,7 +398,7 @@ template <typename T>
 inline void ExplicitlySharedDataPointer<T>::detachHelper()
 {
    T *x = clone();
-   x->ref.ref();
+   x->m_ref.ref();
    if (!m_implPtr->m_ref.deref()) {
       delete m_implPtr;
    }
@@ -427,14 +427,14 @@ inline void swap(ExplicitlySharedDataPointer<T> &lhs, ExplicitlySharedDataPointe
 }
 
 template <typename T>
-inline uint hash(const SharedDataPointer<T> &ptr, uint seed = 0) noexcept
+inline uint pdk_hash(const SharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
-   return hash(ptr.data(), seed);
+   return pdk_hash(ptr.data(), seed);
 }
 template <typename T>
-inline uint hash(const ExplicitlySharedDataPointer<T> &ptr, uint seed = 0) noexcept
+inline uint pdk_hash(const ExplicitlySharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
-   return hash(ptr.data(), seed);
+   return pdk_hash(ptr.data(), seed);
 }
 
 } // utils
