@@ -41,7 +41,8 @@ pdk_add_unittest(ModuleBaseUnittests PdkDsTest ${PDK_DS_TEST_SRCS})
 
 set(PDK_TEXT_TEST_SRCS)
 pdk_add_files(PDK_TEXT_TEST_SRCS
-   text/codecs/TextCodecTest.cpp)
+   text/codecs/TextCodecTest.cpp
+   text/RegularExpressionTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests TextTest ${PDK_TEXT_TEST_SRCS})
 
