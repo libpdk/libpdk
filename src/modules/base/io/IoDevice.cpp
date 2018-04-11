@@ -1064,7 +1064,7 @@ pdk::pint64 IoDevice::write(const char *data, pdk::pint64 maxLength)
       implPtr->m_buffer.skip(written);
    }
    return written;
-}
+ }
 
 pdk::pint64 IoDevice::write(const char *data)
 {

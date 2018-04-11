@@ -50,6 +50,8 @@ PDK_UNITTEST_EXPORT String normalize_path_segments(const String &name, bool allo
 
 namespace {
 
+String sg_currentSourceDir(Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR));
+
 ByteArray msg_does_not_exist(const String &name)
 {
    return (Latin1Character('"') + Dir::toNativeSeparators(name)
@@ -72,7 +74,7 @@ public:
    
    void TearDown()
    {
-      //Dir(Dir::getCurrentPath() + Latin1String("/tmpdir")).removeRecursively();
+      // Dir(Dir::getCurrentPath() + Latin1String("/tmpdir")).removeRecursively();
    }
    
 protected:
@@ -92,7 +94,7 @@ protected:
 //   ASSERT_EQ(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Files, obj1.getFilter());
 //   obj1.setFilter(Dir::Filters(Dir::Filter::NoFilter));
 //   ASSERT_EQ(Dir::Filters(Dir::Filter::NoFilter), obj1.getFilter());
-   
+
 //   // SortFlags Dir::getSorting()
 //   // void Dir::setSorting(SortFlags)   
 //   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::Name));
@@ -126,12 +128,12 @@ protected:
 //   for (const auto &item: data) {
 //      const String &dir1 = std::get<0>(item);
 //      const String &dir2 = std::get<1>(item);
-      
+
 //      Dir shared;
 //      Dir tempDir1(dir1);
 //      StringList entries1 = tempDir1.entryList();
 //      ASSERT_EQ(shared.entryList(), entries1);
-      
+
 //      Dir tempDir2(dir2);
 //      StringList entries2 = tempDir2.entryList();
 //      shared.setPath(dir2);
@@ -147,15 +149,15 @@ protected:
 //   dirs.push_back(String(Latin1String("testdir/one")));
 //   dirs.push_back(String(Latin1String("testdir/two/three/four")));
 //   dirs.push_back(String(Latin1String("testdir/../testdir/three")));
-   
+
 //   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(0), false));
 //   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(1), true));
 //   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(2), false));
-   
+
 //   data.push_back(std::make_tuple(dirs.at(0), false));
 //   data.push_back(std::make_tuple(dirs.at(1), true));
 //   data.push_back(std::make_tuple(dirs.at(2), false));
-   
+
 //   for (size_t i = 0; i < dirs.size(); ++i) {
 //      ASSERT_TRUE(!File::exists(dirs.at(i)));
 //   }
@@ -217,7 +219,7 @@ protected:
 //      {
 //         doClean();
 //      }
-      
+
 //      void doClean()
 //      {
 //         m_dir.rmpath(Latin1String("two/three"));
@@ -227,20 +229,20 @@ protected:
 //         File::remove(Latin1String("symlink"));
 //      }
 //   };
-   
+
 //   Clean clean(dir);
 //   clean.doClean();
-   
+
 //   // create our structure:
 //   dir.mkpath(Latin1String("two/three"));
 //   ::symlink("two/three", "symlink");
-   
+
 //   // try it:
 //   String path = Latin1String("symlink/../four/five");
 //   ASSERT_TRUE(dir.mkpath(path));
 //   FileInfo fileInfo(path);
 //   ASSERT_TRUE(fileInfo.exists() && fileInfo.isDir()) <<  msg_does_not_exist(path).getConstRawData();
-   
+
 //   path = Latin1String("two/four/five");
 //   fileInfo.setFile(path);
 //   ASSERT_TRUE(fileInfo.exists() && fileInfo.isDir()) << msg_does_not_exist(path).getConstRawData();
@@ -254,13 +256,13 @@ protected:
 //   // cleanup a previous run.
 //   file.remove();
 //   Dir::getCurrent().rmdir(dirName);
-   
+
 //   Dir dir(dirName);
 //   ASSERT_TRUE(!dir.exists());
 //   ASSERT_TRUE(Dir::getCurrent().mkdir(dirName));
 //   ASSERT_TRUE(!Dir::getCurrent().mkdir(dirName)); // calling mkdir on an existing dir will fail.
 //   ASSERT_TRUE(Dir::getCurrent().mkpath(dirName)); // calling mkpath on an existing dir will pass
-   
+
 //   // Remove the directory and create a file with the same path
 //   Dir::getCurrent().rmdir(dirName);
 //   ASSERT_TRUE(!file.exists());
@@ -314,5 +316,98 @@ TEST_F(DirTest, testRemoveRecursively)
       ASSERT_TRUE(dir.removeRecursively());
       //make sure it really doesn't exist (ie that remove worked)
       ASSERT_TRUE(!dir.exists());
+   }
+}
+
+TEST_F(DirTest, testRemoveRecursivelyFailure)
+{
+#ifdef PDK_OS_UNIX
+   if (::getuid() == 0) {
+      SUCCEED() << "Running this test as root doesn't make sense";
+   }
+#endif
+   const String tmpdir = Dir::getCurrentPath() + Latin1String("/tmpdir/");
+   const String path = tmpdir + Latin1String("undeletable");
+   Dir().mkpath(path);
+   File file(path + Latin1String("/file"));
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+   file.write("Hello");
+   file.close();
+   
+#ifdef PDK_OS_UNIX
+   File dirAsFile(path); // yay, I have to use File to change a dir's permissions...
+   ASSERT_TRUE(dirAsFile.setPermissions(File::Permissions(0))); // no permissions
+   ASSERT_TRUE(!Dir().rmdir(path));
+   Dir dir(path);
+   ASSERT_TRUE(!dir.removeRecursively()); // didn't work
+   ASSERT_TRUE(dir.exists())<< msg_does_not_exist(dir.getAbsolutePath()).getConstRawData(); // still exists
+   
+   ASSERT_TRUE(dirAsFile.setPermissions(File::Permissions(File::Permission::ReadOwner) | 
+                                        File::Permission::WriteOwner | File::Permission::ExeOwner));
+   ASSERT_TRUE(dir.removeRecursively());
+   ASSERT_TRUE(!dir.exists());
+#else // PDK_OS_UNIX
+   ASSERT_TRUE(file.setPermissions(File::ReadOwner));
+   ASSERT_TRUE(!Dir().rmdir(path));
+   Dir dir(path);
+   ASSERT_TRUE(dir.removeRecursively());
+   ASSERT_TRUE(!dir.exists());
+#endif // !PDK_OS_UNIX
+}
+
+TEST_F(DirTest, testRemoveRecursivelySymlink)
+{
+#ifndef PDK_NO_SYMLINKS
+   const String tmpdir = Dir::getCurrentPath() + Latin1String("/tmpdir/");
+   Dir().mkpath(tmpdir);
+   Dir currentDir;
+   currentDir.mkdir(Latin1String("myDir"));
+   File(Latin1String("testfile")).open(IoDevice::OpenMode::WriteOnly);
+   const String link = tmpdir + Latin1String("linkToDir.lnk");
+   const String linkToFile = tmpdir + Latin1String("linkToFile.lnk");
+#ifndef PDK_NO_SYMLINKS_TO_DIRS
+   ASSERT_TRUE(File::link(Latin1String("../myDir"), link));
+   ASSERT_TRUE(File::link(Latin1String("../testfile"), linkToFile));
+#endif
+   
+   Dir dir(tmpdir);
+   ASSERT_TRUE(dir.removeRecursively());
+   ASSERT_TRUE(Dir(Latin1String("myDir")).exists()); // it didn't follow the symlink, good.
+   ASSERT_TRUE(File::exists(Latin1String("testfile")));
+   
+   currentDir.rmdir(Latin1String("myDir"));
+   File::remove(Latin1String("testfile"));
+#endif
+}
+
+namespace {
+
+void init_exists_data(std::list<std::tuple<String, bool>> &data)
+{
+   data.push_back(std::make_tuple(Dir::getCurrentPath(), true));
+   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/"), true));
+   data.push_back(std::make_tuple(String(Latin1String("/I/Do_not_expect_this_path_to_exist/")), false));
+   data.push_back(std::make_tuple(Dir::getCurrentPath(), true));
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/resources"), true));
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/resources/"), true));
+}
+
+
+} // anonymous namespace
+
+TEST_F(DirTest, testExists)
+{
+   
+   std::list<std::tuple<String, bool>> data;
+   init_exists_data(data);
+   for (auto item : data) {
+      String &path = std::get<0>(item);
+      bool expected = std::get<1>(item);
+      Dir dir(path);
+      if (expected) {
+         ASSERT_TRUE(dir.exists()) << msg_does_not_exist(path).getConstRawData();
+      } else {
+         ASSERT_TRUE(!dir.exists());
+      }
    }
 }

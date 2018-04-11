@@ -36,7 +36,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
-#include <iostream>
 
 namespace pdk {
 namespace io {
@@ -1017,7 +1016,6 @@ bool Dir::removeRecursively()
       const FileInfo& finfo = diter.getFileInfo();
       const String &filePath = diter.getFilePath();
       bool ok;
-      std::cout << filePath.toStdString() << std::endl;
       if (finfo.isDir() && !finfo.isSymLink()) {
          ok = Dir(filePath).removeRecursively(); // recursive
       } else {
