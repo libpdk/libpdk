@@ -21,6 +21,7 @@
 #include "pdk/base/io/fs/internal/FileSystemMetaDataPrivate.h"
 #include "pdk/base/io/fs/internal/FileSystemEnginePrivate.h"
 #include "pdk/base/io/fs/internal/FileInfoPrivate.h"
+#include "pdk/base/text/RegularExpression.h"
 #include "pdk/stdext/utility/Algorithms.h"
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/base/lang/String.h"
@@ -39,6 +40,7 @@ using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Latin1Character;
 using internal::FileSystemEntry;
+using pdk::text::RegularExpression;
 
 namespace internal {
 
@@ -75,9 +77,9 @@ public:
    const Dir::Filters m_filters;
    const DirIterator::IteratorFlags m_iteratorFlags;
    
-   //#ifndef PDK_NO_REGEXP
-   //   std::vector<QRegExp> m_nameRegExps;
-   //#endif
+   #ifndef PDK_NO_FILESYSTEMITERATOR
+      std::vector<RegularExpression> m_nameRegExps;
+   #endif
    
    DirIteratorPrivateIteratorStack<AbstractFileEngineIterator> m_fileEngineIterators;
 #ifndef PDK_NO_FILESYSTEMITERATOR
@@ -98,14 +100,16 @@ DirIteratorPrivate::DirIteratorPrivate(const FileSystemEntry &entry, const Strin
      m_filters(filters == Dir::Filter::NoFilter ? Dir::Filter::AllEntries : filters),
      m_iteratorFlags(flags)
 {
-   //#ifndef PDK_NO_REGEXP
-   //   nameRegExps.reserve(nameFilters.size());
-   //   for (int i = 0; i < nameFilters.size(); ++i)
-   //      nameRegExps.append(
-   //               QRegExp(nameFilters.at(i),
-   //                       (filters & Dir::Filter::CaseSensitive) ? pdk::CaseSensitivity::Sensitive : pdk::CaseSensitivity::Insensitive,
-   //                       QRegExp::Wildcard));
-   //#endif
+#ifndef PDK_NO_FILESYSTEMITERATOR
+   m_nameRegExps.reserve(nameFilters.size());
+   for (size_t i = 0; i < nameFilters.size(); ++i) {
+      RegularExpression::PatternOptions options(RegularExpression::PatternOption::DotMatchesEverythingOption);
+      if (!(filters & Dir::Filter::CaseSensitive)) {
+         options |= RegularExpression::PatternOption::CaseInsensitiveOption;
+      }
+      m_nameRegExps.push_back(RegularExpression(nameFilters.at(i)));
+   }
+#endif
    FileSystemMetaData metaData;
    if (resolveEngine) {
       m_engine.reset(FileSystemEngine::resolveEntryAndCreateLegacyEngine(m_dirEntry, metaData));
@@ -247,25 +251,27 @@ bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &
    }
    
    // name filter
-   //#ifndef PDK_NO_REGEXP
-   //   // Pass all entries through name filters, except dirs if the AllDirs
-   //   if (!m_nameFilters.isEmpty() && !((filters & Dir::Filter::AllDirs) && file.isDir())) {
-   //      bool matched = false;
-   //      for (std::vector<QRegExp>::const_iterator iter = m_nameRegExps.constBegin(),
-   //           end = nameRegExps.constEnd();
-   //           iter != end; ++iter) {
+   #ifndef PDK_NO_REGULAREXPRESSION
+      // Pass all entries through name filters, except dirs if the AllDirs
+      if (!m_nameFilters.empty() && !((m_filters & Dir::Filter::AllDirs) && file.isDir())) {
+         bool matched = false;
+         for (std::vector<RegularExpression>::const_iterator iter = m_nameRegExps.cbegin(),
+              end = m_nameRegExps.cend();
+              iter != end; ++iter) {
    
-   //         QRegExp copy = *iter;
-   //         if (copy.exactMatch(fileName)) {
-   //            matched = true;
-   //            break;
-   //         }
-   //      }
-   //      if (!matched) {
-   //         return false;
-   //      }
-   //   }
-   //#endif
+            RegularExpression copy = *iter;
+            std::cout << "regex > " << fileName.toStdString() << std::endl;
+            // @TODO is really ok here?
+            if (copy.match(fileName).hasMatch()) {
+               matched = true;
+               break;
+            }
+         }
+         if (!matched) {
+            return false;
+         }
+      }
+   #endif
    // skip symlinks
    const bool skipSymlinks = (m_filters & Dir::Filter::NoSymLinks);
    const bool includeSystem = (m_filters & Dir::Filter::System);

@@ -433,47 +433,47 @@ public:
 //   }
 //}
 
-TEST_F(DirIteratorTest, testEngineWithNoIterator)
-{
-   EngineWithNoIteratorHandler handler;
+//TEST_F(DirIteratorTest, testEngineWithNoIterator)
+//{
+//   EngineWithNoIteratorHandler handler;
    
-   Dir(Latin1String("entrylist")).entryList();
-   ASSERT_TRUE(true); // test that the above line doesn't crash
-}
+//   Dir(Latin1String("entrylist")).entryList();
+//   ASSERT_TRUE(true); // test that the above line doesn't crash
+//}
 
-TEST_F(DirIteratorTest, testStopLinkLoop)
-{
-   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/entrylist1.lnk"));
-   createLink(Latin1String("."), Latin1String("entrylist/entrylist2.lnk"));
-   createLink(Latin1String("../entrylist/."), Latin1String("entrylist/entrylist3.lnk"));
-   createLink(Latin1String(".."), Latin1String("entrylist/entrylist4.lnk"));
-   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/directory/entrylist1.lnk"));
-   createLink(Latin1String("."), Latin1String("entrylist/directory/entrylist2.lnk"));
-   createLink(Latin1String("../directory/."), Latin1String("entrylist/directory/entrylist3.lnk"));
-   createLink(Latin1String(".."), Latin1String("entrylist/directory/entrylist4.lnk"));
+//TEST_F(DirIteratorTest, testStopLinkLoop)
+//{
+//   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/entrylist1.lnk"));
+//   createLink(Latin1String("."), Latin1String("entrylist/entrylist2.lnk"));
+//   createLink(Latin1String("../entrylist/."), Latin1String("entrylist/entrylist3.lnk"));
+//   createLink(Latin1String(".."), Latin1String("entrylist/entrylist4.lnk"));
+//   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/directory/entrylist1.lnk"));
+//   createLink(Latin1String("."), Latin1String("entrylist/directory/entrylist2.lnk"));
+//   createLink(Latin1String("../directory/."), Latin1String("entrylist/directory/entrylist3.lnk"));
+//   createLink(Latin1String(".."), Latin1String("entrylist/directory/entrylist4.lnk"));
    
-   DirIterator iter(Latin1String("entrylist"), DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories) | 
-                    DirIterator::IteratorFlag::FollowSymlinks);
-   int max = 200;
-   while (--max && iter.hasNext()) {
-      iter.next();
-   }
-   ASSERT_TRUE(max);
-}
+//   DirIterator iter(Latin1String("entrylist"), DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories) | 
+//                    DirIterator::IteratorFlag::FollowSymlinks);
+//   int max = 200;
+//   while (--max && iter.hasNext()) {
+//      iter.next();
+//   }
+//   ASSERT_TRUE(max);
+//}
 
-TEST_F(DirIteratorTest, testAbsoluteFilePathsFromRelativeIteratorPath)
-{
-   DirIterator iter(Latin1String("entrylist/"), Dir::Filter::NoDotAndDotDot);
-   while (iter.hasNext()) {
-      iter.next();
-      ASSERT_TRUE(FileInfo(iter.getFilePath()).getAbsoluteFilePath().contains(Latin1String("entrylist")));
-   }
-}
+//TEST_F(DirIteratorTest, testAbsoluteFilePathsFromRelativeIteratorPath)
+//{
+//   DirIterator iter(Latin1String("entrylist/"), Dir::Filter::NoDotAndDotDot);
+//   while (iter.hasNext()) {
+//      iter.next();
+//      ASSERT_TRUE(FileInfo(iter.getFilePath()).getAbsoluteFilePath().contains(Latin1String("entrylist")));
+//   }
+//}
 
 TEST_F(DirIteratorTest, testRecurseWithFilters)
 {
    StringList nameFilters;
-   nameFilters.push_back(Latin1String("*.txt"));
+   nameFilters.push_back(Latin1String(".+\\.txt"));
    DirIterator iter(Latin1String("recursiveDirs/"), nameFilters, Dir::Filter::Files,
                     DirIterator::IteratorFlag::Subdirectories);
    std::set<String> actualEntries;
@@ -484,12 +484,10 @@ TEST_F(DirIteratorTest, testRecurseWithFilters)
    ASSERT_TRUE(iter.hasNext());
    iter.next();
    actualEntries.insert(iter.getFileInfo().getFilePath());
-   std::cout << "------------" << std::endl;
-   std::cout << iter.getFileInfo().getFilePath().toStdString() << std::endl;
    ASSERT_TRUE(iter.hasNext());
    iter.next();
    actualEntries.insert(iter.getFileInfo().getFilePath());
-   //ASSERT_EQ(actualEntries, expectedEntries);
+   ASSERT_EQ(actualEntries, expectedEntries);
    
-   //ASSERT_TRUE(!iter.hasNext());
+   ASSERT_TRUE(!iter.hasNext());
 }
