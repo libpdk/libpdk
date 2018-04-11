@@ -150,7 +150,7 @@ String FileSystemEntry::getFileName() const
    findLastSeparator();
 #if defined(PDK_OS_WIN)
    if (m_lastSeparator == -1 && m_filePath.length() >= 2 && m_filePath.at(1) == Latin1Character(':')) {
-      return m_filePath.mid(2);
+      return m_filePath.substring(2);
    }
 #endif
    return m_filePath.substring(m_lastSeparator + 1);
@@ -190,7 +190,7 @@ String FileSystemEntry::getBaseName() const
    }
 #if defined(PDK_OS_WIN)
    if (m_lastSeparator == -1 && m_filePath.length() >= 2 && m_filePath.at(1) == Latin1Character(':')) {
-      return m_filePath.mid(2, length - 2);
+      return m_filePath.substring(2, length - 2);
    }
 #endif
    return m_filePath.substring(m_lastSeparator + 1, length);
@@ -208,7 +208,7 @@ String FileSystemEntry::getCompleteBaseName() const
    }
 #if defined(PDK_OS_WIN)
    if (m_lastSeparator == -1 && m_filePath.length() >= 2 && m_filePath.at(1) == Latin1Character(':')) {
-      return m_filePath.mid(2, length - 2);
+      return m_filePath.substring(2, length - 2);
    }
 #endif
    return m_filePath.substring(m_lastSeparator + 1, length);

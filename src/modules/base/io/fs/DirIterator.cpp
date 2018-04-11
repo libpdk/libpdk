@@ -30,7 +30,6 @@
 #include <vector>
 #include <stack>
 #include <set>
-#include <iostream>
 
 namespace pdk {
 namespace io {
@@ -186,7 +185,6 @@ void DirIteratorPrivate::advance()
          // Find the next valid iterator that matches the filters.
          FileSystemIterator *iter;
          while (iter = m_nativeIterators.top(), iter->advance(nextEntry, nextMetaData)) {
-            std::cout << nextEntry.getFilePath().toStdString() << std::endl;
             FileInfo info(new FileInfoPrivate(nextEntry, nextMetaData));
             if (entryMatches(nextEntry.getFileName(), info)) {
                return;

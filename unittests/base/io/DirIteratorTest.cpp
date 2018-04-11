@@ -303,50 +303,50 @@ void init_iterate_relative_directory_data(IterateRelativeDirType &data)
 
 } // anonymous namespace
 
-//TEST_F(DirIteratorTest, testIterateRelativeDirectory)
-//{
-//   IterateRelativeDirType data;
-//   init_iterate_relative_directory_data(data);
-//   for (auto &item : data) {
-//      String &dirName = std::get<0>(item);
-//      DirIterator::IteratorFlags &flags = std::get<1>(item);
-//      Dir::Filters &filters = std::get<2>(item);
-//      StringList &nameFilters = std::get<3>(item);
-//      StringList &entries = std::get<4>(item);
-
-//      DirIterator iter(dirName, nameFilters, filters, flags);
-//      StringList list;
-//      while (iter.hasNext()) {
-//         String next = iter.next();
-
-//         String fileName = iter.getFileName();
-//         String filePath = iter.getFilePath();
-//         String path = iter.getPath();
-//         FileInfo info = iter.getFileInfo();
-
-//         ASSERT_EQ(path, dirName);
-//         ASSERT_EQ(next, filePath);
-
-//         ASSERT_EQ(info, FileInfo(next));
-//         ASSERT_EQ(fileName, info.getFileName());
-//         ASSERT_EQ(filePath, info.getFilePath());
-//         // Using canonical file paths for final comparison
-//         list << info.getCanonicalFilePath();
-//      }
-//      // The order of items returned by DirIterator is not guaranteed.
-//      list.sort();
-//      StringList sortedEntries;
-//      for(String item: entries) {
-//         sortedEntries.push_back(FileInfo(item).getCanonicalFilePath());
-//      }
-//      sortedEntries.sort();
-//      if (sortedEntries != list) {
-//         debug_stream() << "EXPECTED:" << sortedEntries;
-//         debug_stream() << "ACTUAL:  " << list;
-//      }
-//      ASSERT_EQ(list, sortedEntries);
-//   }
-//}
+TEST_F(DirIteratorTest, testIterateRelativeDirectory)
+{
+   IterateRelativeDirType data;
+   init_iterate_relative_directory_data(data);
+   for (auto &item : data) {
+      String &dirName = std::get<0>(item);
+      DirIterator::IteratorFlags &flags = std::get<1>(item);
+      Dir::Filters &filters = std::get<2>(item);
+      StringList &nameFilters = std::get<3>(item);
+      StringList &entries = std::get<4>(item);
+      
+      DirIterator iter(dirName, nameFilters, filters, flags);
+      StringList list;
+      while (iter.hasNext()) {
+         String next = iter.next();
+         
+         String fileName = iter.getFileName();
+         String filePath = iter.getFilePath();
+         String path = iter.getPath();
+         FileInfo info = iter.getFileInfo();
+         
+         ASSERT_EQ(path, dirName);
+         ASSERT_EQ(next, filePath);
+         
+         ASSERT_EQ(info, FileInfo(next));
+         ASSERT_EQ(fileName, info.getFileName());
+         ASSERT_EQ(filePath, info.getFilePath());
+         // Using canonical file paths for final comparison
+         list << info.getCanonicalFilePath();
+      }
+      // The order of items returned by DirIterator is not guaranteed.
+      list.sort();
+      StringList sortedEntries;
+      for(String item: entries) {
+         sortedEntries.push_back(FileInfo(item).getCanonicalFilePath());
+      }
+      sortedEntries.sort();
+      if (sortedEntries != list) {
+         debug_stream() << "EXPECTED:" << sortedEntries;
+         debug_stream() << "ACTUAL:  " << list;
+      }
+      ASSERT_EQ(list, sortedEntries);
+   }
+}
 
 namespace {
 
@@ -370,105 +370,105 @@ public:
    }
 };
 
-//using IterateResourceDirType = std::list<std::tuple<String, DirIterator::IteratorFlags, Dir::Filters, StringList, StringList>>;
+using IterateResourceDirType = std::list<std::tuple<String, DirIterator::IteratorFlags, Dir::Filters, StringList, StringList>>;
 
-//void init_iterate_resource_data(IterateResourceDirType &data)
-//{
-//      data.push_back(std::make_tuple(String::fromLatin1(":/burpaburpa"),
-//                                     DirIterator::IteratorFlags(0),
-//                                     Dir::Filters(Dir::Filter::NoFilter),
-//                                     StringList(Latin1String("*")),
-//                                     StringList()));
-
-//   data.push_back(std::make_tuple(String::fromLatin1(":/"),
-//                                  DirIterator::IteratorFlags(0),
-//                                  Dir::Filters(Dir::Filter::NoFilter),
-//                                  StringList(Latin1String("*")),
-//                                  String::fromLatin1(":/entrylist").split(Latin1String(","))));
-
-//      data.push_back(std::make_tuple(String::fromLatin1(":/entrylist"),
-//                                     DirIterator::IteratorFlags(0),
-//                                     Dir::Filters(Dir::Filter::NoFilter),
-//                                     StringList(Latin1String("*")),
-//                                     String::fromLatin1(":/entrylist/directory,:/entrylist/file").split(Latin1String(","))));
-
-//      data.push_back(std::make_tuple(String::fromLatin1(":/"),
-//                                     DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories),
-//                                     Dir::Filters(Dir::Filter::NoFilter),
-//                                     StringList(Latin1String("*")),
-//                                     String::fromLatin1(":/entrylist,:/entrylist/directory,:/entrylist/directory/dummy,:/entrylist/file").split(Latin1String(","))));
-//}
+void init_iterate_resource_data(IterateResourceDirType &data)
+{
+   data.push_back(std::make_tuple(String::fromLatin1(":/burpaburpa"),
+                                  DirIterator::IteratorFlags(0),
+                                  Dir::Filters(Dir::Filter::NoFilter),
+                                  StringList(Latin1String("*")),
+                                  StringList()));
+   
+   data.push_back(std::make_tuple(String::fromLatin1(":/"),
+                                  DirIterator::IteratorFlags(0),
+                                  Dir::Filters(Dir::Filter::NoFilter),
+                                  StringList(Latin1String("*")),
+                                  String::fromLatin1(":/entrylist").split(Latin1String(","))));
+   
+   data.push_back(std::make_tuple(String::fromLatin1(":/entrylist"),
+                                  DirIterator::IteratorFlags(0),
+                                  Dir::Filters(Dir::Filter::NoFilter),
+                                  StringList(Latin1String("*")),
+                                  String::fromLatin1(":/entrylist/directory,:/entrylist/file").split(Latin1String(","))));
+   
+   data.push_back(std::make_tuple(String::fromLatin1(":/"),
+                                  DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories),
+                                  Dir::Filters(Dir::Filter::NoFilter),
+                                  StringList(Latin1String("*")),
+                                  String::fromLatin1(":/entrylist,:/entrylist/directory,:/entrylist/directory/dummy,:/entrylist/file").split(Latin1String(","))));
+}
 
 } // anonymous namespace
 
-//TEST_F(DirIteratorTest, testIterateResource)
-//{
-//   IterateResourceDirType data;
-//   init_iterate_resource_data(data);
-//   for (auto &item : data) {
-//      String &dirName = std::get<0>(item);
-//      DirIterator::IteratorFlags &flags = std::get<1>(item);
-//      Dir::Filters &filters = std::get<2>(item);
-//      StringList &nameFilters = std::get<3>(item);
-//      StringList &entries = std::get<4>(item);
-//      DirIterator iter(dirName, nameFilters, filters, flags);
-//      StringList list;
-//      while (iter.hasNext()) {
-//         const String dir = iter.next();
-//         if (!dir.startsWith(Latin1String(":/libpdk.org"))) {
-//            list << dir;
-//         }
-//      }
+TEST_F(DirIteratorTest, testIterateResource)
+{
+   IterateResourceDirType data;
+   init_iterate_resource_data(data);
+   for (auto &item : data) {
+      String &dirName = std::get<0>(item);
+      DirIterator::IteratorFlags &flags = std::get<1>(item);
+      Dir::Filters &filters = std::get<2>(item);
+      StringList &nameFilters = std::get<3>(item);
+      StringList &entries = std::get<4>(item);
+      DirIterator iter(dirName, nameFilters, filters, flags);
+      StringList list;
+      while (iter.hasNext()) {
+         const String dir = iter.next();
+         if (!dir.startsWith(Latin1String(":/libpdk.org"))) {
+            list << dir;
+         }
+      }
+      
+      list.sort();
+      StringList sortedEntries = entries;
+      sortedEntries.sort();
+      
+      if (sortedEntries != list) {
+         debug_stream() << "EXPECTED:" << sortedEntries;
+         debug_stream() << "ACTUAL:" << list;
+      }
+      std::cout << list.size() << " -- " << sortedEntries.size() << std::endl;
+      //ASSERT_EQ(list, sortedEntries);
+   }
+}
 
-//      list.sort();
-//      StringList sortedEntries = entries;
-//      sortedEntries.sort();
-
-//      if (sortedEntries != list) {
-//         debug_stream() << "EXPECTED:" << sortedEntries;
-//         debug_stream() << "ACTUAL:" << list;
-//      }
-//      std::cout << list.size() << " -- " << sortedEntries.size() << std::endl;
-//      //ASSERT_EQ(list, sortedEntries);
-//   }
-//}
-
-//TEST_F(DirIteratorTest, testEngineWithNoIterator)
-//{
-//   EngineWithNoIteratorHandler handler;
+TEST_F(DirIteratorTest, testEngineWithNoIterator)
+{
+   EngineWithNoIteratorHandler handler;
    
-//   Dir(Latin1String("entrylist")).entryList();
-//   ASSERT_TRUE(true); // test that the above line doesn't crash
-//}
+   Dir(Latin1String("entrylist")).entryList();
+   ASSERT_TRUE(true); // test that the above line doesn't crash
+}
 
-//TEST_F(DirIteratorTest, testStopLinkLoop)
-//{
-//   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/entrylist1.lnk"));
-//   createLink(Latin1String("."), Latin1String("entrylist/entrylist2.lnk"));
-//   createLink(Latin1String("../entrylist/."), Latin1String("entrylist/entrylist3.lnk"));
-//   createLink(Latin1String(".."), Latin1String("entrylist/entrylist4.lnk"));
-//   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/directory/entrylist1.lnk"));
-//   createLink(Latin1String("."), Latin1String("entrylist/directory/entrylist2.lnk"));
-//   createLink(Latin1String("../directory/."), Latin1String("entrylist/directory/entrylist3.lnk"));
-//   createLink(Latin1String(".."), Latin1String("entrylist/directory/entrylist4.lnk"));
+TEST_F(DirIteratorTest, testStopLinkLoop)
+{
+   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/entrylist1.lnk"));
+   createLink(Latin1String("."), Latin1String("entrylist/entrylist2.lnk"));
+   createLink(Latin1String("../entrylist/."), Latin1String("entrylist/entrylist3.lnk"));
+   createLink(Latin1String(".."), Latin1String("entrylist/entrylist4.lnk"));
+   createLink(Dir::getCurrentPath() + Latin1String("/entrylist"), Latin1String("entrylist/directory/entrylist1.lnk"));
+   createLink(Latin1String("."), Latin1String("entrylist/directory/entrylist2.lnk"));
+   createLink(Latin1String("../directory/."), Latin1String("entrylist/directory/entrylist3.lnk"));
+   createLink(Latin1String(".."), Latin1String("entrylist/directory/entrylist4.lnk"));
    
-//   DirIterator iter(Latin1String("entrylist"), DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories) | 
-//                    DirIterator::IteratorFlag::FollowSymlinks);
-//   int max = 200;
-//   while (--max && iter.hasNext()) {
-//      iter.next();
-//   }
-//   ASSERT_TRUE(max);
-//}
+   DirIterator iter(Latin1String("entrylist"), DirIterator::IteratorFlags(DirIterator::IteratorFlag::Subdirectories) | 
+                    DirIterator::IteratorFlag::FollowSymlinks);
+   int max = 200;
+   while (--max && iter.hasNext()) {
+      iter.next();
+   }
+   ASSERT_TRUE(max);
+}
 
-//TEST_F(DirIteratorTest, testAbsoluteFilePathsFromRelativeIteratorPath)
-//{
-//   DirIterator iter(Latin1String("entrylist/"), Dir::Filter::NoDotAndDotDot);
-//   while (iter.hasNext()) {
-//      iter.next();
-//      ASSERT_TRUE(FileInfo(iter.getFilePath()).getAbsoluteFilePath().contains(Latin1String("entrylist")));
-//   }
-//}
+TEST_F(DirIteratorTest, testAbsoluteFilePathsFromRelativeIteratorPath)
+{
+   DirIterator iter(Latin1String("entrylist/"), Dir::Filter::NoDotAndDotDot);
+   while (iter.hasNext()) {
+      iter.next();
+      ASSERT_TRUE(FileInfo(iter.getFilePath()).getAbsoluteFilePath().contains(Latin1String("entrylist")));
+   }
+}
 
 TEST_F(DirIteratorTest, testRecurseWithFilters)
 {
@@ -491,3 +491,87 @@ TEST_F(DirIteratorTest, testRecurseWithFilters)
    
    ASSERT_TRUE(!iter.hasNext());
 }
+
+TEST_F(DirIteratorTest, testLongPath)
+{
+   Dir dir;
+   dir.mkdir(Latin1String("longpaths"));
+   dir.cd(Latin1String("longpaths"));
+   String dirName = Latin1String("x");
+   int n = 0;
+   while (dir.exists(dirName) || dir.mkdir(dirName)) {
+      ++n;
+      dirName.append('x');
+   }
+   DirIterator it(dir.getAbsolutePath(), Dir::Filters(Dir::Filter::NoDotAndDotDot) | Dir::Filter::Dirs, DirIterator::IteratorFlag::Subdirectories);
+   int m = 0;
+   while (it.hasNext()) {
+      ++m;
+      it.next();
+   }
+   ASSERT_EQ(n, m);
+   dirName.chop(1);
+   while (dirName.length() > 0 && dir.exists(dirName) && dir.rmdir(dirName)) {
+      dirName.chop(1);
+   }
+   dir.cdUp();
+   dir.rmdir(Latin1String("longpaths"));
+}
+
+TEST_F(DirIteratorTest, testDirorder)
+{
+   DirIterator iterator(Latin1String("foo"), DirIterator::IteratorFlag::Subdirectories);
+   while (iterator.hasNext() && iterator.next() != Latin1String("foo/bar"))
+   {}
+   
+   ASSERT_EQ(iterator.getFilePath(), String(Latin1String("foo/bar")));
+   ASSERT_EQ(iterator.getFileInfo().getFilePath(), String(Latin1String("foo/bar")));
+}
+
+TEST_F(DirIteratorTest, testRelativePaths)
+{
+   DirIterator iterator(Latin1String("*"), DirIterator::IteratorFlag::Subdirectories);
+   while(iterator.hasNext()) {
+      ASSERT_EQ(iterator.getFilePath(), Dir::cleanPath(iterator.getFilePath()));
+   }
+}
+
+#ifndef PDK_OS_WIN
+// In Unix it is easy to create hidden files, but in Windows it requires
+// a special call since hidden files need to be "marked" while in Unix
+// anything starting by a '.' is a hidden file.
+// For that reason this test is not run in Windows.
+TEST_F(DirIteratorTest, testHiddenDirsHiddenFiles)
+{
+   // Only files
+   {
+      int matches = 0;
+      int failures = 0;
+      DirIterator di(Latin1String("hiddenDirs_hiddenFiles"), Dir::Filters(Dir::Filter::Files) | Dir::Filter::Hidden | Dir::Filter::NoDotAndDotDot, 
+                     DirIterator::IteratorFlag::Subdirectories);
+      while (di.hasNext()) {
+         ++matches;
+         String filename = di.next();
+         if (FileInfo(filename).isDir())
+            ++failures;    // search was only supposed to find files
+      }
+      ASSERT_EQ(matches, 6);
+      ASSERT_EQ(failures, 0);
+   }
+   // Only directories
+   {
+      int matches = 0;
+      int failures = 0;
+      DirIterator di(Latin1String("hiddenDirs_hiddenFiles"), Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Hidden | Dir::Filter::NoDotAndDotDot,
+                     DirIterator::IteratorFlag::Subdirectories);
+      while (di.hasNext()) {
+         ++matches;
+         String filename = di.next();
+         if (!FileInfo(filename).isDir())
+            ++failures;    // search was only supposed to find files
+      }
+      ASSERT_EQ(matches, 6);
+      ASSERT_EQ(failures, 0);
+   }
+}
+#endif // Q_OS_WIN
