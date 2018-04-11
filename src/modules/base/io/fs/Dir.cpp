@@ -1008,7 +1008,7 @@ bool Dir::removeRecursively()
    bool success = true;
    const String dirPath = getPath();
    // not empty -- we must empty it first
-   DirIterator diter(dirPath, DirIterator::IteratorFlag(pdk::as_integer<Dir::Filter>(Dir::Filter::AllEntries) | 
+   DirIterator diter(dirPath, Dir::Filters(pdk::as_integer<Dir::Filter>(Dir::Filter::AllEntries) | 
                                                         pdk::as_integer<Dir::Filter>(Dir::Filter::Hidden) | 
                                                         pdk::as_integer<Dir::Filter>(Dir::Filter::System) | 
                                                         pdk::as_integer<Dir::Filter>(Dir::Filter::NoDotAndDotDot)));
@@ -1017,6 +1017,7 @@ bool Dir::removeRecursively()
       const FileInfo& finfo = diter.getFileInfo();
       const String &filePath = diter.getFilePath();
       bool ok;
+      std::cout << filePath.toStdString() << std::endl;
       if (finfo.isDir() && !finfo.isSymLink()) {
          ok = Dir(filePath).removeRecursively(); // recursive
       } else {

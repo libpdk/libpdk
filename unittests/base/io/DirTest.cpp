@@ -309,11 +309,10 @@ TEST_F(DirTest, testRemoveRecursively)
 {
    std::list<String> data;
    init_remove_recursively_data(data);
-//   for (const String &path: data) {
-//      Dir dir(path);
-//      std::cout << path.toStdString() << std::endl;
-//      ASSERT_TRUE(dir.removeRecursively());
-//      //make sure it really doesn't exist (ie that remove worked)
-//      ASSERT_TRUE(!dir.exists());
-//   }
+   for (const String &path: data) {
+      Dir dir(path);
+      ASSERT_TRUE(dir.removeRecursively());
+      //make sure it really doesn't exist (ie that remove worked)
+      ASSERT_TRUE(!dir.exists());
+   }
 }

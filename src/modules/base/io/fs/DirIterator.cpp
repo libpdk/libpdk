@@ -258,7 +258,6 @@ bool DirIteratorPrivate::matchesFilters(const String &fileName, const FileInfo &
               iter != end; ++iter) {
    
             RegularExpression copy = *iter;
-            std::cout << "regex > " << fileName.toStdString() << std::endl;
             // @TODO is really ok here?
             if (copy.match(fileName).hasMatch()) {
                matched = true;
