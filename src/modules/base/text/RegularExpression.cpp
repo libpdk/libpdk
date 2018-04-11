@@ -697,7 +697,6 @@ StringList RegularExpression::getNamedCaptureGroups() const
    StringList result;
    
    // no List::resize nor fill is available. The +1 is for the implicit group #0
-   result.resize(m_implPtr->m_capturingCount + 1);
    for (int i = 0; i < m_implPtr->m_capturingCount + 1; ++i) {
       result.push_back(String());      
    }

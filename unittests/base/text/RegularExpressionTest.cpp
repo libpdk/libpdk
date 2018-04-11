@@ -1104,6 +1104,264 @@ void init_partial_atch_data(PartialMatchDataType &data)
                                   m));
 }
 
+using GlobalMatchDataType = std::list<std::tuple<RegularExpression, String, int, RegularExpression::MatchType, RegularExpression::MatchOptions, std::vector<Match>>>;
+
+void init_global_match_data(GlobalMatchDataType &data)
+{
+   std::vector<Match> matchList;
+   Match m;
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\w+")),
+                                  Latin1String("the quick fox"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the") << Latin1String("t") << Latin1String("he");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick") << Latin1String("q") << Latin1String("uick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox") << Latin1String("f") << Latin1String("ox");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+?)(\\w+)")),
+                                  Latin1String("the quick fox"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("ACA""GTG""CGA""AAA");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("AAA");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("AAG""GAA""AAG""AAA");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("AAA");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\G(?:\\w\\w\\w)*?AAA")),
+                                  Latin1String("ACA""GTG""CGA""AAA""AAA""AAG""GAA""AAG""AAA""AAA"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(?:\\w\\w\\w)*?AAA")),
+                                  Latin1String("ACA""GTG""CGA""AAA""AAA""AAG""GAA""AAG""AAA""AAA"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("c");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("c");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("aabb");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("a*b*|c")),
+                                  Latin1String("ccaabbd"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String(".*")),
+                                  Latin1String("the\nquick\nfox"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String(".*")),
+                                  Latin1String("the\nquick\nfox\n"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(*CRLF).*")),
+                                  Latin1String("the\r\nquick\r\nfox"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(*CRLF).*")),
+                                  Latin1String("the\r\nquick\r\nfox\r\n"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("the");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("quick");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("fox");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("jumped");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(*ANYCRLF).*")),
+                                  Latin1String("the\r\nquick\nfox\rjumped"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << Latin1String("ABC");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("DEF");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("GHI");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("[\\x{0000}-\\x{FFFF}]*")),
+                                  String::fromUtf8("ABC""\xf0\x9d\x85\x9d""DEF""\xf0\x9d\x85\x9e""GHI"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+   matchList.clear();
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured = StringList() << String::fromUtf8("ABC""\xc3\x80");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   m.m_captured = StringList() << String::fromUtf8("\xc3\x80""DEF""\xc3\x80");
+   matchList.push_back(m);
+   m.m_captured = StringList() << Latin1String("");
+   matchList.push_back(m);
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("[\\x{0000}-\\x{FFFF}]*")),
+                                  String::fromUtf8("ABC""\xc3\x80""\xf0\x9d\x85\x9d""\xc3\x80""DEF""\xc3\x80"),
+                                  0,
+                                  RegularExpression::MatchType::NormalMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  matchList));
+   
+}
+
 } // anonymous namespace
 
 TEST(RegularExpressionTest, testGettersSetters)
@@ -1188,5 +1446,728 @@ TEST(RegularExpressionTest, testPartialMatch)
                                          matchType,
                                          matchOptions,
                                          match, false);
+   }
+}
+
+TEST(RegularExpressionTest, testGlobalMatch)
+{
+   GlobalMatchDataType data;
+   init_global_match_data(data);
+   for (auto &item : data) {
+      RegularExpression &regex = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      int offset = std::get<2>(item);
+      RegularExpression::MatchType matchType = std::get<3>(item);
+      RegularExpression::MatchOptions matchOptions = std::get<4>(item);
+      std::vector<Match> &matchList = std::get<5>(item);
+      
+      test_match<RegularExpressionMatchIterator>(regex,
+                                                 static_cast<REGlobalMatchStringPMF>(&RegularExpression::globalMatch),
+                                                 static_cast<REGlobalMatchStringRefPMF>(&RegularExpression::globalMatch),
+                                                 subject,
+                                                 offset,
+                                                 matchType,
+                                                 matchOptions,
+                                                 matchList, false);
+      test_match<RegularExpressionMatchIterator>(regex,
+                                                 static_cast<REGlobalMatchStringPMF>(&RegularExpression::globalMatch),
+                                                 static_cast<REGlobalMatchStringRefPMF>(&RegularExpression::globalMatch),
+                                                 subject,
+                                                 offset,
+                                                 matchType,
+                                                 matchOptions,
+                                                 matchList, true);
+   }
+}
+
+namespace {
+
+void verify_equality(const RegularExpression &re1, const RegularExpression &re2)
+{
+   ASSERT_TRUE(re1 == re2);
+   ASSERT_TRUE(re2 == re1);
+   ASSERT_EQ(pdk_hash(re1), pdk_hash(re2));
+   ASSERT_TRUE(!(re1 != re2));
+   ASSERT_TRUE(!(re2 != re1));
+   
+   RegularExpression re3(re1);
+   
+   ASSERT_TRUE(re1 == re3);
+   ASSERT_TRUE(re3 == re1);
+   ASSERT_EQ(pdk_hash(re1), pdk_hash(re3));
+   ASSERT_TRUE(!(re1 != re3));
+   ASSERT_TRUE(!(re3 != re1));
+   
+   ASSERT_TRUE(re2 == re3);
+   ASSERT_TRUE(re3 == re2);
+   ASSERT_EQ(pdk_hash(re2), pdk_hash(re3));
+   ASSERT_TRUE(!(re2 != re3));
+   ASSERT_TRUE(!(re3 != re2));
+   
+   re3 = re2;
+   ASSERT_TRUE(re1 == re3);
+   ASSERT_TRUE(re3 == re1);
+   ASSERT_EQ(pdk_hash(re1), pdk_hash(re3));
+   ASSERT_TRUE(!(re1 != re3));
+   ASSERT_TRUE(!(re3 != re1));
+   
+   ASSERT_TRUE(re2 == re3);
+   ASSERT_TRUE(re3 == re2);
+   ASSERT_EQ(pdk_hash(re2), pdk_hash(re3));
+   ASSERT_TRUE(!(re2 != re3));
+   ASSERT_TRUE(!(re3 != re2));
+}
+
+void init_operatoreq_data(std::list<std::tuple<String, RegularExpression::PatternOptions>> &data)
+{
+   provide_regular_expressions(data);
+}
+
+void do_test_operatoreq(bool forceOptimize)
+{
+   std::list<std::tuple<String, RegularExpression::PatternOptions>> data;
+   init_operatoreq_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      RegularExpression::PatternOptions &patternOptions = std::get<1>(item);
+      {
+         RegularExpression re1(pattern);
+         RegularExpression re2(pattern);
+         
+         if (forceOptimize) {
+            re1.optimize();
+         }
+         if (forceOptimize) {
+            re2.optimize();
+         }
+         verify_equality(re1, re2);
+      }
+      {
+         RegularExpression re1(String(), patternOptions);
+         RegularExpression re2(String(), patternOptions);
+         
+         if (forceOptimize) {
+            re1.optimize();
+         }
+         
+         if (forceOptimize) {
+            re2.optimize();
+         }
+         verify_equality(re1, re2);
+      }
+      {
+         RegularExpression re1(pattern, patternOptions);
+         RegularExpression re2(pattern, patternOptions);
+         
+         if (forceOptimize){
+            re1.optimize();
+         }
+         if (forceOptimize) {
+            re2.optimize();
+         }
+         verify_equality(re1, re2);
+      }
+   }
+}
+
+void init_capture_count_data(std::list<std::tuple<String, int>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("a pattern"), 0));
+   data.push_back(std::make_tuple(Latin1String("a.*pattern"), 0));
+   data.push_back(std::make_tuple(Latin1String("(a) pattern"), 1));
+   
+   data.push_back(std::make_tuple(Latin1String("(a).*(pattern)"), 2));
+   data.push_back(std::make_tuple(Latin1String("^(?<article>\\w+) (?<noun>\\w+)$"), 2));
+   data.push_back(std::make_tuple(Latin1String("^(\\w+) (?<word>\\w+) (.)$"), 3));
+   
+   data.push_back(std::make_tuple(Latin1String("(?:non capturing) (capturing) (?<n>named) (?:non (capturing))"), 3));
+   data.push_back(std::make_tuple(Latin1String("(?|(a)(b)|(c)(d))"), 2));
+   data.push_back(std::make_tuple(Latin1String("(?|(a)(b)|(c)(d)(?:e))"), 2));
+   
+   data.push_back(std::make_tuple(Latin1String("(?|(a)(b)|(c)(d)(e)) (f)(g)"), 5));
+   data.push_back(std::make_tuple(Latin1String("(?|(a)(b)|(c)(d)(e)) (f)(?:g)"), 4));
+   data.push_back(std::make_tuple(Latin1String("(.*"), -1));
+   data.push_back(std::make_tuple(Latin1String("\\"), -1));
+   data.push_back(std::make_tuple(Latin1String("(?<noun)"), -1));
+}
+
+void do_test_capture_count(bool forceOptimize)
+{
+   std::list<std::tuple<String, int>> data;
+   init_capture_count_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      int captureCount = std::get<1>(item);
+      RegularExpression re(pattern);
+      if (forceOptimize) {
+         re.optimize();
+      }
+      ASSERT_EQ(re.getCaptureCount(), captureCount);
+      if (!re.isValid()) {
+         ASSERT_EQ(re.getCaptureCount(), -1);
+      }
+   }
+}
+
+using StringToIntMap = std::map<String, int>;
+
+void init_capture_names_data(std::list<std::tuple<String, StringToIntMap>> &data)
+{
+   StringToIntMap map;
+   data.push_back(std::make_tuple(Latin1String("a pattern"), map));
+   data.push_back(std::make_tuple(Latin1String("a.*pattern"), map));
+   data.push_back(std::make_tuple(Latin1String("(a) pattern"), map));
+   data.push_back(std::make_tuple(Latin1String("(a).*(pattern)"), map));
+   
+   map.clear();
+   map[Latin1String("named")] = 1;
+   data.push_back(std::make_tuple(Latin1String("a.*(?<named>pattern)"), map));
+   
+   map.clear();
+   map[Latin1String("named")] = 2;
+   data.push_back(std::make_tuple(Latin1String("(a).*(?<named>pattern)"), map));
+   
+   map.clear();
+   map[Latin1String("name1")] = 1;
+   map[Latin1String("name2")] = 2;
+   data.push_back(std::make_tuple(Latin1String("(?<name1>a).*(?<name2>pattern)"), map));
+   
+   map.clear();
+   map[Latin1String("name1")] = 2;
+   map[Latin1String("name2")] = 1;
+   data.push_back(std::make_tuple(Latin1String("(?<name2>a).*(?<name1>pattern)"), map));
+   
+   map.clear();
+   map[Latin1String("date")] = 1;
+   map[Latin1String("month")] = 2;
+   map[Latin1String("year")] = 3;
+   data.push_back(std::make_tuple(Latin1String("^(?<date>\\d\\d)/(?<month>\\d\\d)/(?<year>\\d\\d\\d\\d)$"), map));
+   
+   map.clear();
+   map[Latin1String("date")] = 2;
+   map[Latin1String("month")] = 1;
+   map[Latin1String("year")] = 3;
+   data.push_back(std::make_tuple(Latin1String("^(?<month>\\d\\d)/(?<date>\\d\\d)/(?<year>\\d\\d\\d\\d)$"), map));
+   
+   map.clear();
+   map[Latin1String("noun")] = 2;
+   data.push_back(std::make_tuple(Latin1String("(a)(?|(?<noun>b)|(?<noun>c))(d)"), map));
+   
+   map.clear();
+   data.push_back(std::make_tuple(Latin1String("(.*"), map));
+   data.push_back(std::make_tuple(Latin1String("\\"), map));
+   data.push_back(std::make_tuple(Latin1String("(?<noun)"), map));
+   data.push_back(std::make_tuple(Latin1String("(?|(?<noun1>a)|(?<noun2>b))"), map));
+}
+
+void do_test_capture_names(bool forceOptimize)
+{
+   std::list<std::tuple<String, StringToIntMap>> data;
+   init_capture_names_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      StringToIntMap &namedCapturesIndexMap = std::get<1>(item);
+      RegularExpression re(pattern);
+      if (forceOptimize) {
+         re.optimize();
+      }
+      StringList namedCaptureGroups = re.getNamedCaptureGroups();
+      int namedCaptureGroupsCount = namedCaptureGroups.size();
+      
+      ASSERT_EQ(namedCaptureGroupsCount, re.getCaptureCount() + 1);
+      
+      for (int i = 0; i < namedCaptureGroupsCount; ++i) {
+         const String &name = namedCaptureGroups.at(i);
+         
+         if (name.isEmpty()) {
+            ASSERT_TRUE(namedCapturesIndexMap.find(name) == namedCapturesIndexMap.end());
+         } else {
+            ASSERT_TRUE(namedCapturesIndexMap.find(name) != namedCapturesIndexMap.end());
+            ASSERT_EQ(i, namedCapturesIndexMap.at(name));
+         }
+      }
+   }
+}
+
+void init_pcre_jit_stack_usage_data(std::list<std::tuple<String, String>> &data)
+{
+   // these patterns cause enough backtrack (or even infinite recursion)
+   // in the regexp engine, so that JIT requests more memory.
+   data.push_back(std::make_tuple(Latin1String("(?(R)a*(?1)|((?R))b)"), Latin1String("aaaabcde")));
+   data.push_back(std::make_tuple(Latin1String("(?(R)a*(?1)|((?R))b)"), Latin1String("aaaaaaabcde")));
+}
+
+void do_test_pcre_jit_stack_usage(bool forceOptimize)
+{
+   std::list<std::tuple<String, String>> data;
+   init_pcre_jit_stack_usage_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      RegularExpression re(pattern);
+      if (forceOptimize) {
+         re.optimize();
+      } 
+      ASSERT_TRUE(re.isValid());
+      RegularExpressionMatch match = re.match(subject);
+      consistency_check(match);
+      RegularExpressionMatchIterator iterator = re.globalMatch(subject);
+      consistency_check(iterator);
+      while (iterator.hasNext()) {
+         match = iterator.next();
+         consistency_check(match);
+      }
+   }
+}
+
+void init_regular_expression_match_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("(?<digits>\\d+)"), Latin1String("1234 abcd")));
+   data.push_back(std::make_tuple(Latin1String("(?<digits>\\d+) (?<alpha>\\w+)"), Latin1String("1234 abcd")));
+}
+
+void do_regular_expression_match(bool forceOptimize)
+{
+   std::list<std::tuple<String, String>> data;
+   init_regular_expression_match_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      RegularExpression re(pattern);
+      if (forceOptimize) {
+         re.optimize();
+      }
+      ASSERT_TRUE(re.isValid());
+      RegularExpressionMatch match = re.match(subject);
+      consistency_check(match);
+      ASSERT_EQ(match.getCaptured(Latin1String("non-existing")).isNull(), true);
+      ASSERT_EQ(match.getCaptured(Latin1String("")).isNull(), true);
+      ASSERT_EQ(match.getCaptured(String()).isNull(), true);
+   }
+}
+
+void init_joption_usage_data(std::list<std::tuple<String, bool, bool>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("a.*b"), true, false));
+   data.push_back(std::make_tuple(Latin1String("^a(b)(c)$"), true, false));
+   data.push_back(std::make_tuple(Latin1String("a(b)(?<c>d)|e"), true, false));
+   data.push_back(std::make_tuple(Latin1String("(?<a>.)(?<a>.)"), false, false));
+   
+   data.push_back(std::make_tuple(Latin1String("(?J)a.*b"), true, true));
+   data.push_back(std::make_tuple(Latin1String("(?-J)a.*b"), true, true));
+   data.push_back(std::make_tuple(Latin1String("(?J)(?<a>.)(?<a>.)"), true, true));
+   data.push_back(std::make_tuple(Latin1String("(?-J)(?<a>.)(?<a>.)"), false, true));
+}
+
+void do_test_joption_usage(bool forceOptimize)
+{
+   std::list<std::tuple<String, bool, bool>> data;
+   init_joption_usage_data(data);
+   for (auto &item : data) {
+      String &pattern = std::get<0>(item);
+      bool isValid = std::get<1>(item);
+      bool JOptionUsed = std::get<2>(item);
+      RegularExpression re(pattern);
+      if (isValid && JOptionUsed)
+      {}
+      if (forceOptimize) {
+         re.optimize();
+      }
+      ASSERT_EQ(re.isValid(), isValid);
+   }
+}
+
+} // anonymous namespace
+
+TEST(RegularExpressionTest, testOperatoreq)
+{
+   do_test_operatoreq(false);
+   do_test_operatoreq(true);
+}
+
+TEST(RegularExpressionTest, testCaptureCount)
+{
+   do_test_capture_count(false);
+   do_test_capture_count(true);
+}
+
+TEST(RegularExpressionTest, testCaptureNames)
+{
+   do_test_capture_names(false);
+   do_test_capture_names(true);
+}
+
+TEST(RegularExpressionTest, testPcreJitStackUsage)
+{
+   do_test_pcre_jit_stack_usage(false);
+   do_test_pcre_jit_stack_usage(true);
+}
+
+TEST(RegularExpressionTest, testRegularExpressionMatch)
+{
+   do_regular_expression_match(false);
+   do_regular_expression_match(true);
+}
+
+TEST(RegularExpressionTest, testJOptionUsage)
+{
+   do_test_joption_usage(false);
+   do_test_joption_usage(true);
+}
+
+TEST(RegularExpressionTest, testStringAndStringRefEquivalence)
+{
+   const String subject = StringLiteral("Mississippi");
+   {
+      const RegularExpression re(Latin1String("\\Biss\\B"));
+      ASSERT_TRUE(re.isValid());
+      {
+         const RegularExpressionMatch match = re.match(subject);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 1);
+         ASSERT_EQ(match.getCapturedEnd(), 4);
+      }
+      {
+         const RegularExpressionMatch match = re.match(StringRef(&subject));
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 1);
+         ASSERT_EQ(match.getCapturedEnd(), 4);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject, 1);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 1);
+         ASSERT_EQ(match.getCapturedEnd(), 4);
+      }
+      {
+         const RegularExpressionMatch match = re.match(StringRef(&subject), 1);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 1);
+         ASSERT_EQ(match.getCapturedEnd(), 4);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substring(1));
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substringRef(1));
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substring(1), 1);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substringRef(1), 1);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject, 4);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 4);
+         ASSERT_EQ(match.getCapturedEnd(), 7);
+      }
+      {
+         const RegularExpressionMatch match = re.match(StringRef(&subject), 4);
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 4);
+         ASSERT_EQ(match.getCapturedEnd(), 7);
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substring(4));
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(!match.hasMatch());
+      }
+      {
+         const RegularExpressionMatch match = re.match(subject.substringRef(4));
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(!match.hasMatch());
+      }
+      
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match1 = i.next();
+         consistency_check(match1);
+         ASSERT_TRUE(match1.isValid());
+         ASSERT_TRUE(match1.hasMatch());
+         ASSERT_EQ(match1.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match1.getCapturedStart(), 1);
+         ASSERT_EQ(match1.getCapturedEnd(), 4);
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match2 = i.next();
+         consistency_check(match2);
+         ASSERT_TRUE(match2.isValid());
+         ASSERT_TRUE(match2.hasMatch());
+         ASSERT_EQ(match2.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match2.getCapturedStart(), 4);
+         ASSERT_EQ(match2.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(StringRef(&subject));
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match1 = i.next();
+         consistency_check(match1);
+         ASSERT_TRUE(match1.isValid());
+         ASSERT_TRUE(match1.hasMatch());
+         ASSERT_EQ(match1.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match1.getCapturedStart(), 1);
+         ASSERT_EQ(match1.getCapturedEnd(), 4);
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match2 = i.next();
+         consistency_check(match2);
+         ASSERT_TRUE(match2.isValid());
+         ASSERT_TRUE(match2.hasMatch());
+         ASSERT_EQ(match2.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match2.getCapturedStart(), 4);
+         ASSERT_EQ(match2.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject, 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match1 = i.next();
+         consistency_check(match1);
+         ASSERT_TRUE(match1.isValid());
+         ASSERT_TRUE(match1.hasMatch());
+         ASSERT_EQ(match1.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match1.getCapturedStart(), 1);
+         ASSERT_EQ(match1.getCapturedEnd(), 4);
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match2 = i.next();
+         consistency_check(match2);
+         ASSERT_TRUE(match2.isValid());
+         ASSERT_TRUE(match2.hasMatch());
+         ASSERT_EQ(match2.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match2.getCapturedStart(), 4);
+         ASSERT_EQ(match2.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(StringRef(&subject), 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match1 = i.next();
+         consistency_check(match1);
+         ASSERT_TRUE(match1.isValid());
+         ASSERT_TRUE(match1.hasMatch());
+         ASSERT_EQ(match1.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match1.getCapturedStart(), 1);
+         ASSERT_EQ(match1.getCapturedEnd(), 4);
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match2 = i.next();
+         consistency_check(match2);
+         ASSERT_TRUE(match2.isValid());
+         ASSERT_TRUE(match2.hasMatch());
+         ASSERT_EQ(match2.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match2.getCapturedStart(), 4);
+         ASSERT_EQ(match2.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substring(1));
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substringRef(1));
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substring(1), 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substringRef(1), 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substring(1), 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substringRef(1), 1);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 3);
+         ASSERT_EQ(match.getCapturedEnd(), 6);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject, 4);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 4);
+         ASSERT_EQ(match.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(StringRef(&subject), 4);
+         ASSERT_TRUE(i.isValid());
+         
+         consistency_check(i);
+         ASSERT_TRUE(i.hasNext());
+         const RegularExpressionMatch match = i.next();
+         consistency_check(match);
+         ASSERT_TRUE(match.isValid());
+         ASSERT_TRUE(match.hasMatch());
+         ASSERT_EQ(match.getCaptured(), StringLiteral("iss"));
+         ASSERT_EQ(match.getCapturedStart(), 4);
+         ASSERT_EQ(match.getCapturedEnd(), 7);
+         
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substring(4));
+         consistency_check(i);
+         ASSERT_TRUE(i.isValid());
+         ASSERT_TRUE(!i.hasNext());
+      }
+      {
+         RegularExpressionMatchIterator i = re.globalMatch(subject.substringRef(4));
+         consistency_check(i);
+         ASSERT_TRUE(i.isValid());
+         ASSERT_TRUE(!i.hasNext());
+      }
    }
 }
