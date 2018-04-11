@@ -491,7 +491,7 @@ void do_test_validity(bool forceOptimize)
       bool validity = std::get<1>(item);
       RegularExpression re(pattern);
       if (forceOptimize) {
-          re.optimize();
+         re.optimize();
       }
       ASSERT_EQ(re.isValid(), validity);
       if (!validity)
@@ -504,6 +504,604 @@ void do_test_validity(bool forceOptimize)
       RegularExpressionMatchIterator iterator = re.globalMatch(Latin1String("a pattern"));
       ASSERT_EQ(iterator.isValid(), validity);
    }
+}
+
+void init_pattern_options_data(std::list<std::tuple<RegularExpression, String, Match>> &data)
+{
+   // none of these would successfully match if the respective
+   // pattern option is not set
+   Match m;
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String::fromUtf8("AbC\xc3\xa0");
+   data.push_back(std::make_tuple(RegularExpression(String::fromUtf8("abc\xc3\x80"), RegularExpression::PatternOption::CaseInsensitiveOption),
+                                  String::fromUtf8("AbC\xc3\xa0"),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("abc123\n678def"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\Aabc.*def\\z"), RegularExpression::PatternOption::DotMatchesEverythingOption),
+                                  String(Latin1String("abc123\n678def")),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("jumped over"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^\\w+ \\w+$"), RegularExpression::PatternOption::MultilineOption),
+                                  String(Latin1String("the quick fox\njumped over\nthe lazy\ndog")),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("abc 123456"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\w+  # a word\n"
+                                                                 "\\ # a space\n"
+                                                                 "\\w+ # another word"), RegularExpression::PatternOption::ExtendedPatternSyntaxOption),
+                                  String(Latin1String("abc 123456 def")),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("the quick fox")) 
+                << String(Latin1String("the"))
+                << String(Latin1String("quick fox"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(.+) (.+?)"), RegularExpression::PatternOption::InvertedGreedinessOption),
+                                  String(Latin1String("the quick fox")),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("the quick fox")) 
+                << String(Latin1String("quick"));
+   m.m_namedCaptured[Latin1String("named")] = String(Latin1String("quick"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+) (?<named>\\w+) (\\w+)"), RegularExpression::PatternOption::DontCaptureOption),
+                                  String(Latin1String("the quick fox")),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String::fromUtf8("abc\xc3\x80\xc3\xa0 12\xdb\xb1\xdb\xb2\xf0\x9d\x9f\x98")
+                << String::fromUtf8("abc\xc3\x80\xc3\xa0")
+                << String::fromUtf8("12\xdb\xb1\xdb\xb2\xf0\x9d\x9f\x98");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+) (\\d+)"), RegularExpression::PatternOption::UseUnicodePropertiesOption),
+                                  String::fromUtf8("abc\xc3\x80\xc3\xa0 12\xdb\xb1\xdb\xb2\xf0\x9d\x9f\x98"),
+                                  m));
+}
+
+void do_test_pattern_options(bool forceOptimize)
+{
+   std::list<std::tuple<RegularExpression, String, Match>> data;
+   init_pattern_options_data(data);
+   for (auto &item : data) {
+      RegularExpression &regexp = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      Match &match = std::get<2>(item);
+      if (forceOptimize) {
+         regexp.optimize();
+      }
+      RegularExpressionMatch m = regexp.match(subject);
+      consistency_check(m);
+      ASSERT_TRUE(m == match);
+   }
+}
+
+using NormalMatchDataType = std::list<std::tuple<RegularExpression, String, int, RegularExpression::MatchOptions, Match>>;
+
+void init_normal_match_data(NormalMatchDataType &data)
+{
+   Match m;
+   int offset = 0;
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("string")) << String(Latin1String("string"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\bstring\\b)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("a string"))
+                << String(Latin1String("a")) 
+                << String(Latin1String("string"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+) (\\w+)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("a string"))
+                << String(Latin1String("a")) 
+                << String(Latin1String("string"));
+   m.m_namedCaptured[Latin1String("article")] = Latin1String("a");
+   m.m_namedCaptured[Latin1String("noun")] = Latin1String("string");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(?<article>\\w+) (?<noun>\\w+)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String(" string"))
+                << String()
+                << String(Latin1String("string"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+)? (\\w+)")),
+                                  String(Latin1String(" string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String(" string"))
+                << String(Latin1String(""))
+                << String(Latin1String("string"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w*) (\\w+)")),
+                                  String(Latin1String(" string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   offset = 2;
+   m.m_captured << String(Latin1String("c123def"))
+                << String(Latin1String("c12"))
+                << String(Latin1String("3"))
+                << String(Latin1String("def"));
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w*)(\\d+)(\\w*)")),
+                                     StringLiteral("abc123def").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   offset = 9;
+   m.m_captured << String(Latin1String(""));
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("\\w*")),
+                                     StringLiteral("abc123def").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("a string"))
+                << String(Latin1String("a string"))
+                << String(Latin1String(""));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(.*)(.*)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("a string"))
+                << String(Latin1String(""))
+                << String(Latin1String("a string"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(.*?)(.*)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("a string"))
+                << String(Latin1String("a"))
+                << String(Latin1String("string"));
+   m.m_namedCaptured[Latin1String("article")] = Latin1String("a");
+   m.m_namedCaptured[Latin1String("noun")] = Latin1String("string");
+   m.m_namedCaptured[Latin1String("nonexisting1")] = String();
+   m.m_namedCaptured[Latin1String("nonexisting2")] = String();
+   m.m_namedCaptured[Latin1String("nonexisting3")] = String();
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(?<article>\\w+) (?<noun>\\w+)")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String(""))
+                << String(Latin1String(""));
+   m.m_namedCaptured[Latin1String("digits")] = Latin1String("");
+   m.m_namedCaptured[Latin1String("nonexisting")] = String();
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(?<digits>\\d*)")),
+                                  String(Latin1String("abcde")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << String(Latin1String("bcd"));
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\Bbcd\\B")),
+                                  String(Latin1String("abcde")),
+                                  1,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\d+")),
+                                  String(Latin1String("a string")),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   offset = 1;
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\w+) (\\w+)")),
+                                     StringLiteral("a string").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   offset = 9;
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("\\w+")),
+                                     StringLiteral("abc123def").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\d+")),
+                                  StringLiteral("abc123def"),
+                                  0,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::AnchoredMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("678");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\d+")),
+                                  StringLiteral("abc123def678ghi"),
+                                  -6,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("678");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\d+")),
+                                  StringLiteral("abc123def678ghi"),
+                                  -8,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("678ghi")
+                << Latin1String("678")
+                << Latin1String("ghi");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\d+)(\\w+)")),
+                                  StringLiteral("abc123def678ghi"),
+                                  -8,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\d+")),
+                                  StringLiteral("abc123def678ghi"),
+                                  -3,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("678");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^\\d+"), RegularExpression::PatternOption::MultilineOption),
+                                  StringLiteral("a\nbc123\ndef\n678gh\ni"),
+                                  -10,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+}
+
+using PartialMatchDataType = std::list<std::tuple<RegularExpression, String, int, RegularExpression::MatchType, RegularExpression::MatchOptions, Match>>;
+
+void init_partial_atch_data(PartialMatchDataType &data)
+{
+   Match m;
+   int offset = 0;
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("string")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String(" str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\bstring\\b")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String(" str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\bstring\\b)")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("8 Dec 19");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^(\\d{1,2}) (\\w{3}) (\\d{4})$")),
+                                  Latin1String("8 Dec 19"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("8 Dec 1985")
+                << Latin1String("8")
+                << Latin1String("Dec")
+                << Latin1String("1985");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^(\\d{1,2}) (\\w{3}) (\\d{4})$")),
+                                  Latin1String("8 Dec 1985"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasMatch = true;
+   m.m_captured << Latin1String("def");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|def")),
+                                  Latin1String("abcdef"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("abcdef");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("abcdef"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("def");
+   offset = 1;
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                     StringLiteral("abcdef").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("string")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String(" str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("\\bstring\\b")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String(" str");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(\\bstring\\b)")),
+                                  Latin1String("a str"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("8 Dec 19");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^(\\d{1,2}) (\\w{3}) (\\d{4})$")),
+                                  Latin1String("8 Dec 19"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("8 Dec 1985");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("^(\\d{1,2}) (\\w{3}) (\\d{4})$")),
+                                  Latin1String("8 Dec 1985"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("abcdef");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|def")),
+                                  Latin1String("abcdef"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("abcdef");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("abcdef"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("def");
+   offset = 1;
+   for (int i = 0; i <= offset; ++i) {
+      data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                     StringLiteral("abcdef").substring(offset - i),
+                                     i,
+                                     RegularExpression::MatchType::PartialPreferFirstMatch,
+                                     RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                     m));
+   }
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("ab");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc|ab")),
+                                  Latin1String("ab"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("abc");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc(def)?")),
+                                  Latin1String("abc"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   m.m_hasPartialMatch = true;
+   m.m_captured << Latin1String("abc");
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("(abc)*")),
+                                  Latin1String("abc"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("123456"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("123456"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("ab123"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferCompleteMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
+   
+   m.clear();
+   m.m_isValid = true;
+   data.push_back(std::make_tuple(RegularExpression(Latin1String("abc\\w+X|defY")),
+                                  Latin1String("ab123"),
+                                  0,
+                                  RegularExpression::MatchType::PartialPreferFirstMatch,
+                                  RegularExpression::MatchOptions(RegularExpression::MatchOption::NoMatchOption),
+                                  m));
 }
 
 } // anonymous namespace
@@ -526,4 +1124,69 @@ TEST(RegularExpressionTest, testValidity)
    do_test_validity(true);
 }
 
+TEST(RegularExpressionTest, testPatternOptions)
+{
+   do_test_pattern_options(false);
+   do_test_pattern_options(true);
+}
 
+TEST(RegularExpressionTest, testNormalMatch)
+{
+   NormalMatchDataType data;
+   init_normal_match_data(data);
+   for (auto &item : data) {
+      RegularExpression &regex = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      int offset = std::get<2>(item);
+      RegularExpression::MatchOptions matchOptions = std::get<3>(item);
+      Match match = std::get<4>(item);
+      test_match<RegularExpressionMatch>(regex,
+                                         static_cast<REMatchStringPMF>(&RegularExpression::match),
+                                         static_cast<REMatchStringRefPMF>(&RegularExpression::match),
+                                         subject,
+                                         offset,
+                                         RegularExpression::MatchType::NormalMatch,
+                                         matchOptions,
+                                         match, false);
+      test_match<RegularExpressionMatch>(regex,
+                                         static_cast<REMatchStringPMF>(&RegularExpression::match),
+                                         static_cast<REMatchStringRefPMF>(&RegularExpression::match),
+                                         subject,
+                                         offset,
+                                         RegularExpression::MatchType::NormalMatch,
+                                         matchOptions,
+                                         match, true);
+   }
+}
+
+TEST(RegularExpressionTest, testPartialMatch)
+{
+   PartialMatchDataType data;
+   init_partial_atch_data(data);
+   for (auto &item : data) {
+      RegularExpression &regex = std::get<0>(item);
+      String &subject = std::get<1>(item);
+      int offset = std::get<2>(item);
+      RegularExpression::MatchType matchType = std::get<3>(item);
+      RegularExpression::MatchOptions matchOptions = std::get<4>(item);
+      Match match = std::get<5>(item);
+      
+      test_match<RegularExpressionMatch>(regex,
+                                         static_cast<REMatchStringPMF>(&RegularExpression::match),
+                                         static_cast<REMatchStringRefPMF>(&RegularExpression::match),
+                                         subject,
+                                         offset,
+                                         matchType,
+                                         matchOptions,
+                                         match, true);
+      
+      test_match<RegularExpressionMatch>(regex,
+                                         static_cast<REMatchStringPMF>(&RegularExpression::match),
+                                         static_cast<REMatchStringRefPMF>(&RegularExpression::match),
+                                         subject,
+                                         offset,
+                                         matchType,
+                                         matchOptions,
+                                         match, false);
+   }
+}
