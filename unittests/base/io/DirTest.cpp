@@ -392,12 +392,17 @@ void init_exists_data(std::list<std::tuple<String, bool>> &data)
    data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/resources/"), true));
 }
 
+void init_is_relative_path_data(std::list<std::tuple<String, bool>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("../somedir"), true));
+   data.push_back(std::make_tuple(Latin1String("somedir"), true));
+   data.push_back(std::make_tuple(Latin1String("/somedir"), false));
+}
 
 } // anonymous namespace
 
 TEST_F(DirTest, testExists)
 {
-   
    std::list<std::tuple<String, bool>> data;
    init_exists_data(data);
    for (auto item : data) {
@@ -411,3 +416,85 @@ TEST_F(DirTest, testExists)
       }
    }
 }
+
+TEST_F(DirTest, testIsRelativePath)
+{
+   std::list<std::tuple<String, bool>> data;
+   init_is_relative_path_data(data);
+   for (auto item : data) {
+      String &path = std::get<0>(item);
+      bool relative = std::get<1>(item);
+      ASSERT_EQ(Dir::isRelativePath(path), relative);
+   }
+}
+
+TEST_F(DirTest, testDefault)
+{
+   //default constructor Dir();
+   Dir dir; // according to documentation should be currentDirPath
+   ASSERT_EQ(dir.getAbsolutePath(), Dir::getCurrentPath());
+}
+
+TEST_F(DirTest, testCompare)
+{
+   Dir dir;
+   dir.makeAbsolute();
+   ASSERT_TRUE(dir == Dir::getCurrentPath());
+   
+   ASSERT_EQ(Dir(), Dir(Dir::getCurrentPath()));
+   ASSERT_TRUE(Dir(Latin1String("../")) == Dir(Dir::getCurrentPath() + Latin1String("/..")));
+}
+
+namespace {
+
+StringList filter_links(const StringList &list)
+{
+#ifndef PDK_NO_SYMLINKS
+   return list;
+#else
+   StringList result;
+   for (String &str: list) {
+      if (!str.endsWith(Latin1String(Latin1String(".lnk")))) {
+         result.push_back(str);
+      }
+   }
+   return result;
+#endif
+}
+
+void init_entry_list_data(std::list<std::tuple<String, StringList, int, int, StringList>> &data)
+{
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/testdir/spaces"),
+                                  StringList(Latin1String("*. bar")), 
+                                  (int)(Dir::Filter::NoFilter),
+                                  (int)(Dir::SortFlag::NoSort),
+                                  StringList(Latin1String("foo. bar"))));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/testdir/spaces"),
+                                  StringList(Latin1String("*.bar")), 
+                                  (int)(Dir::Filter::NoFilter),
+                                  (int)(Dir::SortFlag::NoSort),
+                                  StringList(Latin1String("foo.bar"))));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/testdir/spaces"),
+                                  StringList(Latin1String("foo.*")), 
+                                  (int)(Dir::Filter::NoFilter),
+                                  (int)(Dir::SortFlag::NoSort),
+                                  String(Latin1String("foo. bar,foo.bar")).split(',')));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/testdir/dir"),
+                                  String(Latin1String("*r.cpp *.pro")).split(Latin1String(" ")), 
+                                  (int)(Dir::Filter::NoFilter),
+                                  (int)(Dir::SortFlag::NoSort),
+                                  String(Latin1String("qdir.pro,qrc_qdir.cpp,tst_qdir.cpp")).split(',')));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/testdir"),
+                                  StringList(), 
+                                  (int)(Dir::Filter::AllDirs),
+                                  (int)(Dir::SortFlag::NoSort),
+                                  String(Latin1String(".,..,dir,spaces")).split(',')));
+}
+
+} // anonymous namespace
+
+
