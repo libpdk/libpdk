@@ -82,7 +82,7 @@ bool pdk_resolve_entry_and_create_legacy_engine_recursive(FileSystemEntry &entry
          if (prefixSeparator == 1) {
             break;
          }
-         const StringList &paths = Dir::searchPaths(filePath.left(prefixSeparator));
+         const StringList &paths = Dir::getSearchPaths(filePath.left(prefixSeparator));
          for (StringList::size_type i = 0; i < paths.size(); i++) {
             entry = FileSystemEntry(Dir::cleanPath(paths.at(i) % Latin1Character('/') % filePath.substringRef(prefixSeparator + 1)));
             // Recurse!

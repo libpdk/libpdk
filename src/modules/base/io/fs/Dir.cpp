@@ -829,10 +829,14 @@ void Dir::addSearchPath(const String &prefix, const String &path)
    CoreGlobalData::getInstance()->m_dirSearchPaths[prefix].push_back(path);
 }
 
-StringList Dir::searchPaths(const String &prefix)
+StringList Dir::getSearchPaths(const String &prefix)
 {
    ReadLocker lock(&CoreGlobalData::getInstance()->m_dirSearchPathsLock);
-   return CoreGlobalData::getInstance()->m_dirSearchPaths.at(prefix);
+   try {
+      return CoreGlobalData::getInstance()->m_dirSearchPaths.at(prefix);
+   } catch (...) {
+      return StringList{};
+   }
 }
 
 Dir::Filters Dir::getFilter() const

@@ -1821,3 +1821,93 @@ TEST_F(DirTest, testNativeSeparators)
 #endif
 }
 
+namespace {
+
+void init_search_paths_data(std::list<std::tuple<String, String, String, String>> &data)
+{
+   String searchDir = (sg_currentSourceDir + Latin1String("/searchdir"));
+   //   String srcdir = FileInfo(searchDir).getAbsolutePath();
+   
+   // sanity
+//   data.push_back(std::make_tuple(Latin1String("picker.png"), String(), String(), String()));
+//   data.push_back(std::make_tuple(Latin1String("subdir1/picker.png"), String(), String(), String()));
+   data.push_back(std::make_tuple((sg_currentSourceDir + Latin1String("/searchdir/subdir1/picker.png")), 
+                                  String(Latin1String("searchpath")), 
+                                  String(Latin1String("searchdir")),
+                                  searchDir + Latin1String("/subdir1/picker.png")));
+   
+   // new
+   //   QTest::newRow("novalidsearchpath") << "searchpath:subdir1/picker.png" << String() << String() << String();
+   //   QTest::newRow("invalidsearchpath") << "searchpath:subdir1/picker.png" << String("invalid") << String("invalid") << String();
+   //   QTest::newRow("onlyvalidsearchpath") << "searchpath:subdir1/picker.png" << String("searchpath") << String((m_dataPath + "/searchdir")) << (searchDir+"/subdir1/picker.png");
+   //   QTest::newRow("validandinvalidsearchpath") << "searchpath:subdir1/picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir")) << (searchDir+"/subdir1/picker.png");
+   //   QTest::newRow("precedence1") << "searchpath:picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir/subdir1") + "," + (m_dataPath + "/searchdir/subdir2")) << (searchDir+"/subdir1/picker.png");
+   //   QTest::newRow("precedence2") << "searchpath:picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir/subdir2") + "," + (m_dataPath + "/searchdir/subdir1")) << (searchDir+"/subdir2/picker.png");
+   //   QTest::newRow("precedence3") << "searchpath2:picker.png" << String("searchpath1;searchpath2") << ((m_dataPath + "/searchdir/subdir1") + ";" + (m_dataPath + "/searchdir/subdir2")) << (searchDir+"/subdir2/picker.png");
+   
+   // re
+}
+
+} // anonymous namespace
+
+TEST_F(DirTest, testSearchPaths)
+{
+   //String searchDir = (sg_currentSourceDir + Latin1String("/searchdir"));
+   EXPECT_TRUE(Dir::setCurrent(sg_currentSourceDir)) <<  pdk_printable(Latin1String("Could not chdir to ") + sg_currentSourceDir);
+   std::list<std::tuple<String, String, String, String>> data;
+   init_search_paths_data(data);
+   for (auto &item : data) {
+      String &filename = std::get<0>(item);
+      String &searchPathPrefixes = std::get<1>(item);
+      String &searchPaths = std::get<2>(item);
+      String &expectedAbsolutePath = std::get<3>(item);
+      
+      StringList searchPathPrefixList = searchPathPrefixes.split(Latin1String(";"), String::SplitBehavior::SkipEmptyParts);
+      StringList searchPathsList = searchPaths.split(Latin1String(";"), String::SplitBehavior::SkipEmptyParts);
+      bool exists = !expectedAbsolutePath.isEmpty();
+      
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         Dir::setSearchPaths(searchPathPrefixList.at(i), searchPathsList.at(i).split(Latin1String(",")));
+      }
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         ASSERT_EQ(Dir::getSearchPaths(searchPathPrefixList.at(i)), searchPathsList.at(i).split(Latin1String(",")));
+      }
+      
+      ASSERT_EQ(File(filename).exists(), exists);
+      ASSERT_EQ(FileInfo(filename).exists(), exists);
+      
+      if (exists) {
+         ASSERT_EQ(FileInfo(filename).getAbsoluteFilePath(), expectedAbsolutePath);
+      }
+      
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         Dir::setSearchPaths(searchPathPrefixList.at(i), StringList());
+      }
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         ASSERT_TRUE(Dir::getSearchPaths(searchPathPrefixList.at(i)).empty());
+      }
+      
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         for (String &path: searchPathsList.at(i).split(Latin1String(","))) {
+            Dir::addSearchPath(searchPathPrefixList.at(i), path);
+         }
+      }
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         ASSERT_EQ(Dir::getSearchPaths(searchPathPrefixList.at(i)), searchPathsList.at(i).split(Latin1String(",")));
+      }
+      
+      ASSERT_EQ(File(filename).exists(), exists);
+      ASSERT_EQ(FileInfo(filename).exists(), exists);
+      
+      if (exists) {
+         ASSERT_EQ(FileInfo(filename).getAbsoluteFilePath(), expectedAbsolutePath);
+      }
+      
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         Dir::setSearchPaths(searchPathPrefixList.at(i), StringList());
+      }
+      for (size_t i = 0; i < searchPathPrefixList.size(); ++i) {
+         ASSERT_TRUE(Dir::getSearchPaths(searchPathPrefixList.at(i)).empty());
+      }
+   }
+}

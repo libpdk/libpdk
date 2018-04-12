@@ -119,7 +119,7 @@ public:
    
    static void setSearchPaths(const String &prefix, const StringList &searchPaths);
    static void addSearchPath(const String &prefix, const String &path);
-   static StringList searchPaths(const String &prefix);
+   static StringList getSearchPaths(const String &prefix);
    
    String getDirName() const;
    String getFilePath(const String &fileName) const;
