@@ -21,6 +21,7 @@
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/ds/StringList.h"
 #include "../../shared/Filesystem.h"
+#include "pdk/utils/Funcs.h"
 
 #if defined(PDK_OS_UNIX)
 # include <unistd.h>
@@ -1667,7 +1668,22 @@ void init_exists2_data(std::list<std::tuple<String, bool>> &data)
    data.push_back(std::make_tuple(Latin1String("testdir/dir/test_dir.cpp"), true));
    data.push_back(std::make_tuple(Latin1String("/resources.cpp"), false));
    
-   // @TODO resources
+   // @TODO resources testcases
+}
+
+void init_dirname_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("c:/winnt/system32"), Latin1String("system32")));
+   data.push_back(std::make_tuple(Latin1String("/winnt/system32"), Latin1String("system32")));
+   data.push_back(std::make_tuple(Latin1String("c:/winnt/system32/kernel32.dll"), Latin1String("kernel32.dll")));
+   
+#if defined(PDK_OS_WIN)
+   data.push_back(std::make_tuple(Latin1String("c:\\winnt\\system32"), Latin1String("system32")));
+   data.push_back(std::make_tuple(Latin1String("\\winnt\\system32"), Latin1String("system32")));
+   data.push_back(std::make_tuple(Latin1String("c:\\winnt\\system32\\kernel32.dll"), Latin1String("system32")));
+#endif
+   // @TODO Windows platform
+   // @TODO resources testcases
 }
 
 }
@@ -1693,3 +1709,115 @@ TEST_F(DirTest, testExists2)
       Dir::setCurrent(oldpwd);
    }
 }
+
+TEST_F(DirTest, testDirName)
+{
+   std::list<std::tuple<String, String>> data;
+   init_dirname_data(data);
+   for (auto &item : data) {
+      String &path = std::get<0>(item);
+      String &dirName = std::get<1>(item);
+      Dir dir(path);
+      ASSERT_EQ(dir.getDirName(), dirName);
+   }
+}
+
+TEST_F(DirTest, testOperatoreq)
+{
+   Dir dir1(Latin1String("."));
+   dir1 = dir1;
+   dir1.setPath(Latin1String(".."));
+}
+
+TEST_F(DirTest, testDotAndDotDot)
+{
+   Dir dir(String((sg_currentSourceDir + Latin1String("/testdir/"))));
+   StringList entryList = dir.entryList(Dir::Filter::Dirs);
+   ASSERT_EQ(entryList, StringList() << String(Latin1String(".")) << String(Latin1String("..")) 
+             << String(Latin1String("dir")) << String(Latin1String("spaces")));
+   entryList = dir.entryList(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::NoDotAndDotDot);
+   ASSERT_EQ(entryList, StringList() << String(Latin1String("dir")) << String(Latin1String("spaces")));
+}
+
+TEST_F(DirTest, testHomePath)
+{
+   Dir homeDir = Dir::getHome();
+   String strHome = Dir::getHomePath();
+   
+   // docs say that homePath() is an absolute path
+   ASSERT_EQ(strHome, homeDir.getAbsolutePath());
+   ASSERT_TRUE(Dir::isAbsolutePath(strHome));
+   
+#ifdef PDK_OS_UNIX
+   if (strHome.length() > 1)      // root dir = "/"
+      ASSERT_TRUE(!strHome.endsWith('/'));
+   
+   ByteArray envHome = pdk::pdk_getenv("HOME");
+   unsetenv("HOME");
+   ASSERT_EQ(Dir::getHomePath(), Dir::getRootPath());
+   pdk::pdk_putenv("HOME", envHome);
+   
+#elif defined(PDK_OS_WIN)
+   if (strHome.length() > 3      // root dir = "c:/"; "//" is not really valid...
+       )
+      ASSERT_TRUE(!strHome.endsWith('/'));
+#endif
+   
+   StringList entries = homeDir.entryList();
+   for (size_t i = 0; i < entries.size(); ++i) {
+      FileInfo fi(Dir::getHomePath() + Latin1String("/") + entries[i]);
+      ASSERT_EQ(fi.exists(), true);
+   }
+}
+
+TEST_F(DirTest, testTempPath)
+{
+   Dir dir = Dir::getTemp();
+   String path = Dir::getTempPath();
+   // docs say that tempPath() is an absolute path
+   ASSERT_EQ(path, dir.getAbsolutePath());
+   ASSERT_TRUE(Dir::isAbsolutePath(path));
+   
+#ifdef PDK_OS_UNIX
+   if (path.length() > 1) {
+      ASSERT_TRUE(!path.endsWith('/'));
+   }
+   
+#elif defined(PDK_OS_WIN)
+   if (path.length() > 3)      // root dir = "c:/"; "//" is not really valid...
+   {
+      ASSERT_TRUE(!path.endsWith('/'));
+   }
+   ASSERT_TRUE(!path.contains(Latin1Character('~'))) << pdk_printable(String::fromLatin1("Temp path (%1) must not be a short name.").arg(path));
+#endif
+}
+
+TEST_F(DirTest, getRootPath)
+{
+   Dir dir = Dir::getRoot();
+   String path = Dir::getRootPath();
+   
+   // docs say that tempPath() is an absolute path
+   ASSERT_EQ(path, dir.getAbsolutePath());
+   ASSERT_TRUE(Dir::isAbsolutePath(path));
+   
+#if defined(PDK_OS_UNIX)
+   ASSERT_EQ(path, String(Latin1String("/")));
+#endif
+}
+
+TEST_F(DirTest, testNativeSeparators)
+{
+#if defined(PDK_OS_WIN)
+   ASSERT_EQ(Dir::toNativeSeparators(Latin1String("/")), String("\\"));
+   ASSERT_EQ(Dir::toNativeSeparators(Latin1String("\\")), String("\\"));
+   ASSERT_EQ(Dir::fromNativeSeparators(Latin1String("/")), String("/"));
+   ASSERT_EQ(Dir::fromNativeSeparators(Latin1String("\\")), String("/"));
+#else
+   ASSERT_EQ(Dir::toNativeSeparators(Latin1String("/")), String(Latin1String("/")));
+   ASSERT_EQ(Dir::toNativeSeparators(Latin1String("\\")), String(Latin1String("\\")));
+   ASSERT_EQ(Dir::fromNativeSeparators(Latin1String("/")), String(Latin1String("/")));
+   ASSERT_EQ(Dir::fromNativeSeparators(Latin1String("\\")), String(Latin1String("\\")));
+#endif
+}
+
