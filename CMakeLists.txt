@@ -315,7 +315,7 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
    set(PDK_DEBUG ON)
-   set(PDK_IODEVICE_DEBUG ON)
+   set(PDK_IODEVICE_DEBUG OFF)
 endif()
 
 # configure head files

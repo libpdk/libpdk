@@ -308,17 +308,17 @@ bool DirSortItemComparator::operator()(const DirSortItem &n1, const DirSortItem 
    if (r == 0 && sortBy != Dir::SortFlag::Unsorted) {
       // Still not sorted - sort by name
       bool ic = m_cmpSiSortFlags & pdk::as_integer<Dir::SortFlag>(Dir::SortFlag::IgnoreCase);
-      if (f1->m_suffixCache.isNull()) {
-         f1->m_suffixCache = ic ? f1->m_item.getFileName().toLower()
+      if (f1->m_filenameCache.isNull()) {
+         f1->m_filenameCache = ic ? f1->m_item.getFileName().toLower()
                                 : f1->m_item.getFileName();
       }
-      if (f2->m_suffixCache.isNull()) {
-         f2->m_suffixCache = ic ? f2->m_item.getFileName().toLower()
+      if (f2->m_filenameCache.isNull()) {
+         f2->m_filenameCache = ic ? f2->m_item.getFileName().toLower()
                                 : f2->m_item.getFileName();
       }
       r = m_cmpSiSortFlags & pdk::as_integer<Dir::SortFlag>(Dir::SortFlag::LocaleAware)
-            ? f1->m_suffixCache.localeAwareCompare(f2->m_suffixCache)
-            : f1->m_suffixCache.compare(f2->m_suffixCache);
+            ? f1->m_filenameCache.localeAwareCompare(f2->m_filenameCache)
+            : f1->m_filenameCache.compare(f2->m_filenameCache);
    }
    if (m_cmpSiSortFlags & pdk::as_integer<Dir::SortFlag>(Dir::SortFlag::Reversed)) {
       return r > 0;

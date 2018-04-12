@@ -574,4 +574,4 @@ TEST_F(DirIteratorTest, testHiddenDirsHiddenFiles)
       ASSERT_EQ(failures, 0);
    }
 }
-#endif // Q_OS_WIN
+#endif // PDK_OS_WIN
