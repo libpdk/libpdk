@@ -22,6 +22,7 @@
 #include "pdk/base/ds/StringList.h"
 #include "../../shared/Filesystem.h"
 #include "pdk/utils/Funcs.h"
+#include "pdk/base/text/RegularExpression.h"
 
 #if defined(PDK_OS_UNIX)
 # include <unistd.h>
@@ -42,6 +43,8 @@ using pdk::io::fs::Dir;
 using pdk::io::fs::File;
 using pdk::io::fs::FileInfo;
 using pdk::ds::StringList;
+using pdktest::shared::Filesystem;
+using pdk::text::RegularExpression;
 
 #define PDKTEST_DIR_SEP "/"
 #define PDKTEST_FINDTESTDATA(subDir) PDKTEST_CURRENT_TEST_DIR PDKTEST_DIR_SEP PDK_STRINGIFY(subDir)
@@ -171,197 +174,198 @@ Dir DirTest::m_currentDir(sg_currentBinaryDir);
 
 } // anonymous namespace
 
-//TEST_F(DirTest, testGetSetCheck)
-//{
-//   Dir obj1;
-//   // Filters Dir::getFilter()
-//   // void Dir::setFilter(Filters)
-//   obj1.setFilter(Dir::Filters(Dir::Filter::Dirs));
-//   EXPECT_EQ(Dir::Filters(Dir::Filter::Dirs), obj1.getFilter());
-//   obj1.setFilter(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Files);
-//   EXPECT_EQ(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Files, obj1.getFilter());
-//   obj1.setFilter(Dir::Filters(Dir::Filter::NoFilter));
-//   EXPECT_EQ(Dir::Filters(Dir::Filter::NoFilter), obj1.getFilter());
+TEST_F(DirTest, testGetSetCheck)
+{
+   Dir obj1;
+   // Filters Dir::getFilter()
+   // void Dir::setFilter(Filters)
+   obj1.setFilter(Dir::Filters(Dir::Filter::Dirs));
+   EXPECT_EQ(Dir::Filters(Dir::Filter::Dirs), obj1.getFilter());
+   obj1.setFilter(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Files);
+   EXPECT_EQ(Dir::Filters(Dir::Filter::Dirs) | Dir::Filter::Files, obj1.getFilter());
+   obj1.setFilter(Dir::Filters(Dir::Filter::NoFilter));
+   EXPECT_EQ(Dir::Filters(Dir::Filter::NoFilter), obj1.getFilter());
 
-//   // SortFlags Dir::getSorting()
-//   // void Dir::setSorting(SortFlags)   
-//   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::Name));
-//   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::Name), obj1.getSorting());
-//   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::IgnoreCase);
-//   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::IgnoreCase, obj1.getSorting());
-//   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::NoSort));
-//   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::NoSort), obj1.getSorting());
-//}
+   // SortFlags Dir::getSorting()
+   // void Dir::setSorting(SortFlags)   
+   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::Name));
+   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::Name), obj1.getSorting());
+   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::IgnoreCase);
+   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::IgnoreCase, obj1.getSorting());
+   obj1.setSorting(Dir::SortFlags(Dir::SortFlag::NoSort));
+   EXPECT_EQ(Dir::SortFlags(Dir::SortFlag::NoSort), obj1.getSorting());
+}
 
-//TEST_F(DirTest, testConstruction)
-//{
-//   FileInfo myFileInfo(Latin1String("/machine/share/dir1/file1"));
-//   Dir myDir(myFileInfo.getAbsoluteDir()); // this asserte
-//   EXPECT_EQ(myFileInfo.getAbsoluteDir().getAbsolutePath(), myDir.getAbsolutePath());
-//}
+TEST_F(DirTest, testConstruction)
+{
+   FileInfo myFileInfo(Latin1String("/machine/share/dir1/file1"));
+   Dir myDir(myFileInfo.getAbsoluteDir()); // this asserte
+   EXPECT_EQ(myFileInfo.getAbsoluteDir().getAbsolutePath(), myDir.getAbsolutePath());
+}
 
-//namespace {
+namespace {
 
-//void init_setpath_data(std::list<std::tuple<String, String>> &data)
-//{
-//   data.push_back(std::make_tuple(String(Latin1String(".")), String(Latin1String(".."))));
-//}
+void init_setpath_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String(".")), String(Latin1String(".."))));
+}
 
-//} // anonymous namespace
+} // anonymous namespace
 
-//TEST_F(DirTest, testSetPath)
-//{
-//   std::list<std::tuple<String, String>> data;
-//   init_setpath_data(data);
-//   for (const auto &item: data) {
-//      const String &dir1 = std::get<0>(item);
-//      const String &dir2 = std::get<1>(item);
+TEST_F(DirTest, testSetPath)
+{
+   std::list<std::tuple<String, String>> data;
+   init_setpath_data(data);
+   for (const auto &item: data) {
+      const String &dir1 = std::get<0>(item);
+      const String &dir2 = std::get<1>(item);
 
-//      Dir shared;
-//      Dir tempDir1(dir1);
-//      StringList entries1 = tempDir1.entryList();
-//      EXPECT_EQ(shared.entryList(), entries1);
+      Dir shared;
+      Dir tempDir1(dir1);
+      StringList entries1 = tempDir1.entryList();
+      EXPECT_EQ(shared.entryList(), entries1);
 
-//      Dir tempDir2(dir2);
-//      StringList entries2 = tempDir2.entryList();
-//      shared.setPath(dir2);
-//      EXPECT_EQ(shared.entryList(), entries2);
-//   }
-//}
+      Dir tempDir2(dir2);
+      StringList entries2 = tempDir2.entryList();
+      shared.setPath(dir2);
+      EXPECT_EQ(shared.entryList(), entries2);
+   }
+}
 
-//namespace {
+namespace {
 
-//void init_mkdir_rmdir_data(std::list<std::tuple<String, bool>> &data)
-//{
-//   StringList dirs;
-//   dirs.push_back(String(Latin1String("testdir/one")));
-//   dirs.push_back(String(Latin1String("testdir/two/three/four")));
-//   dirs.push_back(String(Latin1String("testdir/../testdir/three")));
+void init_mkdir_rmdir_data(std::list<std::tuple<String, bool>> &data)
+{
+   StringList dirs;
+   dirs.push_back(String(Latin1String("testdir/one")));
+   dirs.push_back(String(Latin1String("testdir/two/three/four")));
+   dirs.push_back(String(Latin1String("testdir/../testdir/three")));
 
-//   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(0), false));
-//   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(1), true));
-//   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(2), false));
+   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(0), false));
+   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(1), true));
+   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/") + dirs.at(2), false));
 
-//   data.push_back(std::make_tuple(dirs.at(0), false));
-//   data.push_back(std::make_tuple(dirs.at(1), true));
-//   data.push_back(std::make_tuple(dirs.at(2), false));
+   data.push_back(std::make_tuple(dirs.at(0), false));
+   data.push_back(std::make_tuple(dirs.at(1), true));
+   data.push_back(std::make_tuple(dirs.at(2), false));
 
-//   for (size_t i = 0; i < dirs.size(); ++i) {
-//      EXPECT_TRUE(!File::exists(dirs.at(i)));
-//   }
-//}
+   for (size_t i = 0; i < dirs.size(); ++i) {
+      EXPECT_TRUE(!File::exists(dirs.at(i)));
+   }
+}
 
-//} // anonymous namespace
+} // anonymous namespace
 
-//TEST_F(DirTest, testMkdirRmdir)
-//{
-//   std::list<std::tuple<String, bool>> data;
-//   init_mkdir_rmdir_data(data);
-//   for (const auto &item: data) {
-//      const String &path = std::get<0>(item);
-//      const bool recurse = std::get<1>(item);
-//      Dir dir;
-//      dir.rmdir(path);
-//      if (recurse) {
-//         EXPECT_TRUE(dir.mkpath(path));
-//      } else {
-//         EXPECT_TRUE(dir.mkdir(path));
-//      }
-//      //make sure it really exists (ie that mkdir returns the right value)
-//      FileInfo fileInfo(path);
-//      EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) << msg_does_not_exist(path).getConstRawData();
-//      if (recurse) {
-//         EXPECT_TRUE(dir.rmpath(path));
-//      } else {
-//         EXPECT_TRUE(dir.rmdir(path));
-//      }
-//      //make sure it really doesn't exist (ie that rmdir returns the right value)
-//      fileInfo.refresh();
-//      EXPECT_TRUE(!fileInfo.exists());
-//   }
-//}
+TEST_F(DirTest, testMkdirRmdir)
+{
+   EXPECT_TRUE(Dir::setCurrent(sg_currentSourceDir)) <<  pdk_printable(Latin1String("Could not chdir to ") + sg_currentSourceDir);
+   std::list<std::tuple<String, bool>> data;
+   init_mkdir_rmdir_data(data);
+   for (const auto &item: data) {
+      const String &path = std::get<0>(item);
+      const bool recurse = std::get<1>(item);
+      Dir dir;
+      dir.rmdir(path);
+      if (recurse) {
+         EXPECT_TRUE(dir.mkpath(path));
+      } else {
+         EXPECT_TRUE(dir.mkdir(path));
+      }
+      //make sure it really exists (ie that mkdir returns the right value)
+      FileInfo fileInfo(path);
+      EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) << msg_does_not_exist(path).getConstRawData();
+      if (recurse) {
+         EXPECT_TRUE(dir.rmpath(path));
+      } else {
+         EXPECT_TRUE(dir.rmdir(path));
+      }
+      //make sure it really doesn't exist (ie that rmdir returns the right value)
+      fileInfo.refresh();
+      EXPECT_TRUE(!fileInfo.exists());
+   }
+}
 
-//TEST_F(DirTest, testMkdirOnSymlink)
-//{
-//#if !defined(PDK_OS_UNIX) || defined(PDK_NO_SYMLINKS)
-//   SUCCEED() << "Test only valid on an OS that supports symlinks";
-//#else
-//   // Create the structure:
-//   //    .
-//   //    ├── symlink -> two/three
-//   //    └── two
-//   //        └── three
-//   // so when we mkdir("symlink/../four/five"), we end up with:
-//   //    .
-//   //    ├── symlink -> two/three
-//   //    └── two
-//   //        ├── four
-//   //        │   └── five
-//   //        └── three
-//   Dir dir;
-//   struct Clean
-//   {
-//      Dir &m_dir;
-//      Clean(Dir &dir) : m_dir(dir) {}
-//      ~Clean()
-//      {
-//         doClean();
-//      }
+TEST_F(DirTest, testMkdirOnSymlink)
+{
+#if !defined(PDK_OS_UNIX) || defined(PDK_NO_SYMLINKS)
+   SUCCEED() << "Test only valid on an OS that supports symlinks";
+#else
+   // Create the structure:
+   //    .
+   //    ├── symlink -> two/three
+   //    └── two
+   //        └── three
+   // so when we mkdir("symlink/../four/five"), we end up with:
+   //    .
+   //    ├── symlink -> two/three
+   //    └── two
+   //        ├── four
+   //        │   └── five
+   //        └── three
+   Dir dir;
+   struct Clean
+   {
+      Dir &m_dir;
+      Clean(Dir &dir) : m_dir(dir) {}
+      ~Clean()
+      {
+         doClean();
+      }
 
-//      void doClean()
-//      {
-//         m_dir.rmpath(Latin1String("two/three"));
-//         m_dir.rmpath(Latin1String("two/four/five"));
-//         // in case the test fails, don't leave junk behind
-//         m_dir.rmpath(Latin1String("four/five"));
-//         File::remove(Latin1String("symlink"));
-//      }
-//   };
+      void doClean()
+      {
+         m_dir.rmpath(Latin1String("two/three"));
+         m_dir.rmpath(Latin1String("two/four/five"));
+         // in case the test fails, don't leave junk behind
+         m_dir.rmpath(Latin1String("four/five"));
+         File::remove(Latin1String("symlink"));
+      }
+   };
 
-//   Clean clean(dir);
-//   clean.doClean();
+   Clean clean(dir);
+   clean.doClean();
 
-//   // create our structure:
-//   dir.mkpath(Latin1String("two/three"));
-//   ::symlink("two/three", "symlink");
+   // create our structure:
+   dir.mkpath(Latin1String("two/three"));
+   ::symlink("two/three", "symlink");
 
-//   // try it:
-//   String path = Latin1String("symlink/../four/five");
-//   EXPECT_TRUE(dir.mkpath(path));
-//   FileInfo fileInfo(path);
-//   EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) <<  msg_does_not_exist(path).getConstRawData();
+   // try it:
+   String path = Latin1String("symlink/../four/five");
+   EXPECT_TRUE(dir.mkpath(path));
+   FileInfo fileInfo(path);
+   EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) <<  msg_does_not_exist(path).getConstRawData();
 
-//   path = Latin1String("two/four/five");
-//   fileInfo.setFile(path);
-//   EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) << msg_does_not_exist(path).getConstRawData();
-//#endif
-//}
+   path = Latin1String("two/four/five");
+   fileInfo.setFile(path);
+   EXPECT_TRUE(fileInfo.exists() && fileInfo.isDir()) << msg_does_not_exist(path).getConstRawData();
+#endif
+}
 
-//TEST_F(DirTest, testMakeDirReturnCode)
-//{
-//   String dirName = String::fromLatin1("makedirReturnCode");
-//   File file(Dir::getCurrent().getFilePath(dirName));
-//   // cleanup a previous run.
-//   file.remove();
-//   Dir::getCurrent().rmdir(dirName);
+TEST_F(DirTest, testMakeDirReturnCode)
+{
+   String dirName = String::fromLatin1("makedirReturnCode");
+   File file(Dir::getCurrent().getFilePath(dirName));
+   // cleanup a previous run.
+   file.remove();
+   Dir::getCurrent().rmdir(dirName);
 
-//   Dir dir(dirName);
-//   EXPECT_TRUE(!dir.exists());
-//   EXPECT_TRUE(Dir::getCurrent().mkdir(dirName));
-//   EXPECT_TRUE(!Dir::getCurrent().mkdir(dirName)); // calling mkdir on an existing dir will fail.
-//   EXPECT_TRUE(Dir::getCurrent().mkpath(dirName)); // calling mkpath on an existing dir will pass
+   Dir dir(dirName);
+   EXPECT_TRUE(!dir.exists());
+   EXPECT_TRUE(Dir::getCurrent().mkdir(dirName));
+   EXPECT_TRUE(!Dir::getCurrent().mkdir(dirName)); // calling mkdir on an existing dir will fail.
+   EXPECT_TRUE(Dir::getCurrent().mkpath(dirName)); // calling mkpath on an existing dir will pass
 
-//   // Remove the directory and create a file with the same path
-//   Dir::getCurrent().rmdir(dirName);
-//   EXPECT_TRUE(!file.exists());
-//   file.open(IoDevice::OpenMode::WriteOnly);
-//   file.write("test");
-//   file.close();
-//   EXPECT_TRUE(file.exists()) <<  msg_does_not_exist(file.getFileName()).getConstRawData();
-//   EXPECT_TRUE(!Dir::getCurrent().mkdir(dirName)); // calling mkdir on an existing file will fail.
-//   EXPECT_TRUE(!Dir::getCurrent().mkpath(dirName)); // calling mkpath on an existing file will fail.
-//   file.remove();
-//}
+   // Remove the directory and create a file with the same path
+   Dir::getCurrent().rmdir(dirName);
+   EXPECT_TRUE(!file.exists());
+   file.open(IoDevice::OpenMode::WriteOnly);
+   file.write("test");
+   file.close();
+   EXPECT_TRUE(file.exists()) <<  msg_does_not_exist(file.getFileName()).getConstRawData();
+   EXPECT_TRUE(!Dir::getCurrent().mkdir(dirName)); // calling mkdir on an existing file will fail.
+   EXPECT_TRUE(!Dir::getCurrent().mkpath(dirName)); // calling mkpath on an existing file will fail.
+   file.remove();
+}
 
 namespace {
 
@@ -585,179 +589,179 @@ void init_entry_list_data(std::list<std::tuple<String, StringList, int, int, Str
 
 void init_entry_list_with_test_files_data(std::list<std::tuple<String, StringList, int, int, StringList>> &data)
 {
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Files),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Files),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Dirs),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Dirs),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Dirs) | int(Dir::Filter::NoDotAndDotDot),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("directory,linktodirectory.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Dirs) | int(Dir::Filter::NoDotAndDotDot),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("directory,linktodirectory.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllDirs),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllDirs),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllDirs) | int(Dir::Filter::Dirs),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllDirs) | int(Dir::Filter::Dirs),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllDirs) | int(Dir::Filter::Files),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllDirs) | int(Dir::Filter::Files),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::NoSymLinks),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::NoSymLinks),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::NoSymLinks) | int(Dir::Filter::NoDotAndDotDot),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("directory,file,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::NoSymLinks) | int(Dir::Filter::NoDotAndDotDot),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("directory,file,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Files) | int(Dir::Filter::NoSymLinks),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("file,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Files) | int(Dir::Filter::NoSymLinks),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("file,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Dirs) | int(Dir::Filter::NoSymLinks),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Dirs) | int(Dir::Filter::NoSymLinks),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Drives) | int(Dir::Filter::Files) | int(Dir::Filter::NoDotAndDotDot),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Drives) | int(Dir::Filter::Files) | int(Dir::Filter::NoDotAndDotDot),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::System),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("brokenlink.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::System),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("brokenlink.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Hidden),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  StringList()));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Hidden),
+                                     int(Dir::SortFlag::Name),
+                                     StringList()));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::System) | int(Dir::Filter::Hidden),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  StringList(Latin1String("brokenlink.lnk"))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::System) | int(Dir::Filter::Hidden),
+                                     int(Dir::SortFlag::Name),
+                                     StringList(Latin1String("brokenlink.lnk"))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllDirs) | int(Dir::Filter::NoSymLinks),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllDirs) | int(Dir::Filter::NoSymLinks),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::Hidden) | int(Dir::Filter::System),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,brokenlink.lnk,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::Hidden) | int(Dir::Filter::System),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,brokenlink.lnk,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::Readable),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::Readable),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::Writable),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::Writable),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::AllEntries) | int(Dir::Filter::Writable),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::AllEntries) | int(Dir::Filter::Writable),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Files) | int(Dir::Filter::Readable),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Files) | int(Dir::Filter::Readable),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("file,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::Dirs) | int(Dir::Filter::Readable),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::Dirs) | int(Dir::Filter::Readable),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,linktodirectory.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("^d.*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("directory")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("^d.*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("directory")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("^f.*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("file")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("^f.*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("file")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("^link.*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("linktodirectory.lnk,linktofile.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("^link.*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("linktodirectory.lnk,linktofile.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String(".*to.*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String("directory,linktodirectory.lnk,linktofile.lnk")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String(".*to.*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String("directory,linktodirectory.lnk,linktofile.lnk")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name),
-   //                                  filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name),
+                                     filter_links(String(Latin1String(".,..,directory,file,linktodirectory.lnk,linktofile.lnk,writable")).split(','))));
    
-   //   data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
-   //                                  StringList(Latin1String("*")),
-   //                                  int(Dir::Filter::NoFilter),
-   //                                  int(Dir::SortFlag::Name) | int(Dir::SortFlag::Reversed),
-   //                                  filter_links(String(Latin1String("writable,linktofile.lnk,linktodirectory.lnk,file,directory,..,.")).split(','))));
+      data.push_back(std::make_tuple(sg_currentBinaryDir + Latin1String("/entrylist/"),
+                                     StringList(Latin1String("*")),
+                                     int(Dir::Filter::NoFilter),
+                                     int(Dir::SortFlag::Name) | int(Dir::SortFlag::Reversed),
+                                     filter_links(String(Latin1String("writable,linktofile.lnk,linktodirectory.lnk,file,directory,..,.")).split(','))));
    
    data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/types/"),
                                   StringList(Latin1String("*")),
@@ -798,100 +802,102 @@ void init_entry_list_with_test_files_data(std::list<std::tuple<String, StringLis
 
 } // anonymous namespace
 
-//TEST_F(DirTest, testEntryList)
-//{
-//   std::list<std::tuple<String, StringList, int, int, StringList>> data;
-//   init_entry_list_data(data);
-//   for (auto &item : data) {
-//      String &dirName = std::get<0>(item);
-//      StringList &nameFilters = std::get<1>(item);
-//      int filterSpec = std::get<2>(item);
-//      int sortSpec = std::get<3>(item);
-//      StringList &expected = std::get<4>(item);
+TEST_F(DirTest, testEntryList)
+{
+   std::list<std::tuple<String, StringList, int, int, StringList>> data;
+   init_entry_list_data(data);
+   for (auto &item : data) {
+      String &dirName = std::get<0>(item);
+      StringList &nameFilters = std::get<1>(item);
+      int filterSpec = std::get<2>(item);
+      int sortSpec = std::get<3>(item);
+      StringList &expected = std::get<4>(item);
 
-//      Dir dir(dirName);
-//      EXPECT_TRUE(dir.exists()) << msg_does_not_exist(dirName).getConstRawData();
-//      StringList actual = dir.entryList(nameFilters, (Dir::Filters)filterSpec,
-//                                        (Dir::SortFlags)sortSpec);
-//      EXPECT_EQ(actual, expected);
-//   }
-//}
+      Dir dir(dirName);
+      EXPECT_TRUE(dir.exists()) << msg_does_not_exist(dirName).getConstRawData();
+      StringList actual = dir.entryList(nameFilters, (Dir::Filters)filterSpec,
+                                        (Dir::SortFlags)sortSpec);
+      EXPECT_EQ(actual, expected);
+   }
+}
 
-//TEST_F(DirTest, testEntryListWithTestFiles)
-//{
-//   std::list<std::tuple<String, StringList, int, int, StringList>> data;
-//   init_entry_list_with_test_files_data(data);
+TEST_F(DirTest, testEntryListWithTestFiles)
+{
+   std::list<std::tuple<String, StringList, int, int, StringList>> data;
+   init_entry_list_with_test_files_data(data);
 
-//   for (auto &item : data) {
-//      String &dirName = std::get<0>(item);
-//      StringList &nameFilters = std::get<1>(item);
-//      int filterSpec = std::get<2>(item);
-//      int sortSpec = std::get<3>(item);
-//      StringList &expected = std::get<4>(item);
-//      StringList testFiles;
-//      Dir::setCurrent(dirName);
-//      String entrylistPath = (sg_currentBinaryDir + Latin1String("/entrylist/"));
+   for (auto &item : data) {
+      String &dirName = std::get<0>(item);
+      StringList &nameFilters = std::get<1>(item);
+      int filterSpec = std::get<2>(item);
+      int sortSpec = std::get<3>(item);
+      StringList &expected = std::get<4>(item);
+      StringList testFiles;
+      Dir::setCurrent(dirName);
+      String entrylistPath = (sg_currentBinaryDir + Latin1String("/entrylist/"));
 
-//      {
-//         const String writableFileName = entrylistPath + Latin1String("writable");
-//         File writableFile(writableFileName);
-//         testFiles.push_back(writableFileName);
+      {
+         const String writableFileName = entrylistPath + Latin1String("writable");
+         File writableFile(writableFileName);
+         testFiles.push_back(writableFileName);
 
-//         EXPECT_TRUE(writableFile.open(IoDevice::OpenMode::ReadWrite)) << pdk_printable(writableFile.getErrorString());
+         EXPECT_TRUE(writableFile.open(IoDevice::OpenMode::ReadWrite)) << pdk_printable(writableFile.getErrorString());
+      }
+      {
+         File readOnlyFile(entrylistPath + Latin1String("file"));
+         EXPECT_TRUE(readOnlyFile.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::ReadUser)) << pdk_printable(readOnlyFile.getErrorString());
+      }
+
+
+#ifndef PDK_NO_SYMLINKS
+#if defined(PDK_OS_WIN)
+      // ### Sadly, this is a platform difference right now.
+      // Note we are using capital L in entryList on one side here, to test case-insensitivity
+      const std::vector<std::pair<String, String>> symLinks =
+      {
+         {sg_currentSourceDir + Latin1String("/entryList/file"), entrylistPath + Latin1String("linktofile.lnk")},
+         {sg_currentSourceDir + Latin1String("/entryList/directory"), entrylistPath + Latin1String("linktodirectory.lnk")},
+         {sg_currentSourceDir + Latin1String("/entryList/nothing"), entrylistPath + Latin1String("brokenlink.lnk")}
+      };
+#else
+      const std::vector<std::pair<String, String>> symLinks =
+      {
+         {Latin1String("file"), entrylistPath + Latin1String("linktofile.lnk")},
+         {Latin1String("directory"), entrylistPath + Latin1String("linktodirectory.lnk")},
+         {Latin1String("nothing"), entrylistPath + Latin1String("brokenlink.lnk")}
+      };
+#endif
+
+      for (const auto &symLink : symLinks) {
+         EXPECT_TRUE(File::link(symLink.first, symLink.second)) << pdk_printable(symLink.first + Latin1String("->") + symLink.second);
+         testFiles.push_back(symLink.second);
+      }
+#endif //PDK_NO_SYMLINKS
+
+      Dir dir(dirName);
+      EXPECT_TRUE(dir.exists()) << msg_does_not_exist(dirName).getConstRawData();
+      StringList actual = dir.entryList(nameFilters, (Dir::Filters)filterSpec,
+                                        (Dir::SortFlags)sortSpec);
+      bool doContentCheck = true;
+//#if defined(PDK_OS_UNIX)
+//      if (pdk::strcmp(currentDataTag(), "Dir::AllEntries | Dir::Writable") == 0) {
+//         // for root, everything is writeable
+//         if (::getuid() == 0)
+//            doContentCheck = false;
 //      }
-//      {
-//         File readOnlyFile(entrylistPath + Latin1String("file"));
-//         EXPECT_TRUE(readOnlyFile.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::ReadUser)) << pdk_printable(readOnlyFile.getErrorString());
-//      }
-
-
-//#ifndef PDK_NO_SYMLINKS
-//#if defined(PDK_OS_WIN)
-//      // ### Sadly, this is a platform difference right now.
-//      // Note we are using capital L in entryList on one side here, to test case-insensitivity
-//      const std::vector<std::pair<String, String>> symLinks =
-//      {
-//         {sg_currentSourceDir + Latin1String("/entryList/file"), entrylistPath + Latin1String("linktofile.lnk")},
-//         {sg_currentSourceDir + Latin1String("/entryList/directory"), entrylistPath + Latin1String("linktodirectory.lnk")},
-//         {sg_currentSourceDir + Latin1String("/entryList/nothing"), entrylistPath + Latin1String("brokenlink.lnk")}
-//      };
-//#else
-//      const std::vector<std::pair<String, String>> symLinks =
-//      {
-//         {Latin1String("file"), entrylistPath + Latin1String("linktofile.lnk")},
-//         {Latin1String("directory"), entrylistPath + Latin1String("linktodirectory.lnk")},
-//         {Latin1String("nothing"), entrylistPath + Latin1String("brokenlink.lnk")}
-//      };
 //#endif
+      for (int i = testFiles.size() - 1; i >= 0; --i) {
+         EXPECT_TRUE(File::remove(testFiles.at(i))) << pdk_printable(testFiles.at(i));
+      }
+      if (doContentCheck) {
+         EXPECT_EQ(actual, expected);
+      }
+   }
 
-//      for (const auto &symLink : symLinks) {
-//         EXPECT_TRUE(File::link(symLink.first, symLink.second)) << pdk_printable(symLink.first + Latin1String("->") + symLink.second);
-//         testFiles.push_back(symLink.second);
-//      }
-//#endif //PDK_NO_SYMLINKS
+}
 
-//      Dir dir(dirName);
-//      EXPECT_TRUE(dir.exists()) << msg_does_not_exist(dirName).getConstRawData();
-//      StringList actual = dir.entryList(nameFilters, (Dir::Filters)filterSpec,
-//                                        (Dir::SortFlags)sortSpec);
-//      bool doContentCheck = true;
-////#if defined(PDK_OS_UNIX)
-////      if (pdk::strcmp(currentDataTag(), "Dir::AllEntries | Dir::Writable") == 0) {
-////         // for root, everything is writeable
-////         if (::getuid() == 0)
-////            doContentCheck = false;
-////      }
-////#endif
-//      for (int i = testFiles.size() - 1; i >= 0; --i) {
-//         EXPECT_TRUE(File::remove(testFiles.at(i))) << pdk_printable(testFiles.at(i));
-//      }
-//      if (doContentCheck) {
-//         EXPECT_EQ(actual, expected);
-//      }
-//   }
-
-//}
-
+// @TODO testEntryListTimedSort
+// @TODO testEntryListTimedSort
 // @TODO testEntryListTimedSort
 
 namespace {
@@ -1829,21 +1835,41 @@ void init_search_paths_data(std::list<std::tuple<String, String, String, String>
    //   String srcdir = FileInfo(searchDir).getAbsolutePath();
    
    // sanity
-//   data.push_back(std::make_tuple(Latin1String("picker.png"), String(), String(), String()));
-//   data.push_back(std::make_tuple(Latin1String("subdir1/picker.png"), String(), String(), String()));
+   data.push_back(std::make_tuple(Latin1String("picker.png"), String(), String(), String()));
+   data.push_back(std::make_tuple(Latin1String("subdir1/picker.png"), String(), String(), String()));
    data.push_back(std::make_tuple((sg_currentSourceDir + Latin1String("/searchdir/subdir1/picker.png")), 
                                   String(Latin1String("searchpath")), 
                                   String(Latin1String("searchdir")),
                                   searchDir + Latin1String("/subdir1/picker.png")));
    
    // new
-   //   QTest::newRow("novalidsearchpath") << "searchpath:subdir1/picker.png" << String() << String() << String();
-   //   QTest::newRow("invalidsearchpath") << "searchpath:subdir1/picker.png" << String("invalid") << String("invalid") << String();
-   //   QTest::newRow("onlyvalidsearchpath") << "searchpath:subdir1/picker.png" << String("searchpath") << String((m_dataPath + "/searchdir")) << (searchDir+"/subdir1/picker.png");
-   //   QTest::newRow("validandinvalidsearchpath") << "searchpath:subdir1/picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir")) << (searchDir+"/subdir1/picker.png");
-   //   QTest::newRow("precedence1") << "searchpath:picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir/subdir1") + "," + (m_dataPath + "/searchdir/subdir2")) << (searchDir+"/subdir1/picker.png");
-   //   QTest::newRow("precedence2") << "searchpath:picker.png" << String("invalid;searchpath") << ("invalid;" + (m_dataPath + "/searchdir/subdir2") + "," + (m_dataPath + "/searchdir/subdir1")) << (searchDir+"/subdir2/picker.png");
-   //   QTest::newRow("precedence3") << "searchpath2:picker.png" << String("searchpath1;searchpath2") << ((m_dataPath + "/searchdir/subdir1") + ";" + (m_dataPath + "/searchdir/subdir2")) << (searchDir+"/subdir2/picker.png");
+   data.push_back(std::make_tuple(Latin1String("searchpath:subdir1/picker.png"), String(), String(), String()));
+   data.push_back(std::make_tuple(Latin1String("searchpath:subdir1/picker.png"), 
+                                  String(Latin1String("invalid")), String(Latin1String("invalid")), String()));
+   data.push_back(std::make_tuple(Latin1String("searchpath:subdir1/picker.png"), 
+                                  String(Latin1String("searchpath")), 
+                                  sg_currentSourceDir + Latin1String("/searchdir"), 
+                                  searchDir + Latin1String("/subdir1/picker.png")));
+   
+   data.push_back(std::make_tuple(Latin1String("searchpath:subdir1/picker.png"), 
+                                  String(Latin1String("invalid;searchpath")), 
+                                  (Latin1String("invalid;") + (sg_currentSourceDir + Latin1String("/searchdir"))), 
+                                  searchDir + Latin1String("/subdir1/picker.png")));
+   
+   data.push_back(std::make_tuple(Latin1String("searchpath:picker.png"), 
+                                  String(Latin1String("invalid;searchpath")), 
+                                  (Latin1String("invalid;") + (sg_currentSourceDir + Latin1String("/searchdir/subdir1") + Latin1String(",") + (sg_currentSourceDir + Latin1String("/searchdir/subdir2")))), 
+                                  searchDir + Latin1String("/subdir1/picker.png")));
+   
+   data.push_back(std::make_tuple(Latin1String("searchpath:picker.png"), 
+                                  String(Latin1String("invalid;searchpath")), 
+                                  (Latin1String("invalid;") + (sg_currentSourceDir + Latin1String("/searchdir/subdir2") + Latin1String(",") + (sg_currentSourceDir + Latin1String("/searchdir/subdir1")))), 
+                                  searchDir + Latin1String("/subdir2/picker.png")));
+   
+   data.push_back(std::make_tuple(Latin1String("searchpath2:picker.png"), 
+                                  String(Latin1String("searchpath1;searchpath2")), 
+                                  ((sg_currentSourceDir + Latin1String("/searchdir/subdir1") + Latin1String(";") + (sg_currentSourceDir + Latin1String("/searchdir/subdir2")))), 
+                                  searchDir + Latin1String("/subdir2/picker.png")));
    
    // re
 }
@@ -1910,4 +1936,610 @@ TEST_F(DirTest, testSearchPaths)
          ASSERT_TRUE(Dir::getSearchPaths(searchPathPrefixList.at(i)).empty());
       }
    }
+}
+
+TEST_F(DirTest, testEntryListWithSearchPaths)
+{
+   Dir realDir(sg_currentSourceDir + Latin1String("/resources/entryList"));
+   ASSERT_TRUE(realDir.exists());
+   ASSERT_TRUE(!realDir.entryList().empty());
+   ASSERT_TRUE(realDir.entryList().contains(Latin1String("file3.data")));
+   
+   Dir::setSearchPaths(Latin1String("searchpath"), StringList(sg_currentSourceDir + Latin1String("/resources")));
+   Dir dir(Latin1String("searchpath:entryList/"));
+   ASSERT_EQ(dir.getPath(), sg_currentSourceDir + Latin1String("/resources/entryList"));
+   ASSERT_TRUE(dir.exists());
+   StringList entryList = dir.entryList();
+   ASSERT_TRUE(entryList.contains(Latin1String("file3.data")));
+}
+
+namespace {
+
+void init_long_file_name_data(std::list<int> &data)
+{
+   data.push_back(128);
+   data.push_back(256);
+   data.push_back(512);
+   data.push_back(1024);
+   data.push_back(2048);
+   data.push_back(4096);
+}
+
+} // anonymous namespace
+
+TEST_F(DirTest, testLongFileName)
+{
+   EXPECT_TRUE(Dir::setCurrent(sg_currentBinaryDir)) <<  pdk_printable(Latin1String("Could not chdir to ") + sg_currentBinaryDir);
+   std::list<int> data;
+   init_long_file_name_data(data);
+   for (int length : data) {
+      String fileName(length, Latin1Character('a'));
+      fileName += Latin1String(".txt");
+      File file(fileName);
+      if (!file.open(File::OpenMode::WriteOnly)) {
+         std::cerr << "Cannot create long file names, current length " << length;
+         return;
+      }
+      File file2(fileName);
+      ASSERT_TRUE(file2.open(File::OpenMode::ReadOnly));
+      ASSERT_TRUE(Dir().entryList().contains(fileName));
+      file.close();
+      file2.close();
+      File::remove(fileName);
+   }
+}
+
+TEST_F(DirTest, testUpdateFileLists)
+{
+   //  Test setup
+   EXPECT_TRUE(Dir::setCurrent(sg_currentBinaryDir)) <<  pdk_printable(Latin1String("Could not chdir to ") + sg_currentBinaryDir);
+   Filesystem fs;
+   const String dirName = StringLiteral("update-file-lists");
+   
+   ASSERT_TRUE( fs.createDirectory(dirName));
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/file1.txt")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/file2.doc")) );
+   
+   ASSERT_TRUE( fs.createDirectory(dirName + StringLiteral("/sub-dir1")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir1/file3.txt")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir1/file4.doc")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir1/file5.txt")) );
+   
+   ASSERT_TRUE( fs.createDirectory(dirName + StringLiteral("/sub-dir2")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir2/file6.txt")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir2/file7.txt")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir2/file8.doc")) );
+   ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/sub-dir2/file9.doc")) );
+   
+   //  Actual test
+   
+   Dir dir(fs.absoluteFilePath(dirName));
+   
+   ASSERT_EQ(dir.count(), uint(6));
+   ASSERT_EQ(dir.entryList().size(), 6u);
+   ASSERT_EQ(dir.entryInfoList().size(), 6u);
+   
+   dir.setFilter(Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::NoDotAndDotDot);
+   
+   ASSERT_EQ(dir.entryList().size(), 4u);
+   ASSERT_EQ(dir.count(), uint(4));
+   ASSERT_EQ(dir.entryInfoList().size(), 4u);
+   
+   dir.setPath(fs.absoluteFilePath(dirName + StringLiteral("/sub-dir1")));
+   
+   ASSERT_EQ(dir.entryInfoList().size(), 3u);
+   ASSERT_EQ(dir.count(), uint(3));
+   ASSERT_EQ(dir.entryList().size(), 3u);
+   
+   dir.setNameFilters(StringList(Latin1String(".*\\.txt")));
+   
+   ASSERT_EQ(dir.entryInfoList().size(), 2u);
+   ASSERT_EQ(dir.entryList().size(), 2u);
+   ASSERT_EQ(dir.count(), uint(2));
+   
+   dir.setPath(fs.absoluteFilePath(dirName));
+   dir = Dir(dir.getPath(),
+             Latin1String(".*\\.txt"),
+             Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::DirsLast,
+             Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::AllDirs | Dir::Filter::NoDotAndDotDot);
+   ASSERT_EQ(dir.count(), uint(3));
+   ASSERT_EQ(dir.entryList().size(), 3u);
+   ASSERT_EQ(dir.entryInfoList().size(), 3u);
+   ASSERT_EQ(dir.entryList(), StringList() << Latin1String("file1.txt") << Latin1String("sub-dir1") << Latin1String("sub-dir2"));
+   
+   dir.setSorting(Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::DirsFirst);
+   
+   ASSERT_EQ(dir.count(), uint(3));
+   ASSERT_EQ(dir.entryList().size(), 3u);
+   ASSERT_EQ(dir.entryInfoList().size(), 3u);
+   ASSERT_EQ(dir.entryList(), StringList() << Latin1String("sub-dir1") << Latin1String("sub-dir2") << Latin1String("file1.txt"));
+   
+   {
+      ASSERT_TRUE( fs.createFile(dirName + StringLiteral("/extra-file.txt")) );
+      
+      Dir dir2(dir);
+      
+      ASSERT_EQ(dir2.count(), uint(3));
+      ASSERT_EQ(dir2.entryList().size(), 3u);
+      ASSERT_EQ(dir2.entryInfoList().size(), 3u);
+      ASSERT_EQ(dir2.entryList(), StringList() << Latin1String("sub-dir1") << Latin1String("sub-dir2") << Latin1String("file1.txt"));
+      
+      dir2.refresh();
+      
+      ASSERT_EQ(dir2.count(), uint(4));
+      ASSERT_EQ(dir2.entryList().size(), 4u);
+      ASSERT_EQ(dir2.entryInfoList().size(), 4u);
+      ASSERT_EQ(dir2.entryList(), StringList() << Latin1String("sub-dir1") << Latin1String("sub-dir2") << Latin1String("extra-file.txt") << Latin1String("file1.txt"));
+   }
+   
+   ASSERT_EQ(dir.count(), uint(3));
+   ASSERT_EQ(dir.entryList().size(), 3u);
+   ASSERT_EQ(dir.entryInfoList().size(), 3u);
+   ASSERT_EQ(dir.entryList(), StringList() << Latin1String("sub-dir1") << Latin1String("sub-dir2") << Latin1String("file1.txt"));
+}
+
+TEST_F(DirTest, testDetachingOperations)
+{
+   String const defaultPath(Latin1String("."));
+   StringList const defaultNameFilters = StringList(Latin1String("*"));
+   Dir::SortFlags const defaultSorting = Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::IgnoreCase;
+   Dir::Filters const defaultFilter = Dir::Filter::AllEntries;
+   
+   String const path1(Latin1String(".."));
+   String const path2(Latin1String("./foo"));
+   StringList const nameFilters = StringList(String(Latin1String(".*\\.txt")));
+   Dir::SortFlags const sorting = Dir::SortFlags(Dir::SortFlag::Name) | Dir::SortFlag::DirsLast | Dir::SortFlag::Reversed;
+   Dir::Filters const filter = Dir::Filter::Writable;
+   
+   Dir dir1;
+   
+   ASSERT_EQ(dir1.getPath(), defaultPath);
+   ASSERT_EQ(dir1.getFilter(), defaultFilter);
+   ASSERT_EQ(dir1.getNameFilters(), defaultNameFilters);
+   ASSERT_EQ(dir1.getSorting(), defaultSorting);
+   
+   dir1.setPath(path1);
+   ASSERT_EQ(dir1.getPath(), path1);
+   ASSERT_EQ(dir1.getFilter(), defaultFilter);
+   ASSERT_EQ(dir1.getNameFilters(), defaultNameFilters);
+   ASSERT_EQ(dir1.getSorting(), defaultSorting);
+   
+   dir1.setFilter(filter);
+   ASSERT_EQ(dir1.getPath(), path1);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), defaultNameFilters);
+   ASSERT_EQ(dir1.getSorting(), defaultSorting);
+   
+   dir1.setNameFilters(nameFilters);
+   ASSERT_EQ(dir1.getPath(), path1);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), defaultSorting);
+   
+   dir1.setSorting(sorting);
+   ASSERT_EQ(dir1.getPath(), path1);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), sorting);
+   
+   dir1.setPath(path2);
+   ASSERT_EQ(dir1.getPath(), path2);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), sorting);
+   
+   {
+      Dir dir2(dir1);
+      ASSERT_EQ(dir2.getPath(), path2);
+      ASSERT_EQ(dir2.getFilter(), filter);
+      ASSERT_EQ(dir2.getNameFilters(), nameFilters);
+      ASSERT_EQ(dir2.getSorting(), sorting);
+   }
+   
+   {
+      Dir dir2;
+      ASSERT_EQ(dir2.getPath(), defaultPath);
+      ASSERT_EQ(dir2.getFilter(), defaultFilter);
+      ASSERT_EQ(dir2.getNameFilters(), defaultNameFilters);
+      ASSERT_EQ(dir2.getSorting(), defaultSorting);
+      
+      dir2 = dir1;
+      ASSERT_EQ(dir2.getPath(), path2);
+      ASSERT_EQ(dir2.getFilter(), filter);
+      ASSERT_EQ(dir2.getNameFilters(), nameFilters);
+      ASSERT_EQ(dir2.getSorting(), sorting);
+      
+      dir2 = path1;
+      ASSERT_EQ(dir2.getPath(), path1);
+      ASSERT_EQ(dir2.getFilter(), filter);
+      ASSERT_EQ(dir2.getNameFilters(), nameFilters);
+      ASSERT_EQ(dir2.getSorting(), sorting);
+   }
+   
+   dir1.refresh();
+   ASSERT_EQ(dir1.getPath(), path2);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), sorting);
+   
+   String const currentPath = Dir::getCurrentPath();
+   ASSERT_TRUE(dir1.cd(currentPath));
+   ASSERT_EQ(dir1.getPath(), currentPath);
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), sorting);
+   
+   ASSERT_TRUE(dir1.cdUp());
+   ASSERT_EQ(dir1.getFilter(), filter);
+   ASSERT_EQ(dir1.getNameFilters(), nameFilters);
+   ASSERT_EQ(dir1.getSorting(), sorting);
+}
+
+TEST_F(DirTest, testCaching)
+{
+   String dirName = String::fromLatin1("testCaching");
+   Dir::getCurrent().rmdir(dirName); // cleanup a previous run.
+   Dir dir(dirName);
+   ASSERT_TRUE(!dir.exists());
+   Dir::getCurrent().mkdir(dirName);
+   ASSERT_TRUE(Dir(dirName).exists()); // dir exists
+   ASSERT_TRUE(dir.exists()); // Dir doesn't cache the 'exist' between calls.
+}
+
+namespace {
+
+void init_root_data(std::list<std::tuple<String, bool>> &data)
+{
+   String test = Dir::getRootPath();
+   data.push_back(std::make_tuple(test, true));
+}
+
+#ifndef PDK_NO_REGULAREXPRESSION
+void init_match_data(std::list<std::tuple<String, String, bool>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String(".*\\.cpp"), Latin1String("test_dir.cpp"), true));
+   data.push_back(std::make_tuple(Latin1String(".*\\.cpp"), Latin1String("test_dir.h"), false));
+   data.push_back(std::make_tuple(Latin1String(".*\\.cpp;.*\\.h"), Latin1String("test_dir.h"), true));
+   data.push_back(std::make_tuple(Latin1String(".*\\.cpp;.*\\.h"), Latin1String("test_dir.cpp"), true));
+   data.push_back(std::make_tuple(Latin1String(".*\\.cpp;.*\\.h"), Latin1String("readme.txt"), false));
+}
+#endif
+
+} // anonymous namespace
+
+TEST_F(DirTest, testIsRoot)
+{
+   std::list<std::tuple<String, bool>> data;
+   for (auto &item : data) {
+      String &path = std::get<0>(item);
+      bool isRoot = std::get<1>(item);
+      Dir dir(path);
+      ASSERT_EQ(dir.isRoot(), isRoot);
+   }
+}
+
+#ifndef PDK_NO_REGULAREXPRESSION
+TEST_F(DirTest, testMatch)
+{
+   std::list<std::tuple<String, String, bool>> data;
+   init_match_data(data);
+   for (auto &item : data) {
+      String &filter = std::get<0>(item);
+      String &filename = std::get<1>(item);
+      bool match = std::get<2>(item);
+      
+      ASSERT_EQ(Dir::match(filter, filename), match);
+      ASSERT_EQ(Dir::match(filter.split(Latin1Character(';')), filename), match);
+   }
+}
+#endif
+
+using pdk::io::fs::FileInfoList;
+using pdk::lang::Character;
+
+TEST_F(DirTest, testDrives)
+{
+   FileInfoList list(Dir::getDrives());
+#if defined(PDK_OS_WIN)
+   ASSERT_TRUE(list.size() >= 1); //system
+   Latin1Character systemdrive('c');
+#endif
+#if defined(PDK_OS_WIN)
+   ASSERT_TRUE(list.size() <= 26);
+   bool foundsystem = false;
+   for (FileInfo &fi: list) {
+      ASSERT_EQ(fi.getAbsolutePath().size(), 3); //"x:/"
+      ASSERT_EQ(fi.getAbsolutePath().at(1), Character(Latin1Character(':')));
+      ASSERT_EQ(fi.getAbsolutePath().at(2), Character(Latin1Character('/')));
+      if (fi.getAbsolutePath().at(0).toLower() == systemdrive)
+         foundsystem = true;
+   }
+   ASSERT_EQ(foundsystem, true);
+#else
+   ASSERT_EQ(list.size(), 1u); //root
+   ASSERT_EQ(list.front().getAbsolutePath(), Latin1String("/"));
+#endif
+}
+
+TEST_F(DirTest, testArrayOperator)
+{
+   Dir dir1((sg_currentSourceDir + Latin1String("/entrylist/")));
+   Dir dir2((sg_currentSourceDir + Latin1String("/entrylist/")));
+   
+   StringList entries(dir1.entryList());
+   int i = dir2.count();
+   ASSERT_EQ((size_t)i, entries.size());
+   --i;
+   for (; i>= 0; --i) {
+      ASSERT_EQ(dir2[i], entries.at(i));
+   }
+}
+
+namespace {
+
+using EqOptorDataType = std::list<std::tuple<String, String, int, int, String, String, int, int, bool>>;
+void init_equality_operator_data(EqOptorDataType &data)
+{
+   EXPECT_TRUE(Dir::setCurrent(sg_currentBinaryDir)) <<  pdk_printable(Latin1String("Could not chdir to ") + sg_currentBinaryDir);
+   data.push_back(std::make_tuple((sg_currentSourceDir + Latin1String("/.")),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  (sg_currentSourceDir + Latin1String("/.")),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   data.push_back(std::make_tuple(Latin1String("entrylist/"),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Latin1String("./entrylist"),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   data.push_back(std::make_tuple(Dir::getCurrentPath() + Latin1String("/entrylist/.."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Latin1String("."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   //need a path in the root directory that is unlikely to be a symbolic link.
+   // @TODO add other OS testcase, now only test posix Os
+   String pathinroot(Latin1String("/usr/.."));
+   
+   data.push_back(std::make_tuple(pathinroot,
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Dir::getRootPath(),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   data.push_back(std::make_tuple(Dir::getRootPath() + Latin1String("."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Dir::getRootPath(),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   data.push_back(std::make_tuple(Dir::getRootPath() + Latin1String("./"),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Dir::getRootPath(),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  true));
+   
+   data.push_back(std::make_tuple(Latin1String("dir-that-dont-exist"),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  Latin1String("another-dir-that-dont-exist"),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  false));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  sg_currentSourceDir,
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Dirs),
+                                  false));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  sg_currentSourceDir,
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Time),
+                                  int(Dir::Filter::Files),
+                                  false));
+   
+   data.push_back(std::make_tuple(sg_currentSourceDir + Latin1String("/."),
+                                  Latin1String(".*\\.cpp"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  sg_currentSourceDir,
+                                  Latin1String(".*\\.jpg"),
+                                  int(Dir::SortFlag::Name),
+                                  int(Dir::Filter::Files),
+                                  false));
+   
+}
+
+void init_is_relative_data(std::list<std::tuple<String, bool>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("./"), true));
+   data.push_back(std::make_tuple(Latin1String("../"), true));
+   data.push_back(std::make_tuple(Latin1String("entrylist/"), true));
+   data.push_back(std::make_tuple(Dir::getCurrentPath(), false));
+   data.push_back(std::make_tuple(Dir::getHomePath(), false));
+   data.push_back(std::make_tuple(Dir::getTempPath(), false));
+   data.push_back(std::make_tuple(Dir::getRootPath(), false));
+   
+   for (FileInfo root : Dir::getDrives()) {
+      data.push_back(std::make_tuple(root.getAbsolutePath(), false));
+   }
+   // @TODO resource testcase
+}
+
+} // anonymous namespace
+
+TEST_F(DirTest, testEqualityOperator)
+{
+   EqOptorDataType data;
+   init_equality_operator_data(data);
+   for (auto &item : data) {
+      String &leftPath = std::get<0>(item);
+      String &leftNameFilters = std::get<1>(item);
+      int leftSort = std::get<2>(item);
+      int leftFilters = std::get<3>(item);
+      String &rightPath = std::get<4>(item);
+      String &rightNameFilters = std::get<5>(item);
+      int rightSort = std::get<6>(item);
+      int rightFilters = std::get<7>(item);
+      bool expected = std::get<8>(item);
+      
+      Dir dir1(leftPath, leftNameFilters, Dir::SortFlags(leftSort), Dir::Filters(leftFilters));
+      Dir dir2(rightPath, rightNameFilters, Dir::SortFlags(rightSort), Dir::Filters(rightFilters));
+      
+      ASSERT_EQ((dir1 == dir2), expected);
+      ASSERT_EQ((dir2 == dir1), expected);
+      ASSERT_EQ((dir1 != dir2), !expected);
+      ASSERT_EQ((dir2 != dir1), !expected);
+   } 
+}
+
+TEST_F(DirTest, testIsRelative)
+{
+   std::list<std::tuple<String, bool>> data;
+   init_is_relative_data(data);
+   for (auto &item : data) {
+      String &path = std::get<0>(item);
+      bool relative = std::get<1>(item);
+      ASSERT_EQ(Dir(path).isRelative(), relative);
+   }
+}
+
+TEST_F(DirTest, testIsReadable)
+{
+#ifdef PDK_OS_UNIX
+   if (::getuid() == 0) {
+      std::cout << "Running this test as root doesn't make sense";
+      SUCCEED();
+      return;
+   }
+#endif
+   Dir dir;
+   ASSERT_TRUE(dir.isReadable());
+#if defined (PDK_OS_UNIX)
+   ASSERT_TRUE(dir.mkdir(Latin1String("nonreadabledir")));
+   ASSERT_TRUE(0 == ::chmod("nonreadabledir", 0));
+   ASSERT_TRUE(!Dir(Latin1String("nonreadabledir")).isReadable());
+   ASSERT_TRUE(0 == ::chmod("nonreadabledir", S_IRUSR | S_IWUSR | S_IXUSR));
+   ASSERT_TRUE(dir.rmdir(Latin1String("nonreadabledir")));
+#endif
+}
+
+TEST_F(DirTest, testCdNonreadable)
+{
+#ifdef PDK_OS_UNIX
+   if (::getuid() == 0) {
+      std::cout << "Running this test as root doesn't make sense";
+      SUCCEED();
+      return;
+   }
+   Dir dir;
+   ASSERT_TRUE(dir.mkdir(Latin1String("nonreadabledir2")));
+   ASSERT_TRUE(0 == ::chmod("nonreadabledir2", S_IWUSR | S_IXUSR));
+   ASSERT_TRUE(dir.cd(Latin1String("nonreadabledir2")));
+   ASSERT_TRUE(!dir.isReadable());
+   ASSERT_TRUE(dir.cd(Latin1String("..")));
+   ASSERT_TRUE(0 == ::chmod("nonreadabledir2", S_IRUSR | S_IWUSR | S_IXUSR));
+   ASSERT_TRUE(dir.rmdir(Latin1String("nonreadabledir2")));
+#endif
+}
+
+namespace {
+
+void init_cd_below_root_data(std::list<std::tuple<String, String, String>> &data)
+{
+   // @TODO add testcase for other OS
+   data.push_back(std::make_tuple(Latin1String("/"), Latin1String("tmp"), Latin1String("/tmp")));
+}
+
+} // anonymous namespace
+
+TEST_F(DirTest, testCdBelowRoot)
+{
+   std::list<std::tuple<String, String, String>> data;
+   init_cd_below_root_data(data);
+   for (auto &item : data) {
+      String &rootPath = std::get<0>(item);
+      String &cdInto = std::get<1>(item);
+      String &targetPath = std::get<2>(item);
+      
+      Dir root(rootPath);
+      ASSERT_TRUE(!root.cd(Latin1String(".."))) << pdk_printable(root.getAbsolutePath());
+      ASSERT_EQ(root.getPath(), rootPath);
+      ASSERT_TRUE(root.cd(cdInto));
+      ASSERT_EQ(root.getPath(), targetPath);
+#ifdef PDK_OS_UNIX
+      if (::getuid() == 0) {
+         std::cout << "Running this test as root doesn't make sense";
+         SUCCEED();
+         return;
+      }
+#endif
+      Dir dir(targetPath);
+      ASSERT_TRUE(!dir.cd(Latin1String("../.."))) << pdk_printable(root.getAbsolutePath());
+      ASSERT_EQ(dir.getPath(), targetPath);
+      ASSERT_TRUE(!dir.cd(Latin1String("../abs/../.."))) << pdk_printable(root.getAbsolutePath());
+      ASSERT_EQ(dir.getPath(), targetPath);
+      ASSERT_TRUE(dir.cd(Latin1String("..")));
+      ASSERT_EQ(dir.getPath(), rootPath);  
+   }
+}
+
+TEST_F(DirTest, testEmptyDir)
+{
+   const String tempDir = Dir::getCurrentPath() + Latin1String("/tmpdir/");
+   Dir temp(tempDir);
+   if (!temp.exists()) {
+      ASSERT_TRUE(Dir().mkdir(tempDir));
+   }
+   ASSERT_TRUE(temp.mkdir(Latin1String("emptyDirectory")));
+   
+   Dir testDir(tempDir + Latin1String("emptyDirectory"));
+   ASSERT_TRUE(testDir.isEmpty());
+   ASSERT_TRUE(!testDir.isEmpty(Dir::Filter::AllEntries));
+   ASSERT_TRUE(!testDir.isEmpty(Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::NoDot));
+   ASSERT_TRUE(!testDir.isEmpty(Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::NoDotDot));
+   ASSERT_TRUE(Dir(tempDir).removeRecursively());
+}
+
+TEST_F(DirTest, testNonEmptyDir)
+{
+   const Dir dir(sg_currentSourceDir);
+   ASSERT_TRUE(!dir.isEmpty());
 }

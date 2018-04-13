@@ -32,6 +32,7 @@
 #include "pdk/base/lang/StringBuilder.h"
 #include "pdk/kernel/internal/CoreGlobalDataPrivate.h"
 #include "pdk/base/os/thread/ReadWriteLock.h"
+#include "pdk/base/text/RegularExpression.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -170,8 +171,9 @@ inline Character DirPrivate::getFilterSepChar(const String &nameFilter)
 {
    Character sep(Latin1Character(';'));
    int i = nameFilter.indexOf(sep, 0);
-   if (i == -1 && nameFilter.indexOf(Latin1Character(' '), 0) != -1)
+   if (i == -1 && nameFilter.indexOf(Latin1Character(' '), 0) != -1) {
       sep = Character(Latin1Character(' '));
+   }
    return sep;
 }
 
@@ -183,7 +185,6 @@ inline StringList DirPrivate::splitFilters(const String &nameFilter, Character s
    }
    const std::vector<StringRef> split = nameFilter.splitRef(sep);
    StringList ret;
-   ret.resize(split.size());
    for (const auto &e : split) {
       ret.push_back(e.trimmed().toString());
    }
@@ -1248,6 +1249,27 @@ String Dir::getRootPath()
 {
    return FileSystemEngine::getRootPath();
 }
+
+#ifndef PDK_NO_REGULAREXPRESSION
+using pdk::text::RegularExpression;
+bool Dir::match(const StringList &filters, const String &fileName)
+{
+   for (StringList::const_iterator siter = filters.cbegin(); siter != filters.cend(); ++siter) {
+      // @TODO is really ok, need review
+      RegularExpression regex(*siter, RegularExpression::PatternOption::CaseInsensitiveOption);
+      if (regex.match(fileName).hasMatch()) {
+         return true;
+      }
+   }
+   return false;
+}
+
+bool Dir::match(const String &filter, const String &fileName)
+{
+   return match(nameFiltersFromString(filter), fileName);
+}
+
+#endif
 
 String Dir::cleanPath(const String &path)
 {
