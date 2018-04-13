@@ -54,8 +54,8 @@ PDK_UNITTEST_EXPORT String normalize_path_segments(const String &name, bool allo
 
 namespace {
 
-String sg_currentSourceDir(Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR));
-String sg_currentBinaryDir(Latin1String(PDKTEST_CURRENT_TEST_DIR));
+static String sg_currentSourceDir(Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR));
+static String sg_currentBinaryDir(Latin1String(PDKTEST_CURRENT_TEST_DIR));
 
 ByteArray msg_does_not_exist(const String &name)
 {
