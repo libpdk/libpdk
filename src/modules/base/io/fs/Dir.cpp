@@ -1026,7 +1026,7 @@ bool Dir::removeRecursively()
       } else {
          ok = File::remove(filePath);
          if (!ok) { // Read-only files prevent directory deletion on Windows, retry with Write permission.
-            const File::Permissions permissions = File::permissions(filePath);
+            const File::Permissions permissions = File::getPermissions(filePath);
             if (!(permissions & File::Permission::WriteUser)) {
                ok = File::setPermissions(filePath, permissions | File::Permission::WriteUser)
                      && File::remove(filePath);

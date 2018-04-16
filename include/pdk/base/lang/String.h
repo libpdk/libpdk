@@ -2752,6 +2752,8 @@ inline String operator +(Character lhs, const StringRef &rhs)
    return result; 
 }
 
+std::ostream& operator<<(std::ostream &out, const String& text);
+
 namespace internal {
 
 void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;

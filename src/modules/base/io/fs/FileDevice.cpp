@@ -410,7 +410,7 @@ bool FileDevice::resize(pdk::pint64 sz)
    return false;
 }
 
-File::Permissions FileDevice::permissions() const
+File::Permissions FileDevice::getPermissions() const
 {
    PDK_D(const FileDevice);
    AbstractFileEngine::FileFlags perms = implPtr->getEngine()->getFileFlags(AbstractFileEngine::FileFlag::PermsMask) & 

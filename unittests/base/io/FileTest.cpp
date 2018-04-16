@@ -21,6 +21,7 @@
 #include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/io/fs/TemporaryDir.h"
+#include "pdktest/PdkTest.h"
 
 #include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
 #include "pdk/base/io/fs/internal/FileEnginePrivate.h"
@@ -71,7 +72,7 @@
 
 #define PDKTEST_DIR_SEP "/"
 #define PDKTEST_FILETEST_SUBDIR "filetestdir"
-#define PDKTEST_FINDTEST_SRC_DATA(subDir) Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR PDKTEST_DIR_SEP PDKTEST_FILETEST_SUBDIR PDKTEST_DIR_SEP subDir)
+#define PDKTEST_FINDTEST_SRC_DATA(filename) Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR PDKTEST_DIR_SEP PDKTEST_FILETEST_SUBDIR PDKTEST_DIR_SEP filename)
 
 using pdk::lang::String;
 using pdk::lang::Latin1String;
@@ -84,6 +85,7 @@ using pdk::io::fs::FileInfo;
 using pdk::ds::StringList;
 using pdk::io::fs::TemporaryDir;
 using pdk::io::Debug;
+using pdk::kernel::CoreApplication;
 
 namespace {
 
@@ -122,6 +124,9 @@ static String sg_currentSourceDir(Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR))
 static String sg_currentBinaryDir(Latin1String(PDKTEST_CURRENT_TEST_DIR));
 static const char sg_noReadFile[] = "noreadfile";
 static const char sg_readOnlyFile[] = "readonlyfile";
+static String sg_testFile = PDKTEST_FINDTEST_SRC_DATA("testfile.txt");
+static String sg_dosFile = PDKTEST_FINDTEST_SRC_DATA("dosfile.txt");
+static String sg_testSourceFile = Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR PDKTEST_DIR_SEP "FileTest.cpp");
 
 ByteArray msg_open_failed(IoDevice::OpenMode om, const File &file)
 {
@@ -159,103 +164,106 @@ public:
         m_stream(0),
         m_oldDir(Dir::getCurrentPath())
    {
-      std::cout <<  "---" << m_temporaryDir.getPath().toStdString() <<std::endl;
-      Dir::setCurrent(m_temporaryDir.getPath());
-      std::cout <<  "---" << Dir::getCurrentPath().toStdString() <<std::endl;
    }
    
    ~FileTest() {
-      //cleanup();
+      cleanup();
    }
    
-//   void cleanup()
-//   {
-//      if (-1 != m_fd) {
-//         PDK_CLOSE(m_fd);
-//      }
-//      m_fd = -1;
-//      if (m_stream) {
-//         ::fclose(m_stream);
-//      }
-//      m_stream = 0;
-//      // Windows UNC tests set a different working directory which might not be restored on failures.
-//      std::cout << Dir::getCurrentPath().toStdString() << "---" << m_temporaryDir.getPath().toStdString() <<std::endl;
-//      ASSERT_EQ(Dir::getCurrentPath(), m_temporaryDir.getPath());
-//      // Clean out everything except the readonly-files.
-//      const Dir dir(m_temporaryDir.getPath());
-//      for (const FileInfo &fi: dir.entryInfoList(Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::NoDotAndDotDot)) {
-//         const String fileName = fi.getFileName();
-//         std::cout << fileName.toStdString() << std::endl;
-//         if (fileName != Latin1String(sg_noReadFile) && fileName != Latin1String(sg_readOnlyFile)) {
-//            const String absoluteFilePath = fi.getAbsoluteFilePath();
-//            if (fi.isDir() && !fi.isSymLink()) {
-//               Dir remainingDir(absoluteFilePath);
-//               ASSERT_TRUE(remainingDir.removeRecursively()) << pdk_printable(absoluteFilePath);
-//            } else {
-//               if (!(File::permissions(absoluteFilePath) & File::Permission::WriteUser)) {
-//                  ASSERT_TRUE(File::setPermissions(absoluteFilePath, File::Permission::WriteUser)) << pdk_printable(absoluteFilePath);
-//               }
-//               ASSERT_TRUE(File::remove(absoluteFilePath)) << pdk_printable(absoluteFilePath);
-//            }
-//         }
-//      }
-//   }
+   void cleanup()
+   {
+      if (-1 != m_fd) {
+         PDK_CLOSE(m_fd);
+      }
+      m_fd = -1;
+      if (m_stream) {
+         ::fclose(m_stream);
+      }
+      m_stream = 0;
+      // Windows UNC tests set a different working directory which might not be restored on failures.
+      if (Dir(Dir::getCurrentPath()).getDirName() != Dir(m_temporaryDir.getPath()).getDirName()) {
+         Dir::setCurrent(m_temporaryDir.getPath());
+      }
+      // Clean out everything except the readonly-files.
+      const Dir dir(m_temporaryDir.getPath());
+      for (const FileInfo &fi: dir.entryInfoList(Dir::Filters(Dir::Filter::AllEntries) | Dir::Filter::NoDotAndDotDot)) {
+         const String fileName = fi.getFileName();
+         if (fileName != Latin1String(sg_noReadFile) && fileName != Latin1String(sg_readOnlyFile)) {
+            const String absoluteFilePath = fi.getAbsoluteFilePath();
+            if (fi.isDir() && !fi.isSymLink()) {
+               Dir remainingDir(absoluteFilePath);
+               ASSERT_TRUE(remainingDir.removeRecursively()) << pdk_printable(absoluteFilePath);
+            } else {
+               if (!(File::getPermissions(absoluteFilePath) & File::Permission::WriteUser)) {
+                  ASSERT_TRUE(File::setPermissions(absoluteFilePath, File::Permission::WriteUser)) << pdk_printable(absoluteFilePath);
+               }
+               ASSERT_TRUE(File::remove(absoluteFilePath)) << pdk_printable(absoluteFilePath);
+            }
+         }
+      }
+      if (Dir(Dir::getCurrentPath()).getDirName() == Dir(m_temporaryDir.getPath()).getDirName()) {
+         Dir::setCurrent(m_oldDir);
+      }
+   }
    
-//   // Sets up the test fixture.
-//   void SetUp()
-//   {
-//      ASSERT_TRUE(m_temporaryDir.isValid()) << pdk_printable(m_temporaryDir.getErrorString());
-//      // @TODO add process support testcase
-//      m_testLogFile = PDKTEST_FINDTEST_SRC_DATA("testlog.txt");
-//      ASSERT_TRUE(!m_testLogFile.isEmpty());
-//      m_dosFile = PDKTEST_FINDTEST_SRC_DATA("dosfile.txt");
-//      ASSERT_TRUE(!m_dosFile.isEmpty());
-//      m_forCopyingFile = PDKTEST_FINDTEST_SRC_DATA("forCopying.txt");
-//      ASSERT_TRUE(!m_forCopyingFile .isEmpty());
-//      m_forRenamingFile = PDKTEST_FINDTEST_SRC_DATA("forRenaming.txt");
-//      ASSERT_TRUE(!m_forRenamingFile.isEmpty());
-//      m_twoDotsFile = PDKTEST_FINDTEST_SRC_DATA("two.dots.file");
-//      ASSERT_TRUE(!m_twoDotsFile.isEmpty());
+   // Sets up the test fixture.
+   void SetUp()
+   {
+      ASSERT_TRUE(m_temporaryDir.isValid()) << pdk_printable(m_temporaryDir.getErrorString());
+      // @TODO add process support testcase
+      m_testLogFile = PDKTEST_FINDTEST_SRC_DATA("testlog.txt");
+      ASSERT_TRUE(!m_testLogFile.isEmpty());
+      m_dosFile = PDKTEST_FINDTEST_SRC_DATA("dosfile.txt");
+      ASSERT_TRUE(!m_dosFile.isEmpty());
+      m_forCopyingFile = PDKTEST_FINDTEST_SRC_DATA("forCopying.txt");
+      ASSERT_TRUE(!m_forCopyingFile .isEmpty());
+      m_forRenamingFile = PDKTEST_FINDTEST_SRC_DATA("forRenaming.txt");
+      ASSERT_TRUE(!m_forRenamingFile.isEmpty());
+      m_twoDotsFile = PDKTEST_FINDTEST_SRC_DATA("two.dots.file");
+      ASSERT_TRUE(!m_twoDotsFile.isEmpty());
       
-//      m_testSourceFile = PDKTEST_FINDTEST_SRC_DATA("FileTest.cpp");
-//      ASSERT_TRUE(!m_testSourceFile.isEmpty());
-//      m_testFile = PDKTEST_FINDTEST_SRC_DATA("testfile.txt");
-//      ASSERT_TRUE(!m_testFile.isEmpty());
-//      m_resourcesDir = PDKTEST_FINDTEST_SRC_DATA("resources");
-//      ASSERT_TRUE(!m_resourcesDir.isEmpty());
+      m_testSourceFile = sg_testSourceFile;
+      ASSERT_TRUE(!m_testSourceFile.isEmpty());
+      m_testFile = PDKTEST_FINDTEST_SRC_DATA("testfile.txt");
+      ASSERT_TRUE(!m_testFile.isEmpty());
+      m_resourcesDir = PDKTEST_FINDTEST_SRC_DATA("resources");
+      ASSERT_TRUE(!m_resourcesDir.isEmpty());
       
-//      m_noEndOfLineFile = PDKTEST_FINDTEST_SRC_DATA("noendofline.txt");
-//      ASSERT_TRUE(!m_noEndOfLineFile.isEmpty());
+      m_noEndOfLineFile = PDKTEST_FINDTEST_SRC_DATA("noendofline.txt");
+      ASSERT_TRUE(!m_noEndOfLineFile.isEmpty());
       
-//      ASSERT_TRUE(Dir::setCurrent(m_temporaryDir.getPath()));
+      ASSERT_TRUE(Dir::setCurrent(m_temporaryDir.getPath()));
       
-//      // create a file and make it read-only
-//      File file(String::fromLatin1(sg_readOnlyFile));
-//      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
-//      file.write("a", 1);
-//      file.close();
-//      ASSERT_TRUE(file.setPermissions(File::Permission::ReadOwner)) << pdk_printable(file.getErrorString());
-//      // create another file and make it not readable
-//      file.setFileName(String::fromLatin1(sg_noReadFile));
-//      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
-//      file.write("b", 1);
-//      file.close();
-//#ifndef PDK_OS_WIN // Not supported on Windows.
-//      ASSERT_TRUE(file.setPermissions(0)) << pdk_printable(file.getErrorString());
-//#else
-//      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
-//#endif
+      // create a file and make it read-only
+      File file(String::fromLatin1(sg_readOnlyFile));
+      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+      file.write("a", 1);
+      file.close();
+      ASSERT_TRUE(file.setPermissions(File::Permission::ReadOwner)) << pdk_printable(file.getErrorString());
+      // create another file and make it not readable
+      file.setFileName(String::fromLatin1(sg_noReadFile));
+      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+      file.write("b", 1);
+      file.close();
+#ifndef PDK_OS_WIN // Not supported on Windows.
+      ASSERT_TRUE(file.setPermissions(0)) << pdk_printable(file.getErrorString());
+#else
+      ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+#endif
       
-//   }
+   }
    
-//   // Tears down the test fixture.
-//   void TearDown()
-//   {
-//      File file(String::fromLatin1(sg_readOnlyFile));
-//      ASSERT_TRUE(file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner));
-//      file.setFileName(String::fromLatin1(sg_noReadFile));
-//      ASSERT_TRUE(file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner));
-//   }
+   // Tears down the test fixture.
+   void TearDown()
+   {
+      File file(String::fromLatin1(sg_readOnlyFile));
+      file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner);
+      ASSERT_TRUE(file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner));
+      file.setFileName(String::fromLatin1(sg_noReadFile));
+      file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner);
+      ASSERT_TRUE(file.setPermissions(File::Permissions(File::Permission::ReadOwner) | File::Permission::WriteOwner));
+      ASSERT_TRUE(Dir::setCurrent(m_oldDir)); //release test directory for removal
+   }
    
 public:
    bool openFd(File &file, IoDevice::OpenModes mode, File::FileHandleFlags handleFlags)
@@ -360,75 +368,541 @@ public:
 //------------------------------------------
 TEST_F(FileTest, testExists)
 {
-   std::cout << "1111111111111111" << std::endl;
-////   File f(m_testFile);
-////   ASSERT_TRUE(f.exists()) << msg_file_does_not_exist(m_testFile).getConstRawData();
+   File f(m_testFile);
+   ASSERT_TRUE(f.exists()) << msg_file_does_not_exist(m_testFile).getConstRawData();
    
-////   File file(Latin1String("nobodyhassuchafile"));
-////   file.remove();
-////   ASSERT_TRUE(!file.exists());
+   File file(Latin1String("nobodyhassuchafile"));
+   file.remove();
+   ASSERT_TRUE(!file.exists());
    
-////   File file2(Latin1String("nobodyhassuchafile"));
-////   ASSERT_TRUE(file2.open(IoDevice::OpenMode::WriteOnly)) << msg_open_failed(file2).getConstRawData();
-////   file2.close();
+   File file2(Latin1String("nobodyhassuchafile"));
+   ASSERT_TRUE(file2.open(IoDevice::OpenMode::WriteOnly)) << msg_open_failed(file2).getConstRawData();
+   file2.close();
    
-////   ASSERT_TRUE(file.exists());
+   ASSERT_TRUE(file.exists());
    
-////   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
-////   file.close();
-////   ASSERT_TRUE(file.exists());
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+   file.close();
+   ASSERT_TRUE(file.exists());
    
-////   file.remove();
-////   ASSERT_TRUE(!file.exists());
+   file.remove();
+   ASSERT_TRUE(!file.exists());
    
-//   // @TODO Windows platform testcase
-//   ASSERT_TRUE(Dir::setCurrent(m_temporaryDir.getPath()));
+   // @TODO Windows platform testcase
 }
 
-//namespace {
+namespace {
 
-//void init_open_data(std::list<std::tuple<String, IoDevice::OpenMode, bool, File::FileError>> &data)
-//{
-//   data.push_back(std::make_tuple(PDKTEST_FINDTEST_SRC_DATA("testfile.txt"),
-//                                  IoDevice::OpenMode::ReadOnly, true, File::FileError::NoError));
-//}
+void init_open_data(std::list<std::tuple<String, IoDevice::OpenMode, bool, File::FileError>> &data)
+{
+   data.push_back(std::make_tuple(PDKTEST_FINDTEST_SRC_DATA("testfile.txt"),
+                                  IoDevice::OpenMode::ReadOnly, true, File::FileError::NoError));
+}
 
-//} // anonymous namespace
+} // anonymous namespace
 
-//TEST_F(FileTest, testXXXXXX)
-//{
-//   std::cout << "222222222" << std::endl;
-////   std::list<std::tuple<String, IoDevice::OpenMode, bool, File::FileError>> data;
-////   init_open_data(data);
-////   for (auto &item : data) {
-//////      String &filename = std::get<0>(item);
-//////      File::OpenMode mode = std::get<1>(item);
-//////      bool ok = std::get<2>(item);
-//////      File::FileError status = std::get<3>(item);
-//////      File f(filename);
-//////#if defined(PDK_OS_UNIX) && !defined(PDK_OS_VXWORKS)
-//////      if (::getuid() == 0) {
-//////         // root and Chuck Norris don't care for file permissions. Skip.
-//////         std::cout << "Running this test as root doesn't make sense";
-//////         SUCCEED();
-//////         return;
-//////      }
+TEST_F(FileTest, testOpen)
+{
+   std::list<std::tuple<String, IoDevice::OpenMode, bool, File::FileError>> data;
+   init_open_data(data);
+   for (auto &item : data) {
+      String &filename = std::get<0>(item);
+      File::OpenMode mode = std::get<1>(item);
+      bool ok = std::get<2>(item);
+      File::FileError status = std::get<3>(item);
+      File f(filename);
+#if defined(PDK_OS_UNIX) && !defined(PDK_OS_VXWORKS)
+      if (::getuid() == 0) {
+         // root and Chuck Norris don't care for file permissions. Skip.
+         std::cout << "Running this test as root doesn't make sense";
+         SUCCEED();
+         return;
+      }
       
-//////#endif
+#endif
       
-//////#if defined(PDK_OS_WIN32)
-//////      FAIL("noreadfile") << "Windows does not currently support non-readable files.";
-//////      return;
-//////#endif
-//////      const IoDevice::OpenMode om(mode);
-//////      const bool succeeded = f.open(om);
-//////      if (ok) {
-//////         ASSERT_TRUE(succeeded) << msg_open_failed(om, f).getConstRawData();
-//////      } else {
-//////         ASSERT_TRUE(!succeeded);
-//////      }
-//////      ASSERT_EQ(f.getError(), status);
-////   }
-////   ASSERT_TRUE(true);
-//   ASSERT_TRUE(Dir::setCurrent(m_temporaryDir.getPath()));
-//}
+#if defined(PDK_OS_WIN32)
+      FAIL("noreadfile") << "Windows does not currently support non-readable files.";
+      return;
+#endif
+      const IoDevice::OpenMode om(mode);
+      const bool succeeded = f.open(om);
+      if (ok) {
+         ASSERT_TRUE(succeeded) << msg_open_failed(om, f).getConstRawData();
+      } else {
+         ASSERT_TRUE(!succeeded);
+      }
+      ASSERT_EQ(f.getError(), status);
+   }
+   ASSERT_TRUE(true);
+}
+
+TEST_F(FileTest, testOpenUnbuffered)
+{
+   File file(m_testFile);
+   ASSERT_TRUE(file.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Unbuffered)) << msg_open_failed(file).getConstRawData();
+   char c = '\0';
+   ASSERT_TRUE(file.seek(1));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(1));
+   ASSERT_TRUE(file.getChar(&c));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(2));
+   char d = '\0';
+   ASSERT_TRUE(file.seek(3));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(3));
+   ASSERT_TRUE(file.getChar(&d));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(4));
+   ASSERT_TRUE(file.seek(1));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(1));
+   char c2 = '\0';
+   ASSERT_TRUE(file.getChar(&c2));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(2));
+   ASSERT_TRUE(file.seek(3));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(3));
+   char d2 = '\0';
+   ASSERT_TRUE(file.getChar(&d2));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(4));
+   ASSERT_EQ(c, c2);
+   ASSERT_EQ(d, d2);
+   ASSERT_EQ(c, '-');
+   ASSERT_EQ(d, '-');
+}
+
+namespace {
+
+void init_size_data(std::list<std::tuple<String, pdk::pint64>> &data, const String &testFile)
+{
+   data.push_back(std::make_tuple(testFile, (pdk::pint64)245));
+#if defined(PDK_OS_WIN)
+   // @TODO add windows testcase
+#endif
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testSize)
+{
+   std::list<std::tuple<String, pdk::pint64>> data;
+   init_size_data(data, m_testFile);
+   for (auto &item : data) {
+      String &filename = std::get<0>(item);
+      pdk::pint64 size = std::get<1>(item);
+      
+      {
+         File f(filename);
+         ASSERT_EQ(f.getSize(), size);
+         
+         ASSERT_TRUE(f.open(IoDevice::OpenMode::ReadOnly)) << msg_open_failed(f).getConstRawData();
+         ASSERT_EQ(f.getSize(), size);
+      }
+      {
+         StdioFileGuard stream(PDK_FOPEN(filename.toLocal8Bit().getConstRawData(), "rb"));
+         ASSERT_TRUE(stream);
+         File f;
+         ASSERT_TRUE(f.open(stream, IoDevice::OpenMode::ReadOnly));
+         ASSERT_EQ(f.getSize(), size);
+         f.close();
+      }
+      {
+         File f;
+         int fd = PDK_OPEN(filename.toLocal8Bit().getConstRawData(), PDK_OPEN_RDONLY);
+         ASSERT_TRUE(fd != -1);
+         ASSERT_TRUE(f.open(fd, IoDevice::OpenMode::ReadOnly));
+         ASSERT_EQ(f.getSize(), size);
+         f.close();
+         PDK_CLOSE(fd);
+      }
+   }
+}
+
+TEST_F(FileTest, testSetSizeSeek)
+{
+   File file(Latin1String("setsizeseek.txt"));
+   ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+   file.write("ABCD");
+   ASSERT_EQ(file.getPosition(), pdk::pint64(4));
+   file.resize(2);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(2));
+   file.resize(4);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(2));
+   file.resize(0);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(0));
+   file.resize(4);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(0));
+   
+   file.seek(3);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(3));
+   file.resize(2);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(2));
+}
+
+TEST_F(FileTest, testAtEnd)
+{
+   File file(m_testFile);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly)) << msg_open_failed(file).getConstRawData();
+   int size = file.getSize();
+   file.seek(size);
+   bool end = file.atEnd();
+   file.close();
+   ASSERT_TRUE(end);
+}
+
+TEST_F(FileTest, testReadLine)
+{
+   File file(m_testFile);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly)) << msg_open_failed(file).getConstRawData();
+   int i = 0;
+   char buffer[128];
+   int readLength;
+   while ((readLength = file.readLine(buffer, 128)) > 0) {
+      ++i;
+      if (i == 5) {
+         ASSERT_EQ(buffer[0], 'T');
+         ASSERT_EQ(buffer[3], 's');
+         ASSERT_EQ(buffer[11], 'i');
+      }
+   }
+   file.close();
+   ASSERT_EQ(i, 6);
+}
+
+TEST_F(FileTest, testReadLine2)
+{
+   File file(m_testFile);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly)) << msg_open_failed(file).getConstRawData();
+   char buffer[128];
+   ASSERT_EQ(file.readLine(buffer, 60), pdk::plonglong(59));
+   ASSERT_EQ(file.readLine(buffer, 60), pdk::plonglong(59));
+   std::memset(buffer, '@', sizeof(buffer));
+   ASSERT_EQ(file.readLine(buffer, 60), pdk::plonglong(59));
+   
+   ASSERT_EQ(buffer[57], '-');
+   ASSERT_EQ(buffer[58], '\n');
+   ASSERT_EQ(buffer[59], '\0');
+   ASSERT_EQ(buffer[60], '@');
+}
+
+TEST_F(FileTest, testReadLineNullInLine)
+{
+   File::remove(Latin1String("nullinline.txt"));
+   File file(Latin1String("nullinline.txt"));
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite)) << msg_open_failed(file).getConstRawData();
+   ASSERT_TRUE(file.write("linewith\0null\nanotherline\0withnull\n\0\nnull\0", 42) > 0);
+   ASSERT_TRUE(file.flush());
+   file.reset();
+   
+   ASSERT_EQ(file.readLine(), ByteArray("linewith\0null\n", 14));
+   ASSERT_EQ(file.readLine(), ByteArray("anotherline\0withnull\n", 21));
+   ASSERT_EQ(file.readLine(), ByteArray("\0\n", 2));
+   ASSERT_EQ(file.readLine(), ByteArray("null\0", 5));
+}
+
+namespace {
+
+void init_read_all_data(std::list<std::tuple<bool, String>> &data)
+{
+   data.push_back(std::make_tuple(true, sg_testFile));
+   data.push_back(std::make_tuple(false, sg_testFile));
+   
+   data.push_back(std::make_tuple(true, sg_testFile));
+   data.push_back(std::make_tuple(false, sg_testFile));
+   
+   data.push_back(std::make_tuple(true, sg_testSourceFile));
+   data.push_back(std::make_tuple(false, sg_testSourceFile));
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testReadAll)
+{
+   std::list<std::tuple<bool, String>> data;
+   init_read_all_data(data);
+   for (auto &item : data) {
+      bool textMode = std::get<0>(item);
+      String &fileName = std::get<1>(item);
+      File file(fileName);
+      const IoDevice::OpenModes openModes = textMode ? (File::OpenModes(File::OpenMode::Text) | File::OpenMode::ReadOnly) : File::OpenMode::ReadOnly;
+      ASSERT_TRUE(file.open(openModes)) <<  msg_open_failed(File::OpenMode(openModes.getUnderData()), file).getConstRawData();
+      
+      ByteArray alldata = file.readAll();
+      file.reset();
+      ASSERT_EQ(file.getPosition(), 0);
+      
+      ASSERT_TRUE(file.getBytesAvailable() > 7);
+      ByteArray byte = file.read(1);
+      char x;
+      file.getChar(&x);
+      byte.append(x);
+      byte.append(file.read(5));
+      byte.append(file.readAll());
+      
+      ASSERT_EQ(alldata, byte);
+   }
+}
+
+TEST_F(FileTest, testReadAllBuffer)
+{
+   String fileName = Latin1String("readAllBuffer.txt");
+   File::remove(fileName);
+   File writer(fileName);
+   File reader(fileName);
+   
+   ByteArray data1("This is arguably a very simple text.");
+   ByteArray data2("This is surely not as simple a test.");
+   
+   ASSERT_TRUE(writer.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Unbuffered)) << msg_open_failed(writer).getConstRawData();
+   ASSERT_TRUE(reader.open(IoDevice::OpenMode::ReadOnly)) << msg_open_failed(reader).getConstRawData();
+   
+   ASSERT_EQ(writer.write(data1), pdk::pint64(data1.size()));
+   ASSERT_TRUE(writer.seek(0));
+   
+   ByteArray result;
+   result = reader.read(18);
+   ASSERT_EQ(result.size(), 18);
+   
+   ASSERT_EQ(writer.write(data2), pdk::pint64(data2.size())); // new data, old version buffered in reader
+   ASSERT_EQ(writer.write(data2), pdk::pint64(data2.size())); // new data, unbuffered in reader
+   
+   result += reader.readAll();
+   ASSERT_EQ(result, data1 + data2);
+   File::remove(fileName);
+}
+
+// @TODO add process testcases
+// @TODO add process testcases
+// @TODO add process testcases
+
+TEST_F(FileTest, testText)
+{
+   // dosfile.txt is a binary CRLF file
+   File file(m_dosFile);
+   ASSERT_TRUE(file.open(File::OpenModes(File::OpenMode::ReadOnly) | File::OpenMode::Text)) << msg_open_failed(file).getConstRawData();
+   ASSERT_EQ(file.readLine(), ByteArray("/dev/system/root     /                    reiserfs   acl,user_xattr        1 1\n"));
+   ASSERT_EQ(file.readLine(), ByteArray("/dev/sda1            /boot                ext3       acl,user_xattr        1 2\n"));
+   
+   file.ungetChar('\n');
+   file.ungetChar('2');
+   
+   ASSERT_STREQ(file.readLine().getConstRawData(), ByteArray("2\n").getConstRawData());
+}
+
+TEST_F(FileTest, testMssingEndOfLine)
+{
+   File file(m_noEndOfLineFile);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly)) << msg_open_failed(file).getConstRawData();
+   
+   int nlines = 0;
+   while (!file.atEnd()) {
+      ++nlines;
+      file.readLine();
+   }
+   ASSERT_EQ(nlines, 3);
+}
+
+TEST_F(FileTest, testReadBlock)
+{
+   File file(sg_testFile);
+   file.open(File::OpenMode::ReadOnly);
+   int length = 0;
+   char buffer[256];
+   length = file.read(buffer, 245);
+   file.close();
+   ASSERT_EQ(length, 245);
+   ASSERT_EQ(buffer[59], 'D');
+   ASSERT_EQ(buffer[178], 'T');
+   ASSERT_EQ(buffer[199], 'l');
+}
+
+TEST_F(FileTest, testGetch)
+{
+   File file(sg_testFile);
+   file.open(File::OpenMode::ReadOnly);
+   char c;
+   int i = 0;
+   while (file.getChar(&c)) {
+      ASSERT_EQ(file.getPosition(), pdk::pint64(i + 1));
+      if (i == 59) {
+         ASSERT_EQ(c, 'D');
+      } 
+      ++i;
+   }
+   file.close();
+   ASSERT_EQ(i, 245);
+}
+
+TEST_F(FileTest, testUngetChar)
+{
+   File file(m_testFile);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly)) << msg_open_failed(file).getConstRawData();
+   
+   ByteArray array = file.readLine();
+   ASSERT_STREQ(array.getConstRawData(), "----------------------------------------------------------\n");
+   file.ungetChar('\n');
+   
+   array = file.readLine();
+   ASSERT_STREQ(array.getConstRawData(), "\n");
+   
+   file.ungetChar('\n');
+   file.ungetChar('-');
+   file.ungetChar('-');
+   
+   array = file.readLine();
+   ASSERT_STREQ(array.getConstRawData(), "--\n");
+   
+   File::remove(Latin1String("genfile.txt"));
+   File out(Latin1String("genfile.txt"));
+   
+   ASSERT_TRUE(out.open(File::OpenMode::ReadWrite)) << msg_open_failed(file).getConstRawData();
+   out.write("123");
+   out.seek(0);
+   
+   ASSERT_STREQ(out.readAll().getConstRawData(), "123");
+   
+   out.ungetChar('3');
+   out.write("4");
+   out.seek(0);
+   
+   ASSERT_STREQ(out.readAll().getConstRawData(), "124");
+   out.ungetChar('4');
+   out.ungetChar('2');
+   out.ungetChar('1');
+   char buf[3];
+   ASSERT_EQ(out.read(buf, sizeof(buf)), pdk::pint64(3));
+   ASSERT_EQ(buf[0], '1');
+   ASSERT_EQ(buf[1], '2');
+   ASSERT_EQ(buf[2], '4');
+}
+
+namespace {
+
+void init_invalid_file_data(std::list<String> &data)
+{
+   // @TODO add Windows testcase data
+#if !defined(PDK_OS_WIN)
+   data.push_back(String(Latin1String("qwe//")));
+#endif
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testInvalidFile)
+{
+   std::list<String> data;
+   init_invalid_file_data(data);
+   for (auto &fileName : data) {
+      File file(fileName);
+      ASSERT_TRUE(!file.open(IoDevice::OpenMode::ReadWrite)) << pdk_printable(fileName);
+   }
+}
+
+TEST_F(FileTest, testCreateFile)
+{
+   if (File::exists(Latin1String("createme.txt"))){
+      File::remove(Latin1String("createme.txt"));
+   }
+   ASSERT_TRUE(!File::exists(Latin1String("createme.txt")));
+   File file(Latin1String("createme.txt"));
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+   file.close();
+   ASSERT_TRUE(File::exists(Latin1String("createme.txt")));
+}
+
+TEST_F(FileTest, testAppend)
+{
+   const String name(Latin1String("appendme.txt"));
+   if (File::exists(name)) {
+      File::remove(name);
+   }
+   ASSERT_TRUE(!File::exists(name));
+   File file(name);
+   ASSERT_TRUE(file.open(File::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Truncate)) << msg_open_failed(file).getConstRawData();
+   file.putChar('a');
+   file.close();
+   
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::Append)) << msg_open_failed(file).getConstRawData();
+   ASSERT_EQ(file.getPosition(), 1);
+   file.putChar('a');
+   file.close();
+   ASSERT_EQ(int(file.getSize()), 2);
+}
+
+namespace {
+
+void init_permissions_data(std::list<std::tuple<String, File::Permission, bool, bool>> &data)
+{
+   data.push_back(std::make_tuple(CoreApplication::getInstance()->getAppFilePath(), 
+                                  File::Permission::ExeUser, true, false));
+   data.push_back(std::make_tuple(sg_testSourceFile, 
+                                  File::Permission::ReadUser, true, false));
+   data.push_back(std::make_tuple(String::fromLatin1("readonlyfile"), 
+                                  File::Permission::WriteUser, false, false));
+   data.push_back(std::make_tuple(String::fromLatin1("longFileNamelongFileNamelongFileNamelongFileName"
+                                                     "longFileNamelongFileNamelongFileNamelongFileName"
+                                                     "longFileNamelongFileNamelongFileNamelongFileName"
+                                                     "longFileNamelongFileNamelongFileNamelongFileName"
+                                                     "longFileNamelongFileNamelongFileNamelongFileName.txt"), 
+                                  File::Permission::ReadUser, true, true));
+   
+   // @TODO add Resource testcases
+   
+}
+
+} // anonymous namespace
+
+PDKTEST_DECLARE_APP_STARTUP_ARGS();
+
+TEST_F(FileTest, testPermissions)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<std::tuple<String, File::Permission, bool, bool>> data;
+   init_permissions_data(data);
+   for (auto &item : data) {
+      String &fileName = std::get<0>(item);
+      File::Permission perms = std::get<1>(item);
+      bool expected = std::get<2>(item);
+      bool create = std::get<3>(item);
+      if (create) {
+         File file(fileName);
+         ASSERT_TRUE(file.open(File::OpenMode::WriteOnly)) << msg_open_failed(file).getConstRawData();
+         ASSERT_TRUE(file.write("hello\n"));
+         file.close();
+      }
+      
+      File file(fileName);
+      File::Permissions memberResult = file.getPermissions() & perms;
+      File::Permissions staticResult = File::getPermissions(fileName) & perms;
+      
+      if (create) {
+         File::remove(fileName);
+      }
+      
+      // @TODO add Windows platform testcase
+#ifdef PDK_OS_UNIX
+      // in case accidentally run as root
+      if (::getuid() == 0) {
+         std::cout << "Running this test as root doesn't make sense";
+      }
+#endif
+      ASSERT_EQ((memberResult == File::Permissions(perms)), expected);
+      ASSERT_EQ((staticResult == File::Permissions(perms)), expected);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(FileTest, testSetPermissions)
+{
+   if (File::exists(Latin1String("createme.txt"))) {
+      File::remove(Latin1String("createme.txt"));
+   }
+   ASSERT_TRUE(!File::exists(Latin1String("createme.txt")));
+   
+   File file(Latin1String("createme.txt"));
+   ASSERT_TRUE(file.open(File::OpenModes(File::OpenMode::WriteOnly) | File::OpenMode::Truncate)) << msg_open_failed(file).getConstRawData();
+   file.putChar('a');
+   file.close();
+   
+   File::Permissions perms(File::Permission::WriteUser);
+   perms |= File::Permission::ReadUser;
+   ASSERT_TRUE(file.setPermissions(perms));
+   ASSERT_TRUE((file.getPermissions() & perms) == perms);
+}
+

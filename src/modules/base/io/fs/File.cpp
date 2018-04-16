@@ -293,7 +293,7 @@ bool File::rename(const String &newName)
                out.remove();
             } else {
                implPtr->m_fileEngine->setFileName(newName);
-               setPermissions(permissions());
+               setPermissions(getPermissions());
                unsetError();
                setFileName(newName);
             }
@@ -419,7 +419,7 @@ bool File::copy(const String &newName)
             }
          }
          if(!error) {
-            File::setPermissions(newName, permissions());
+            File::setPermissions(newName, getPermissions());
             close();
             unsetError();
             return true;
@@ -543,14 +543,14 @@ bool File::resize(const String &fileName, pdk::pint64 sz)
    return File(fileName).resize(sz);
 }
 
-File::Permissions File::permissions() const
+File::Permissions File::getPermissions() const
 {
-   return FileDevice::permissions(); // for now
+   return FileDevice::getPermissions(); // for now
 }
 
-File::Permissions File::permissions(const String &fileName)
+File::Permissions File::getPermissions(const String &fileName)
 {
-   return File(fileName).permissions();
+   return File(fileName).getPermissions();
 }
 
 bool File::setPermissions(Permissions permissions)

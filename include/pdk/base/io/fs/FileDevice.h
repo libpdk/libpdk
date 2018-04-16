@@ -107,7 +107,7 @@ public:
    pdk::pint64 getSize() const override;
    
    virtual bool resize(pdk::pint64 sz);
-   virtual Permissions permissions() const;
+   virtual Permissions getPermissions() const;
    virtual bool setPermissions(Permissions permissionSpec);
    
    enum class MemoryMapFlag

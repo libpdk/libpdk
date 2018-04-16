@@ -35,6 +35,7 @@
 #include "pdk/global/Logging.h"
 #include "pdk/base/io/Debug.h"
 #include <cstring>
+#include <iostream>
 
 #include <limits.h>
 #include <string.h>
@@ -4522,6 +4523,12 @@ String String::toHtmlEscaped() const
 void AbstractConcatenable::appendLatin1To(const char *a, int len, Character *out) noexcept
 {
    internal::utf16_from_latin1(reinterpret_cast<char16_t *>(out), a, uint(len));
+}
+
+std::ostream& operator<<(std::ostream &out, const String& text)
+{
+   std::cout << text.toStdString();
+   return out;
 }
 
 } // lang

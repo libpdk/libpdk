@@ -479,6 +479,6 @@ TEST_F(TemporaryDirTest, testFailedSetPermissions)
       TemporaryDir dir(path);
    }
    
-   ASSERT_EQ(Dir(path).entryList().size(), count);
+   ASSERT_EQ(Dir(path).entryList().size(), (size_t)count);
 }
 

@@ -114,8 +114,8 @@ public:
    bool resize(pdk::pint64 sz) override;
    static bool resize(const String &filename, pdk::pint64 sz);
    
-   Permissions permissions() const override;
-   static Permissions permissions(const String &filename);
+   Permissions getPermissions() const override;
+   static Permissions getPermissions(const String &filename);
    bool setPermissions(Permissions permissionSpec) override;
    static bool setPermissions(const String &filename, Permissions permissionSpec);
    
