@@ -82,9 +82,11 @@ elseif(UNIX)
    if (APPLE)
       list(APPEND PDK_BASE_SOURCES
          ${IO_DIR}/fs/_platform/SettingsMac.cpp
+         ${IO_DIR}/fs/_platform/StorageInfoMac.cpp
          ${IO_DIR}/fs/_platform/StandardPathsMac.mm)
    else()
       list(APPEND PDK_BASE_SOURCES
+         ${IO_DIR}/fs/_platform/StorageInfoUnix.cpp
          ${IO_DIR}/fs/_platform/StandardPathsUnix.cpp)
    endif()
 endif()

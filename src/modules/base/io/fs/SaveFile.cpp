@@ -195,7 +195,7 @@ bool SaveFile::open(OpenModes mode)
    implPtr->m_useTemporaryFile = true;
    FileDevice::open(mode);
    if (existingFile.exists()) {
-      setPermissions(existingFile.permissions());
+      setPermissions(existingFile.getPermissions());
    }
    return true;
 }

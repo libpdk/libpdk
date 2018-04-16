@@ -53,6 +53,7 @@ pdk_add_files(PDK_IO_TEST_SRCS
    io/DirIteratorTest.cpp
    io/FileSystemEntryTest.cpp
    io/FileTest.cpp
+   io/FileInfoTest.cpp
    io/TemporaryDirTest.cpp)
 
 list(APPEND PDK_IO_TEST_SRCS ${SHARED_HEADERS})

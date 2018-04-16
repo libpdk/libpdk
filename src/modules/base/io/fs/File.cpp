@@ -156,6 +156,17 @@ bool File::exists(const String &fileName)
    return FileInfo::exists(fileName);
 }
 
+String File::getSymLinkTarget() const
+{
+   PDK_D(const File);
+   return implPtr->getEngine()->getFileName(AbstractFileEngine::FileName::LinkName);
+}
+
+String File::getSymLinkTarget(const String &fileName) 
+{
+   return FileInfo(fileName).getSymLinkTarget();
+}
+
 bool File::remove()
 {
    PDK_D(File);

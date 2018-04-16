@@ -635,7 +635,7 @@ uint FileInfo::getGroupId() const
    [implPtr]() { return implPtr->m_fileEngine->getOwnerId(AbstractFileEngine::FileOwner::OwnerGroup); });
 }
 
-bool FileInfo::permission(File::Permissions permissions) const
+bool FileInfo::getPermission(File::Permissions permissions) const
 {
    PDK_D(const FileInfo);
    // the FileSystemMetaData::MetaDataFlag and File::Permissions overlap, so just cast.
@@ -649,7 +649,7 @@ bool FileInfo::permission(File::Permissions permissions) const
    });
 }
 
-File::Permissions FileInfo::permissions() const
+File::Permissions FileInfo::getPermissions() const
 {
    PDK_D(const FileInfo);
    return implPtr->checkAttribute<File::Permissions>(

@@ -906,3 +906,118 @@ TEST_F(FileTest, testSetPermissions)
    ASSERT_TRUE((file.getPermissions() & perms) == perms);
 }
 
+TEST_F(FileTest, testCopyAfterFail)
+{
+   File file1(Latin1String("file-to-be-copied.txt"));
+   File file2(Latin1String("existing-file.txt"));
+   ASSERT_TRUE(file1.open(IoDevice::OpenMode::ReadWrite)) << msg_open_failed(file1).getConstRawData();
+   ASSERT_TRUE(file2.open(IoDevice::OpenMode::ReadWrite)) << msg_open_failed(file2).getConstRawData();
+   
+   file2.close();
+   ASSERT_TRUE(!File::exists(Latin1String("copied-file-1.txt")) && "(test-precondition)");
+   ASSERT_TRUE(!File::exists(Latin1String("copied-file-2.txt")) && "(test-precondition)");
+   
+   ASSERT_TRUE(!file1.copy(Latin1String("existing-file.txt")));
+   ASSERT_EQ(file1.getError(), File::FileError::CopyError);
+   
+   ASSERT_TRUE(file1.copy(Latin1String("copied-file-1.txt")));
+   ASSERT_TRUE(!file1.isOpen());
+   ASSERT_EQ(file1.getError(), File::FileError::NoError);
+   
+   ASSERT_TRUE(!file1.copy(Latin1String("existing-file.txt")));
+   ASSERT_EQ(file1.getError(), File::FileError::CopyError);
+   
+   ASSERT_TRUE(file1.copy(Latin1String("copied-file-2.txt")));
+   ASSERT_TRUE(!file1.isOpen());
+   ASSERT_EQ(file1.getError(), File::FileError::NoError);
+   
+   ASSERT_TRUE(File::exists(Latin1String("copied-file-1.txt")));
+   ASSERT_TRUE(File::exists(Latin1String("copied-file-2.txt")));
+}
+
+TEST_F(FileTest, testCopyRemovesTemporaryFile)
+{
+   const String newName(Latin1String("copyRemovesTemporaryFile"));
+   ASSERT_TRUE(File::copy(m_forCopyingFile, newName));
+   ASSERT_TRUE(!File::exists(StringLiteral("pdk_temp.XXXXXX")));
+}
+
+TEST_F(FileTest, testCopyShouldntOverwrite)
+{
+   // Copy should not overwrite existing files.
+   File::remove(Latin1String("test_file.backup"));
+   File file(m_testSourceFile);
+   ASSERT_TRUE(file.copy(Latin1String("test_file.backup")));
+   
+   bool ok = File::setPermissions(Latin1String("test_file.backup"), File::Permission::WriteOther);
+   ASSERT_TRUE(ok);
+   ASSERT_TRUE(!file.copy(Latin1String("test_file.backup")));
+}
+
+// @TODO file copyFallback testcase,because now resource API is not supported
+
+TEST_F(FileTest, testLink)
+{
+   File::remove(Latin1String("myLink.lnk"));
+   FileInfo info1(m_testSourceFile);
+   String referenceTarget = Dir::cleanPath(info1.getAbsoluteFilePath());
+   ASSERT_TRUE(File::link(m_testSourceFile, Latin1String("myLink.lnk")));
+   
+   FileInfo info2(Latin1String("myLink.lnk"));
+   ASSERT_TRUE(info2.isSymLink());
+   ASSERT_EQ(info2.getSymLinkTarget(), referenceTarget);
+   
+   File link(Latin1String("myLink.lnk"));
+   ASSERT_TRUE(link.open(IoDevice::OpenMode::ReadOnly)) << msg_open_failed(link).getConstRawData();
+   ASSERT_EQ(link.getSymLinkTarget(), referenceTarget);
+   link.close();
+   
+   ASSERT_EQ(File::getSymLinkTarget(Latin1String("myLink.lnk")), referenceTarget);
+}
+
+TEST_F(FileTest, testLinkToDir)
+{
+   File::remove(Latin1String("myLinkToDir.lnk"));
+   Dir dir;
+   dir.mkdir(Latin1String("myDir"));
+   FileInfo info1(Latin1String("myDir"));
+   ASSERT_TRUE(File::link(Latin1String("myDir"), Latin1String("myLinkToDir.lnk")));
+   FileInfo info2(Latin1String("myLinkToDir.lnk"));
+#if !(defined PDK_OS_HPUX && defined(__ia64))
+   // absurd HP-UX filesystem bug on gravlaks - checking if a symlink
+   // resolves or not alters the file system to make the broken symlink
+   // later fail...
+   ASSERT_TRUE(info2.isSymLink());
+#endif
+   ASSERT_EQ(info2.getSymLinkTarget(), info1.getAbsoluteFilePath());
+   ASSERT_TRUE(File::remove(info2.getAbsoluteFilePath()));
+}
+
+//TEST_F(FileTest, testAbsolutePathLinkToRelativePath)
+//{
+//   File::remove(Latin1String("myDir/test.txt"));
+//   File::remove(Latin1String("myDir/myLink.lnk"));
+//   Dir dir;
+//   dir.mkdir(Latin1String("myDir"));
+//   File(Latin1String("myDir/test.txt")).open(File::OpenMode::WriteOnly);
+//   // @TODO add Windows platform testcase
+//   ASSERT_TRUE(File::link(Latin1String("myDir/test.txt"), Latin1String("myDir/myLink.lnk")));
+//   ASSERT_EQ(FileInfo(File(FileInfo(Latin1String("myDir/myLink.lnk")).getAbsoluteFilePath()).getSymLinkTarget()).getAbsoluteFilePath(),
+//             FileInfo(Latin1String("myDir/test.txt")).getAbsoluteFilePath());
+//}
+
+TEST_F(FileTest, testReadBrokenLink)
+{
+   File::remove(Latin1String("myLink2.lnk"));
+   FileInfo info1(Latin1String("file12"));
+   std::cout << info1.isFile() << std::endl;
+//   ASSERT_TRUE(File::link(Latin1String("file12"), Latin1String("myLink2.lnk")));
+//   FileInfo info2(Latin1String("myLink2.lnk"));
+//   ASSERT_TRUE(info2.isSymLink());
+//   ASSERT_EQ(info2.getSymLinkTarget(), info1.getAbsoluteFilePath());
+//   ASSERT_TRUE(File::remove(info2.getAbsoluteFilePath()));
+//   ASSERT_TRUE(File::link(Latin1String("ole/.."), Latin1String("myLink2.lnk")));
+//   std::cout << FileInfo(Latin1String("myLink2.lnk")).getSymLinkTarget() << std::endl;
+//   std::cout << Dir::getCurrentPath() << std::endl;
+   //ASSERT_EQ(FileInfo(Latin1String("myLink2.lnk")).getSymLinkTarget(), Dir::getCurrentPath());
+}

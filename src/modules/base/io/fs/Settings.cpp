@@ -1433,7 +1433,7 @@ void ConfFileSettingsPrivate::syncConfFile(ConfFile *confFile)
          
          // If we have created the file, apply the file perms
          if (createFile) {
-            File::Permissions perms = fileInfo.permissions() | File::Permission::ReadOwner | File::Permission::WriteOwner;
+            File::Permissions perms = fileInfo.getPermissions() | File::Permission::ReadOwner | File::Permission::WriteOwner;
             if (!confFile->m_userPerms) {
                perms |= File::Permission::ReadGroup;
                perms |= File::Permission::ReadOther;

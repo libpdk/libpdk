@@ -122,8 +122,8 @@ public:
    String getGroup() const;
    uint getGroupId() const;
    
-   bool permission(File::Permissions permissions) const;
-   File::Permissions permissions() const;
+   bool getPermission(File::Permissions permissions) const;
+   File::Permissions getPermissions() const;
    
    pdk::pint64 getSize() const;
    

@@ -60,7 +60,6 @@ public:
    }
    static String decodeName(const ByteArray &localFileName)
    {
-      // note: duplicated in qglobal.cpp (qEnvironmentVariable)
       return String::fromUtf8(localFileName).normalized(String::NormalizationForm::Form_C);
    }
 #else
@@ -81,17 +80,8 @@ public:
    bool exists() const;
    static bool exists(const String &fileName);
    
-   String readLink() const;
-   static String readLink(const String &fileName);
-   inline String symLinkTarget() const
-   {
-      return readLink();
-   }
-   
-   inline static String symLinkTarget(const String &fileName) 
-   {
-      return readLink(fileName);
-   }
+   String getSymLinkTarget() const;
+   static String getSymLinkTarget(const String &fileName);
    
    bool remove();
    static bool remove(const String &fileName);
