@@ -17,6 +17,7 @@
 #include "pdk/base/io/fs/internal/FileSystemEnginePrivate.h"
 #include "pdk/base/io/fs/File.h"
 #include "pdk/kernel/internal/CoreUnixPrivate.h"
+#include "pdk/kernel/internal/CoreMacPrivate.h"
 #include "pdk/base/ds/VarLengthArray.h"
 #include "pdk/global/Logging.h"
 #include "pdk/base/os/thread/Atomic.h"
@@ -847,6 +848,23 @@ String FileSystemEngine::resolveGroupName(uint groupId)
 #endif
    return String();
 }
+
+#if defined(PDK_OS_DARWIN)
+//static
+String FileSystemEngine::getBundleName(const FileSystemEntry &entry)
+{
+   pdk::kernel::CFType<CFURLRef> url = CFURLCreateWithFileSystemPath(0, pdk::kernel::CFString(entry.getFilePath()),
+                                                                     kCFURLPOSIXPathStyle, true);
+   if ( pdk::kernel::CFType<CFDictionaryRef> dict = CFBundleCopyInfoDictionaryForURL(url)) {
+      if (CFTypeRef name = (CFTypeRef)CFDictionaryGetValue(dict, kCFBundleNameKey)) {
+         if (CFGetTypeID(name) == CFStringGetTypeID()) {
+            return String::fromCFString((CFStringRef)name);
+         }
+      }
+   }
+   return String();
+}
+#endif
 
 //static
 bool FileSystemEngine::fillMetaData(const FileSystemEntry &entry, FileSystemMetaData &data,

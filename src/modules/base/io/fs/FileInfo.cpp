@@ -62,6 +62,9 @@ String FileInfoPrivate::getFileName(AbstractFileEngine::FileName name) const
       case AbstractFileEngine::FileName::LinkName:
          ret = FileSystemEngine::getLinkTarget(m_fileEntry, m_metaData).getFilePath();
          break;
+      case AbstractFileEngine::FileName::BundleName:
+         ret = FileSystemEngine::getBundleName(m_fileEntry);
+         break;
       case AbstractFileEngine::FileName::AbsoluteName:
       case AbstractFileEngine::FileName::AbsolutePathName: {
          FileSystemEntry entry = FileSystemEngine::getAbsoluteName(m_fileEntry);

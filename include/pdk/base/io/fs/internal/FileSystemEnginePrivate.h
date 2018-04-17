@@ -64,6 +64,15 @@ public:
    static String resolveUserName(uint userId);
    static String resolveGroupName(uint groupId);
 #endif
+#if defined(PDK_OS_DARWIN)
+    static String getBundleName(const FileSystemEntry &entry);
+#else
+    static String getBundleName(const FileSystemEntry &entry)
+    {
+       PDK_UNUSED(entry);
+       return String();
+    }
+#endif
    static bool fillMetaData(const FileSystemEntry &entry, FileSystemMetaData &data,
                             FileSystemMetaData::MetaDataFlags what);
 #if defined(PDK_OS_UNIX)
