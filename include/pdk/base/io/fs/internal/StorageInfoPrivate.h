@@ -48,12 +48,12 @@ protected:
 #if defined(PDK_OS_WIN)
    void retrieveVolumeInfo();
    void retrieveDiskFreeSpace();
-#elif defined(PDK_OS_UNIX)
-   void retrieveVolumeInfo();
 #elif defined(PDK_OS_MAC)
    void retrievePosixInfo();
    void retrieveUrlProperties(bool initRootPath = false);
    void retrieveLabel();
+#elif defined(PDK_OS_UNIX)
+   void retrieveVolumeInfo();
 #endif
    
 public:

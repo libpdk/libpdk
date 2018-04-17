@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <cstdio>
 #include <cerrno>
-#include <iostream>
 
 #if PDK_HAS_INCLUDE(<paths.h>)
 # include <paths.h>
@@ -647,15 +646,12 @@ FileSystemEntry FileSystemEngine::getLinkTarget(const FileSystemEntry &link, Fil
          }
       }
       ret += File::decodeName(s);
-      std::cout << link.getNativeFilePath().toStdString() << "->" << ret << std::endl;
       if (!ret.startsWith(Latin1Character('/'))) {
          FileInfo targetFileInfo(ret);
-         std::cout << "isdir : " << targetFileInfo.isFile() << std::endl;
          //ret = getAbsoluteName(link).getPath() + Latin1Character('/') + targetFileInfo.getFileName();
          // @TODO review is bug here
          ret.prepend(getAbsoluteName(link).getPath() + Latin1Character('/'));
       }
-      std::cout <<  ret << std::endl;
       ret = Dir::cleanPath(ret);
       if (ret.size() > 1 && ret.endsWith(Latin1Character('/'))) {
          ret.chop(1);
