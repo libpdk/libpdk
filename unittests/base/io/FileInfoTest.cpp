@@ -21,6 +21,7 @@
 #include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/FileInfo.h"
 #include "pdk/base/io/fs/TemporaryDir.h"
+#include "pdk/base/io/fs/StorageInfo.h"
 #include "pdktest/PdkTest.h"
 
 #ifdef PDK_OS_UNIX

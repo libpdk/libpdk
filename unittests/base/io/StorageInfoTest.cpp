@@ -18,10 +18,12 @@
 #include "pdk/base/io/fs/TemporaryFile.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/base/io/fs/Dir.h"
+#include "pdk/base/io/fs/File.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdktest/PdkTest.h"
 
 using pdk::io::fs::Dir;
+using pdk::io::fs::File;
 using pdk::io::fs::StorageInfo;
 using pdk::io::fs::TemporaryFile;
 using pdk::ds::ByteArray;
@@ -180,7 +182,6 @@ TEST(StorageInfoTest, testTempFile)
 {
    TemporaryFile file;
    ASSERT_TRUE(file.open()) << pdk_printable(file.getErrorString());
-   
    StorageInfo storage1(file.getFileName());
 #ifdef PDK_OS_LINUX
    if (storage1.getFileSystemType() == Latin1String("btrfs")) {
@@ -190,15 +191,12 @@ TEST(StorageInfoTest, testTempFile)
 #endif
    
    pdk::pint64 free = storage1.getBytesFree();
-   std::cout << "free" << free << std::endl;
    ASSERT_TRUE(free != -1);
    
-   file.write(ByteArray(1024*1024, '1'));
+   file.write(ByteArray(1024*1024*10, '1'));
    file.flush();
    file.close();
-   std::cout << "free" << free << std::endl;
    StorageInfo storage2(file.getFileName());
-   std::cout << file.getFileName() << std::endl;
    ASSERT_TRUE(free != storage2.getBytesFree());
 }
 
@@ -206,7 +204,7 @@ TEST(StorageInfoTest, testCaching)
 {
    TemporaryFile file;
    ASSERT_TRUE(file.open()) << pdk_printable(file.getErrorString());
-   
+   std::cout << Dir::getCurrentPath() << std::endl;
    StorageInfo storage1(file.getFileName());
 #ifdef PDK_OS_LINUX
    if (storage1.fileSystemType() == "btrfs") {
@@ -221,13 +219,12 @@ TEST(StorageInfoTest, testCaching)
    ASSERT_EQ(free, storage2.getBytesFree());
    ASSERT_TRUE(free != -1);
    
-   file.write(ByteArray(1024*1024, '\0'));
+   file.write(ByteArray(1024*1024*10, '\0'));
    file.flush();
    
    ASSERT_EQ(free, storage1.getBytesFree());
    ASSERT_EQ(free, storage2.getBytesFree());
    storage2.refresh();
    ASSERT_EQ(storage1, storage2);
-   std::cout << storage2.getBytesFree() << " " << free << std::endl;
-   //ASSERT_TRUE(free != storage2.getBytesFree());
+   ASSERT_TRUE(free != storage2.getBytesFree());
 }
