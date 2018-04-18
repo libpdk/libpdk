@@ -109,7 +109,76 @@ void do_empty_file_entry_warning(const char *file, int line, const char *functio
 }
 #define empty_file_entry_warning() do_empty_file_entry_warning(PDK_MESSAGELOG_FILE, PDK_MESSAGELOG_LINE, PDK_MESSAGELOG_FUNC)
 
+#if defined(PDK_OS_DARWIN)
+inline bool has_resource_property_flag(const FileSystemMetaData &data,
+                                       const FileSystemEntry &entry,
+                                       CFStringRef key)
+{
+   pdk::kernel::CFString path = CFStringCreateWithFileSystemRepresentation(0,
+                                                                           entry.getNativeFilePath().getConstRawData());
+   if (!path) {
+      return false;
+   }
+
+   pdk::kernel::CFType<CFURLRef> url = CFURLCreateWithFileSystemPath(0, path, kCFURLPOSIXPathStyle,
+                                                        data.hasFlags(FileSystemMetaData::MetaDataFlag::DirectoryType));
+   if (!url) {
+      return false;
+   }
+   CFBooleanRef value;
+   if (CFURLCopyResourcePropertyForKey(url, key, &value, NULL)) {
+      if (value == kCFBooleanTrue) {
+          return true;
+      }
+   }
+   return false;
+}
+
+bool is_package(const FileSystemMetaData &data, const FileSystemEntry &entry)
+{
+   if (!data.isDirectory()) {
+      return false;
+   }
+   FileInfo info(entry.getFilePath());
+   String suffix = info.getSuffix();
+   if (suffix.length() > 0) {
+      // First step: is the extension known ?
+      pdk::kernel::CFType<CFStringRef> extensionRef = suffix.toCFString();
+      pdk::kernel::CFType<CFStringRef> uniformTypeIdentifier = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, extensionRef, NULL);
+      if (UTTypeConformsTo(uniformTypeIdentifier, kUTTypeBundle)) {
+         return true;
+      }
+      // Second step: check if an application knows the package type
+      pdk::kernel::CFType<CFStringRef> path = entry.getFilePath().toCFString();
+      pdk::kernel::CFType<CFURLRef> url = CFURLCreateWithFileSystemPath(0, path, kCFURLPOSIXPathStyle, true);
+      
+      UInt32 type, creator;
+      // Well created packages have the PkgInfo file
+      if (CFBundleGetPackageInfoInDirectory(url, &type, &creator)) {
+         return true;
+      }
+#ifdef PDK_OS_MACOS
+      // Find if an application other than Finder claims to know how to handle the package
+      pdk::kernel::CFType<CFURLRef> application = LSCopyDefaultApplicationURLForURL(url,
+                                                                        kLSRolesEditor | kLSRolesViewer, nullptr);
+      if (application) {
+         pdk::kernel::CFType<CFBundleRef> bundle = CFBundleCreate(kCFAllocatorDefault, application);
+         CFStringRef identifier = CFBundleGetIdentifier(bundle);
+         String applicationId = String::fromCFString(identifier);
+         if (applicationId != Latin1String("com.apple.finder")) {
+            return true;
+         }
+      }
+#endif
+   }
+   
+   // Third step: check if the directory has the package bit set
+   return has_resource_property_flag(data, entry, kCFURLIsPackageKey);
+}
+#endif // PDK_OS_DARWIN
+
 namespace getfiletimes {
+
 #if !PDK_CONFIG(futimens) && (PDK_CONFIG(futimes))
 template <typename T>
 static inline typename std::enable_if<(&T::st_atim, &T::st_mtim, true)>::type
@@ -659,6 +728,36 @@ FileSystemEntry FileSystemEngine::getLinkTarget(const FileSystemEntry &link, Fil
       }
       return FileSystemEntry(ret);
    }
+#if defined(PDK_OS_DARWIN)
+   {
+      pdk::kernel::CFString path = CFStringCreateWithFileSystemRepresentation(0,
+                                                                              File::encodeName(Dir::cleanPath(link.getFilePath())).getConstRawData());
+      if (!path) {
+         return FileSystemEntry();
+      }
+      pdk::kernel::CFType<CFURLRef> url = CFURLCreateWithFileSystemPath(0, path, kCFURLPOSIXPathStyle,
+                                                                        data.hasFlags(FileSystemMetaData::MetaDataFlag::DirectoryType));
+      if (!url) {
+         return FileSystemEntry();
+      }
+      pdk::kernel::CFType<CFDataRef> bookmarkData = CFURLCreateBookmarkDataFromFile(0, url, NULL);
+      if (!bookmarkData) {
+         return FileSystemEntry();
+      }
+      pdk::kernel::CFType<CFURLRef> resolvedUrl = CFURLCreateByResolvingBookmarkData(0,
+                                                                                     bookmarkData,
+                                                                                     (CFURLBookmarkResolutionOptions)(kCFBookmarkResolutionWithoutUIMask
+                                                                                                                      | kCFBookmarkResolutionWithoutMountingMask), NULL, NULL, NULL, NULL);
+      if (!resolvedUrl) {
+         return FileSystemEntry();
+      }
+      pdk::kernel::CFString cfstr(CFURLCopyFileSystemPath(resolvedUrl, kCFURLPOSIXPathStyle));
+      if (!cfstr) {
+         return FileSystemEntry();
+      }
+      return FileSystemEntry(String::fromCFString(cfstr));
+   }
+#endif
    return FileSystemEntry();
 }
 
@@ -1016,11 +1115,30 @@ bool FileSystemEngine::fillMetaData(const FileSystemEntry &entry, FileSystemMeta
       data.m_knownFlagsMask |= (what & FileSystemMetaData::MetaDataFlag::UserPermissions) |
             FileSystemMetaData::MetaDataFlag::ExistsAttribute;
    }
+
+#if defined(PDK_OS_DARWIN)
+   if (what & FileSystemMetaData::MetaDataFlag::AliasType) {
+      if (entryErrno == 0 && has_resource_property_flag(data, entry, kCFURLIsAliasFileKey)) {
+          data.m_entryFlags |= FileSystemMetaData::MetaDataFlag::AliasType;
+      }
+      data.m_knownFlagsMask |= FileSystemMetaData::MetaDataFlag::AliasType;
+   }
+   if (what & FileSystemMetaData::MetaDataFlag::BundleType) {
+      if (entryErrno == 0 && is_package(data, entry)) {
+         data.m_entryFlags |= FileSystemMetaData::MetaDataFlag::BundleType;
+      }
+      data.m_knownFlagsMask |= FileSystemMetaData::MetaDataFlag::BundleType;
+   }
+#endif
    
    if (what & FileSystemMetaData::MetaDataFlag::HiddenAttribute
        && !data.isHidden()) {
       String fileName = entry.getFileName();
-      if (fileName.size() > 0 && fileName.at(0) == Latin1Character('.')) {
+      if ((fileName.size() > 0 && fileName.at(0) == Latin1Character('.'))
+    #if defined(PDK_OS_DARWIN)
+          || (entryErrno == 0 && has_resource_property_flag(data, entry, kCFURLIsHiddenKey))
+    #endif
+          ) {
          data.m_entryFlags |= FileSystemMetaData::MetaDataFlag::HiddenAttribute;
       }
       data.m_knownFlagsMask |= FileSystemMetaData::MetaDataFlag::HiddenAttribute;
@@ -1234,8 +1352,9 @@ bool FileSystemEngine::renameFile(const FileSystemEntry &source, const FileSyste
 #endif
 #if defined(PDK_OS_DARWIN) && defined(RENAME_EXCL)
    if (__builtin_available(macOS 10.12, *)) {
-      if (renameatx_np(AT_FDCWD, srcPath, AT_FDCWD, tgtPath, RENAME_EXCL) == 0)
+      if (renameatx_np(AT_FDCWD, srcPath, AT_FDCWD, tgtPath, RENAME_EXCL) == 0) {
          return true;
+      }   
       if (errno != ENOTSUP) {
          error = SystemError(errno, SystemError::ErrorScope::StandardLibraryError);
          return false;
@@ -1244,9 +1363,9 @@ bool FileSystemEngine::renameFile(const FileSystemEntry &source, const FileSyste
 #endif
    
    if (::link(srcPath, tgtPath) == 0) {
-      if (::unlink(srcPath) == 0)
+      if (::unlink(srcPath) == 0) {
          return true;
-      
+      }
       // if we managed to link but can't unlink the source, it's likely
       // it's in a directory we don't have write access to; fail the
       // renaming instead
