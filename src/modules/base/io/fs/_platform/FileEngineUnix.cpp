@@ -668,7 +668,7 @@ bool FileEnginePrivate::unmap(uchar *ptr)
 {
 #if !defined(PDK_OS_INTEGRITY)
    PDK_Q(FileEngine);
-   if (m_maps.find(ptr) != m_maps.end()) {
+   if (m_maps.find(ptr) == m_maps.end()) {
       apiPtr->setError(File::FileError::PermissionsError, pdk::error_string(EACCES));
       return false;
    }
