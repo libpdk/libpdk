@@ -23,6 +23,7 @@
 #include "pdk/base/lang/StringAlgorithms.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/utils/RefCount.h"
+#include "pdk/kernel/HashFuncs.h"
 
 #include <cstdarg>
 #include <string>
@@ -2764,5 +2765,18 @@ void utf16_from_latin1(char16_t *dest, const char *str, size_t size) noexcept;
 } // pdk
 
 PDK_DECLARE_TYPEINFO(pdk::lang::Latin1String, PDK_MOVABLE_TYPE);
+
+namespace std
+{
+template<> struct hash<pdk::lang::String>
+{
+   using argument_type = pdk::lang::String;
+   using result_type = std::size_t;
+   result_type operator()(argument_type const& string) const noexcept
+   {
+      return pdk::pdk_hash(string);
+   }
+};
+} // std
 
 #endif // PDK_M_BASE_LANG_STRING_H

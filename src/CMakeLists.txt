@@ -116,10 +116,24 @@ pdk_collect_files(
    DIR modules/base/net
    OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
 
+set(OS_DIR ${MODULE_BASE_DIR}/os)
+
 pdk_collect_files(
    TYPE_SOURCE
-   DIR modules/base/os
+   DIR ${OS_DIR}
    OUTPUT_VAR PDK_BASE_MODULE_SOURCES)
+
+## setup file include for os
+if (WIN32)
+elseif(UNIX)
+   list(APPEND PDK_BASE_SOURCES
+      ${OS_DIR}/process/_platform/ProcessUnix.cpp)
+   if (APPLE)
+      list(APPEND PDK_BASE_SOURCES
+         ${OS_DIR}/process/_platform/ProcessDarwin.mm)
+   endif()
+endif()
+
 
 pdk_collect_files(
    TYPE_SOURCE
