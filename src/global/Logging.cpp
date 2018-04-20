@@ -1355,7 +1355,7 @@ void errno_warning(int code, const char *msg, ...)
    message_output(pdk::MsgType::CriticalMsg, context, buf);
 }
 
-PdkMessageHandler pdk_install_message_handler(PdkMessageHandler handler)
+PdkMessageHandler install_message_handler(PdkMessageHandler handler)
 {
    if (!handler) {
       handler = pdk_default_message_handler;

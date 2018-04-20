@@ -27,6 +27,7 @@
 #include "pdk/base/time/DateTime.h"
 #include "pdk/base/time/Time.h"
 #include "pdk/base/time/Date.h"
+#include "pdk/global/Logging.h"
 
 #include "pdk/base/io/fs/internal/AbstractFileEnginePrivate.h"
 #include "pdk/base/io/fs/internal/FileEnginePrivate.h"
@@ -90,9 +91,11 @@ using pdk::time::Date;
 using pdk::time::Time;
 using pdk::io::fs::File;
 using pdk::io::fs::FileInfo;
+using pdk::io::fs::FileDevice;
 using pdk::ds::StringList;
 using pdk::io::fs::TemporaryDir;
 using pdk::io::Debug;
+using pdk::kernel::Object;
 using pdk::kernel::CoreApplication;
 using pdk::io::fs::internal::AbstractFileEngine;
 using pdk::io::fs::internal::AbstractFileEngineHandler;
@@ -139,12 +142,12 @@ static String sg_testFile = PDKTEST_FINDTEST_SRC_DATA("testfile.txt");
 static String sg_dosFile = PDKTEST_FINDTEST_SRC_DATA("dosfile.txt");
 static String sg_testSourceFile = Latin1String(PDKTEST_CURRENT_TEST_SOURCE_DIR PDKTEST_DIR_SEP "FileTest.cpp");
 
-ByteArray msg_open_failed(IoDevice::OpenMode om, const File &file)
+ByteArray msg_open_failed(IoDevice::OpenModes om, const File &file)
 {
    String result;
    Debug(&result).noquote().nospace() << "Could not open \""
                                       << Dir::toNativeSeparators(file.getFileName()) << "\" using "
-                                      << pdk::as_integer<IoDevice::OpenMode>(om) << ": " << file.getErrorString();
+                                      << om.getUnderData() << ": " << file.getErrorString();
    return result.toLocal8Bit();
 }
 
@@ -1816,53 +1819,53 @@ ByteArray get_large_data_block()
 
 } // anonynmous namespace
 
-//TEST_F(FileTest, testWriteLargeDataBlock)
-//{
-//   std::list<std::tuple<String, FileType>> data;
-//   init_write_large_data_block_data(data);
-//   for (auto &item : data) {
-//      String &fileName = std::get<0>(item);
-//      FileType type = std::get<1>(item);
-//      ByteArray const originalData = get_large_data_block();
-//      {
-//         File file(fileName);
+TEST_F(FileTest, testWriteLargeDataBlock)
+{
+   std::list<std::tuple<String, FileType>> data;
+   init_write_large_data_block_data(data);
+   for (auto &item : data) {
+      String &fileName = std::get<0>(item);
+      FileType type = std::get<1>(item);
+      ByteArray const originalData = get_large_data_block();
+      {
+         File file(fileName);
 
-//         ASSERT_TRUE(openFile(file, IoDevice::OpenMode::WriteOnly, type)) << msg_open_failed(file).getConstRawData();
-//         pdk::pint64 fileWriteOriginalData = file.write(originalData);
-//         pdk::pint64 originalDataSize      = (pdk::pint64)originalData.size();
-//#if defined(PDK_OS_WIN)
-//         if (fileWriteOriginalData != originalDataSize) {
-//            warning_stream() << pdk_printable(String("Error writing a large data block to [%1]: %2")
-//                                              .arg(fileName)
-//                                              .arg(file.getErrorString()));
-//            FAIL() << "unc file";
-//         }
-//#endif
-//         ASSERT_EQ(fileWriteOriginalData, originalDataSize);
-//         ASSERT_TRUE(file.flush());   
-//         closeFile(file);
-//      }
-//      ByteArray readData;
-//      {
-//         File file(fileName);
-//         ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, type)) 
-//               << pdk_printable(String(Latin1String("Couldn't open file for reading: [%1]")).arg(fileName));
-//         readData = file.readAll();
+         ASSERT_TRUE(openFile(file, IoDevice::OpenMode::WriteOnly, type)) << msg_open_failed(file).getConstRawData();
+         pdk::pint64 fileWriteOriginalData = file.write(originalData);
+         pdk::pint64 originalDataSize      = (pdk::pint64)originalData.size();
+#if defined(PDK_OS_WIN)
+         if (fileWriteOriginalData != originalDataSize) {
+            warning_stream() << pdk_printable(String("Error writing a large data block to [%1]: %2")
+                                              .arg(fileName)
+                                              .arg(file.getErrorString()));
+            FAIL() << "unc file";
+         }
+#endif
+         ASSERT_EQ(fileWriteOriginalData, originalDataSize);
+         ASSERT_TRUE(file.flush());   
+         closeFile(file);
+      }
+      ByteArray readData;
+      {
+         File file(fileName);
+         ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, type)) 
+               << pdk_printable(String(Latin1String("Couldn't open file for reading: [%1]")).arg(fileName));
+         readData = file.readAll();
 
-//#if defined(PDK_OS_WIN)
-//         if (readData != originalData) {
-//            warning_stream() << pdk_printable(String("Error reading a large data block from [%1]: %2")
-//                                              .arg(fileName)
-//                                              .arg(file.getErrorString()));
-//            FAIL() << "unc file";
-//         }
-//#endif
-//         closeFile(file);
-//      }
-//      ASSERT_EQ(readData, originalData);
-//      ASSERT_TRUE(File::remove(fileName));
-//   }
-//}
+#if defined(PDK_OS_WIN)
+         if (readData != originalData) {
+            warning_stream() << pdk_printable(String("Error reading a large data block from [%1]: %2")
+                                              .arg(fileName)
+                                              .arg(file.getErrorString()));
+            FAIL() << "unc file";
+         }
+#endif
+         closeFile(file);
+      }
+      ASSERT_EQ(readData, originalData);
+      ASSERT_TRUE(File::remove(fileName));
+   }
+}
 
 TEST_F(FileTest, testReadFromWriteOnlyFile)
 {
@@ -1898,7 +1901,7 @@ TEST_F(FileTest, testVirtualFile)
    FileInfo fi(fname);
    ASSERT_TRUE(fi.exists()) << msg_file_does_not_exist(fname).getConstRawData();
    ASSERT_TRUE(fi.isFile());
-   ASSERT_EQ(fi.size(), PDK_INT64_C(0));
+   ASSERT_EQ(fi.getSize(), PDK_INT64_C(0));
    
    // open the file
    File f(fname);
@@ -1907,7 +1910,7 @@ TEST_F(FileTest, testVirtualFile)
       FAIL() << "QEMU does not read /proc/self/maps size correctly";
    }
    
-   ASSERT_EQ(f.size(), PDK_INT64_C(0));
+   ASSERT_EQ(f.getSize(), PDK_INT64_C(0));
    if (EmulationDetector::isRunningArmOnX86()) {
       FAIL() << "QEMU does not read /proc/self/maps size correctly";
    }
@@ -1916,7 +1919,7 @@ TEST_F(FileTest, testVirtualFile)
    
    // read data
    ByteArray data = f.read(16);
-   ASSERT_EQ(data.size(), 16);
+   ASSERT_EQ(data.getSize(), 16);
    ASSERT_EQ(f.getPosition(), PDK_INT64_C(16));
    
    // line-reading
@@ -2237,7 +2240,7 @@ TEST_F(FileTest, testNativeHandleLeaks)
    ASSERT_TRUE(INVALID_HANDLE_VALUE != handle2);
    ASSERT_TRUE(::CloseHandle(handle2));
 #endif
-   ASSERT_EQ( fd2, fd1 );
+   ASSERT_EQ(fd2, fd1 );
 #ifdef PDK_OS_WIN
    ASSERT_EQ(handle2, handle1);
 #endif
@@ -2469,7 +2472,7 @@ TEST_F(FileTest, testMap)
       // note: windows ce does not reference count mutliple maps
       // it's essentially just the same reference but it
       // cause a resource lock on the file which prevents it
-      // from being removed    uchar *memory1 = file.map(0, file.size());
+      // from being removed    uchar *memory1 = file.map(0, file.getSize());
       uchar *memory1 = file.map(0, file.getSize());
       ASSERT_EQ(file.getError(), File::FileError::NoError);
       uchar *memory2 = file.map(0, file.getSize());
@@ -2506,5 +2509,513 @@ TEST_F(FileTest, testMap)
       }
 #endif
       ASSERT_TRUE(file.remove());
+   }
+}
+
+// @TODO add map resources testcases
+
+namespace {
+
+void init_map_open_mode_data(std::list<std::tuple<File::OpenModes, FileDevice::MemoryMapFlag>> &data)
+{
+   data.push_back(std::make_tuple(IoDevice::OpenMode::ReadOnly, FileDevice::MemoryMapFlag::NoOptions));
+   data.push_back(std::make_tuple(IoDevice::OpenMode::ReadWrite, FileDevice::MemoryMapFlag::NoOptions));
+   data.push_back(std::make_tuple(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Unbuffered,
+                                  FileDevice::MemoryMapFlag::NoOptions));
+   data.push_back(std::make_tuple(IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Unbuffered,
+                                  FileDevice::MemoryMapFlag::NoOptions));
+   data.push_back(std::make_tuple(IoDevice::OpenMode::ReadOnly, FileDevice::MemoryMapFlag::MapPrivateOption));
+   data.push_back(std::make_tuple(IoDevice::OpenMode::ReadWrite, FileDevice::MemoryMapFlag::MapPrivateOption));
+   
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testMapOpenMode)
+{
+   std::list<std::tuple<File::OpenModes, FileDevice::MemoryMapFlag>> data;
+   init_map_open_mode_data(data);
+   for (auto &item : data) {
+      File::OpenModes &openMode = std::get<0>(item);
+      FileDevice::MemoryMapFlags flags(std::get<1>(item));
+      static const pdk::pint64 fileSize = 4096;
+      
+      ByteArray pattern(fileSize, 'A');
+      
+      String fileName = Dir::getCurrentPath() + Latin1String("/file_map_testfile");
+      if (File::exists(fileName)) {
+         ASSERT_TRUE(File::setPermissions(fileName,
+                                          File::Permissions(File::Permission::WriteOwner) | 
+                                          File::Permission::ReadOwner | 
+                                          File::Permission::WriteUser | 
+                                          File::Permission::ReadUser));
+         File::remove(fileName);
+      }
+      File file(fileName);
+      
+      // make a file
+      ASSERT_TRUE(file.open(File::OpenMode::ReadWrite)) << msg_open_failed(file).getConstRawData();
+      ASSERT_TRUE(file.write(pattern));
+      ASSERT_TRUE(file.flush());
+      file.close();
+      
+      // open according to our mode
+      const IoDevice::OpenModes om(openMode);
+      ASSERT_TRUE(file.open(om)) << msg_open_failed(om, file).getConstRawData();
+      
+      uchar *memory = file.map(0, fileSize, FileDevice::MemoryMapFlags(flags));
+      ASSERT_TRUE(memory);
+      ASSERT_TRUE(memcmp(memory, pattern, fileSize) == 0);
+      
+      if ((openMode & IoDevice::OpenMode::WriteOnly) || (flags & FileDevice::MemoryMapFlag::MapPrivateOption)) {
+         // try to write to the file
+         *memory = 'a';
+         file.unmap(memory);
+         file.close();
+         file.open(openMode);
+         file.seek(0);
+         char c;
+         ASSERT_TRUE(file.getChar(&c));
+         ASSERT_EQ(c, (flags & FileDevice::MemoryMapFlag::MapPrivateOption) ? 'A' : 'a');
+      }
+      
+      file.close();
+   }
+}
+
+namespace {
+
+void init_map_written_file_data(std::list<IoDevice::OpenMode> &data)
+{
+   data.push_back(IoDevice::OpenMode::NotOpen);
+   data.push_back(IoDevice::OpenMode::Unbuffered);
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testMapWrittenFile)
+{
+   static const char data[128] = "Some data padded with nulls\n";
+   std::list<IoDevice::OpenMode> items;
+   init_map_written_file_data(items);
+   for (IoDevice::OpenModes mode : items) {
+      String fileName = Dir::getCurrentPath() + Latin1String("/file_map_testfile");
+      
+      if (File::exists(fileName)) {
+         ASSERT_TRUE(File::setPermissions(fileName,
+                                          File::Permissions(File::Permission::WriteOwner) | 
+                                          File::Permission::ReadOwner | 
+                                          File::Permission::WriteUser | 
+                                          File::Permission::ReadUser));
+         File::remove(fileName);
+      }
+      File file(fileName);
+      const IoDevice::OpenModes om = IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | mode;
+      ASSERT_TRUE(file.open(om)) << msg_open_failed(om, file).getConstRawData();
+      ASSERT_EQ(file.write(data, sizeof data), pdk::pint64(sizeof data));
+      if ((mode & IoDevice::OpenMode::Unbuffered) == 0) {
+         file.flush();
+      }
+      // test that we can read the data we've just written, without closing the file
+      uchar *memory = file.map(0, sizeof data);
+      ASSERT_TRUE(memory);
+      ASSERT_TRUE(memcmp(memory, data, sizeof data) == 0);
+      
+      file.close();
+      file.remove();  
+   } 
+}
+
+TEST_F(FileTest, testOpenDirectory)
+{
+   File f1(m_resourcesDir);
+   // it's a directory, it must exist
+   ASSERT_TRUE(f1.exists());
+   
+   // ...but not be openable
+   ASSERT_TRUE(!f1.open(IoDevice::OpenMode::ReadOnly));
+   f1.close();
+   ASSERT_TRUE(!f1.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Unbuffered));
+   f1.close();
+   ASSERT_TRUE(!f1.open(IoDevice::OpenMode::ReadWrite));
+   f1.close();
+   ASSERT_TRUE(!f1.open(IoDevice::OpenMode::WriteOnly));
+   f1.close();
+   ASSERT_TRUE(!f1.open(IoDevice::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Unbuffered));
+   f1.close();
+}
+
+namespace {
+
+pdk::pint64 m_streamexpected_size(int fd)
+{
+   PDK_STATBUF sb;
+   if (PDK_FSTAT(fd, &sb) != -1)
+      return sb.st_size;
+   pdk::errno_warning("Could not fstat fd %d", fd);
+   return 0;
+}
+
+pdk::pint64 m_streamcurrent_position(int fd)
+{
+   PDK_STATBUF sb;
+   if (PDK_FSTAT(fd, &sb) != -1) {
+      PDK_OFF_T pos = -1;
+      if ((sb.st_mode & PDK_STAT_MASK) == PDK_STAT_REG) {
+         pos = PDK_LSEEK(fd, 0, SEEK_CUR);
+      }
+      if (pos != -1) {
+         return pos;
+      }  
+      // failure to lseek() is not a problem
+   } else {
+      pdk::errno_warning("Could not fstat fd %d", fd);
+   }
+   return 0;
+}
+
+pdk::pint64 m_streamcurrent_position(FILE *f)
+{
+   PDK_STATBUF sb;
+   if (PDK_FSTAT(PDK_FILENO(f), &sb) != -1) {
+      PDK_OFF_T pos = -1;
+      if ((sb.st_mode & PDK_STAT_MASK) == PDK_STAT_REG) {
+         pos = PDK_FTELL(f);
+      }
+      
+      if (pos != -1) {
+         return pos;
+      }
+      // failure to ftell() is not a problem
+   } else {
+      pdk::errno_warning("Could not fstat fd %d", PDK_FILENO(f));
+   }
+   return 0;
+}
+
+class MessageHandler
+{
+public:
+   MessageHandler(pdk::PdkMessageHandler messageHandler = handler)
+   {
+      m_ok = true;
+      m_oldMessageHandler = pdk::install_message_handler(messageHandler);
+   }
+   
+   ~MessageHandler()
+   {
+      pdk::install_message_handler(m_oldMessageHandler);
+   }
+   
+   static bool testPassed()
+   {
+      return m_ok;
+   }
+protected:
+   static void handler(pdk::MsgType type, const pdk::MessageLogContext &context, const String &msg)
+   {
+      if (msg == String::fromLatin1("IoDevice::seek: Cannot call seek on a sequential device")) {
+         m_ok = false;
+      }
+      // Defer to old message handler.
+      if (m_oldMessageHandler) {
+         m_oldMessageHandler(type, context, msg);
+      }
+   }
+   
+   static pdk::PdkMessageHandler m_oldMessageHandler;
+   static bool m_ok;
+};
+
+bool MessageHandler::m_ok = true;
+pdk::PdkMessageHandler MessageHandler::m_oldMessageHandler = 0;
+
+} // anonymous namespace
+
+// @TODO add TextStream testcases
+TEST_F(FileTest, testOpenStandardStreamsFileDescriptors)
+{
+   
+   // Check that IoDevice::seek() isn't called when opening a sequential device (File).
+   MessageHandler msgHandler;
+   
+   {
+      File in;
+      in.open(STDIN_FILENO, IoDevice::OpenMode::ReadOnly);
+      ASSERT_EQ(in.getPosition(), m_streamcurrent_position(STDIN_FILENO) );
+      ASSERT_EQ(in.getSize(), m_streamexpected_size(STDIN_FILENO) );
+   }
+   
+   {
+      File out;
+      ASSERT_TRUE(out.open(STDOUT_FILENO, IoDevice::OpenMode::WriteOnly));
+      ASSERT_EQ(out.getPosition(), m_streamcurrent_position(STDOUT_FILENO) );
+      ASSERT_EQ(out.getSize(), m_streamexpected_size(STDOUT_FILENO) );
+   }
+   
+   {
+      File err;
+      err.open(STDERR_FILENO, IoDevice::OpenMode::WriteOnly);
+      ASSERT_EQ(err.getPosition(), m_streamcurrent_position(STDERR_FILENO) );
+      ASSERT_EQ(err.getSize(), m_streamexpected_size(STDERR_FILENO) );
+   }
+   
+   ASSERT_TRUE(msgHandler.testPassed());
+}
+
+TEST_F(FileTest, testOpenStandardStreamsBufferedStreams)
+{
+   // Check that IoDevice::seek() isn't called when opening a sequential device (File).
+   MessageHandler msgHandler;
+   
+   // Using streams
+   {
+      File in;
+      in.open(stdin, IoDevice::OpenMode::ReadOnly);
+      ASSERT_EQ(in.getPosition(), m_streamcurrent_position(stdin) );
+      ASSERT_EQ(in.getSize(), m_streamexpected_size(PDK_FILENO(stdin)) );
+   }
+   
+   {
+      File out;
+      out.open(stdout, IoDevice::OpenMode::WriteOnly);
+      ASSERT_EQ(out.getPosition(), m_streamcurrent_position(stdout) );
+      ASSERT_EQ(out.getSize(), m_streamexpected_size(PDK_FILENO(stdout)) );
+   }
+   
+   {
+      File err;
+      err.open(stderr, IoDevice::OpenMode::WriteOnly);
+      ASSERT_EQ(err.getPosition(), m_streamcurrent_position(stderr) );
+      ASSERT_EQ(err.getSize(), m_streamexpected_size(PDK_FILENO(stderr)) );
+   }
+   
+   ASSERT_TRUE(msgHandler.testPassed());
+}
+
+TEST_F(FileTest, testWriteNothing)
+{
+   for (int i = 0; i < NumberOfFileTypes; ++i) {
+      File file(Latin1String("file.txt"));
+      ASSERT_TRUE(openFile(file, IoDevice::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Unbuffered, FileType(i)) );
+      ASSERT_TRUE(0 == file.write((char *)0, 0) );
+      ASSERT_EQ(file.getError(), File::FileError::NoError);
+      closeFile(file);
+   }
+}
+
+namespace {
+
+void  init_resize_data(std::list<FileTest::FileType> &data)
+{
+   data.push_back(FileTest::FileType::OpenFile);
+   data.push_back(FileTest::FileType::OpenFd);
+   data.push_back(FileTest::FileType::OpenStream);
+}
+
+} // anonymous namespace
+
+TEST_F(FileTest, testResize)
+{
+   std::list<FileTest::FileType> data;
+   init_resize_data(data);
+   for (FileTest::FileType filetype : data) {
+      String filename(Latin1String("file.txt"));
+      File file(filename);
+      ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadWrite, FileType(filetype)));
+      ASSERT_TRUE(file.resize(8));
+      ASSERT_EQ(file.getSize(), pdk::pint64(8));
+      closeFile(file);
+      File::resize(filename, 4);
+      ASSERT_EQ(FileInfo(filename).getSize(), pdk::pint64(4));
+   }
+}
+
+TEST_F(FileTest, testObjectConstructors)
+{
+   Object ob;
+   File* file1 = new File(m_testFile, &ob);
+   File* file2 = new File(&ob);
+   ASSERT_TRUE(file1->exists());
+   ASSERT_TRUE(!file2->exists());
+}
+
+TEST_F(FileTest, testCaseSensitivity)
+{
+#if defined(PDK_OS_WIN)
+   const bool caseSensitive = false;
+#elif defined(PDK_OS_MAC)
+   const bool caseSensitive = pathconf(Dir::getCurrentPath().toLatin1().getConstRawData(), _PC_CASE_SENSITIVE);
+#else
+   const bool caseSensitive = true;
+#endif
+   
+   ByteArray testData("a little test");
+   String filename(Latin1String("File.txt"));
+   {
+      File f(filename);
+      ASSERT_TRUE(f.open(IoDevice::OpenMode::WriteOnly)) << msg_open_failed(f).getConstRawData();
+      ASSERT_TRUE(f.write(testData));
+      f.close();
+   }
+   StringList alternates;
+   FileInfo fi(filename);
+   ASSERT_TRUE(fi.exists());
+   alternates << Latin1String("file.txt") << Latin1String("File.TXT")
+              << Latin1String("fIlE.TxT") << fi.getAbsoluteFilePath().toUpper() 
+              << fi.getAbsoluteFilePath().toLower();
+   for (String alt : alternates) {
+      FileInfo fi2(alt);
+      ASSERT_EQ(fi2.exists(), !caseSensitive);
+      ASSERT_EQ(fi.getSize() == fi2.getSize(), !caseSensitive);
+      File f2(alt);
+      ASSERT_EQ(f2.open(IoDevice::OpenMode::ReadOnly), !caseSensitive);
+      if (!caseSensitive) {
+         ASSERT_EQ(f2.readAll(), testData);
+      }
+   }
+}
+
+//MSVCRT asserts when any function is called with a closed file handle.
+//This replaces the default crashing error handler with one that ignores the error (allowing EBADF to be returned)
+class AutoIgnoreInvalidParameter
+{
+public:
+#if defined(PDK_OS_WIN) && defined (PDK_CC_MSVC)
+   static void ignore_invalid_parameter(const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {}
+   AutoIgnoreInvalidParameter()
+   {
+      oldHandler = _set_invalid_parameter_handler(ignore_invalid_parameter);
+      //also disable the abort/retry/ignore popup
+      oldReportMode = _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+   }
+   ~AutoIgnoreInvalidParameter()
+   {
+      //restore previous settings
+      _set_invalid_parameter_handler(oldHandler);
+      _CrtSetReportMode(_CRT_ASSERT, oldReportMode);
+   }
+   _invalid_parameter_handler oldHandler;
+   int oldReportMode;
+#endif
+};
+
+TEST_F(FileTest, testAutocloseHandle)
+{
+   {
+      File file(Latin1String("readonlyfile"));
+      ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, OpenFd, File::FileHandleFlag::AutoCloseHandle));
+      int fd = m_fd;
+      ASSERT_EQ(file.getHandle(), fd);
+      file.close();
+      m_fd = -1;
+      ASSERT_EQ(file.getHandle(), -1);
+      AutoIgnoreInvalidParameter a;
+      PDK_UNUSED(a);
+      //file is closed, read should fail
+      char buf;
+      ASSERT_EQ((int)PDK_READ(fd, &buf, 1), -1);
+      ASSERT_TRUE(errno == EBADF);
+   }
+   
+   {
+      File file(Latin1String("readonlyfile"));
+      ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, OpenFd, File::FileHandleFlag::DontCloseHandle));
+      ASSERT_EQ(file.getHandle(), m_fd);
+      file.close();
+      ASSERT_EQ(file.getHandle(), -1);
+      //file is not closed, read should succeed
+      char buf;
+      ASSERT_EQ((int)PDK_READ(m_fd, &buf, 1), 1);
+      PDK_CLOSE(m_fd);
+      m_fd = -1;
+   }
+   
+   {
+      File file(Latin1String("readonlyfile"));
+      ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, OpenStream, File::FileHandleFlag::AutoCloseHandle));
+      int fd = PDK_FILENO(m_stream);
+      ASSERT_EQ(file.getHandle(), fd);
+      file.close();
+      m_stream = 0;
+      ASSERT_EQ(file.getHandle(), -1);
+      AutoIgnoreInvalidParameter a;
+      PDK_UNUSED(a);
+      //file is closed, read should fail
+      char buf;
+      ASSERT_EQ((int)PDK_READ(fd, &buf, 1), -1); //not using fread because the FILE* was freed by fclose
+   }
+   
+   {
+      File file(Latin1String("readonlyfile"));
+      ASSERT_TRUE(openFile(file, IoDevice::OpenMode::ReadOnly, OpenStream, File::FileHandleFlag::DontCloseHandle));
+      ASSERT_EQ(file.getHandle(), int(PDK_FILENO(m_stream)));
+      file.close();
+      ASSERT_EQ(file.getHandle(), -1);
+      //file is not closed, read should succeed
+      char buf;
+      ASSERT_EQ(int(::fread(&buf, 1, 1, m_stream)), 1);
+      ::fclose(m_stream);
+      m_stream = 0;
+   }
+}
+
+TEST_F(FileTest, m_reuseFile)
+{
+   // TemporaryDir is current dir, no need to remove these files
+   const String filename1(Latin1String("filegt16k"));
+   const String filename2(Latin1String("file16k"));
+   
+   // create test files for reusing File object
+   File file;
+   file.setFileName(filename1);
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+   ByteArray ba(17408, 'a');
+   pdk::pint64 written = file.write(ba);
+   ASSERT_EQ(written, 17408);
+   file.close();
+   
+   file.setFileName(filename2);
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+   ba.resize(16384);
+   written = file.write(ba);
+   ASSERT_EQ(written, 16384);
+   file.close();
+   
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+   ASSERT_EQ(file.getSize(), 16384);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(0));
+   ASSERT_TRUE(file.seek(10));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(10));
+   ASSERT_TRUE(file.seek(0));
+   ASSERT_EQ(file.getPosition(), pdk::pint64(0));
+   ASSERT_EQ(file.readAll(), ba);
+   file.close();
+   
+   file.setFileName(filename1);
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+   
+   // read first file
+   {
+      // get file size without touching File
+      FileInfo fi(filename1);
+      const pdk::pint64 fileSize = fi.getSize();
+      file.read(fileSize);
+      ASSERT_TRUE(file.atEnd());
+      file.close();
+   }
+   
+   // try again with the next file with the same File object
+   file.setFileName(filename2);
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+   
+   // read second file
+   {
+      // get file size without touching File
+      FileInfo fi(filename2);
+      const pdk::pint64 fileSize = fi.getSize();
+      file.read(fileSize);
+      ASSERT_TRUE(file.atEnd());
+      file.close();
    }
 }
