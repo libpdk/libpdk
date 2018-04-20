@@ -55,7 +55,8 @@ pdk_add_files(PDK_IO_TEST_SRCS
    io/FileTest.cpp
    io/FileInfoTest.cpp
    io/StorageInfoTest.cpp
-   io/TemporaryDirTest.cpp)
+   io/TemporaryDirTest.cpp
+   io/TemporaryFileTest.cpp)
 
 list(APPEND PDK_IO_TEST_SRCS ${SHARED_HEADERS})
 

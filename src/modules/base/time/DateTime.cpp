@@ -2292,9 +2292,9 @@ DateTime DateTime::addMSecs(pdk::pint64 msecs) const
       // No need to convert, just add on
       if (m_data.isShort()) {
          // need to check if we need to enlarge first
-         msecs += dt.m_data.m_implPtr->m_msecs;
+         msecs += dt.m_data.m_data.m_msecs;
          if (msecs_can_be_small(msecs)) {
-            dt.m_data.m_implPtr->m_msecs = pdk::intptr(msecs);
+            dt.m_data.m_data.m_msecs = pdk::intptr(msecs);
          } else {
             dt.m_data.detach();
             dt.m_data->m_msecs = msecs;

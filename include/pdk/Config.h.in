@@ -26,8 +26,8 @@
 #define PDK_FEATURE_timezone 1
 #define PDK_FEATURE_LINKAT 1  // template file private
 // review the code https://github.com/google/double-conversion
-#define PDK_FEATURE_futimens -1
-#define PDK_FEATURE_futimes -1
+#define PDK_FEATURE_futimens @PDK_FEATURE_futimens@
+#define PDK_FEATURE_futimes @PDK_FEATURE_futimes@
 #define PDK_FEATURE_getauxval -1
 #define PDK_FEATURE_translation -1
 #define PDK_FEATURE_renameat2 -1

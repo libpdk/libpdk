@@ -45,11 +45,11 @@ bool verify_const_expr(T n)
 TEST(FlagsTest, testClassicEnum)
 {
    Options opts = Option::ShowAll | Option::ShowTabs;
-   ASSERT_EQ(static_cast<Options::UnderType>(opts), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(opts), static_cast<Options::UnderType>(3));
    ASSERT_TRUE(opts.testFlag(Option::ShowAll));
    ASSERT_TRUE(opts.testFlag(Option::ShowTabs));
    opts &= ~Option::ShowTabs;
-   ASSERT_EQ(static_cast<Options::UnderType>(opts), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(opts), static_cast<Options::UnderType>(2));
    opts = 0;
    ASSERT_FALSE(opts.testFlag(Option::ShowAll));
    ASSERT_FALSE(opts.testFlag(Option::ShowTabs));
@@ -116,21 +116,21 @@ TEST(FlagsTest, testClassEnum)
    MyClassTypeEnum opt1 = MyClassTypeEnum::Opt1;
    MyClassTypeEnum opt2 = MyClassTypeEnum::Opt2;
    MyClassTypeEnums flag1(opt1);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag1), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag1), 1u);
    MyClassTypeEnums flag2(opt2);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag2), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag2), 2u);
    MyClassTypeEnums flag3;
-   ASSERT_EQ(static_cast<Options::UnderType>(flag3), 0);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag3), 0u);
    MyClassTypeEnums flag4(opt1 | opt2);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag4), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag4), 3u);
    ASSERT_TRUE(flag4.testFlag(MyClassTypeEnum::Opt1));
    ASSERT_FALSE(flag4.testFlag(MyClassTypeEnum::Opt4));
    ASSERT_FALSE(flag3);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & 1), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & 1), 1u);
    
-   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & int(1)), 1);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & uint(1)), 1);
-   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & MyClassTypeEnum::Opt1), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & int(1)), 1u);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & uint(1)), 1u);
+   ASSERT_EQ(static_cast<Options::UnderType>(flag4 & MyClassTypeEnum::Opt1), 1u);
    
    MyClassTypeEnums aux;
    aux = flag4;

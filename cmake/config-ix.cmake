@@ -1,6 +1,6 @@
 if( WIN32 AND NOT CYGWIN )
-    # We consider Cygwin as another Unix
-    set(PURE_WINDOWS 1)
+   # We consider Cygwin as another Unix
+   set(PURE_WINDOWS 1)
 endif()
 
 include(CheckIncludeFile)
@@ -56,7 +56,7 @@ check_symbol_exists(futimes sys/time.h HAVE_FUTIMES)
 check_symbol_exists(posix_fallocate fcntl.h HAVE_POSIX_FALLOCATE)
 
 if(PDK_HAVE_SYS_UIO_H)
-    check_symbol_exists(writev sys/uio.h PDK_HAVE_WRITEV)
+   check_symbol_exists(writev sys/uio.h PDK_HAVE_WRITEV)
 endif()
 set(CMAKE_REQUIRED_DEFINITIONS "-D_LARGEFILE64_SOURCE")
 check_symbol_exists(lseek64 "sys/types.h;unistd.h" PDK_HAVE_LSEEK64)
@@ -65,7 +65,7 @@ set(CMAKE_REQUIRED_DEFINITIONS "")
 check_symbol_exists(mallctl malloc_np.h PDK_HAVE_MALLCTL)
 check_symbol_exists(mallinfo malloc.h PDK_HAVE_MALLINFO)
 check_symbol_exists(malloc_zone_statistics malloc/malloc.h
-    PDK_HAVE_MALLOC_ZONE_STATISTICS)
+   PDK_HAVE_MALLOC_ZONE_STATISTICS)
 check_symbol_exists(mkdtemp "stdlib.h;unistd.h" PDK_HAVE_MKDTEMP)
 check_symbol_exists(mkstemp "stdlib.h;unistd.h" PDK_HAVE_MKSTEMP)
 check_symbol_exists(mktemp "stdlib.h;unistd.h" PDK_HAVE_MKTEMP)
@@ -83,38 +83,38 @@ check_symbol_exists(strerror_s string.h PDK_HAVE_DECL_STRERROR_S)
 check_symbol_exists(setenv stdlib.h PDK_HAVE_SETENV)
 
 if(PDK_HAVE_DLFCN_H)
-    if(PDK_HAVE_LIBDL)
-        list(APPEND CMAKE_REQUIRED_LIBRARIES dl)
-    endif()
-    check_symbol_exists(dlopen dlfcn.h PDK_HAVE_DLOPEN)
-    check_symbol_exists(dladdr dlfcn.h PDK_HAVE_DLADDR)
-    if( HAVE_LIBDL )
-        list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES dl)
-    endif()
+   if(PDK_HAVE_LIBDL)
+      list(APPEND CMAKE_REQUIRED_LIBRARIES dl)
+   endif()
+   check_symbol_exists(dlopen dlfcn.h PDK_HAVE_DLOPEN)
+   check_symbol_exists(dladdr dlfcn.h PDK_HAVE_DLADDR)
+   if( HAVE_LIBDL )
+      list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES dl)
+   endif()
 endif()
 
 check_symbol_exists(__GLIBC__ stdio.h PDK_USING_GLIBC)
 
 if(PDK_USING_GLIBC)
-    add_definitions(-D_GNU_SOURCE)
-    list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
+   add_definitions(-D_GNU_SOURCE)
+   list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
 endif()
 
 # This check requires _GNU_SOURCE
 check_symbol_exists(sched_getaffinity sched.h PDK_HAVE_SCHED_GETAFFINITY)
 check_symbol_exists(CPU_COUNT sched.h PDK_HAVE_CPU_COUNT)
 if(PDK_HAVE_LIBPTHREAD)
-    check_library_exists(pthread pthread_getname_np "" PDK_HAVE_PTHREAD_GETNAME_NP)
-    check_library_exists(pthread pthread_setname_np "" PDK_HAVE_PTHREAD_SETNAME_NP)
+   check_library_exists(pthread pthread_getname_np "" PDK_HAVE_PTHREAD_GETNAME_NP)
+   check_library_exists(pthread pthread_setname_np "" PDK_HAVE_PTHREAD_SETNAME_NP)
 endif()
 
 set(headers "sys/types.h")
 if (PDK_HAVE_INTTYPES_H)
-    set(headers ${headers} "inttypes.h")
+   set(headers ${headers} "inttypes.h")
 endif()
 
 if (PDK_HAVE_STDINT_H)
-    set(headers ${headers} "stdint.h")
+   set(headers ${headers} "stdint.h")
 endif()
 
 pdk_check_type_exists(int64_t "${headers}" HAVE_INT64_T)
@@ -123,21 +123,34 @@ pdk_check_type_exists(u_int64_t "${headers}" HAVE_U_INT64_T)
 
 check_cxx_compiler_flag("-Wvariadic-macros" PDK_SUPPORTS_VARIADIC_MACROS_FLAG)
 check_cxx_compiler_flag("-Wgnu-zero-variadic-macro-arguments"
-    PDK_SUPPORTS_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS_FLAG)
+   PDK_SUPPORTS_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS_FLAG)
 
 # Disable gcc's potentially uninitialized use analysis as it presents lots of
 # false positives.
 if (CMAKE_COMPILER_IS_GNUCXX)
-  check_cxx_compiler_flag("-Wmaybe-uninitialized" PDK_HAS_MAYBE_UNINITIALIZED)
-  if (PDK_HAS_MAYBE_UNINITIALIZED)
-    set(PDK_USE_NO_MAYBE_UNINITIALIZED 1)
-  else()
-    # Only recent versions of gcc make the distinction between -Wuninitialized
-    # and -Wmaybe-uninitialized. If -Wmaybe-uninitialized isn't supported, just
-    # turn off all uninitialized use warnings.
-    check_cxx_compiler_flag("-Wuninitialized" PDK_HAS_UNINITIALIZED)
-    set(PDK_USE_NO_UNINITIALIZED ${PDK_HAS_UNINITIALIZED})
-  endif()
+   check_cxx_compiler_flag("-Wmaybe-uninitialized" PDK_HAS_MAYBE_UNINITIALIZED)
+   if (PDK_HAS_MAYBE_UNINITIALIZED)
+      set(PDK_USE_NO_MAYBE_UNINITIALIZED 1)
+   else()
+      # Only recent versions of gcc make the distinction between -Wuninitialized
+      # and -Wmaybe-uninitialized. If -Wmaybe-uninitialized isn't supported, just
+      # turn off all uninitialized use warnings.
+      check_cxx_compiler_flag("-Wuninitialized" PDK_HAS_UNINITIALIZED)
+      set(PDK_USE_NO_UNINITIALIZED ${PDK_HAS_UNINITIALIZED})
+   endif()
 endif()
 
 include(CheckThirdPartyLibraries)
+
+### setup features
+if (HAVE_FUTIMENS)
+   set(PDK_FEATURE_futimens 1)
+else()
+   set(PDK_FEATURE_futimens -1)
+endif()
+
+if(HAVE_FUTIMES)
+   set(PDK_FEATURE_futimes 1)
+else()
+   set(PDK_FEATURE_futimes -1)
+endif()

@@ -569,6 +569,12 @@ String TemporaryFile::getFileName() const
    return implPtr->getEngine()->getFileName(AbstractFileEngine::FileName::DefaultName);
 }
 
+String TemporaryFile::getFileTemplate() const
+{
+    PDK_D(const TemporaryFile);
+    return implPtr->m_templateName;
+}
+
 void TemporaryFile::setFileTemplate(const String &name)
 {
    PDK_D(TemporaryFile);
