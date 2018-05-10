@@ -29,7 +29,6 @@
 
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
-typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHLEN = 2 } HashReturn;
 
 #include "sha3/KeccakSponge.c"
 typedef spongeState hashState;
@@ -107,8 +106,10 @@ static SHA3Final * const sha3Final = Final;
     2. static variables are not thread-safe, we do not want multiple threads
     computing a hash to corrupt one another
 */
-static int SHA224_256AddLength(SHA256Context *context, unsigned int length);
-static int SHA384_512AddLength(SHA512Context *context, unsigned int length);
+extern "C" {
+int SHA224_256AddLength(SHA256Context *context, unsigned int length);
+int SHA384_512AddLength(SHA512Context *context, unsigned int length);
+}
 
 // Sources from rfc6234, with 4 modifications:
 // sha224-256.c - commented out 'static uint32_t addTemp;' on line 68
@@ -123,12 +124,12 @@ static int SHA384_512AddLength(SHA512Context *context, unsigned int length);
 #undef uint68_t
 #undef int_least16_t
 
-static inline int SHA224_256AddLength(SHA256Context *context, unsigned int length)
+inline int SHA224_256AddLength(SHA256Context *context, unsigned int length)
 {
    pdk::puint32 addTemp;
    return SHA224_256AddLengthM(context, length);
 }
-static inline int SHA384_512AddLength(SHA512Context *context, unsigned int length)
+inline int SHA384_512AddLength(SHA512Context *context, unsigned int length)
 {
    pdk::puint64 addTemp;
    return SHA384_512AddLengthM(context, length);
@@ -332,7 +333,7 @@ void CryptographicHash::addData(const ByteArray &data)
 bool CryptographicHash::addData(IoDevice *device)
 {
    if (!device->isReadable()) {
-       return false;
+      return false;
    }
    if (!device->isOpen()) {
       return false;
@@ -342,9 +343,9 @@ bool CryptographicHash::addData(IoDevice *device)
    int length;
    
    while ((length = device->read(buffer,sizeof(buffer))) > 0) {
-       addData(buffer,length);
+      addData(buffer,length);
    }
-     
+   
    
    return device->atEnd();
 }

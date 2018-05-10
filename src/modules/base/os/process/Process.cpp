@@ -1192,6 +1192,16 @@ String Process::getProgram() const
    return implPtr->m_program;
 }
 
+void Process::setProgram(const String &program)
+{
+    PDK_D(Process);
+    if (implPtr->m_processState != ProcessState::NotRunning) {
+        warning_stream("Process::setProgram: Process is already running");
+        return;
+    }
+    implPtr->m_program = program;
+}
+
 StringList Process::getArguments() const
 {
    PDK_D(const Process);

@@ -233,7 +233,7 @@ inline int safe_dup2(int oldfd, int newfd, int flags = FD_CLOEXEC)
    int ret;
 #ifdef PDK_THREADSAFE_CLOEXEC
    // use dup3
-   EINTR_LOOP(ret, ::dup3(oldfd, newfd, flags ? O_CLOEXEC : 0));
+   PDK_EINTR_LOOP(ret, ::dup3(oldfd, newfd, flags ? O_CLOEXEC : 0));
    return ret;
 #else
    PDK_EINTR_LOOP(ret, ::dup2(oldfd, newfd));
@@ -283,7 +283,7 @@ inline int safe_close(int fd)
 
 // - VxWorks & iOS/tvOS/watchOS don't have processes
 #if !defined(PDK_OS_VXWORKS) && !defined(PDK_NO_PROCESS)
-inline int execve(const char *filename, char *const argv[],
+inline int safe_execve(const char *filename, char *const argv[],
                   char *const envp[])
 {
    int ret;

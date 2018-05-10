@@ -7,10 +7,17 @@ set(DLL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dll)
 
 set(PDK_HAS_FEATURE_TIMEZONE TRUE)
 
+set(PAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pal)
 pdk_collect_files(
    TYPE_SOURCE
    DIR pal
    OUTPUT_VAR PDK_BASE_SOURCES)
+
+if (WIN32)
+elseif(UNIX)
+   list(APPEND PDK_BASE_SOURCES
+      ${PAL_DIR}/io/_platform/ForkFd.cpp)
+endif()
 
 pdk_collect_files(
    TYPE_SOURCE
