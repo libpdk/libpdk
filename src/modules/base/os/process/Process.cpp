@@ -414,7 +414,7 @@ void ProcessPrivate::setErrorAndEmit(Process::ProcessError error, const String &
    PDK_Q(Process);
    PDK_ASSERT(error != Process::ProcessError::UnknownError);
    setError(error, description);
-   // @TODO emit signal
+   apiPtr->emitErrorOccurredSignal(m_processError);
 }
 
 bool ProcessPrivate::tryReadFromChannel(Channel *channel)
@@ -478,15 +478,15 @@ bool ProcessPrivate::tryReadFromChannel(Channel *channel)
       didRead = true;
       if (!m_emittedReadyRead) {
          m_emittedReadyRead = true;
-         // emit readyRead();
+         apiPtr->emitReadyReadSignal();
          m_emittedReadyRead = false;
       }
    }
-   // emit channelReadyRead(int(channelIdx));
+   apiPtr->emitChannelReadyReadSignal(int(channelIdx));
    if (channelIdx == Process::ProcessChannel::StandardOutput) {
-      //emit readyReadStandardOutput(Process::PrivateSignal());
+      apiPtr->emitReadyReadStandardOutputSignal();
    } else {
-      // emit readyReadStandardError(Process::PrivateSignal());
+      apiPtr->emitReadyReadStandardErrorSignal();
    }
    return didRead;
 }
@@ -526,6 +526,7 @@ bool ProcessPrivate::canWritePrivateSlot()
 
 bool ProcessPrivate::processDiedPrivateSlot()
 {
+   PDK_Q(Process);
 #if defined PDK_PROCESS_DEBUG
    debug_stream("ProcessPrivate::processDiedPrivateSlot()");
 #endif
@@ -573,13 +574,12 @@ bool ProcessPrivate::processDiedPrivateSlot()
    cleanup();
    if (wasRunning) {
       // we received EOF now:
-      // emit readChannelFinished();
+      apiPtr->emitReadChannelFinishedSignal();
       // in the future:
-      // emit standardOutputClosed();
-      // emit standardErrorClosed();
+      // apiPtr->emitStandardOutputClosedSignal();
+      // apiPtr->emitStandardErrorClosedSignal();
       
-      // emit finished(exitCode);
-      // emit finished(exitCode, exitStatus);
+      apiPtr->emitFinishedSignal(m_exitCode, m_exitStatus);
    }
 #if defined PDK_PROCESS_DEBUG
    debug_stream("ProcessPrivate::processDiedPrivateSlot() process is dead");
@@ -601,7 +601,7 @@ bool ProcessPrivate::startupNotificationPrivateSlot()
    String errorMessage;
    if (processStarted(&errorMessage)) {
       apiPtr->setProcessState(Process::ProcessState::Running);
-      // emit started(Process::PrivateSignal());
+      apiPtr->emitStartedSignal();
       return true;
    }
    
@@ -814,7 +814,7 @@ bool Process::canReadLine() const
 void Process::close()
 {
    PDK_D(Process);
-   // emit aboutToClose();
+   emitAboutToCloseSignal();
    while (waitForBytesWritten(-1))
       ;
    kill();
@@ -944,7 +944,7 @@ void Process::setProcessState(ProcessState state)
       return;
    }
    implPtr->m_processState = state;
-   // emit stateChanged(state, PrivateSignal());
+   emitStateChangedSignal(state);
 }
 
 void Process::setupChildProcess()

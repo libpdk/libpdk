@@ -154,6 +154,30 @@ public:
       CrashExit
    };
    
+   using StartedHandlerType = void();
+   using FinishedHandlerType = void(int exitCode, Process::ExitStatus exitStatus);
+   using ErrorOccurredHandlerType = void(Process::ProcessError error);
+   using StateChangedHandlerType = void(Process::ProcessState state);
+   using ReadyReadStandardOutputHandlerType = void();
+   using ReadyReadStandardErrorHandlerType = void();
+   
+   PDK_DEFINE_SIGNAL_ENUMS(Started, Finished, ErrorOccurred, StateChanged, 
+                           ReadyReadStandardOutput, ReadyReadStandardError);
+   
+   PDK_DEFINE_SIGNAL_EMITTER(Started)
+   PDK_DEFINE_SIGNAL_EMITTER(Finished)
+   PDK_DEFINE_SIGNAL_EMITTER(ErrorOccurred)
+   PDK_DEFINE_SIGNAL_EMITTER(StateChanged)
+   PDK_DEFINE_SIGNAL_EMITTER(ReadyReadStandardOutput)
+   PDK_DEFINE_SIGNAL_EMITTER(ReadyReadStandardError)
+   
+   PDK_DEFINE_SIGNAL_BINDER(Started)
+   PDK_DEFINE_SIGNAL_BINDER(Finished)
+   PDK_DEFINE_SIGNAL_BINDER(ErrorOccurred)
+   PDK_DEFINE_SIGNAL_BINDER(StateChanged)
+   PDK_DEFINE_SIGNAL_BINDER(ReadyReadStandardOutput)
+   PDK_DEFINE_SIGNAL_BINDER(ReadyReadStandardError)
+   
    explicit Process(Object *parent = nullptr);
    virtual ~Process();
    
@@ -258,13 +282,6 @@ public:
    void terminate();
    void kill();
    
-   //PDK_SIGNALS
-   //   void startedPrivate();
-   //   void finished(int exitCode); // ###  merge the two signals with a default value
-   //   void finished(int exitCode, Process::ExitStatus exitStatus);
-   //   void errorOccurred(Process::ProcessError error);
-   //   void stateChanged(Process::ProcessState state, QPrivateSignal);
-   
    void readyReadStandardOutput();
    void readyReadStandardError();
    
@@ -280,12 +297,6 @@ protected:
 private:
    PDK_DECLARE_PRIVATE(Process);
    PDK_DISABLE_COPY(Process);
-   
-   //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_canReadStandardOutput())
-   //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_canReadStandardError())
-   //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_canWrite())
-   //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_startupNotification())
-   //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_processDied())
 };
 
 } // process
