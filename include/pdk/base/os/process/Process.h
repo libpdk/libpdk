@@ -57,6 +57,7 @@ namespace process {
 
 #endif
 
+using internal::ProcessPrivate;
 using internal::ProcessEnvironmentPrivate;
 
 class PDK_CORE_EXPORT ProcessEnvironment
@@ -156,15 +157,15 @@ public:
    explicit Process(Object *parent = nullptr);
    virtual ~Process();
    
-   void start(const String &program, const StringList &arguments, OpenMode mode = OpenMode::ReadWrite);
+   void start(const String &program, const StringList &arguments, OpenModes mode = OpenMode::ReadWrite);
 #if !defined(PDK_NO_PROCESS_COMBINED_ARGUMENT_START)
-   void start(const String &command, OpenMode mode = OpenMode::ReadWrite);
+   void start(const String &command, OpenModes mode = OpenMode::ReadWrite);
 #endif
    void start(OpenModes mode = OpenMode::ReadWrite);
    bool startDetached(pdk::pint64 *pid = nullptr);
    bool open(OpenModes mode = OpenMode::ReadWrite) override;
    
-   String program() const;
+   String getProgram() const;
    void setProgram(const String &program);
    
    StringList getArguments() const;
@@ -194,7 +195,7 @@ public:
    struct CreateProcessArguments
    {
       const wchar_t *m_applicationName;
-      wchar_t *arguments;
+      wchar_t *m_arguments;
       PDK_SECURITY_ATTRIBUTES *m_processAttributes;
       PDK_SECURITY_ATTRIBUTES *m_threadAttributes;
       bool m_inheritHandles;
@@ -212,8 +213,6 @@ public:
    String getWorkingDirectory() const;
    void setWorkingDirectory(const String &dir);
    
-   void setEnvironment(const StringList &environment);
-   StringList getEnvironment() const;
    void setProcessEnvironment(const ProcessEnvironment &environment);
    ProcessEnvironment getProcessEnvironment() const;
    
@@ -221,7 +220,6 @@ public:
    Process::ProcessState getState() const;
    
    // #### PDK_PID is a pointer on Windows and a value on Unix
-   PDK_PID getPid() const;
    pdk::pint64 getProcessId() const;
    
    bool waitForStarted(int msecs = 30000);
@@ -280,7 +278,7 @@ protected:
    pdk::pint64 writeData(const char *data, pdk::pint64 length) override;
    
 private:
-   PDK_DECLARE_PRIVATE(Process)
+   PDK_DECLARE_PRIVATE(Process);
    PDK_DISABLE_COPY(Process);
    
    //   PDK_PRIVATE_SLOT(d_func(), bool _PDK_canReadStandardOutput())

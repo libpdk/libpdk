@@ -37,7 +37,7 @@ using pdk::kernel::internal::ObjectPrivate;
 using pdk::ds::internal::RingBuffer;
 using pdk::io::IoDevice;
 
-PDK_CORE_EXPORT int substract_from_timeout(int timeout, int elapsed);
+PDK_CORE_EXPORT int subtract_from_timeout(int timeout, int elapsed);
 
 class PDK_CORE_EXPORT IoDevicePrivate : public ObjectPrivate
 {

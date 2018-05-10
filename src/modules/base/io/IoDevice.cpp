@@ -1214,7 +1214,7 @@ String IoDevice::getErrorString() const
 }
 
 namespace internal {
-int substract_from_timeout(int timeout, int elapsed)
+int subtract_from_timeout(int timeout, int elapsed)
 {
    if (timeout == -1) {
       return -1;

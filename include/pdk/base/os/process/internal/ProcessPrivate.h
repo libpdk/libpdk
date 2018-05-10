@@ -137,19 +137,29 @@ public:
 #else
    inline Key prepareName(const String &name) const
    {
-      Key &ent = nameMap[name];
-      if (ent.isEmpty())
+      Key &ent = m_nameMap[name];
+      if (ent.isEmpty()) {
          ent = name.toLocal8Bit();
+      }
       return ent;
    }
+   
    inline String nameToString(const Key &name) const
    {
       const String sname = String::fromLocal8Bit(name);
-      nameMap[sname] = name;
+      m_nameMap[sname] = name;
       return sname;
    }
-   inline Value prepareValue(const String &value) const { return Value(value); }
-   inline String valueToString(const Value &value) const { return value.string(); }
+   
+   inline Value prepareValue(const String &value) const
+   {
+      return Value(value);
+   }
+   
+   inline String valueToString(const Value &value) const
+   {
+      return value.getString();
+   }
    
    ProcessEnvironmentPrivate() = default;
    
@@ -236,10 +246,15 @@ public:
          // if you add "= 4" here, increase the number of bits below
       };
       
-      Channel() : process(0), notifier(0), type(Normal), closed(false), append(false)
+      Channel() 
+         : m_process(nullptr), 
+           m_notifier(nullptr), 
+           m_type(Normal), 
+           m_closed(false), 
+           m_append(false)
       {
-         pipe[0] = INVALID_PDK_PIPE;
-         pipe[1] = INVALID_PDK_PIPE;
+         m_pipe[0] = INVALID_PDK_PIPE;
+         m_pipe[1] = INVALID_PDK_PIPE;
 #ifdef PDK_OS_WIN
          reader = 0;
 #endif
@@ -250,39 +265,39 @@ public:
       Channel &operator=(const String &fileName)
       {
          clear();
-         file = fileName;
-         type = fileName.isEmpty() ? Normal : Redirect;
+         m_file = fileName;
+         m_type = fileName.isEmpty() ? Normal : Redirect;
          return *this;
       }
       
       void pipeTo(ProcessPrivate *other)
       {
          clear();
-         process = other;
-         type = PipeSource;
+         m_process = other;
+         m_type = PipeSource;
       }
       
       void pipeFrom(ProcessPrivate *other)
       {
          clear();
-         process = other;
-         type = PipeSink;
+         m_process = other;
+         m_type = PipeSink;
       }
       
-      String file;
-      ProcessPrivate *process;
-      SocketNotifier *notifier;
+      String m_file;
+      ProcessPrivate *m_process;
+      SocketNotifier *m_notifier;
 #ifdef PDK_OS_WIN
       union {
-         QWindowsPipeReader *reader;
-         QWindowsPipeWriter *writer;
+         WindowsPipeReader *m_reader;
+         WindowsPipeWriter *m_writer;
       };
 #endif
-      PDK_PIPE pipe[2];
+      PDK_PIPE m_pipe[2];
       
-      unsigned type : 2;
-      bool closed : 1;
-      bool append : 1;
+      unsigned m_type : 2;
+      bool m_closed : 1;
+      bool m_append : 1;
    };
    
    ProcessPrivate();
@@ -295,10 +310,10 @@ public:
    bool startupNotificationPrivateSlot();
    bool processDiedPrivateSlot();
    
-   Process::ProcessChannelMode processChannelMode;
-   Process::InputChannelMode inputChannelMode;
-   Process::ProcessError processError;
-   Process::ProcessState processState;
+   Process::ProcessChannelMode m_processChannelMode;
+   Process::InputChannelMode m_inputChannelMode;
+   Process::ProcessError m_processError;
+   Process::ProcessState m_processState;
    String m_workingDirectory;
    PDK_PID m_pid;
    int m_sequenceNumber;
@@ -336,7 +351,7 @@ public:
    WinEventNotifier *processFinishedNotifier;
 #endif
    
-   void start(IoDevice::OpenMode mode);
+   void start(IoDevice::OpenModes mode);
    void startProcess();
 #if defined(PDK_OS_UNIX)
    void execChild(const char *workingDirectory, char **argv, char **envp);
