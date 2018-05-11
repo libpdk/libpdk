@@ -23,6 +23,8 @@
 #include "pdk/base/io/fs/TemporaryFile.h"
 #include "pdk/base/text/RegularExpression.h"
 #include "pdk/base/io/Debug.h"
+#include "pdk/base/ds/StringList.h"
+#include "pdk/base/ds/ByteArray.h"
 
 using pdk::os::process::Process;
 using pdk::io::fs::TemporaryDir;
@@ -30,6 +32,9 @@ using pdk::lang::Latin1String;
 using pdk::lang::String;
 using pdk::io::fs::FileInfo;
 using pdk::io::fs::Dir;
+using pdk::ds::StringList;
+using pdk::ds::ByteArray;
+using pdk::io::IoDevice;
 
 using ProcessFinishedSignal1 = void (Process::*)(int);
 using ProcessFinishedSignal2 = void (Process::*)(int, Process::ExitStatus);
@@ -77,4 +82,35 @@ TEST_F(ProcessTest, testGetSetCheck)
    ASSERT_EQ(Process::ProcessChannel::StandardOutput, obj1.getReadChannel());
    obj1.setReadChannel(Process::ProcessChannel::StandardError);
    ASSERT_EQ(Process::ProcessChannel::StandardError, obj1.getReadChannel());
+}
+
+TEST_F(ProcessTest, testConstructing)
+{
+   Process process;
+   ASSERT_EQ(process.getReadChannel(), Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(process.getWorkingDirectory(), String());
+   ASSERT_EQ(process.getProcessEnvironment().toStringList(), StringList());
+   ASSERT_EQ(process.getError(), Process::ProcessError::UnknownError);
+   ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
+   ASSERT_EQ(process.getProcessId(), PDK_PID(0));
+   ASSERT_EQ(process.readAllStandardOutput(), ByteArray());
+   ASSERT_EQ(process.readAllStandardError(), ByteArray());
+   ASSERT_EQ(process.canReadLine(), false);
+   
+   // IoDevice
+   ASSERT_EQ(process.getOpenMode(), IoDevice::OpenMode::NotOpen);
+   ASSERT_TRUE(!process.isOpen());
+   ASSERT_TRUE(!process.isReadable());
+   ASSERT_TRUE(!process.isWritable());
+   ASSERT_TRUE(process.isSequential());
+   ASSERT_EQ(process.getPosition(), pdk::plonglong(0));
+   ASSERT_EQ(process.getSize(), pdk::plonglong(0));
+   ASSERT_TRUE(process.atEnd());
+   ASSERT_EQ(process.getBytesAvailable(), pdk::plonglong(0));
+   ASSERT_EQ(process.getBytesToWrite(), pdk::plonglong(0));
+   ASSERT_TRUE(!process.getErrorString().isEmpty());
+   
+   char c;
+   ASSERT_EQ(process.read(&c, 1), pdk::plonglong(-1));
+   ASSERT_EQ(process.write(&c, 1), pdk::plonglong(-1));
 }

@@ -40,22 +40,23 @@ class ProcessPrivate;
 class ProcessEnvironmentPrivate;
 } // internal
 
-#if !defined(PDK_OS_WIN)
-using PDK_PID = pdk::pint64;
-#else
 } // process
 } // os
 } // pdk
+
+#if !defined(PDK_OS_WIN)
+using PDK_PID = pdk::pint64;
+#else
 
 using PDK_PID = struct _PROCESS_INFORMATION *;
 using PDK_SECURITY_ATTRIBUTES = struct _SECURITY_ATTRIBUTES;
 using PDK_STARTUPINFO = struct _STARTUPINFOW;
 
+#endif
+
 namespace pdk {
 namespace os {
 namespace process {
-
-#endif
 
 using internal::ProcessPrivate;
 using internal::ProcessEnvironmentPrivate;
