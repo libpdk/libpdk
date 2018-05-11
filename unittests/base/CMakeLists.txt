@@ -64,5 +64,5 @@ pdk_add_unittest(ModuleBaseUnittests IoTest ${PDK_IO_TEST_SRCS})
 target_compile_definitions(IoTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}"
    PUBLIC PDKTEST_CURRENT_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io")
 
-
+add_subdirectory(os/process)
 

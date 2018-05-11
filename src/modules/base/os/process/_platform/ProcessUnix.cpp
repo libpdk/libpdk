@@ -709,7 +709,7 @@ bool ProcessPrivate::waitForStarted(int msecs)
 bool ProcessPrivate::waitForReadyRead(int msecs)
 {
 #if defined (PDK_PROCESS_DEBUG)
-   qDebug("ProcessPrivate::waitForReadyRead(%d)", msecs);
+   debug_stream("ProcessPrivate::waitForReadyRead(%d)", msecs);
 #endif
    
    ElapsedTimer stopWatch;
@@ -773,7 +773,7 @@ bool ProcessPrivate::waitForReadyRead(int msecs)
 bool ProcessPrivate::waitForBytesWritten(int msecs)
 {
 #if defined (PDK_PROCESS_DEBUG)
-   qDebug("ProcessPrivate::waitForBytesWritten(%d)", msecs);
+   debug_stream("ProcessPrivate::waitForBytesWritten(%d)", msecs);
 #endif
    
    ElapsedTimer stopWatch;
