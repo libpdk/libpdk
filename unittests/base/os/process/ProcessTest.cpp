@@ -75,65 +75,70 @@ private:
 TemporaryDir ProcessTest::m_temporaryDir;
 pdk::pint64 ProcessTest::m_bytesAvailable = 0;
 
+TEST_F(ProcessTest, testGetSetCheck)
+{
+   Process obj1;
+   // ProcessChannelMode Process::readChannelMode()
+   // void Process::setReadChannelMode(ProcessChannelMode)
+   obj1.setReadChannelMode(Process::ProcessChannelMode::SeparateChannels);
+   ASSERT_EQ(Process::ProcessChannelMode::SeparateChannels, obj1.getReadChannelMode());
+   obj1.setReadChannelMode(Process::ProcessChannelMode::MergedChannels);
+   ASSERT_EQ(Process::ProcessChannelMode::MergedChannels, obj1.getReadChannelMode());
+   obj1.setReadChannelMode(Process::ProcessChannelMode::ForwardedChannels);
+   ASSERT_EQ(Process::ProcessChannelMode::ForwardedChannels, obj1.getReadChannelMode());
+   
+   // ProcessChannel Process::readChannel()
+   // void Process::setReadChannel(ProcessChannel)
+   obj1.setReadChannel(Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(Process::ProcessChannel::StandardOutput, obj1.getReadChannel());
+   obj1.setReadChannel(Process::ProcessChannel::StandardError);
+   ASSERT_EQ(Process::ProcessChannel::StandardError, obj1.getReadChannel());
+}
 
-//TEST_F(ProcessTest, testGetSetCheck)
-//{
-//   Process obj1;
-//   // ProcessChannelMode Process::readChannelMode()
-//   // void Process::setReadChannelMode(ProcessChannelMode)
-//   obj1.setReadChannelMode(Process::ProcessChannelMode::SeparateChannels);
-//   ASSERT_EQ(Process::ProcessChannelMode::SeparateChannels, obj1.getReadChannelMode());
-//   obj1.setReadChannelMode(Process::ProcessChannelMode::MergedChannels);
-//   ASSERT_EQ(Process::ProcessChannelMode::MergedChannels, obj1.getReadChannelMode());
-//   obj1.setReadChannelMode(Process::ProcessChannelMode::ForwardedChannels);
-//   ASSERT_EQ(Process::ProcessChannelMode::ForwardedChannels, obj1.getReadChannelMode());
+TEST_F(ProcessTest, testConstructing)
+{
+   Process process;
+   ASSERT_EQ(process.getReadChannel(), Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(process.getWorkingDirectory(), String());
+   ASSERT_EQ(process.getProcessEnvironment().toStringList(), StringList());
+   ASSERT_EQ(process.getError(), Process::ProcessError::UnknownError);
+   ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
+   ASSERT_EQ(process.getProcessId(), PDK_PID(0));
+   ASSERT_EQ(process.readAllStandardOutput(), ByteArray());
+   ASSERT_EQ(process.readAllStandardError(), ByteArray());
+   ASSERT_EQ(process.canReadLine(), false);
    
-//   // ProcessChannel Process::readChannel()
-//   // void Process::setReadChannel(ProcessChannel)
-//   obj1.setReadChannel(Process::ProcessChannel::StandardOutput);
-//   ASSERT_EQ(Process::ProcessChannel::StandardOutput, obj1.getReadChannel());
-//   obj1.setReadChannel(Process::ProcessChannel::StandardError);
-//   ASSERT_EQ(Process::ProcessChannel::StandardError, obj1.getReadChannel());
-//}
-
-//TEST_F(ProcessTest, testConstructing)
-//{
-//   Process process;
-//   ASSERT_EQ(process.getReadChannel(), Process::ProcessChannel::StandardOutput);
-//   ASSERT_EQ(process.getWorkingDirectory(), String());
-//   ASSERT_EQ(process.getProcessEnvironment().toStringList(), StringList());
-//   ASSERT_EQ(process.getError(), Process::ProcessError::UnknownError);
-//   ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
-//   ASSERT_EQ(process.getProcessId(), PDK_PID(0));
-//   ASSERT_EQ(process.readAllStandardOutput(), ByteArray());
-//   ASSERT_EQ(process.readAllStandardError(), ByteArray());
-//   ASSERT_EQ(process.canReadLine(), false);
+   // IoDevice
+   ASSERT_EQ(process.getOpenMode(), IoDevice::OpenMode::NotOpen);
+   ASSERT_TRUE(!process.isOpen());
+   ASSERT_TRUE(!process.isReadable());
+   ASSERT_TRUE(!process.isWritable());
+   ASSERT_TRUE(process.isSequential());
+   ASSERT_EQ(process.getPosition(), pdk::plonglong(0));
+   ASSERT_EQ(process.getSize(), pdk::plonglong(0));
+   ASSERT_TRUE(process.atEnd());
+   ASSERT_EQ(process.getBytesAvailable(), pdk::plonglong(0));
+   ASSERT_EQ(process.getBytesToWrite(), pdk::plonglong(0));
+   ASSERT_TRUE(!process.getErrorString().isEmpty());
    
-//   // IoDevice
-//   ASSERT_EQ(process.getOpenMode(), IoDevice::OpenMode::NotOpen);
-//   ASSERT_TRUE(!process.isOpen());
-//   ASSERT_TRUE(!process.isReadable());
-//   ASSERT_TRUE(!process.isWritable());
-//   ASSERT_TRUE(process.isSequential());
-//   ASSERT_EQ(process.getPosition(), pdk::plonglong(0));
-//   ASSERT_EQ(process.getSize(), pdk::plonglong(0));
-//   ASSERT_TRUE(process.atEnd());
-//   ASSERT_EQ(process.getBytesAvailable(), pdk::plonglong(0));
-//   ASSERT_EQ(process.getBytesToWrite(), pdk::plonglong(0));
-//   ASSERT_TRUE(!process.getErrorString().isEmpty());
-   
-//   char c;
-//   ASSERT_EQ(process.read(&c, 1), pdk::plonglong(-1));
-//   ASSERT_EQ(process.write(&c, 1), pdk::plonglong(-1));
-//}
+   char c;
+   ASSERT_EQ(process.read(&c, 1), pdk::plonglong(-1));
+   ASSERT_EQ(process.write(&c, 1), pdk::plonglong(-1));
+}
 
 TEST_F(ProcessTest, testSimpleStart)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    ScopedPointer<Process> process(new Process);
    process->connectReadyReadSignal([](IoDevice::SignalType, Object *sender){
-      
-   }, PDK_RETRIEVE_APP_INSTANCE());
+      Process *process = dynamic_cast<Process *>(sender);
+      ASSERT_TRUE(process);
+      int lines = 0;
+      while (process->canReadLine()) {
+         ++lines;
+         process->readLine();
+      }
+   }, process.getData());
    std::list<Process::ProcessState> stateChangedData;
    process->connectStateChangedSignal([&stateChangedData](Process::ProcessState state){
       stateChangedData.push_back(state);
@@ -154,7 +159,76 @@ TEST_F(ProcessTest, testSimpleStart)
    ASSERT_EQ(*iter++, Process::ProcessState::Running);
    ASSERT_EQ(*iter++, Process::ProcessState::NotRunning);
    PDKTEST_END_APP_CONTEXT();
-   
+}
+
+TEST_F(ProcessTest, testStartWithOpen)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   ASSERT_EQ(process.open(IoDevice::OpenMode::ReadOnly), false);
+   process.setProgram(APP_FILENAME(ProcessNormalApp));
+   ASSERT_EQ(process.getProgram(), APP_FILENAME(ProcessNormalApp));
+   process.setArguments(StringList() << Latin1String("arg1") << Latin1String("arg2"));
+   ASSERT_EQ(process.getArguments().size(), 2u);
+   ASSERT_TRUE(process.open(IoDevice::OpenMode::ReadOnly));
+   ASSERT_EQ(process.getOpenMode(), IoDevice::OpenMode::ReadOnly);
+   ASSERT_TRUE(process.waitForFinished(5000));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testStartWithOldOpen)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   class OverriddenOpen : public Process
+   {
+   public:
+      virtual bool open(OpenModes mode) override
+      { return IoDevice::open(mode); }
+   };
+   OverriddenOpen process;
+   process.start(APP_FILENAME(ProcessNormalApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+   ASSERT_TRUE(process.waitForFinished(5000));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testExecute)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ASSERT_EQ(Process::execute(APP_FILENAME(ProcessNormalApp),
+                              StringList() << Latin1String("arg1") << Latin1String("arg2")), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testStartDetached)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ASSERT_TRUE(Process::startDetached(APP_FILENAME(ProcessNormalApp),
+                                      StringList() << Latin1String("arg1") << Latin1String("arg2")));
+   ASSERT_EQ(Process::startDetached(Latin1String("nonexistingexe")), false);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testCrashTest)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ScopedPointer<Process> process(new Process);
+   process->start(APP_FILENAME(ProcessCrashApp));
+   ASSERT_TRUE(process->waitForStarted(5000));
+   std::list<Process::ProcessError> errorData;
+   process->connectErrorOccurredSignal([&errorData](Process::ProcessError error){
+      errorData.push_back(error);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   std::list<Process::ExitStatus> exitStatusData;
+   process->connectFinishedSignal([&exitStatusData](int exitCode, Process::ExitStatus status){
+      exitStatusData.push_back(status);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   ASSERT_TRUE(process->waitForFinished(30000));
+   ASSERT_EQ(errorData.size(), 1u);
+   ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
+   ASSERT_EQ(exitStatusData.size(), 1u);
+   ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
+   PDKTEST_END_APP_CONTEXT();
 }
 
 int main(int argc, char **argv)

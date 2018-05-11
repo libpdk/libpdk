@@ -1092,6 +1092,7 @@ bool Process::startDetached(pdk::pint64 *pid)
 
 bool Process::open(OpenModes mode)
 {
+   // @TODO program file is exists ?
    PDK_D(Process);
    if (implPtr->m_processState != ProcessState::NotRunning) {
       warning_stream("Process::start: Process is already running");

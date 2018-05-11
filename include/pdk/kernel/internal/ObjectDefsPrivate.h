@@ -106,29 +106,29 @@ constexpr inline decltype(auto) get_slot_args(Class receiver, SignalType signal,
    if constexpr(useSenderInfo) {
       return std::tuple_cat(std::tuple_cat(std::tuple<Class>(receiver),
                                            pdk::stdext::extract_first_n_items<slotArgNum - 2>(
-                                              std::make_tuple((typename std::tuple_element<ArgIndex..., SignalArgTypes>::type)args...))
+                                              std::make_tuple((typename std::tuple_element<ArgIndex, SignalArgTypes>::type)args...))
                                            ), 
                             std::make_tuple(signal, sender));
    } else {
       return std::tuple_cat(std::tuple<Class>(receiver),
                             pdk::stdext::extract_first_n_items<slotArgNum>(
-                               std::make_tuple((typename std::tuple_element<ArgIndex..., SignalArgTypes>::type)args...)
+                               std::make_tuple((typename std::tuple_element<ArgIndex, SignalArgTypes>::type)args...)
                                ));
    }
 }
 
 template <size_t slotArgNum, bool useSenderInfo,
           typename SignalArgTypes, typename SignalType,
-          std::size_t...ArgIndex, typename... ArgTypes>
+          std::size_t... ArgIndex, typename... ArgTypes>
 constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender, const std::index_sequence<ArgIndex...> &, ArgTypes ...args)
 {
    if constexpr(useSenderInfo) {
       auto base = pdk::stdext::extract_first_n_items<slotArgNum - 2>(
-               std::make_tuple((typename std::tuple_element<ArgIndex..., SignalArgTypes>::type)args...));
+               std::make_tuple((typename std::tuple_element<ArgIndex, SignalArgTypes>::type)args...));
       return std::tuple_cat(base, std::make_tuple(signal, sender));
    } else {
       return pdk::stdext::extract_first_n_items<slotArgNum>(
-               std::make_tuple((typename std::tuple_element<ArgIndex..., SignalArgTypes>::type)args...));
+               std::make_tuple((typename std::tuple_element<ArgIndex, SignalArgTypes>::type)args...));
    }
 }
 
