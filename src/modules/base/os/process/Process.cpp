@@ -999,6 +999,31 @@ pdk::pint64 Process::writeData(const char *data, pdk::pint64 len)
    return len;
 }
 
+void Process::processDiedPrivateSlot(int socket)
+{
+   getImplPtr()->processDiedPrivateSlot();
+}
+
+void Process::startupNotificationPrivateSlot(int socket)
+{
+   getImplPtr()->startupNotificationPrivateSlot();
+}
+
+void Process::canWritePrivateSlot(int socket)
+{
+   getImplPtr()->canWritePrivateSlot();
+}
+
+void Process::canReadStandardOutputPrivateSlot(int socket)
+{
+   getImplPtr()->canReadStandardOutputPrivateSlot();
+}
+
+void Process::canReadStandardErrorPrivateSlot(int socket)
+{
+   getImplPtr()->canReadStandardErrorPrivateSlot();
+}
+
 ByteArray Process::readAllStandardOutput()
 {
    ProcessChannel tmp = getReadChannel();
@@ -1112,8 +1137,7 @@ void ProcessPrivate::start(IoDevice::OpenModes mode)
        m_processChannelMode != Process::ProcessChannelMode::MergedChannels) {
       setReadChannelCount(2);
    }
-   
-   
+
    m_stdinChannel.m_closed = false;
    m_stdoutChannel.m_closed = false;
    m_stderrChannel.m_closed = false;

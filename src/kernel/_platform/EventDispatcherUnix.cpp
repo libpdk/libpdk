@@ -253,8 +253,9 @@ void EventDispatcherUNIXPrivate::markPendingSocketNotifiers()
             continue;
          }
          if (pfd.revents & POLLNVAL) {
-            warning_stream("SocketNotifier: Invalid socket %d with type %s, disabling...",
-                           iter->first, socketType(notifier->getType()));
+            // @TODO
+            // warning_stream("SocketNotifier: Invalid socket %d with type %s, disabling...",
+            //              iter->first, socketType(notifier->getType()));
             notifier->setEnabled(false);
          }
          if (pfd.revents & nflag.m_flags) {
@@ -395,7 +396,7 @@ void EventDispatcherUNIX::unregisterSocketNotifier(SocketNotifier *notifier)
       implPtr->m_pendingNotifiers.erase(piter);
    }
    auto iter = implPtr->m_socketNotifiers.find(sockfd);
-   if (iter != implPtr->m_socketNotifiers.end()) {
+   if (iter == implPtr->m_socketNotifiers.end()) {
       return;
    }
    SocketNotifierSetUNIX &snSet = iter->second;

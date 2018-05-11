@@ -228,18 +228,16 @@ bool ProcessPrivate::openChannel(Channel &channel)
             channel.m_notifier = new SocketNotifier(channel.m_pipe[1],
                   SocketNotifier::Type::Write, apiPtr);
             channel.m_notifier->setEnabled(false);
-            //            Object::connect(channel.notifier, SIGNAL(activated(int)),
-            //                             q, SLOT(_q_canWrite()));
+            channel.m_notifier->connectActivatedSignal(apiPtr, &Process::canWritePrivateSlot);
+            
          } else {
             channel.m_notifier = new SocketNotifier(channel.m_pipe[0],
                   SocketNotifier::Type::Read, apiPtr);
-            //            const char *receiver;
-            //            if (&channel == &stdoutChannel)
-            //               receiver = SLOT(_q_canReadStandardOutput());
-            //            else
-            //               receiver = SLOT(_q_canReadStandardError());
-            //            Object::connect(channel.notifier, SIGNAL(activated(int)),
-            //                             q, receiver);
+            if (&channel == &m_stdoutChannel) {
+               channel.m_notifier->connectActivatedSignal(apiPtr, &Process::canReadStandardOutputPrivateSlot);
+            } else {
+               channel.m_notifier->connectActivatedSignal(apiPtr, &Process::canReadStandardErrorPrivateSlot);
+            }
          }
       }
       
@@ -361,8 +359,7 @@ void ProcessPrivate::startProcess()
    if (m_threadData->hasEventDispatcher()) {
       m_startupSocketNotifier = new SocketNotifier(m_childStartedPipe[0],
             SocketNotifier::Type::Read, apiPtr);
-      //      Object::connect(startupSocketNotifier, SIGNAL(activated(int)),
-      //                      q, SLOT(_q_startupNotification()));
+      m_startupSocketNotifier->connectActivatedSignal(apiPtr, &Process::startupNotificationPrivateSlot);
    }
    
    // Start the process (platform dependent)
@@ -506,8 +503,7 @@ void ProcessPrivate::startProcess()
    
    if (m_threadData->m_eventDispatcher) {
       m_deathNotifier = new SocketNotifier(m_forkfd, SocketNotifier::Type::Read, apiPtr);
-      //      Object::connect(deathNotifier, SIGNAL(activated(int)),
-      //                      q, SLOT(_q_processDied()));
+      m_deathNotifier->connectActivatedSignal(apiPtr, &Process::processDiedPrivateSlot);
    }
 }
 
@@ -656,7 +652,7 @@ bool ProcessPrivate::writeToStdin()
    m_writeBuffer.free(written);
    if (!m_emittedBytesWritten && written != 0) {
       m_emittedBytesWritten = true;
-      //      emit func()->bytesWritten(written);
+      getApiPtr()->emitBytesWrittenSignal(written);
       m_emittedBytesWritten = false;
    }
    return true;

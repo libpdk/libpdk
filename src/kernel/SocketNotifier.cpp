@@ -19,6 +19,7 @@
 #include "pdk/kernel/internal/ObjectPrivate.h"
 #include "pdk/base/os/thread/internal/ThreadPrivate.h"
 #include "pdk/global/Logging.h"
+#include "pdk/kernel/CallableInvoker.h"
 
 namespace pdk {
 namespace kernel {
@@ -97,10 +98,11 @@ void SocketNotifier::setEnabled(bool enable)
       warning_stream("SocketNotifier: Socket notifiers cannot be enabled or disabled from another thread");
       return;
    }
-   if (implPtr->m_snenabled)
+   if (implPtr->m_snenabled) {
       implPtr->m_threadData->m_eventDispatcher.load()->registerSocketNotifier(this);
-   else
+   } else {
       implPtr->m_threadData->m_eventDispatcher.load()->unregisterSocketNotifier(this);
+   }
 }
 
 bool SocketNotifier::event(Event *event)
@@ -110,15 +112,13 @@ bool SocketNotifier::event(Event *event)
    // received.
    if (event->getType() == Event::Type::ThreadChange) {
       if (implPtr->m_snenabled) {
-//         MetaObject::invokeMethod(this, "setEnabled", Qt::QueuedConnection,
-//                                   Q_ARG(bool, d->snenabled));
+         CallableInvoker::invokeAsync(this, &SocketNotifier::setEnabled, implPtr->m_snenabled);
          setEnabled(false);
       }
    }
    Object::event(event);                        // will activate filters
    if ((event->getType() == Event::Type::SocketActive) || (event->getType() == Event::Type::SocketClose)) {
-      // @TODO emit signal
-      // emit activated(d->sockfd, PrivateSignal());
+      emitActivatedSignal(implPtr->m_sockfd);
       return true;
    }
    return false;

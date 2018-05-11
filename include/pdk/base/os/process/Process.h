@@ -294,7 +294,11 @@ protected:
    // IoDevice
    pdk::pint64 readData(char *data, pdk::pint64 maxlength) override;
    pdk::pint64 writeData(const char *data, pdk::pint64 length) override;
-   
+   void processDiedPrivateSlot(int socket);
+   void startupNotificationPrivateSlot(int socket);
+   void canWritePrivateSlot(int socket);
+   void canReadStandardOutputPrivateSlot(int socket);
+   void canReadStandardErrorPrivateSlot(int socket);
 private:
    PDK_DECLARE_PRIVATE(Process);
    PDK_DISABLE_COPY(Process);

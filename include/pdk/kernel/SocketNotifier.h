@@ -38,6 +38,11 @@ public:
       Exception
    };
    
+   using ActivatedHandlerType = void(int socket);
+   PDK_DEFINE_SIGNAL_ENUMS(Activated);
+   PDK_DEFINE_SIGNAL_BINDER(Activated)
+   PDK_DEFINE_SIGNAL_EMITTER(Activated)
+   
    SocketNotifier(pdk::intptr socket, Type, Object *parent = nullptr);
    ~SocketNotifier();
    

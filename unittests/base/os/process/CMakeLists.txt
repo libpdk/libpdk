@@ -28,7 +28,7 @@ add_process_testapp(FileWriterProcessApp apps/testFileWriterProcess.cpp)
 #add_process_testapp(ProcessEcho3App apps/testProcessEcho3.cpp)
 #add_process_testapp(ProcessEnvironmentApp apps/testProcessEnvironment.cpp)
 #add_process_testapp(ProcessHangApp apps/testProcessHang.cpp)
-#add_process_testapp(ProcessNormalApp apps/testProcessNormal.cpp)
+add_process_testapp(ProcessNormalApp apps/testProcessNormal.cpp)
 #add_process_testapp(ProcessOutputApp apps/testProcessOutput.cpp)
 #add_process_testapp(ProcessSpacesArgsApp apps/testProcessSpacesArgs.cpp)
 #add_process_testapp(ProcessSpacesArgsOneSpaceApp OUTPUT_NAME "one space" apps/testProcessSpacesArgs.cpp)
@@ -39,4 +39,5 @@ add_process_testapp(FileWriterProcessApp apps/testFileWriterProcess.cpp)
 #add_process_testapp(SpaceInNameApp apps/testSpaceInName.cpp)
 
 target_compile_definitions(ProcessTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-   PUBLIC PDKTEST_CURRENT_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io")
+   PUBLIC PDKTEST_CURRENT_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io"
+   PUBLIC PDKTEST_PROCESS_APPS_DIR="${CMAKE_CURRENT_BINARY_DIR}/apps")

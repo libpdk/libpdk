@@ -133,6 +133,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
 }
 
 } // internal
+
 } // kernel
 } // pdk
 
@@ -178,7 +179,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
                            pdk::kernel::internal::get_slot_args<slotArgNum, canPassSenderInfo, SignalArgTypes>(dynamic_cast<Class *>(receiverPtr.getData()), \
                            SignalType::PDK_SIGNAL_NAME(signalName), sender, std::make_index_sequence<signalArgNum>(), args...));\
             }\
-         }));\
+          }));\
       } else if (connectionType == pdk::ConnectionType::QueuedConnection) {\
          auto wrapper = [memberFunc, sender, receiverPtr](auto... args) -> ReturnType{\
             if (receiverPtr) {\
@@ -221,9 +222,9 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
       PDK_STATIC_ASSERT_X(pdk::stdext::IsCallable<SlotFuncType>::value, "Slot must be callable type");\
       using CallableInfo = pdk::stdext::CallableInfoTrait<signalName ## HandlerType>;\
       using ReturnType = typename CallableInfo::ReturnType;\
+      using DecayedSlotFuncType = typename std::decay<SlotFuncType>::type;\
       using SlotArgInfo = pdk::kernel::internal::SlotArgInfo<SignalType, SlotFuncType>;\
       using SignalArgTypes = typename CallableInfo::ArgTypes;\
-      using DecayedSlotFuncType = typename std::decay<SlotFuncType>::type;\
       if (nullptr == context) {\
          context = this;\
       }\
@@ -232,7 +233,7 @@ constexpr inline decltype(auto) get_slot_args(SignalType signal, Object *sender,
       constexpr size_t signalArgNum = CallableInfo::argNum;\
       constexpr size_t slotArgNum = SlotArgInfo::argNum;\
       if constexpr(canPassSenderInfo) {\
-         PDK_STATIC_ASSERT_X(signalArgNum >= (slotArgNum - 2), "slot handler argument number must less or equal than signal");\
+         PDK_STATIC_ASSERT_X(signalArgNum >= (slotArgNum - 2), "have singaltype: slot handler argument number must less or equal than signal");\
       } else {\
          PDK_STATIC_ASSERT_X(signalArgNum >= slotArgNum, "slot handler argument number must less or equal than signal");\
       }\
