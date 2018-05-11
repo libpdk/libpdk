@@ -62,6 +62,19 @@ pdk::pint64 ProcessTest::m_bytesAvailable = 0;
 TEST_F(ProcessTest, testGetSetCheck)
 {
    Process obj1;
+   // ProcessChannelMode Process::readChannelMode()
+   // void Process::setReadChannelMode(ProcessChannelMode)
    obj1.setReadChannelMode(Process::ProcessChannelMode::SeparateChannels);
    ASSERT_EQ(Process::ProcessChannelMode::SeparateChannels, obj1.getReadChannelMode());
+   obj1.setReadChannelMode(Process::ProcessChannelMode::MergedChannels);
+   ASSERT_EQ(Process::ProcessChannelMode::MergedChannels, obj1.getReadChannelMode());
+   obj1.setReadChannelMode(Process::ProcessChannelMode::ForwardedChannels);
+   ASSERT_EQ(Process::ProcessChannelMode::ForwardedChannels, obj1.getReadChannelMode());
+   
+   // ProcessChannel Process::readChannel()
+   // void Process::setReadChannel(ProcessChannel)
+   obj1.setReadChannel(Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(Process::ProcessChannel::StandardOutput, obj1.getReadChannel());
+   obj1.setReadChannel(Process::ProcessChannel::StandardError);
+   ASSERT_EQ(Process::ProcessChannel::StandardError, obj1.getReadChannel());
 }
