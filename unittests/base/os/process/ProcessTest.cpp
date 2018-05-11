@@ -131,13 +131,12 @@ TEST_F(ProcessTest, testSimpleStart)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    ScopedPointer<Process> process(new Process);
-   int slotCalledCount = 0;
-   process->connectReadyReadSignal([&slotCalledCount](IoDevice::SignalType, Object *sender){
+   process->connectReadyReadSignal([](IoDevice::SignalType, Object *sender){
       
    }, PDK_RETRIEVE_APP_INSTANCE());
-   std::list<Process::SignalType> stateChangedData;
-   process->connectStateChangedSignal([&stateChangedData](Process::SignalType signal, Object *sender){
-      stateChangedData.push_back(signal);
+   std::list<Process::ProcessState> stateChangedData;
+   process->connectStateChangedSignal([&stateChangedData](Process::ProcessState state){
+      stateChangedData.push_back(state);
    }, PDK_RETRIEVE_APP_INSTANCE());
    process->start(APP_FILENAME(ProcessNormalApp));
    
@@ -149,7 +148,13 @@ TEST_F(ProcessTest, testSimpleStart)
    ASSERT_EQ(process->getState(), Process::ProcessState::Running);
    PDK_TRY_COMPARE(process->getState(), Process::ProcessState::NotRunning);
    process.reset();
+   ASSERT_EQ(stateChangedData.size(), 3u);
+   auto iter = stateChangedData.begin();
+   ASSERT_EQ(*iter++, Process::ProcessState::Starting);
+   ASSERT_EQ(*iter++, Process::ProcessState::Running);
+   ASSERT_EQ(*iter++, Process::ProcessState::NotRunning);
    PDKTEST_END_APP_CONTEXT();
+   
 }
 
 int main(int argc, char **argv)
