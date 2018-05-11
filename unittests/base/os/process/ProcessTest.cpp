@@ -213,6 +213,12 @@ TEST_F(ProcessTest, testCrashTest)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    ScopedPointer<Process> process(new Process);
+   
+   std::list<Process::ProcessState> stateChangedData;
+   process->connectStateChangedSignal([&stateChangedData](Process::ProcessState state){
+      stateChangedData.push_back(state);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
    process->start(APP_FILENAME(ProcessCrashApp));
    ASSERT_TRUE(process->waitForStarted(5000));
    std::list<Process::ProcessError> errorData;
@@ -228,6 +234,14 @@ TEST_F(ProcessTest, testCrashTest)
    ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
    ASSERT_EQ(exitStatusData.size(), 1u);
    ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
+   process.reset();
+   
+   ASSERT_EQ(stateChangedData.size(), 3u);
+   auto iter = stateChangedData.begin();
+   ASSERT_EQ(*iter++, Process::ProcessState::Starting);
+   ASSERT_EQ(*iter++, Process::ProcessState::Running);
+   ASSERT_EQ(*iter++, Process::ProcessState::NotRunning);
+   
    PDKTEST_END_APP_CONTEXT();
 }
 
