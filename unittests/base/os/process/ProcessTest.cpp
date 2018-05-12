@@ -220,15 +220,19 @@ TEST_F(ProcessTest, testCrashTest)
    }, PDK_RETRIEVE_APP_INSTANCE());
    
    process->start(APP_FILENAME(ProcessCrashApp));
+   
    ASSERT_TRUE(process->waitForStarted(5000));
+  
    std::list<Process::ProcessError> errorData;
    process->connectErrorOccurredSignal([&errorData](Process::ProcessError error){
       errorData.push_back(error);
    }, PDK_RETRIEVE_APP_INSTANCE());
+   
    std::list<Process::ExitStatus> exitStatusData;
    process->connectFinishedSignal([&exitStatusData](int exitCode, Process::ExitStatus status){
       exitStatusData.push_back(status);
    }, PDK_RETRIEVE_APP_INSTANCE());
+   
    ASSERT_TRUE(process->waitForFinished(30000));
    ASSERT_EQ(errorData.size(), 1u);
    ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
@@ -241,6 +245,42 @@ TEST_F(ProcessTest, testCrashTest)
    ASSERT_EQ(*iter++, Process::ProcessState::Starting);
    ASSERT_EQ(*iter++, Process::ProcessState::Running);
    ASSERT_EQ(*iter++, Process::ProcessState::NotRunning);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testCrashTest2)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessCrashApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+   
+   std::list<Process::ProcessError> errorData;
+   process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
+      errorData.push_back(error);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   std::list<Process::ExitStatus> exitStatusData;
+   process.connectFinishedSignal([&exitStatusData](int exitCode, Process::ExitStatus status){
+      exitStatusData.push_back(status);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   process.connectFinishedSignal([](int exitCode, Process::ExitStatus status){
+      pdktest::TestEventLoop::instance().exitLoop();
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   pdktest::TestEventLoop::instance().enterLoop(30);
+   if (pdktest::TestEventLoop::instance().getTimeout()) {
+      FAIL() << "Failed to detect crash : operation timed out";
+   }
+   
+   ASSERT_EQ(errorData.size(), 1u);
+   ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
+   ASSERT_EQ(exitStatusData.size(), 1u);
+   ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
+   
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::CrashExit);
    
    PDKTEST_END_APP_CONTEXT();
 }
