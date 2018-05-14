@@ -353,6 +353,57 @@ TEST_F(ProcessTest, testExitStatus)
    PDKTEST_END_APP_CONTEXT();
 }
 
+TEST_F(ProcessTest, testLoopBack)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   for (int i = 0; i < 100; ++i) {
+      process.write("Hello");
+      do {
+         ASSERT_TRUE(process.waitForReadyRead(5000));
+      } while (process.getBytesAvailable() < 5);
+      ASSERT_EQ(process.readAll(), ByteArray("Hello"));
+   }
+   process.write("", 1);
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testReadTimeoutAndThenCrash)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   if (process.getState() != Process::ProcessState::Starting) {
+      ASSERT_EQ(process.getState(), Process::ProcessState::Running);
+   }
+   
+   std::list<Process::ProcessError> errorData;
+   process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
+      errorData.push_back(error);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   ASSERT_TRUE(process.waitForStarted(5000));
+   ASSERT_EQ(process.getState(), Process::ProcessState::Running);
+   
+   ASSERT_TRUE(!process.waitForReadyRead(5000));
+   ASSERT_EQ(process.getError(), Process::ProcessError::Timedout);
+   
+   process.kill();
+   
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
+   
+   ASSERT_EQ(errorData.size(), 1u);
+   ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;
