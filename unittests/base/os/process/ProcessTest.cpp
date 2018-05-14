@@ -381,26 +381,103 @@ TEST_F(ProcessTest, testReadTimeoutAndThenCrash)
    if (process.getState() != Process::ProcessState::Starting) {
       ASSERT_EQ(process.getState(), Process::ProcessState::Running);
    }
-   
+
    std::list<Process::ProcessError> errorData;
    process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
       errorData.push_back(error);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    ASSERT_TRUE(process.waitForStarted(5000));
    ASSERT_EQ(process.getState(), Process::ProcessState::Running);
-   
+
    ASSERT_TRUE(!process.waitForReadyRead(5000));
    ASSERT_EQ(process.getError(), Process::ProcessError::Timedout);
-   
+
    process.kill();
-   
+
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
-   
+
    ASSERT_EQ(errorData.size(), 1u);
    ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testWaitForFinished)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
    
+   Process process;
+   process.start(APP_FILENAME(ProcessOutputApp));
+   
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   
+   String output = Latin1String(process.readAll());
+   ASSERT_EQ(output.count(Latin1String("\n")), 10 * 1024);
+   
+   process.start(Latin1String("notexitloop"));
+   
+   ASSERT_TRUE(!process.waitForFinished());
+   ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testRestartProcessDeadlock)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   
+   Process process;
+   auto conn = process.connectFinishedSignal([](int exitCode, Process::ExitStatus status, Process::SignalType signal, Object *sender){
+      Process *process = dynamic_cast<Process *>(sender);
+      ASSERT_TRUE(process);
+      process->start(APP_FILENAME(ProcessEchoApp));
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   process.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_EQ(process.write("", 1), pdk::plonglong(1));
+   ASSERT_TRUE(process.waitForFinished(5000));
+   process.disconnectFinishedSignal(conn);
+   
+   ASSERT_EQ(process.write("", 1), pdk::plonglong(1));
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testCloseWriteChannel)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ByteArray testData("Data to read");
+   Process more;
+   more.start(APP_FILENAME(ProcessEOFApp));
+   
+   ASSERT_TRUE(more.waitForStarted(5000));
+   ASSERT_TRUE(!more.waitForReadyRead(250));
+   ASSERT_EQ(more.getError(), Process::ProcessError::Timedout);
+   
+   ASSERT_EQ(more.write(testData), pdk::pint64(testData.size()));
+   
+   ASSERT_TRUE(!more.waitForReadyRead(250));
+   ASSERT_EQ(more.getError(), Process::ProcessError::Timedout);
+   
+   more.closeWriteChannel();
+   
+   while (more.getBytesAvailable() < testData.size()) {
+      ASSERT_TRUE(more.waitForReadyRead(5000));
+   }
+   
+   ASSERT_EQ(more.readAll(), testData);
+   
+   if (more.getState() == Process::ProcessState::Running) {
+      ASSERT_TRUE(more.waitForFinished(5000));
+   }
+   
+   ASSERT_EQ(more.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(more.getExitCode(), 0);
    PDKTEST_END_APP_CONTEXT();
 }
 
