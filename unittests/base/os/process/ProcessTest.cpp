@@ -345,11 +345,11 @@ TEST_F(ProcessTest, testExitStatus)
          process.start(processList.at(i));
          ASSERT_TRUE(process.waitForStarted(5000));
          ASSERT_TRUE(process.waitForFinished(30000));
-         
+
          ASSERT_EQ(process.getExitStatus(), exitStatus.at(i));
       }
    }
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -369,7 +369,7 @@ TEST_F(ProcessTest, testLoopBack)
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -407,40 +407,40 @@ TEST_F(ProcessTest, testReadTimeoutAndThenCrash)
 TEST_F(ProcessTest, testWaitForFinished)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
-   
+
    Process process;
    process.start(APP_FILENAME(ProcessOutputApp));
-   
+
    ASSERT_TRUE(process.waitForFinished());
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
-   
+
    String output = Latin1String(process.readAll());
    ASSERT_EQ(output.count(Latin1String("\n")), 10 * 1024);
-   
+
    process.start(Latin1String("notexitloop"));
-   
+
    ASSERT_TRUE(!process.waitForFinished());
    ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
 TEST_F(ProcessTest, testRestartProcessDeadlock)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
-   
+
    Process process;
    auto conn = process.connectFinishedSignal([](int exitCode, Process::ExitStatus status, Process::SignalType signal, Object *sender){
       Process *process = dynamic_cast<Process *>(sender);
       ASSERT_TRUE(process);
       process->start(APP_FILENAME(ProcessEchoApp));
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    process.start(APP_FILENAME(ProcessEchoApp));
    ASSERT_EQ(process.write("", 1), pdk::plonglong(1));
    ASSERT_TRUE(process.waitForFinished(5000));
    process.disconnectFinishedSignal(conn);
-   
+
    ASSERT_EQ(process.write("", 1), pdk::plonglong(1));
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
@@ -454,30 +454,59 @@ TEST_F(ProcessTest, testCloseWriteChannel)
    ByteArray testData("Data to read");
    Process more;
    more.start(APP_FILENAME(ProcessEOFApp));
-   
+
    ASSERT_TRUE(more.waitForStarted(5000));
    ASSERT_TRUE(!more.waitForReadyRead(250));
    ASSERT_EQ(more.getError(), Process::ProcessError::Timedout);
-   
+
    ASSERT_EQ(more.write(testData), pdk::pint64(testData.size()));
-   
+
    ASSERT_TRUE(!more.waitForReadyRead(250));
    ASSERT_EQ(more.getError(), Process::ProcessError::Timedout);
-   
+
    more.closeWriteChannel();
-   
+
    while (more.getBytesAvailable() < testData.size()) {
       ASSERT_TRUE(more.waitForReadyRead(5000));
    }
-   
+
    ASSERT_EQ(more.readAll(), testData);
-   
+
    if (more.getState() == Process::ProcessState::Running) {
       ASSERT_TRUE(more.waitForFinished(5000));
    }
-   
+
    ASSERT_EQ(more.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(more.getExitCode(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testCloseReadChannel)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   for (int i = 0; i < 10; ++i) {
+      Process::ProcessChannel channel1 = Process::ProcessChannel::StandardOutput;
+      Process::ProcessChannel channel2 = Process::ProcessChannel::StandardError;
+      Process process;
+      process.start(APP_FILENAME(ProcessEcho2App));
+      ASSERT_TRUE(process.waitForStarted(5000));
+      process.closeReadChannel(i & 1 ? channel2 : channel1);
+      process.setReadChannel(i & 1 ? channel2 : channel1);
+      process.write("Data");
+      ASSERT_TRUE(!process.waitForReadyRead(5000));
+      ASSERT_TRUE(process.readAll().isEmpty());
+      process.setReadChannel(i & 1 ? channel1 : channel2);
+      
+      while (process.getBytesAvailable() < 4 && process.waitForReadyRead(1000))
+      {}
+      
+      ASSERT_EQ(process.readAll(), ByteArray("Data"));
+      
+      process.write("", 1);
+      ASSERT_TRUE(process.waitForFinished(5000));
+      ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(process.getExitCode(), 0);
+   }
    PDKTEST_END_APP_CONTEXT();
 }
 

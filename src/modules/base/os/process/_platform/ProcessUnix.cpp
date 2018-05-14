@@ -754,9 +754,9 @@ bool ProcessPrivate::waitForReadyRead(int msecs)
          canWritePrivateSlot();
       }
       // Signals triggered by I/O may have stopped this process:
-      if (m_processState == Process::ProcessState::NotRunning)
+      if (m_processState == Process::ProcessState::NotRunning) {
          return false;
-      
+      }
       if (pollfd_check(poller.forkfd(), POLLIN)) {
          if (processDiedPrivateSlot()) {
             return false;

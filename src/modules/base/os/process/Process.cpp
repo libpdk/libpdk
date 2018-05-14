@@ -498,7 +498,7 @@ bool ProcessPrivate::canReadStandardOutputPrivateSlot()
 
 bool ProcessPrivate::canReadStandardErrorPrivateSlot()
 {
-   return tryReadFromChannel(&m_stdoutChannel);
+   return tryReadFromChannel(&m_stderrChannel);
 }
 
 bool ProcessPrivate::canWritePrivateSlot()
