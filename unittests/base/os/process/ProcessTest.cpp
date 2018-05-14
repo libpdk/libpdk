@@ -29,6 +29,8 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdktest/PdkTest.h"
 
+#include <vector>
+
 #define PDKTEST_DIR_SEP "/"
 #define APP_FILENAME(name) Latin1String(PDKTEST_PROCESS_APPS_DIR PDKTEST_DIR_SEP PDK_STRINGIFY(name)) 
 
@@ -222,7 +224,7 @@ TEST_F(ProcessTest, testCrashTest)
    process->start(APP_FILENAME(ProcessCrashApp));
    
    ASSERT_TRUE(process->waitForStarted(5000));
-  
+   
    std::list<Process::ProcessError> errorData;
    process->connectErrorOccurredSignal([&errorData](Process::ProcessError error){
       errorData.push_back(error);
@@ -281,6 +283,72 @@ TEST_F(ProcessTest, testCrashTest2)
    ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
    
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::CrashExit);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+using ExitStatusDataType = std::list<std::tuple<StringList, std::vector<Process::ExitStatus>>>;
+void init_exit_status_data(ExitStatusDataType &data)
+{
+   {
+      StringList strList;
+      strList << APP_FILENAME(ProcessNormalApp);
+      std::vector<Process::ExitStatus> exitStatusData;
+      exitStatusData.push_back(Process::ExitStatus::NormalExit);
+      data.push_back(std::make_tuple(strList, exitStatusData));
+   }
+   
+   {
+      StringList strList;
+      strList << APP_FILENAME(ProcessCrashApp);
+      std::vector<Process::ExitStatus> exitStatusData;
+      exitStatusData.push_back(Process::ExitStatus::CrashExit);
+      data.push_back(std::make_tuple(strList, exitStatusData));
+   }
+   
+   {
+      StringList strList;
+      strList << APP_FILENAME(ProcessNormalApp)
+              << APP_FILENAME(ProcessCrashApp);
+      std::vector<Process::ExitStatus> exitStatusData;
+      exitStatusData.push_back(Process::ExitStatus::NormalExit);
+      exitStatusData.push_back(Process::ExitStatus::CrashExit);
+      data.push_back(std::make_tuple(strList, exitStatusData));
+   }
+   
+   {
+      StringList strList;
+      strList << APP_FILENAME(ProcessCrashApp)
+              << APP_FILENAME(ProcessNormalApp);
+      std::vector<Process::ExitStatus> exitStatusData;
+      exitStatusData.push_back(Process::ExitStatus::CrashExit);
+      exitStatusData.push_back(Process::ExitStatus::NormalExit);
+      data.push_back(std::make_tuple(strList, exitStatusData));
+   }
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testExitStatus)
+{
+   ExitStatusDataType data;
+   init_exit_status_data(data);
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   for (auto &item : data) {
+      StringList &processList = std::get<0>(item);
+      std::vector<Process::ExitStatus> exitStatus = std::get<1>(item);
+      ASSERT_EQ(exitStatus.size(), processList.size());
+      for (size_t i = 0; i < processList.size(); ++i) {
+         process.start(processList.at(i));
+         ASSERT_TRUE(process.waitForStarted(5000));
+         ASSERT_TRUE(process.waitForFinished(30000));
+         
+         ASSERT_EQ(process.getExitStatus(), exitStatus.at(i));
+      }
+   }
    
    PDKTEST_END_APP_CONTEXT();
 }
