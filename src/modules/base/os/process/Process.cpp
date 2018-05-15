@@ -922,8 +922,9 @@ bool Process::waitForBytesWritten(int msecs)
 bool Process::waitForFinished(int msecs)
 {
    PDK_D(Process);
-   if (implPtr->m_processState == Process::ProcessState::NotRunning)
+   if (implPtr->m_processState == Process::ProcessState::NotRunning) {
       return false;
+   }
    if (implPtr->m_processState == Process::ProcessState::Starting) {
       ElapsedTimer stopWatch;
       stopWatch.start();
@@ -931,7 +932,6 @@ bool Process::waitForFinished(int msecs)
       if (!started) {
          return false;
       }
-      
       msecs = pdk::io::internal::subtract_from_timeout(msecs, stopWatch.getElapsed());
    }
    return implPtr->waitForFinished(msecs);

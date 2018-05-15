@@ -533,7 +533,7 @@ TEST_F(ProcessTest, testInvalidProgramString)
       process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
          errorData.push_back(error);
       }, PDK_RETRIEVE_APP_INSTANCE());
-      
+
       process.start(programString);
       ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
       ASSERT_EQ(errorData.size(), 1u);
@@ -545,33 +545,33 @@ TEST_F(ProcessTest, testOnlyOneStartedSignal)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    Process process;
-   
+
    int startedCount = 0;
    process.connectStartedSignal([&startedCount](){
       ++startedCount;
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    int finishedCount = 0;
    process.connectFinishedSignal([&finishedCount](int exitCode, Process::ExitStatus exitStatus){
       ++finishedCount;
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    process.start(APP_FILENAME(ProcessNormalApp));
    ASSERT_TRUE(process.waitForStarted(5000));
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(startedCount, 1);
    ASSERT_EQ(finishedCount, 1);
-   
+
    startedCount = 0;
    finishedCount = 0;
-   
+
    process.start(APP_FILENAME(ProcessNormalApp));
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
    ASSERT_EQ(startedCount, 1);
    ASSERT_EQ(finishedCount, 1);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -584,7 +584,7 @@ public:
    {
       process->connectReadyReadSignal(this, &BlockOnReadStdOut::block);
    }
-   
+
 public:
    void block()
    {
@@ -610,17 +610,141 @@ TEST_F(ProcessTest, testStartStopStartStop)
    ASSERT_TRUE(process.waitForFinished());
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
-   
+
    process.start(APP_FILENAME(ExitCodesApp), StringList() << Latin1String("1"));
    ASSERT_TRUE(process.waitForFinished());
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 1);
-   
+
    process.start(APP_FILENAME(ProcessNormalApp));
    ASSERT_TRUE(process.waitForFinished());
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
-   
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_start_stop_start_stop_buffers_data(std::list<std::tuple<Process::ProcessChannelMode, Process::ProcessChannelMode>> &data)
+{
+   data.push_back(std::make_tuple(Process::ProcessChannelMode::SeparateChannels, 
+                                  Process::ProcessChannelMode::SeparateChannels));
+   data.push_back(std::make_tuple(Process::ProcessChannelMode::SeparateChannels, 
+                                  Process::ProcessChannelMode::MergedChannels));
+   data.push_back(std::make_tuple(Process::ProcessChannelMode::MergedChannels, 
+                                  Process::ProcessChannelMode::SeparateChannels));
+   data.push_back(std::make_tuple(Process::ProcessChannelMode::MergedChannels, 
+                                  Process::ProcessChannelMode::MergedChannels));
+   data.push_back(std::make_tuple(Process::ProcessChannelMode::MergedChannels, 
+                                  Process::ProcessChannelMode::ForwardedChannels));
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testStartStopStartStopBuffers)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<std::tuple<Process::ProcessChannelMode, Process::ProcessChannelMode>> data;
+   init_start_stop_start_stop_buffers_data(data);
+   for (const auto &item : data) {
+      Process::ProcessChannelMode channelMode1 = std::get<0>(item);
+      Process::ProcessChannelMode channelMode2 = std::get<1>(item);
+      Process process;
+      process.setProcessChannelMode(channelMode1);
+      process.start(APP_FILENAME(ProcessHangApp));
+      ASSERT_TRUE(process.waitForReadyRead()) << process.getErrorString().toStdString();
+      if (channelMode1 == Process::ProcessChannelMode::SeparateChannels ||
+          channelMode1 == Process::ProcessChannelMode::ForwardedOutputChannel) {
+         process.setReadChannel(Process::ProcessChannel::StandardError);
+         if (process.getBytesAvailable() == 0) {
+            ASSERT_TRUE(process.waitForReadyRead());
+         }
+         process.setReadChannel(Process::ProcessChannel::StandardOutput);
+      }
+      // We want to test that the write buffer still has bytes after the child
+      // exiting. We do that by writing to a child process that never reads. We
+      // just have to write more data than a pipe can hold, so that even if
+      // Process finds the pipe writable (during waitForFinished() or in the
+      // WindowsPipeWriter thread), some data will remain. The worst case I know
+      // of is Linux, which defaults to 64 kB of buffer.
+      process.write(ByteArray(128 * 1024, 'a'));
+      ASSERT_TRUE(process.getBytesToWrite() > 0);
+      process.kill();
+      ASSERT_TRUE(process.waitForFinished());
+      
+#ifndef PDK_OS_WIN
+      // confirm that our buffers are still full
+      // Note: this doesn't work on Windows because our buffers are drained into
+      // WindowsPipeWriter before being sent to the child process.
+      ASSERT_TRUE(process.getBytesToWrite() > 0);
+      ASSERT_TRUE(process.getBytesAvailable() > 0); // channelMode1 is not ForwardedChannels
+      if (channelMode1 == Process::ProcessChannelMode::SeparateChannels || 
+          channelMode1 == Process::ProcessChannelMode::ForwardedOutputChannel) {
+         process.setReadChannel(Process::ProcessChannel::StandardError);
+         ASSERT_TRUE(process.getBytesAvailable() > 0);
+         process.setReadChannel(Process::ProcessChannel::StandardOutput);
+      }
+#endif
+      process.setProcessChannelMode(channelMode2);
+      process.start(APP_FILENAME(ProcessEcho2App), IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Text);
+      
+      // the buffers should now be empty
+      ASSERT_EQ(process.getBytesToWrite(), pdk::pint64(0));
+      ASSERT_EQ(process.getBytesAvailable(), pdk::pint64(0));
+      process.setReadChannel(Process::ProcessChannel::StandardError);
+      ASSERT_EQ(process.getBytesAvailable(), pdk::pint64(0));
+      process.setReadChannel(Process::ProcessChannel::StandardOutput);
+      
+      process.write("line3\n");
+      process.closeWriteChannel();
+      ASSERT_TRUE(process.waitForFinished());
+      ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(process.getExitCode(), 0);
+      
+      if (channelMode2 == Process::ProcessChannelMode::MergedChannels) {
+         ASSERT_EQ(process.readAll(), ByteArray("lliinnee33\n\n"));
+      } else if (channelMode2 != Process::ProcessChannelMode::ForwardedChannels) {
+         ASSERT_EQ(process.readAllStandardOutput(), ByteArray("line3\n"));
+         if (channelMode2 == Process::ProcessChannelMode::SeparateChannels) {
+            ASSERT_EQ(process.readAllStandardError(), ByteArray("line3\n"));
+         }
+      }
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_process_events_ina_ready_read_slot_data(std::list<bool> &data)
+{
+   data.push_back(false);
+   data.push_back(true);
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testProcessEventsInAReadyReadSlot)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<bool> data;
+   init_process_events_ina_ready_read_slot_data(data);
+   for (bool callWaitForReadyRead : data) {
+      Process process;
+      process.connectReadyReadStandardOutputSignal([](){
+         
+      }, PDK_RETRIEVE_APP_INSTANCE());
+      process.start(APP_FILENAME(ProcessEchoApp));
+      ASSERT_TRUE(process.waitForStarted());
+      const ByteArray data(156, 'x');
+      process.write(data.getConstRawData(), data.size() + 1);
+      if (callWaitForReadyRead) {
+         ASSERT_TRUE(process.waitForReadyRead());
+      }
+      if (process.getState() == Process::ProcessState::Running) {
+         ASSERT_TRUE(process.waitForFinished());
+      }
+   }
    PDKTEST_END_APP_CONTEXT();
 }
 
