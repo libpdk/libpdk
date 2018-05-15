@@ -28,6 +28,7 @@
 #include "pdk/utils/ScopedPointer.h"
 #include "pdk/kernel/CoreApplication.h"
 #include "pdktest/PdkTest.h"
+#include "pdk/base/time/Time.h"
 
 #include <vector>
 
@@ -46,6 +47,7 @@ using pdk::ds::ByteArray;
 using pdk::utils::ScopedPointer;
 using pdk::kernel::Object;
 using pdk::os::thread::Thread;
+using pdk::time::Time;
 
 using ProcessFinishedSignal1 = void (Process::*)(int);
 using ProcessFinishedSignal2 = void (Process::*)(int, Process::ExitStatus);
@@ -66,9 +68,7 @@ public:
    }
    
    static void TearDownTestCase()
-   {
-      
-   }
+   {}
    
 private:
    static pdk::pint64 m_bytesAvailable;
@@ -285,6 +285,65 @@ TEST_F(ProcessTest, testCrashTest2)
 
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::CrashExit);
 
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_echotest_data(std::list<ByteArray> &data)
+{
+   data.push_back(ByteArray("H"));
+   data.push_back(ByteArray("He"));
+   data.push_back(ByteArray("Hel"));
+   data.push_back(ByteArray("Hell"));
+   data.push_back(ByteArray("Hello"));
+   
+   data.push_back(ByteArray(100, '@'));
+   data.push_back(ByteArray(1000, '@'));
+   data.push_back(ByteArray(10000, '@'));
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testEcho)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<ByteArray> data;
+   init_echotest_data(data);
+   for (ByteArray &input : data) {
+      Process process;
+      process.connectReadyReadSignal([](){
+         pdktest::TestEventLoop::instance().exitLoop();
+      });
+      process.start(APP_FILENAME(ProcessEchoApp));
+      ASSERT_TRUE(process.waitForStarted(5000));
+      process.write(input);
+      Time stopWatch;
+      stopWatch.start();
+      do {
+         ASSERT_TRUE(process.isOpen());
+         pdktest::TestEventLoop::instance().enterLoop(2);
+      } while (stopWatch.elapsed() < 60000 && process.getBytesAvailable() < input.size());
+      if (stopWatch.elapsed() >= 60000) {
+         FAIL() << "Timed out";
+      }
+      ByteArray message = process.readAll();
+      ASSERT_EQ(message.size(), input.size());
+      char *c1 = message.getRawData();
+      char *c2 = input.getRawData();
+      while (*c1 && *c2) {
+         if (*c1 != *c2) {
+            ASSERT_EQ(*c1, *c2);
+         }
+         ++c1;
+         ++c2;
+      }
+      ASSERT_EQ(*c1, *c2);
+      process.write("", 1);
+      ASSERT_TRUE(process.waitForFinished(5000));
+      ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(process.getExitCode(), 0);
+   }
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -672,7 +731,7 @@ TEST_F(ProcessTest, testStartStopStartStopBuffers)
       ASSERT_TRUE(process.getBytesToWrite() > 0);
       process.kill();
       ASSERT_TRUE(process.waitForFinished());
-      
+
 #ifndef PDK_OS_WIN
       // confirm that our buffers are still full
       // Note: this doesn't work on Windows because our buffers are drained into
@@ -688,20 +747,20 @@ TEST_F(ProcessTest, testStartStopStartStopBuffers)
 #endif
       process.setProcessChannelMode(channelMode2);
       process.start(APP_FILENAME(ProcessEcho2App), IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Text);
-      
+
       // the buffers should now be empty
       ASSERT_EQ(process.getBytesToWrite(), pdk::pint64(0));
       ASSERT_EQ(process.getBytesAvailable(), pdk::pint64(0));
       process.setReadChannel(Process::ProcessChannel::StandardError);
       ASSERT_EQ(process.getBytesAvailable(), pdk::pint64(0));
       process.setReadChannel(Process::ProcessChannel::StandardOutput);
-      
+
       process.write("line3\n");
       process.closeWriteChannel();
       ASSERT_TRUE(process.waitForFinished());
       ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
       ASSERT_EQ(process.getExitCode(), 0);
-      
+
       if (channelMode2 == Process::ProcessChannelMode::MergedChannels) {
          ASSERT_EQ(process.readAll(), ByteArray("lliinnee33\n\n"));
       } else if (channelMode2 != Process::ProcessChannelMode::ForwardedChannels) {
@@ -732,7 +791,7 @@ TEST_F(ProcessTest, testProcessEventsInAReadyReadSlot)
    for (bool callWaitForReadyRead : data) {
       Process process;
       process.connectReadyReadStandardOutputSignal([](){
-         
+
       }, PDK_RETRIEVE_APP_INSTANCE());
       process.start(APP_FILENAME(ProcessEchoApp));
       ASSERT_TRUE(process.waitForStarted());
