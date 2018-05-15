@@ -16,7 +16,7 @@
 #include <cstdio>
 #include <cstring>
 
-int main()
+int main(int argc, char **argv)
 {
    char buf[32];
    std::memset(buf, 0, sizeof(buf));
