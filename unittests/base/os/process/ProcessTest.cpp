@@ -29,6 +29,7 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdktest/PdkTest.h"
 #include "pdk/base/time/Time.h"
+#include "pdk/stdext/utility/Algorithms.h"
 
 #include <vector>
 
@@ -70,7 +71,7 @@ public:
    static void TearDownTestCase()
    {}
    
-private:
+public:
    static pdk::pint64 m_bytesAvailable;
    static TemporaryDir m_temporaryDir;
 };
@@ -89,7 +90,7 @@ TEST_F(ProcessTest, testGetSetCheck)
    ASSERT_EQ(Process::ProcessChannelMode::MergedChannels, obj1.getReadChannelMode());
    obj1.setReadChannelMode(Process::ProcessChannelMode::ForwardedChannels);
    ASSERT_EQ(Process::ProcessChannelMode::ForwardedChannels, obj1.getReadChannelMode());
-   
+
    // ProcessChannel Process::readChannel()
    // void Process::setReadChannel(ProcessChannel)
    obj1.setReadChannel(Process::ProcessChannel::StandardOutput);
@@ -110,7 +111,7 @@ TEST_F(ProcessTest, testConstructing)
    ASSERT_EQ(process.readAllStandardOutput(), ByteArray());
    ASSERT_EQ(process.readAllStandardError(), ByteArray());
    ASSERT_EQ(process.canReadLine(), false);
-   
+
    // IoDevice
    ASSERT_EQ(process.getOpenMode(), IoDevice::OpenMode::NotOpen);
    ASSERT_TRUE(!process.isOpen());
@@ -123,7 +124,7 @@ TEST_F(ProcessTest, testConstructing)
    ASSERT_EQ(process.getBytesAvailable(), pdk::plonglong(0));
    ASSERT_EQ(process.getBytesToWrite(), pdk::plonglong(0));
    ASSERT_TRUE(!process.getErrorString().isEmpty());
-   
+
    char c;
    ASSERT_EQ(process.read(&c, 1), pdk::plonglong(-1));
    ASSERT_EQ(process.write(&c, 1), pdk::plonglong(-1));
@@ -147,11 +148,11 @@ TEST_F(ProcessTest, testSimpleStart)
       stateChangedData.push_back(state);
    }, PDK_RETRIEVE_APP_INSTANCE());
    process->start(APP_FILENAME(ProcessNormalApp));
-   
+
    if(process->getState() != Process::ProcessState::Starting) {
       ASSERT_EQ(process->getState(), Process::ProcessState::Running);
    }
-   
+
    ASSERT_TRUE(process->waitForStarted(5000)) << pdk_printable(process->getErrorString());
    ASSERT_EQ(process->getState(), Process::ProcessState::Running);
    PDK_TRY_COMPARE(process->getState(), Process::ProcessState::NotRunning);
@@ -216,39 +217,39 @@ TEST_F(ProcessTest, testCrashTest)
 {
    PDKTEST_BEGIN_APP_CONTEXT();
    ScopedPointer<Process> process(new Process);
-   
+
    std::list<Process::ProcessState> stateChangedData;
    process->connectStateChangedSignal([&stateChangedData](Process::ProcessState state){
       stateChangedData.push_back(state);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    process->start(APP_FILENAME(ProcessCrashApp));
-   
+
    ASSERT_TRUE(process->waitForStarted(5000));
-   
+
    std::list<Process::ProcessError> errorData;
    process->connectErrorOccurredSignal([&errorData](Process::ProcessError error){
       errorData.push_back(error);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    std::list<Process::ExitStatus> exitStatusData;
    process->connectFinishedSignal([&exitStatusData](int exitCode, Process::ExitStatus status){
       exitStatusData.push_back(status);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    ASSERT_TRUE(process->waitForFinished(30000));
    ASSERT_EQ(errorData.size(), 1u);
    ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
    ASSERT_EQ(exitStatusData.size(), 1u);
    ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
    process.reset();
-   
+
    ASSERT_EQ(stateChangedData.size(), 3u);
    auto iter = stateChangedData.begin();
    ASSERT_EQ(*iter++, Process::ProcessState::Starting);
    ASSERT_EQ(*iter++, Process::ProcessState::Running);
    ASSERT_EQ(*iter++, Process::ProcessState::NotRunning);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -258,33 +259,33 @@ TEST_F(ProcessTest, testCrashTest2)
    Process process;
    process.start(APP_FILENAME(ProcessCrashApp));
    ASSERT_TRUE(process.waitForStarted(5000));
-   
+
    std::list<Process::ProcessError> errorData;
    process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
       errorData.push_back(error);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    std::list<Process::ExitStatus> exitStatusData;
    process.connectFinishedSignal([&exitStatusData](int exitCode, Process::ExitStatus status){
       exitStatusData.push_back(status);
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    process.connectFinishedSignal([](int exitCode, Process::ExitStatus status){
       pdktest::TestEventLoop::instance().exitLoop();
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    pdktest::TestEventLoop::instance().enterLoop(30);
    if (pdktest::TestEventLoop::instance().getTimeout()) {
       FAIL() << "Failed to detect crash : operation timed out";
    }
-   
+
    ASSERT_EQ(errorData.size(), 1u);
    ASSERT_EQ(*errorData.begin(), Process::ProcessError::Crashed);
    ASSERT_EQ(exitStatusData.size(), 1u);
    ASSERT_EQ(*exitStatusData.begin(), Process::ExitStatus::CrashExit);
-   
+
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::CrashExit);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -297,7 +298,7 @@ void init_echotest_data(std::list<ByteArray> &data)
    data.push_back(ByteArray("Hel"));
    data.push_back(ByteArray("Hell"));
    data.push_back(ByteArray("Hello"));
-   
+
    data.push_back(ByteArray(100, '@'));
    data.push_back(ByteArray(1000, '@'));
    data.push_back(ByteArray(10000, '@'));
@@ -359,22 +360,22 @@ TEST_F(ProcessTest, testEcho2)
    ASSERT_TRUE(!process.waitForReadyRead(250));
    ASSERT_EQ(process.getError(), Process::ProcessError::Timedout);
    process.write("Hello");
-   
+
    int channelReadyReadCount = 0;
    process.connectChannelReadyReadSignal([&channelReadyReadCount](int count) {
       ++channelReadyReadCount;
    });
-   
+
    int ReadyReadStandardOutputCount = 0;
    process.connectReadyReadStandardOutputSignal([&ReadyReadStandardOutputCount]() {
       ++ReadyReadStandardOutputCount;
    });
-   
+
    int ReadyReadStandardErrorCount = 0;
    process.connectReadyReadStandardErrorSignal([&ReadyReadStandardErrorCount]() {
       ++ReadyReadStandardErrorCount;
    });
-   
+
    Time stopWatch;
    stopWatch.start();
    while(true) {
@@ -382,10 +383,10 @@ TEST_F(ProcessTest, testEcho2)
       if (stopWatch.elapsed() >= 30000) {
          FAIL() << "Timed out";
       }
-      
+
       process.setReadChannel(Process::ProcessChannel::StandardOutput);
       pdk::pint64 baso = process.getBytesAvailable();
-      
+
       process.setReadChannel(Process::ProcessChannel::StandardError);
       pdk::pint64 base = process.getBytesAvailable();
       if (baso == 5 && base == 5) {
@@ -395,12 +396,12 @@ TEST_F(ProcessTest, testEcho2)
    ASSERT_TRUE(channelReadyReadCount > 0);
    ASSERT_TRUE(ReadyReadStandardOutputCount > 0);
    ASSERT_TRUE(ReadyReadStandardErrorCount > 0);
-   
+
    ASSERT_EQ(process.readAllStandardOutput(), ByteArray("Hello"));
    ASSERT_EQ(process.readAllStandardError(), ByteArray("Hello"));
-   
+
    process.write("", 1);
-   
+
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
@@ -759,12 +760,12 @@ class SoftExitProcess : public Process
 {
 public:
    bool waitedForFinished;
-   
+
    SoftExitProcess(int n) : waitedForFinished(false), n(n), killing(false)
    {
-      
+
       this->connectFinishedSignal(this, &SoftExitProcess::finishedSlot);
-      
+
       switch (n) {
       case 0:
          setReadChannelMode(Process::ProcessChannelMode::MergedChannels);
@@ -788,18 +789,18 @@ public:
          break;
       }
    }
-   
+
    void writeAfterStart(const char *buf, int count)
    {
       dataToWrite = ByteArray(buf, count);
    }
-   
+
    void start(const String &program)
    {
       Process::start(program);
       writePendingData();
    }
-   
+
 public:
    void terminateSlot()
    {
@@ -820,17 +821,17 @@ public:
          }  
       }
    }
-   
+
    void finishedSlot(int, Process::ExitStatus)
    {
       waitedForFinished = true;
    }
-   
+
    void channelReadyReadSlot(int)
    {
       terminateSlot();
    }
-   
+
    void stateChangedSlot()
    {
       terminateSlot();
@@ -843,7 +844,7 @@ private:
          dataToWrite.clear();
       }
    }
-   
+
 private:
    int n;
    bool killing;
@@ -864,19 +865,19 @@ void init_forwarded_channels_data(ForwardChannelDataType &data)
    data.push_back(std::make_tuple(Process::ProcessChannelMode::SeparateChannels,
                                   Process::InputChannelMode::ManagedInputChannel,
                                   ByteArray(), ByteArray()));
-   
+
    data.push_back(std::make_tuple(Process::ProcessChannelMode::ForwardedChannels,
                                   Process::InputChannelMode::ManagedInputChannel,
                                   ByteArray("forwarded"), ByteArray("forwarded")));
-   
+
    data.push_back(std::make_tuple(Process::ProcessChannelMode::ForwardedOutputChannel,
                                   Process::InputChannelMode::ManagedInputChannel,
                                   ByteArray("forwarded"), ByteArray()));
-   
+
    data.push_back(std::make_tuple(Process::ProcessChannelMode::ForwardedErrorChannel,
                                   Process::InputChannelMode::ManagedInputChannel,
                                   ByteArray(), ByteArray("forwarded")));
-   
+
    data.push_back(std::make_tuple(Process::ProcessChannelMode::ForwardedErrorChannel,
                                   Process::InputChannelMode::ForwardedInputChannel,
                                   ByteArray(), ByteArray("input")));
@@ -892,7 +893,7 @@ TEST_F(ProcessTest, testSoftExitInSlots)
    for (auto item : data) {
       String &appName = std::get<0>(item);
       int signalToConnect = std::get<1>(item);
-      
+
       SoftExitProcess process(signalToConnect);
       process.writeAfterStart("OLEBOLE", 8); // include the \0
       process.start(appName);
@@ -964,6 +965,20 @@ TEST_F(ProcessTest, testForwardedChannels)
    PDKTEST_END_APP_CONTEXT();
 }
 
+// @TODO testEnd
+TEST_F(ProcessTest, testEnd)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   process.write("abcdefgh\n");
+   while (process.getBytesAvailable() < 8) {
+      ASSERT_TRUE(process.waitForReadyRead(5000));
+   }
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
 namespace {
 
 void init_invalid_program_string_data(std::list<String> &data)
@@ -973,7 +988,163 @@ void init_invalid_program_string_data(std::list<String> &data)
    data.push_back(String(Latin1String("   ")));
 }
 
+class TestThread : public Thread
+{
+public:
+   inline int getCode()
+   {
+      return m_exitCode;
+   }
+   
+protected:
+   inline void run()
+   {
+      m_exitCode = 90210;
+      
+      Process process;
+      process.connectFinishedSignal(this, &TestThread::catchExitCode, pdk::ConnectionType::DirectConnection);
+      
+      process.start(APP_FILENAME(ProcessEchoApp));
+      
+      ASSERT_EQ(process.write("abc\0", 4), pdk::pint64(4));
+      m_exitCode = exec();
+   }
+   
+protected:
+   inline void catchExitCode(int exitCode)
+   {
+      m_exitCode = exitCode;
+      exit(exitCode);
+   }
+   
+private:
+   int m_exitCode;
+};
+
 } // anonymous namespace
+
+TEST_F(ProcessTest, testProcessInAThread)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   for (int i = 0; i < 10; ++i) {
+      TestThread thread;
+      thread.start();
+      ASSERT_TRUE(thread.wait(10000));
+      ASSERT_EQ(thread.getCode(), 0);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testProcessesInMultipleThreads)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   for (int i = 0; i < 10; ++i) {
+      // run from 1 to 10 threads, but run at least some tests
+      // with more threads than the ideal
+      int threadCount = i;
+      if (i > 7) {
+         threadCount = std::max(threadCount, Thread::getIdealThreadCount() + 2);
+      }
+      std::vector<TestThread *> threads(threadCount);
+      for (int j = 0; j < threadCount; ++j) {
+         threads[j] = new TestThread;
+      }
+      for (int j = 0; j < threadCount; ++j) {
+         threads[j]->start();
+      }
+      for (int j = 0; j < threadCount; ++j) {
+         ASSERT_TRUE(threads[j]->wait(10000));
+      }
+      for (int j = 0; j < threadCount; ++j) {
+         ASSERT_EQ(threads[j]->getCode(), 0);
+      }
+      pdk::stdext::delete_all(threads);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testWaitForFinishedWithTimeout)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+   ASSERT_TRUE(!process.waitForFinished(1));
+   
+   process.write("", 1);
+   ASSERT_TRUE(process.waitForFinished());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testWaitForReadyReadInAReadyReadSlot)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   int readyReadCount = 0;
+   auto conn = process.connectReadyReadSignal([&readyReadCount](IoDevice::SignalType signalType, Object *sender) {
+      ++readyReadCount;
+      Process *process = dynamic_cast<Process *>(sender);
+      ASSERT_TRUE(process);
+      ProcessTest::m_bytesAvailable = process->getBytesAvailable();
+      process->write("bar", 4);
+      ASSERT_TRUE(process->waitForReadyRead(5000));
+      pdktest::TestEventLoop::instance().exitLoop();
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   process.connectFinishedSignal([](){
+      pdktest::TestEventLoop::instance().exitLoop();
+   }, PDK_RETRIEVE_APP_INSTANCE());
+   
+   m_bytesAvailable = 0;
+   
+   process.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+   
+   process.write("foo");
+   pdktest::TestEventLoop::instance().enterLoop(30);
+   ASSERT_TRUE(!pdktest::TestEventLoop::instance().getTimeout());
+   
+   ASSERT_EQ(readyReadCount, 1);
+   process.disconnectReadyReadSignal(conn);
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   ASSERT_TRUE(process.getBytesAvailable() > m_bytesAvailable);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testWaitForBytesWrittenInABytesWrittenSlot)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   int byteWrittenCount = 0;
+   m_bytesAvailable = 0;
+   auto conn = process.connectBytesWrittenSignal([&byteWrittenCount](IoDevice::SignalType signalType, Object *sender) {
+      ++byteWrittenCount;
+      Process *process = dynamic_cast<Process *>(sender);
+      ASSERT_TRUE(process);
+      process->write("b");
+      ASSERT_TRUE(process->waitForBytesWritten(5000));
+      pdktest::TestEventLoop::instance().exitLoop();
+   });
+   process.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+   
+   process.write("f");
+   pdktest::TestEventLoop::instance().enterLoop(30);
+   ASSERT_TRUE(!pdktest::TestEventLoop::instance().getTimeout());
+   
+   ASSERT_EQ(byteWrittenCount, 1);
+   process.disconnectBytesWrittenSignal(conn);
+   process.write("", 1);
+   process.disconnectBytesWrittenSignal(conn);
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   
+   PDKTEST_END_APP_CONTEXT();
+}
 
 TEST_F(ProcessTest, testInvalidProgramString)
 {
