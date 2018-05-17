@@ -67,13 +67,13 @@ struct SystemLocaleData
 void SystemLocaleData::readEnvironment()
 {
    WriteLocker locker(&m_lock);
-   ByteArray all = pdk::pdk_getenv("LC_ALL");
-   ByteArray numeric  = all.isEmpty() ? pdk::pdk_getenv("m_lcnumeric") : all;
-   ByteArray time     = all.isEmpty() ? pdk::pdk_getenv("m_lctime") : all;
-   ByteArray monetary = all.isEmpty() ? pdk::pdk_getenv("m_lcmonetary") : all;
-   m_lcmessagesVar     = all.isEmpty() ? pdk::pdk_getenv("m_lcmessages") : all;
-   m_lcmeasurementVar  = all.isEmpty() ? pdk::pdk_getenv("LC_MEASUREMENT") : all;
-   ByteArray lang = pdk::pdk_getenv("LANG");
+   ByteArray all = pdk::get_env("LC_ALL");
+   ByteArray numeric  = all.isEmpty() ? pdk::get_env("m_lcnumeric") : all;
+   ByteArray time     = all.isEmpty() ? pdk::get_env("m_lctime") : all;
+   ByteArray monetary = all.isEmpty() ? pdk::get_env("m_lcmonetary") : all;
+   m_lcmessagesVar     = all.isEmpty() ? pdk::get_env("m_lcmessages") : all;
+   m_lcmeasurementVar  = all.isEmpty() ? pdk::get_env("LC_MEASUREMENT") : all;
+   ByteArray lang = pdk::get_env("LANG");
    if (lang.isEmpty()) {
       lang = ByteArray("C");
    }  
@@ -102,12 +102,12 @@ PDK_GLOBAL_STATIC(SystemLocaleData, sg_systemLocaleData);
 
 Locale SystemLocale::fallbackUiLocale() const
 {
-   ByteArray lang = pdk::pdk_getenv("LC_ALL");
+   ByteArray lang = pdk::get_env("LC_ALL");
    if (lang.isEmpty()) {
-      lang = pdk::pdk_getenv("m_lcmessages");
+      lang = pdk::get_env("m_lcmessages");
    }
    if (lang.isEmpty()) {
-      lang = pdk::pdk_getenv("LANG");
+      lang = pdk::get_env("LANG");
    }
    // if the locale is the "C" locale, then we can return the language we found here:
    if (lang.isEmpty() || lang == ByteArray("C") || lang == ByteArray("POSIX")) {
@@ -115,7 +115,7 @@ Locale SystemLocale::fallbackUiLocale() const
    }
    // if the locale is not the "C" locale and LANGUAGE is not empty, return
    // the first part of LANGUAGE if LANGUAGE is set and has a first part:
-   ByteArray language = pdk::pdk_getenv("LANGUAGE");
+   ByteArray language = pdk::get_env("LANGUAGE");
    if (!language.isEmpty()) {
       language = language.split(':').front();
       if (!language.isEmpty()) {
@@ -223,7 +223,7 @@ std::any SystemLocale::query(QueryType type, std::any in) const
    case QueryType::UILanguages: {
       if (!d->m_uiLanguages.empty())
          return d->m_uiLanguages;
-      String languages = String::fromLatin1(pdk::pdk_getenv("LANGUAGE"));
+      String languages = String::fromLatin1(pdk::get_env("LANGUAGE"));
       StringList lst;
       if (languages.isEmpty())
          lst.push_back(String::fromLatin1(d->m_lcmessagesVar));

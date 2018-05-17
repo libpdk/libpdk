@@ -137,7 +137,7 @@ int checked_var_value(const char *varname)
    // qEnvironmentVariableIntValue returns 0 on both parsing failure and on
    // empty, but we need to distinguish between the two for backwards
    // compatibility reasons.
-   ByteArray str = pdk::pdk_getenv(varname);
+   ByteArray str = pdk::get_env(varname);
    if (str.isEmpty()) {
       return 0;
    }
@@ -179,7 +179,7 @@ bool will_log_to_console()
    //     to the blackhole device (NUL or /dev/null).
    
    bool ok = true;
-   uint envcontrol = pdk::pdk_getenv("PDK_LOGGING_TO_CONSOLE").toUInt(&ok);
+   uint envcontrol = pdk::get_env("PDK_LOGGING_TO_CONSOLE").toUInt(&ok);
    if (ok) {
       return envcontrol;
    }
@@ -786,7 +786,7 @@ MessagePattern::MessagePattern()
      m_fromEnvironment(false)
 {
    m_timer.start();
-   const String envPattern = String::fromLocal8Bit(pdk::pdk_getenv("PDK_MESSAGE_PATTERN"));
+   const String envPattern = String::fromLocal8Bit(pdk::get_env("PDK_MESSAGE_PATTERN"));
    if (envPattern.isEmpty()) {
       setPattern(Latin1String(sg_defaultPattern));
    } else {

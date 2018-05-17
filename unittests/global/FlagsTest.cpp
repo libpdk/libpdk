@@ -135,53 +135,53 @@ TEST(FlagsTest, testClassEnum)
    MyClassTypeEnums aux;
    aux = flag4;
    aux &= int(1);
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(1));
    
    aux = flag4;
    aux &= uint(1);
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(1));
    
    aux = flag4;
    aux &= MyClassTypeEnum::Opt2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(2));
    
    aux = flag4;
    aux &= MyClassTypeEnum::Opt2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(2));
    
    aux = flag4 ^ flag4;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 0);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(0));
    
    aux = flag4 ^ flag1;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(2));
    
    aux = flag4 ^ flag3;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(3));
    
    aux = flag4;
    aux ^= MyClassTypeEnum::Opt1;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 2);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(2));
    
    aux = flag4;
    aux ^= MyClassTypeEnum::Opt2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 1);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(1));
    
    aux = flag1 | flag2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(3));
    
    aux = MyClassTypeEnum::Opt1 | MyClassTypeEnum::Opt2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(3));
    
    aux = flag1;
    aux |= flag2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(3));
    
    aux = MyClassTypeEnum::Opt1;
    aux |= MyClassTypeEnum::Opt2;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), 3);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(3));
    
    aux = ~flag1;
-   ASSERT_EQ(static_cast<Options::UnderType>(aux), -2);
+   ASSERT_EQ(static_cast<Options::UnderType>(aux), static_cast<Options::UnderType>(-2));
 }
 
 TEST(FlagsTest, testInitializerLists)

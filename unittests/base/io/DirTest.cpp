@@ -1758,10 +1758,10 @@ TEST_F(DirTest, testHomePath)
    if (strHome.length() > 1)      // root dir = "/"
       ASSERT_TRUE(!strHome.endsWith('/'));
    
-   ByteArray envHome = pdk::pdk_getenv("HOME");
+   ByteArray envHome = pdk::get_env("HOME");
    unsetenv("HOME");
    ASSERT_EQ(Dir::getHomePath(), Dir::getRootPath());
-   pdk::pdk_putenv("HOME", envHome);
+   pdk::put_env("HOME", envHome);
    
 #elif defined(PDK_OS_WIN)
    if (strHome.length() > 3      // root dir = "c:/"; "//" is not really valid...

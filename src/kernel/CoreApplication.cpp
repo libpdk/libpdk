@@ -1655,7 +1655,7 @@ StringList CoreApplication::getLibraryPaths()
    if (!sg_coreAppData()->m_appLibPaths) {
       StringList *appLibPaths = new StringList;
       sg_coreAppData()->m_appLibPaths.reset(appLibPaths);
-      const ByteArray libPathEnv = pdk::pdk_getenv("PDK_PLUGIN_PATH");
+      const ByteArray libPathEnv = pdk::get_env("PDK_PLUGIN_PATH");
       if (!libPathEnv.isEmpty()) {
          StringList paths = File::decodeName(libPathEnv).split(Dir::getListSeparator(), String::SplitBehavior::SkipEmptyParts);
          for (StringList::const_iterator iter = paths.cbegin(); iter != paths.cend(); ++iter) {

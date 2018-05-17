@@ -173,7 +173,7 @@ TextCodec *setup_locale_mapper()
       
       // Get the first nonempty value from $LC_ALL, $LC_CTYPE, and $LANG
       // environment variables.
-      ByteArray lang = pdk::pdk_getenv("LC_ALL");
+      ByteArray lang = pdk::get_env("LC_ALL");
       if (lang.isEmpty() || lang == "C") {
          lang = pdk_getenv("LC_CTYPE");
       }

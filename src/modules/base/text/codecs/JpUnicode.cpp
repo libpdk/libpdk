@@ -674,7 +674,7 @@ uint JpUnicodeConv_Microsoft::unicodeToJisx0212(uint h, uint l) const
 
 JpUnicodeConv *JpUnicodeConv::newConverter(int rule)
 {
-   ByteArray env = pdk::pdk_getenv("UNICODEMAP_JP");
+   ByteArray env = pdk::get_env("UNICODEMAP_JP");
    if (rule == Default && !env.isNull()) {
       for (int i = 0; i < (int)env.length();) {
          int j = env.indexOf(',', i);

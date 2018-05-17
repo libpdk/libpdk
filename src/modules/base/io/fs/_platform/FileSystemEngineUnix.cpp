@@ -1573,7 +1573,7 @@ bool FileSystemEngine::setFileTime(int fd, const DateTime &newDate, AbstractFile
 
 String FileSystemEngine::getHomePath()
 {
-   String home = File::decodeName(pdk::pdk_getenv("HOME"));
+   String home = File::decodeName(pdk::get_env("HOME"));
    if (home.isEmpty()) {
       home = getRootPath();
    }
@@ -1590,7 +1590,7 @@ String FileSystemEngine::getTempPath()
 #ifdef PDK_UNIX_TEMP_PATH_OVERRIDE
    return Latin1String(PDK_UNIX_TEMP_PATH_OVERRIDE);
 #else
-   String temp = File::decodeName(pdk::pdk_getenv("TMPDIR"));
+   String temp = File::decodeName(pdk::get_env("TMPDIR"));
    if (temp.isEmpty()) {
       if (false) {
 #if defined(PDK_OS_DARWIN)

@@ -40,7 +40,9 @@ using pdk::os::process::Process;
 using pdk::io::fs::TemporaryDir;
 using pdk::io::fs::FileInfo;
 using pdk::io::fs::Dir;
+using pdk::io::fs::File;
 using pdk::io::IoDevice;
+using pdk::text::RegularExpression;
 using pdk::lang::Latin1String;
 using pdk::lang::String;
 using pdk::ds::StringList;
@@ -49,6 +51,9 @@ using pdk::utils::ScopedPointer;
 using pdk::kernel::Object;
 using pdk::os::thread::Thread;
 using pdk::time::Time;
+using pdk::lang::Latin1Character;
+using pdk::kernel::EventLoop;
+using pdk::os::process::ProcessEnvironment;
 
 using ProcessFinishedSignal1 = void (Process::*)(int);
 using ProcessFinishedSignal2 = void (Process::*)(int, Process::ExitStatus);
@@ -995,28 +1000,28 @@ public:
    {
       return m_exitCode;
    }
-   
+
 protected:
    inline void run()
    {
       m_exitCode = 90210;
-      
+
       Process process;
       process.connectFinishedSignal(this, &TestThread::catchExitCode, pdk::ConnectionType::DirectConnection);
-      
+
       process.start(APP_FILENAME(ProcessEchoApp));
-      
+
       ASSERT_EQ(process.write("abc\0", 4), pdk::pint64(4));
       m_exitCode = exec();
    }
-   
+
 protected:
    inline void catchExitCode(int exitCode)
    {
       m_exitCode = exitCode;
       exit(exitCode);
    }
-   
+
 private:
    int m_exitCode;
 };
@@ -1070,7 +1075,7 @@ TEST_F(ProcessTest, testWaitForFinishedWithTimeout)
    process.start(APP_FILENAME(ProcessEchoApp));
    ASSERT_TRUE(process.waitForStarted(5000));
    ASSERT_TRUE(!process.waitForFinished(1));
-   
+
    process.write("", 1);
    ASSERT_TRUE(process.waitForFinished());
    PDKTEST_END_APP_CONTEXT();
@@ -1090,27 +1095,27 @@ TEST_F(ProcessTest, testWaitForReadyReadInAReadyReadSlot)
       ASSERT_TRUE(process->waitForReadyRead(5000));
       pdktest::TestEventLoop::instance().exitLoop();
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    process.connectFinishedSignal([](){
       pdktest::TestEventLoop::instance().exitLoop();
    }, PDK_RETRIEVE_APP_INSTANCE());
-   
+
    m_bytesAvailable = 0;
-   
+
    process.start(APP_FILENAME(ProcessEchoApp));
    ASSERT_TRUE(process.waitForStarted(5000));
-   
+
    process.write("foo");
    pdktest::TestEventLoop::instance().enterLoop(30);
    ASSERT_TRUE(!pdktest::TestEventLoop::instance().getTimeout());
-   
+
    ASSERT_EQ(readyReadCount, 1);
    process.disconnectReadyReadSignal(conn);
    ASSERT_TRUE(process.waitForFinished(5000));
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
    ASSERT_TRUE(process.getBytesAvailable() > m_bytesAvailable);
-   
+
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -1130,11 +1135,11 @@ TEST_F(ProcessTest, testWaitForBytesWrittenInABytesWrittenSlot)
    });
    process.start(APP_FILENAME(ProcessEchoApp));
    ASSERT_TRUE(process.waitForStarted(5000));
-   
+
    process.write("f");
    pdktest::TestEventLoop::instance().enterLoop(30);
    ASSERT_TRUE(!pdktest::TestEventLoop::instance().getTimeout());
-   
+
    ASSERT_EQ(byteWrittenCount, 1);
    process.disconnectBytesWrittenSignal(conn);
    process.write("", 1);
@@ -1142,7 +1147,908 @@ TEST_F(ProcessTest, testWaitForBytesWrittenInABytesWrittenSlot)
    ASSERT_TRUE(process.waitForFinished());
    ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
    ASSERT_EQ(process.getExitCode(), 0);
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_space_args_test_data(std::list<std::tuple<StringList, String>> &data)
+{
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("arg1") << String::fromLatin1("arg2"),
+                                  String::fromLatin1("arg1 arg2")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("\"arg1\"") << String::fromLatin1("ar \"g2"),
+                                  String::fromLatin1("\"\"\"\"arg1\"\"\"\" \"ar \"\"\"g2\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("ar g1") << String::fromLatin1("a rg 2"),
+                                  String::fromLatin1("\"ar g1\" \"a rg 2\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("-lar g1") << String::fromLatin1("-l\"ar g2\""),
+                                  String::fromLatin1("\"-lar g1\" \"-l\"\"\"ar g2\"\"\"\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("ar\"g1"),
+                                  String::fromLatin1("ar\"\"\"\"g1")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("ar\\g1"),
+                                  String::fromLatin1("ar\\g1")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("ar\\g\"1"),
+                                  String::fromLatin1("ar\\g\"\"\"\"1")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("arg\\\"1"),
+                                  String::fromLatin1("arg\\\"\"\"1")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("\"\"\"\""),
+                                  String::fromLatin1("\"\"\"\"\"\"\"\"\"\"\"\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("\"\"\"\"") << String::fromLatin1("\"\" \"\""),
+                                  String::fromLatin1("\"\"\"\"\"\"\"\"\"\"\"\" \"\"\"\"\"\"\" \"\"\"\"\"\"\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("\"\"  \"\""),
+                                  String::fromLatin1("\"\"\"\"\"\"\" \"\" \"\"\"\"\"\"\"")));
+
+   data.push_back(std::make_tuple(StringList() << String::fromLatin1("\"\"  \"\""),
+                                  String::fromLatin1(" \"\"\"\"\"\"\" \"\" \"\"\"\"\"\"\"   ")));
+}
+
+ByteArray start_fail_message(const String &program, const Process &process)
+{
+   ByteArray result = "Process '";
+   result += program.toLocal8Bit();
+   result += "' failed to start: ";
+   result += process.getErrorString().toLocal8Bit();
+   return result;
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testSpaceArgsTest)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<std::tuple<StringList, String>> data;
+   init_space_args_test_data(data);
+   for (auto item : data) {
+      StringList &args = std::get<0>(item);
+      String &stringArgs = std::get<1>(item);
+      StringList programs;
+      programs << String(APP_FILENAME(ProcessSpacesArgsApp))
+               << String(APP_FILENAME(one space))
+               << String(APP_FILENAME(two space s));
+      Process process;
+      for (size_t i = 0; i < programs.size(); ++i) {
+         String program = programs.at(i);
+         process.start(program, args);
+
+         ByteArray errorMessage;
+         bool started = process.waitForStarted();
+         if (!started) {
+            errorMessage = start_fail_message(program, process);
+         }
+
+         ASSERT_TRUE(started) << errorMessage.getConstRawData();
+         ASSERT_TRUE(process.waitForFinished());
+         ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+         ASSERT_EQ(process.getExitCode(), 0);
+
+         StringList actual = String::fromLatin1(process.readAll()).split(Latin1String("|"));
+         ASSERT_TRUE(!actual.empty());
+         // not interested in the program name, it might be different.
+         actual.pop_front();
+         ASSERT_EQ(actual, args);
+         if (program.contains(Latin1Character(' '))) {
+            program = Latin1Character('"') + program + Latin1Character('"');
+         }
+         if (!stringArgs.isEmpty()) {
+            program += Latin1Character(' ') + stringArgs;
+         }
+         errorMessage.clear();
+         process.start(program);
+         started = process.waitForStarted(5000);
+         if (!started) {
+            errorMessage = start_fail_message(program, process);
+         }
+         ASSERT_TRUE(started) <<  errorMessage.getConstRawData();
+         ASSERT_TRUE(process.waitForFinished(5000));
+
+         actual = String::fromLatin1(process.readAll()).split(Latin1String("|"));
+         ASSERT_TRUE(!actual.empty());
+         // not interested in the program name, it might be different.
+         actual.pop_front();
+
+         ASSERT_EQ(actual, args);
+      }
+   }
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+// Windows platform
+// @todo Process::nativeArguments
+// @todo Process::createProcessArgumentsModifier
+
+TEST_F(ProcessTest, testExitCode)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   for (int i = 0; i < 255; ++i) {
+      Process process;
+      process.start(String(APP_FILENAME(ExitCodesApp)) + Latin1String(" ") + String::number(i));
+      ASSERT_TRUE(process.waitForFinished(5000));
+      ASSERT_EQ(process.getExitCode(), i);
+      ASSERT_EQ(process.getError(), Process::ProcessError::UnknownError);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testFailToStart)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+
+   std::vector<Process::ProcessState> stateChangedData;
+   process.connectStateChangedSignal([&stateChangedData](Process::ProcessState state){
+      stateChangedData.push_back(state);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   int errorOccuredCount = 0;
+   process.connectErrorOccurredSignal([&errorOccuredCount](Process::ProcessError error){
+      ++errorOccuredCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   int finishedCount = 0;
+   process.connectFinishedSignal([&finishedCount](int exitCode, Process::ExitStatus exitStatus){
+      ++finishedCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   // OS X and HP-UX have a really low default process limit (~100), so spawning
+   // to many processes here will cause test failures later on.
+#if defined PDK_OS_HPUX
+   const int attempts = 15;
+#elif defined PDK_OS_MAC
+   const int attempts = 15;
+#else
+   const int attempts = 50;
+#endif
+   for (int j = 0; j < 8; ++j) {
+      for (int i = 0; i < attempts; ++i) {
+         ASSERT_EQ(errorOccuredCount, j * attempts + i);
+         process.start(Latin1String("/blurp"));
+
+         switch (j) {
+         case 0:
+         case 1:
+            ASSERT_TRUE(!process.waitForStarted());
+            break;
+         case 2:
+         case 3:
+            ASSERT_TRUE(!process.waitForFinished());
+            break;
+         case 4:
+         case 5:
+            ASSERT_TRUE(!process.waitForReadyRead());
+            break;
+         case 6:
+         case 7:
+         default:
+            ASSERT_TRUE(!process.waitForBytesWritten());
+            break;
+         }
+
+         ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+         ASSERT_EQ(errorOccuredCount, j * attempts + i + 1);
+         ASSERT_EQ(finishedCount, 0);
+
+         int it = j * attempts + i + 1;
+
+         ASSERT_EQ(stateChangedData.size(), (size_t)(it * 2));
+         ASSERT_EQ(stateChangedData.at(it * 2 - 2), Process::ProcessState::Starting);
+         ASSERT_EQ(stateChangedData.at(it * 2 - 1), Process::ProcessState::NotRunning);
+      }
+   }
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testFailToStartWithWait)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   int errorOccuredCount = 0;
+   process.connectErrorOccurredSignal([&errorOccuredCount](Process::ProcessError error){
+      ++errorOccuredCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   int finishedCount = 0;
+   process.connectFinishedSignal([&finishedCount](int exitCode, Process::ExitStatus exitStatus){
+      ++finishedCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   for (int i = 0; i < 50; ++i) {
+      process.start(Latin1String("/blurp"), StringList() << Latin1String("-v") << Latin1String("-debug"));
+      process.waitForStarted();
+
+      ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+      ASSERT_EQ(errorOccuredCount, i + 1);
+      ASSERT_EQ(finishedCount, 0);
+   }
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testFailToStartWithEventLoop)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   EventLoop loop;
+   int errorOccuredCount = 0;
+   process.connectErrorOccurredSignal([&errorOccuredCount](Process::ProcessError error){
+      ++errorOccuredCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   int finishedCount = 0;
+   process.connectFinishedSignal([&finishedCount](int exitCode, Process::ExitStatus exitStatus){
+      ++finishedCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   process.connectErrorOccurredSignal([&loop](Process::ProcessError error){
+      loop.exit();
+   }, PDK_RETRIEVE_APP_INSTANCE(), pdk::ConnectionType::QueuedConnection);
+
+   for (int i = 0; i < 50; ++i) {
+      process.start(Latin1String("/blurp"), StringList() << Latin1String("-v") << Latin1String("-debug"));
+      loop.exec();
+      ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+      ASSERT_EQ(errorOccuredCount, i + 1);
+      ASSERT_EQ(finishedCount, 0);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_fail_to_start_empty_args_data(std::list<int> &data)
+{
+   data.push_back(0);
+   data.push_back(1);
+   data.push_back(2);
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testFailToStartEmptyArgs)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<int> data;
+   init_fail_to_start_empty_args_data(data);
+   for (int startOverload: data) {
+      Process process;
+      std::list<Process::ProcessError> errorData;
+      process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
+         errorData.push_back(error);
+      }, PDK_RETRIEVE_APP_INSTANCE());
+      switch (startOverload) {
+      case 0:
+         process.start(String(), StringList(), IoDevice::OpenMode::ReadWrite);
+         break;
+      case 1:
+         process.start(String(), IoDevice::OpenMode::ReadWrite);
+         break;
+      case 2:
+         process.start(IoDevice::OpenMode::ReadWrite);
+         break;
+      default:
+         FAIL() << "Unhandled Process::start overload.";
+      };
+
+      ASSERT_TRUE(!process.waitForStarted());
+      ASSERT_EQ(errorData.size(), 1u);
+      ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testRemoveFileWhileProcessIsRunning)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   File file(m_temporaryDir.getPath() + Latin1String("/removeFile.txt"));
+   ASSERT_TRUE(file.open(File::OpenMode::WriteOnly));
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_TRUE(process.waitForStarted(5000));
+
+   ASSERT_TRUE(file.remove());
+
+   process.write("", 1);
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_set_environment_data(std::list<std::tuple<String, String>> &data)
+{
+   data.push_back(std::make_tuple(Latin1String("ProcessTest"), Latin1String("")));
+   data.push_back(std::make_tuple(Latin1String("ProcessTest"), Latin1String("value")));
+   // @TODO add Windows platform testcases
+   data.push_back(std::make_tuple(Latin1String("PATH"), Latin1String("")));
+   data.push_back(std::make_tuple(Latin1String("PATH"), Latin1String("value")));
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testProcessEnvironment)
+{
+   ASSERT_TRUE(pdk::get_env("ProcessTest").isEmpty());
+   ASSERT_TRUE(!pdk::get_env("PATH").isEmpty());
+
+   std::list<std::tuple<String, String>> data;
+   init_set_environment_data(data);
+   for (auto &item : data) {
+      String &name = std::get<0>(item);
+      String &value = std::get<1>(item);
+      String executable = APP_FILENAME(ProcessEnvironmentApp);
+      {
+         Process process;
+         ProcessEnvironment environment = ProcessEnvironment::getSystemEnvironment();
+         if (value.isNull()) {
+            environment.remove(name);
+         } else {
+            environment.insert(name, value);
+         }
+         process.setProcessEnvironment(environment);
+         process.start(executable, StringList() << name);
+
+         ASSERT_TRUE(process.waitForFinished());
+         if (value.isNull()) {
+            ASSERT_EQ(process.getExitCode(), 1);
+         } else if (!value.isEmpty()) {
+            ASSERT_EQ(process.getExitCode(), 0);
+         }
+         ASSERT_EQ(process.readAll(), value.toLocal8Bit());
+      }
+   }
+}
+
+TEST_F(ProcessTest, testEnvironmentIsSorted)
+{
+   ProcessEnvironment env;
+   env.insert(Latin1String("a"), Latin1String("foo_a"));
+   env.insert(Latin1String("B"), Latin1String("foo_B"));
+   env.insert(Latin1String("c"), Latin1String("foo_c"));
+   env.insert(Latin1String("D"), Latin1String("foo_D"));
+   env.insert(Latin1String("e"), Latin1String("foo_e"));
+   env.insert(Latin1String("F"), Latin1String("foo_F"));
+   env.insert(Latin1String("Path"), Latin1String("foo_Path"));
+   env.insert(Latin1String("SystemRoot"), Latin1String("foo_SystemRoot"));
+   const StringList envlist = env.toStringList();
+   const StringList expected = { Latin1String("B=foo_B"),
+                                 Latin1String("D=foo_D"),
+                                 Latin1String("F=foo_F"),
+                                 Latin1String("Path=foo_Path"),
+                                 Latin1String("SystemRoot=foo_SystemRoot"),
+                                 Latin1String("a=foo_a"),
+                                 Latin1String("c=foo_c"),
+                                 Latin1String("e=foo_e") };
+   ASSERT_EQ(envlist, expected);
+}
+
+TEST_F(ProcessTest, testSystemEnvironment)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   ASSERT_TRUE(!Process::getSystemEnvironment().empty());
+   ASSERT_TRUE(!ProcessEnvironment::getSystemEnvironment().isEmpty());
+
+   ASSERT_TRUE(ProcessEnvironment::getSystemEnvironment().contains(Latin1String("PATH")));
+   ASSERT_TRUE(!Process::getSystemEnvironment().filter(RegularExpression(Latin1String("^PATH="), RegularExpression::PatternOption::CaseInsensitiveOption)).empty());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSpaceInName)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(test Space In Name), StringList());
+   ASSERT_TRUE(process.waitForStarted());
+   process.write("", 1);
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+// @TODO testLockupsInStartDetached
+
+TEST_F(ProcessTest, testAtEnd2)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.start(APP_FILENAME(ProcessEchoApp));
+   process.write("Foo\nBar\nBaz\nBodukon\nHadukan\nTorwukan\nend\n");
+   process.putChar('\0');
+   ASSERT_TRUE(process.waitForFinished());
+   std::list<ByteArray> lines;
+   while (!process.atEnd()) {
+      lines.push_back(process.readLine());
+   }
+   ASSERT_EQ(lines.size(), 7u);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testWaitForReadyReadForNonexistantProcess)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   std::vector<Process::ProcessError> errorData;
+   process.connectErrorOccurredSignal([&errorData](Process::ProcessError error){
+      errorData.push_back(error);
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   int finishedCount = 0;
+   process.connectFinishedSignal([&finishedCount](int exitCode, Process::ExitStatus exitStatus){
+      ++finishedCount;
+   }, PDK_RETRIEVE_APP_INSTANCE());
+
+   ASSERT_TRUE(!process.waitForReadyRead()); // used to crash
+   process.start(Latin1String("doesntexist"));
+   ASSERT_TRUE(!process.waitForReadyRead());
+   ASSERT_EQ(errorData.at(0), Process::ProcessError::FailedToStart);
+   ASSERT_EQ(errorData.size(), 1u);
+   ASSERT_EQ(finishedCount, 0);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSetStandardInputFile)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   static const char data[] = "A bunch\1of\2data\3\4\5\6\7...";
+   Process process;
+   File file(m_temporaryDir.getPath() + Latin1String("/data-sif"));
+
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+   file.write(data, sizeof data);
+   file.close();
+
+   process.setStandardInputFile(file.getFileName());
+   process.start(APP_FILENAME(ProcessEchoApp));
+
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   ByteArray all = process.readAll();
+   ASSERT_EQ(all.size(), int(sizeof data) - 1); // testProcessEcho drops the ending \0
+   ASSERT_TRUE(all == data);
+
+   Process process2;
+   process2.setStandardInputFile(Process::getNullDevice());
+   process2.start(APP_FILENAME(ProcessEchoApp));
+   ASSERT_TRUE(process2.waitForFinished());
+   all = process2.readAll();
+   ASSERT_EQ(all.size(), 0);
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_set_standard_output_file_data(std::list<std::tuple<Process::ProcessChannel, Process::ProcessChannelMode, bool>> &data)
+{
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardOutput,
+                                  Process::ProcessChannelMode::SeparateChannels,
+                                  false));
+
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardOutput,
+                                  Process::ProcessChannelMode::SeparateChannels,
+                                  true));
+
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardError,
+                                  Process::ProcessChannelMode::SeparateChannels,
+                                  false));
+
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardError,
+                                  Process::ProcessChannelMode::SeparateChannels,
+                                  true));
+
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardOutput,
+                                  Process::ProcessChannelMode::MergedChannels,
+                                  false));
+
+   data.push_back(std::make_tuple(Process::ProcessChannel::StandardOutput,
+                                  Process::ProcessChannelMode::MergedChannels,
+                                  true));
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testSetStandardOutputFile)
+{
+   static const char data[] = "Original data. ";
+   static const char testdata[] = "Test data.";
+   std::list<std::tuple<Process::ProcessChannel, Process::ProcessChannelMode, bool>> dd;
+   init_set_standard_output_file_data(dd);
+   for (auto &item : dd) {
+      Process::ProcessChannel channelToTest = std::get<0>(item);
+      Process::ProcessChannelMode channelMode = std::get<1>(item);
+      bool append = std::get<2>(item);
+      IoDevice::OpenMode mode = append ? IoDevice::OpenMode::Append : IoDevice::OpenMode::Truncate;
+      // create the destination file with data
+      File file(m_temporaryDir.getPath() + Latin1String("/data-stdof-") + Latin1String("testSetStandardOutputFile"));
+      ASSERT_TRUE(file.open(IoDevice::OpenMode::WriteOnly));
+      file.write(data, sizeof data - 1);
+      file.close();
+
+      // run the process
+      Process process;
+      process.setReadChannelMode(channelMode);
+      if (channelToTest == Process::ProcessChannel::StandardOutput) {
+         process.setStandardOutputFile(file.getFileName(), mode);
+      } else {
+         process.setStandardErrorFile(file.getFileName(), mode);
+      }
+      process.start(APP_FILENAME(ProcessEcho2App));
+      process.write(testdata, sizeof testdata);
+      ASSERT_TRUE(process.waitForFinished());
+      ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(process.getExitCode(), 0);
+
+      // open the file again and verify the data
+      ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+      ByteArray all = file.readAll();
+      file.close();
+
+      int expectedsize = sizeof testdata - 1;
+      if (mode == IoDevice::OpenMode::Append) {
+         ASSERT_TRUE(all.startsWith(data));
+         expectedsize += sizeof data - 1;
+      }
+      if (channelMode == Process::ProcessChannelMode::MergedChannels) {
+         expectedsize += sizeof testdata - 1;
+      } else {
+         ASSERT_TRUE(all.endsWith(testdata));
+      }
+      ASSERT_EQ(all.size(), expectedsize);
+   }
+}
+
+TEST_F(ProcessTest, testSetStandardOutputFileNullDevice)
+{
+   static const char testdata[] = "Test data.";
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.setStandardOutputFile(Process::getNullDevice());
+   process.start(APP_FILENAME(ProcessEcho2App));
+   process.write(testdata, sizeof testdata);
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   ASSERT_EQ(process.getBytesAvailable(), PDK_INT64_C(0));
+   ASSERT_TRUE(!FileInfo(Process::getNullDevice()).isFile());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSetStandardOutputFileAndWaitForBytesWritten)
+{
+   static const char testdata[] = "Test data.";
+   PDKTEST_BEGIN_APP_CONTEXT();
+
+   File file(m_temporaryDir.getPath() + Latin1String("/data-stdofawfbw"));
+   Process process;
+   process.setStandardOutputFile(file.getFileName());
+   process.start(APP_FILENAME(ProcessEcho2App));
+   ASSERT_TRUE(process.waitForStarted()) << pdk_printable(process.getErrorString());
+   process.write(testdata, sizeof testdata);
+   process.waitForBytesWritten();
+   ASSERT_TRUE(process.waitForFinished());
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+
+   // open the file again and verify the data
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+   ByteArray all = file.readAll();
+   file.close();
+
+   ASSERT_EQ(all, ByteArray::fromRawData(testdata, sizeof testdata - 1));
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+namespace {
+
+void init_set_standard_output_process_data(std::list<std::tuple<bool, bool>> &data)
+{
+   data.push_back(std::make_tuple(false, false));
+   data.push_back(std::make_tuple(false, true));
+   data.push_back(std::make_tuple(true, false));
+}
+
+void init_detached_rocess_parameters_data(std::list<String> &data)
+{
+   data.push_back(String());
+   data.push_back(String(Latin1String("stdout")));
+   data.push_back(String(Latin1String("stderr")));
+}
+
+} // anonymous namespace
+
+TEST_F(ProcessTest, testSetStandardOutputProcess)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process source;
+   Process sink;
+
+   std::list<std::tuple<bool, bool>> data;
+   init_set_standard_output_process_data(data);
+   for (auto &item : data) {
+      bool merged = std::get<0>(item);
+      bool waitForBytesWritten = std::get<1>(item);
+      source.setReadChannelMode(merged ? Process::ProcessChannelMode::MergedChannels : Process::ProcessChannelMode::SeparateChannels);
+      source.setStandardOutputProcess(&sink);
+      source.start(APP_FILENAME(ProcessEcho2App));
+      sink.start(APP_FILENAME(ProcessEcho2App));
+      ByteArray data("Hello, World");
+      source.write(data);
+      if (waitForBytesWritten) {
+         source.waitForBytesWritten();
+      }
+      source.closeWriteChannel();
+      ASSERT_TRUE(source.waitForFinished());
+      ASSERT_EQ(source.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(source.getExitCode(), 0);
+      ASSERT_TRUE(sink.waitForFinished());
+      ASSERT_EQ(sink.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(sink.getExitCode(), 0);
+      ByteArray all = sink.readAll();
+
+      if (!merged) {
+         ASSERT_EQ(all, data);
+      } else {
+         ASSERT_EQ(all, ByteArray("HHeelllloo,,  WWoorrlldd"));
+      }         
+   }
+
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testFileWriterProcess)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   const ByteArray line = ByteArrayLiteral(" -- testing testing 1 2 3\n");
+   ByteArray stdinStr;
+   stdinStr.reserve(5000 * (4 + line.size()) + 1);
+   for (int i = 0; i < 5000; ++i) {
+      stdinStr += ByteArray::number(i);
+      stdinStr += line;
+   }
+
+   Time stopWatch;
+   stopWatch.start();
+   const String fileName = m_temporaryDir.getPath() + Latin1String("/fileWriterProcess.txt");
+   const String binary = APP_FILENAME(FileWriterProcessApp);
+
+   do {
+      if (File::exists(fileName)) {
+         ASSERT_TRUE(File::remove(fileName));
+      }
+      Process process;
+      process.setWorkingDirectory(m_temporaryDir.getPath());
+      process.start(binary, IoDevice::OpenMode::ReadWrite | IoDevice::OpenMode::Text);
+      process.write(stdinStr);
+      process.closeWriteChannel();
+      while (process.getBytesToWrite()) {
+         ASSERT_TRUE(stopWatch.elapsed() < 3500);
+         ASSERT_TRUE(process.waitForBytesWritten(2000));
+      }
+      ASSERT_TRUE(process.waitForFinished());
+      ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+      ASSERT_EQ(process.getExitCode(), 0);
+      ASSERT_EQ(File(fileName).getSize(), pdk::pint64(stdinStr.size()));
+   } while (stopWatch.elapsed() < 3000);
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testDetachedProcessParameters)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   std::list<String> data;
+   init_detached_rocess_parameters_data(data);
+   String workingDir = Dir::getCurrentPath() + Latin1String("/process");
+   Dir workingDirObject(workingDir);
+   workingDir += Latin1String("/testDetached");
+   if (!File::exists(workingDir)) {
+      ASSERT_TRUE(workingDirObject.mkdir(Latin1String("testDetached"))) << "make working directory error";
+   }
    
+   ASSERT_TRUE(File::exists(workingDir));
+   for (String &outChannel : data) {
+      pdk::pint64 pid;
+      File infoFile(m_temporaryDir.getPath() + Latin1String("/detachedinfo.txt"));
+      if (infoFile.exists()) {
+         ASSERT_TRUE(infoFile.remove());
+      }
+      File channelFile(m_temporaryDir.getPath() + Latin1String("detachedinfo2.txt"));
+      if (channelFile.exists()) {
+         ASSERT_TRUE(channelFile.remove());
+      }
+      ASSERT_TRUE(pdk::get_env("ProcessTest").isEmpty());
+      ByteArray envVarValue("foobarbaz");
+      ProcessEnvironment environment = ProcessEnvironment::getSystemEnvironment();
+      environment.insert(StringLiteral("ProcessTest"), String::fromUtf8(envVarValue));
+      
+      Process process;
+      process.setProgram(APP_FILENAME(DetachedApp));
+#ifdef PDK_OS_WIN
+      int modifierCalls = 0;
+      process.setCreateProcessArgumentsModifier(
+               [&modifierCalls] (QProcess::CreateProcessArguments *) { modifierCalls++; });
+#endif
+      StringList args(infoFile.getFileName());
+      if (!outChannel.isEmpty()) {
+         args << StringLiteral("--out-channel=") + outChannel;
+         if (outChannel == Latin1String("stdout")) {
+            process.setStandardOutputFile(channelFile.getFileName());
+         } else if (outChannel == Latin1String("stderr")) {
+            process.setStandardErrorFile(channelFile.getFileName());
+         }
+      }
+      process.setArguments(args);
+      process.setWorkingDirectory(workingDir);
+      process.setProcessEnvironment(environment);
+      ASSERT_TRUE(process.startDetached(&pid));
+      
+      FileInfo fi(infoFile);
+      fi.setCaching(false);
+      //The guard counter ensures the test does not hang if the sub process fails.
+      //Instead, the test will fail when trying to open & verify the sub process output file.
+      for (int guard = 0; guard < 100 && fi.getSize() == 0; guard++) {
+         pdktest::sleep(100);
+      }
+      
+      ASSERT_TRUE(infoFile.open(IoDevice::OpenMode::ReadOnly | IoDevice::OpenMode::Text));
+      String actualWorkingDir = String::fromUtf8(infoFile.readLine()).trimmed();
+      ByteArray processIdString = infoFile.readLine().trimmed();
+      ByteArray actualEnvVarValue = infoFile.readLine().trimmed();
+      ByteArray infoFileContent;
+      if (!outChannel.isEmpty()) {
+         infoFile.seek(0);
+         infoFileContent = infoFile.readAll();
+      }
+      infoFile.close();
+      infoFile.remove();
+      
+      if (!outChannel.isEmpty()) {
+         ASSERT_TRUE(channelFile.open(IoDevice::OpenMode::ReadOnly | IoDevice::OpenMode::Text));
+         ByteArray channelContent = channelFile.readAll();
+         channelFile.close();
+         channelFile.remove();
+         ASSERT_EQ(channelContent, infoFileContent);
+      }
+      
+      bool ok = false;
+      pdk::pint64 actualPid = processIdString.toLongLong(&ok);
+      ASSERT_TRUE(ok);
+      
+      ASSERT_EQ(actualWorkingDir, workingDir);
+      ASSERT_EQ(actualPid, pid);
+      ASSERT_EQ(actualEnvVarValue, envVarValue);
+#ifdef PDK_OS_WIN
+      ASSERT_EQ(modifierCalls, 1);
+#endif
+   }
+   if (File::exists(workingDir)) {
+      ASSERT_TRUE(workingDirObject.rmdir(Latin1String("testDetached"))) << "delete working directory error";
+   }
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSwitchReadChannels)
+{
+   const char data[] = "ABCD";
+   
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   
+   process.start(APP_FILENAME(ProcessEcho2App));
+   process.write(data);
+   process.closeWriteChannel();
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   
+   for (int i = 0; i < 4; ++i) {
+      process.setReadChannel(Process::ProcessChannel::StandardOutput);
+      ASSERT_EQ(process.read(1), ByteArray(&data[i], 1));
+      process.setReadChannel(Process::ProcessChannel::StandardError);
+      ASSERT_EQ(process.read(1), ByteArray(&data[i], 1));
+   }
+   
+   process.ungetChar('D');
+   process.setReadChannel(Process::ProcessChannel::StandardOutput);
+   process.ungetChar('D');
+   process.setReadChannel(Process::ProcessChannel::StandardError);
+   ASSERT_EQ(process.read(1), ByteArray("D"));
+   process.setReadChannel(Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(process.read(1), ByteArray("D"));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testDiscardUnwantedOutput)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.setProgram(APP_FILENAME(ProcessEcho2App));
+   process.start(IoDevice::OpenMode::WriteOnly);
+   process.write("Hello, World");
+   process.closeWriteChannel();
+   ASSERT_TRUE(process.waitForFinished(5000));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   
+   process.setReadChannel(Process::ProcessChannel::StandardOutput);
+   ASSERT_EQ(process.getBytesAvailable(), PDK_INT64_C(0));
+   process.setReadChannel(Process::ProcessChannel::StandardError);
+   ASSERT_EQ(process.getBytesAvailable(), PDK_INT64_C(0));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSetWorkingDirectory)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.setWorkingDirectory(Dir::getCurrentPath());
+   
+   // use absolute path because on Windows, the executable is relative to the parent's CWD
+   // while on Unix with fork it's relative to the child's (with posix_spawn, it could be either).
+   process.start(APP_FILENAME(SetWorkingDirectoryApp));
+   
+   ASSERT_TRUE(process.waitForFinished()) << process.getErrorString();
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   
+   ByteArray workingDir = process.readAllStandardOutput();
+   ASSERT_EQ(Dir(Dir::getCurrentPath()).getCanonicalPath(), Dir(Latin1String(workingDir.getConstRawData())).getCanonicalPath());
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testSetNonExistentWorkingDirectory)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   process.setWorkingDirectory(Latin1String("this/directory/should/not/exist/for/sure"));
+   
+   // use absolute path because on Windows, the executable is relative to the parent's CWD
+   // while on Unix with fork it's relative to the child's (with posix_spawn, it could be either).
+   process.start(APP_FILENAME(SetWorkingDirectoryApp));
+   ASSERT_TRUE(!process.waitForFinished());
+   ASSERT_EQ(process.getError(), Process::ProcessError::FailedToStart);
+   
+#ifdef PDK_OS_UNIX
+#  ifdef PROCESS_USE_SPAWN
+   FAIL() << "Process cannot detect failure to start when using posix_spawn()";
+#  endif
+   ASSERT_TRUE(process.getErrorString().startsWith(Latin1String("chdir:"))) << process.getErrorString();
+#endif
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(ProcessTest, testStartFinishStartFinish)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   
+   for (int i = 0; i < 3; ++i) {
+      ASSERT_EQ(process.getState(), Process::ProcessState::NotRunning);
+      
+      process.start(APP_FILENAME(ProcessOutputApp));
+      ASSERT_TRUE(process.waitForReadyRead(10000));
+      ASSERT_EQ(String::fromLatin1(process.readLine().trimmed()),
+                String(Latin1String("0 -this is a number")));
+      if (process.getState() != Process::ProcessState::NotRunning) {
+         ASSERT_TRUE(process.waitForFinished(10000));
+         ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+         ASSERT_EQ(process.getExitCode(), 0);
+      }
+   }
    PDKTEST_END_APP_CONTEXT();
 }
 
@@ -1208,7 +2114,7 @@ public:
    {
       process->connectReadyReadSignal(this, &BlockOnReadStdOut::block);
    }
-
+   
 public:
    void block()
    {
@@ -1217,6 +2123,28 @@ public:
 };
 
 } // anonymous namespace
+
+
+TEST_F(ProcessTest, testFinishProcessBeforeReadingDone)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process process;
+   BlockOnReadStdOut blocker(&process);
+   EventLoop loop;
+   process.connectFinishedSignal([&loop](int exitCode, Process::ExitStatus exitStatus){
+      loop.exit();
+   });
+   process.start(APP_FILENAME(ProcessOutputApp));
+   ASSERT_TRUE(process.waitForStarted());
+   loop.exec();
+   StringList lines = String::fromLocal8Bit(process.readAllStandardOutput()).split(
+            RegularExpression(StringLiteral("[\r\n]")), String::SplitBehavior::SkipEmptyParts);
+   ASSERT_TRUE(!lines.empty());
+   ASSERT_EQ(lines.back(), StringLiteral("10239 -this is a number"));
+   ASSERT_EQ(process.getExitStatus(), Process::ExitStatus::NormalExit);
+   ASSERT_EQ(process.getExitCode(), 0);
+   PDKTEST_END_APP_CONTEXT();
+}
 
 TEST_F(ProcessTest, testWaitForStartedWithoutStart)
 {

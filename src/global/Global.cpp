@@ -72,7 +72,7 @@ void pdk_assert_x(const char *where, const char *what,
 
 static std::mutex sg_envMutex;
 
-ByteArray pdk_getenv(const char *varName)
+ByteArray get_env(const char *varName)
 {
    std::lock_guard locker(sg_envMutex);
 #if defined(_MSC_VER) && _MSC_VER >= 1400
@@ -92,7 +92,7 @@ ByteArray pdk_getenv(const char *varName)
 #endif
 }
 
-String pdk_env_var(const char *varName, const String &defaultValue)
+String get_env_var(const char *varName, const String &defaultValue)
 {
 #if defined(PDK_OS_WIN)
    std::lock_guard locker(sg_envMutex);
@@ -115,7 +115,7 @@ String pdk_env_var(const char *varName, const String &defaultValue)
    buffer.chop(1);
    return buffer;
 #else
-   ByteArray value = pdk_getenv(varName);
+   ByteArray value = get_env(varName);
    if (value.isNull()) {
       return defaultValue;
    }
@@ -127,9 +127,9 @@ String pdk_env_var(const char *varName, const String &defaultValue)
 #endif
 }
 
-String pdk_env_var(const char *varName)
+String get_env_var(const char *varName)
 {
-   return pdk_env_var(varName, String());
+   return get_env_var(varName, String());
 }
 
 bool env_var_is_empty(const char *varName) noexcept
@@ -204,7 +204,7 @@ bool env_var_isset(const char *varName) noexcept
 #endif
 }
 
-bool pdk_putenv(const char *varName, const ByteArray& value)
+bool put_env(const char *varName, const ByteArray& value)
 {
    std::lock_guard locker(sg_envMutex);
 #if defined(_MSC_VER) && _MSC_VER >= 1400
@@ -224,7 +224,7 @@ bool pdk_putenv(const char *varName, const ByteArray& value)
 #endif
 }
 
-bool pdk_unsetenv(const char *varName)
+bool unset_env(const char *varName)
 {
    std::lock_guard locker(sg_envMutex);
 #if defined(_MSC_VER) && _MSC_VER >= 1400
@@ -242,7 +242,7 @@ bool pdk_unsetenv(const char *varName)
    // environment and leak it
    ByteArray buffer(varName);
    buffer += '=';
-   char *envVar = qstrdup(buffer.getConstRawData());
+   char *envVar = pdk::strdup(buffer.getConstRawData());
    return putenv(envVar) == 0;
 #endif
 }

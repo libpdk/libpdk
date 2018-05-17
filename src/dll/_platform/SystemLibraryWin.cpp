@@ -57,7 +57,7 @@ HINSTANCE SystemLibrary::load(const wchar_t *libraryName, bool onlySystemDirecto
       
    searchOrder.push_back(system_directory());
    if (!onlySystemDirectory) {
-      const String PATH(Latin1String(pdk::pdk_getenv("PATH").getConstRawData()));
+      const String PATH(Latin1String(pdk::get_env("PATH").getConstRawData()));
       searchOrder.push_back(PATH.split(Latin1Character(';'), String::SplitBehavior::SkipEmptyParts));
    }
    String fileName = String::fromWCharArray(libraryName);

@@ -332,7 +332,7 @@ pcre2_jit_stack_16 *pdk_pcre_callback(void *)
 
 bool is_jit_enabled()
 {
-   ByteArray jitEnvironment = pdk_getenv("PDK_ENABLE_REGEXP_JIT");
+   ByteArray jitEnvironment = pdk::get_env("PDK_ENABLE_REGEXP_JIT");
    if (!jitEnvironment.isEmpty()) {
       bool ok;
       int enableJit = jitEnvironment.toInt(&ok);

@@ -938,7 +938,7 @@ String make_user_path()
 #ifndef SETTINGS_USE_STANDARDPATHS
    // Non XDG platforms (OS X, iOS, Android...) have used this code path erroneously
    // for some time now. Moving away from that would require migrating existing settings.
-   ByteArray env = pdk_getenv("XDG_CONFIG_HOME");
+   ByteArray env = pdk::get_env("XDG_CONFIG_HOME");
    if (env.isEmpty()) {
       return Dir::getHomePath() + Latin1String("/.config/");
    } else if (env.startsWith('/')) {

@@ -51,13 +51,13 @@ ByteArray env_var_locale()
 {
    static ByteArray lang = 0;
 #ifdef PDK_OS_UNIX
-   lang = pdk::pdk_getenv("LC_ALL");
+   lang = pdk::get_env("LC_ALL");
    if (lang.isEmpty()) {
-      lang = pdk::pdk_getenv("LC_NUMERIC");
+      lang = pdk::get_env("LC_NUMERIC");
    }
    if (lang.isEmpty())
 #endif
-      lang = pdk::pdk_getenv("LANG");
+      lang = pdk::get_env("LANG");
    return lang;
 }
 

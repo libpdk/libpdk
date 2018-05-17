@@ -226,11 +226,11 @@ void LoggingRegistry::initializeRules()
 {
    std::vector<LoggingRule> er, qr, cr;
    // get rules from environment
-   const ByteArray rulesFilePath = pdk::pdk_getenv("PDK_LOGGING_CONF");
+   const ByteArray rulesFilePath = pdk::get_env("PDK_LOGGING_CONF");
    if (!rulesFilePath.isEmpty()) {
       er = load_rules_from_file(File::decodeName(rulesFilePath));
    }
-   const ByteArray rulesSrc = pdk::pdk_getenv("PDK_LOGGING_RULES").replace(';', '\n');
+   const ByteArray rulesSrc = pdk::get_env("PDK_LOGGING_RULES").replace(';', '\n');
    if (!rulesSrc.isEmpty()) {
       TextStream stream(rulesSrc);
       LoggingSettingsParser parser;

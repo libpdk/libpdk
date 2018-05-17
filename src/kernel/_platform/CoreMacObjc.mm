@@ -170,7 +170,7 @@ MacRootLevelAutoReleasePool::MacRootLevelAutoReleasePool()
    
    [[[PDK_ROOT_LEVEL_POOL_THESE_OBJECTS_WILL_BE_RELEASED_WHEN_QAPP_GOES_OUT_OF_SCOPE alloc] init] autorelease];
    
-   if (pdk::strcmp(pdk::pdk_getenv("OBJC_DEBUG_MISSING_POOLS"), "YES") == 0) {
+   if (pdk::strcmp(pdk::get_env("OBJC_DEBUG_MISSING_POOLS"), "YES") == 0) {
       debug_stream("CoreApplication root level NSAutoreleasePool in place. Break on ~%s and use\n" \
              "'p [NSAutoreleasePool showPools]' to show leaked objects, or set %s",
              __FUNCTION__, ROOT_LEVEL_POOL_DISABLE_SWITCH);

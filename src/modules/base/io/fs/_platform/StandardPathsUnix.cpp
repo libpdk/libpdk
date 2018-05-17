@@ -69,7 +69,7 @@ String StandardPaths::writableLocation(StandardLocation type)
    case StandardLocation::GenericCacheLocation:
    {
       // http://standards.freedesktop.org/basedir-spec/basedir-spec-0.6.html
-      String xdgCacheHome = File::decodeName(pdk::pdk_getenv("XDG_CACHE_HOME"));
+      String xdgCacheHome = File::decodeName(pdk::get_env("XDG_CACHE_HOME"));
       if (isTestModeEnabled()) {
          xdgCacheHome = Dir::getHomePath() + Latin1String("/.pdktest/cache");
       }
@@ -85,7 +85,7 @@ String StandardPaths::writableLocation(StandardLocation type)
    case StandardLocation::AppLocalDataLocation:
    case StandardLocation::GenericDataLocation:
    {
-      String xdgDataHome = File::decodeName(pdk::pdk_getenv("XDG_DATA_HOME"));
+      String xdgDataHome = File::decodeName(pdk::get_env("XDG_DATA_HOME"));
       if (isTestModeEnabled()) {
          xdgDataHome = Dir::getHomePath() + Latin1String("/.pdktest/share");
       }
@@ -102,7 +102,7 @@ String StandardPaths::writableLocation(StandardLocation type)
    case StandardLocation::AppConfigLocation:
    {
       // http://standards.freedesktop.org/basedir-spec/latest/
-      String xdgConfigHome = File::decodeName(pdk::pdk_getenv("XDG_CONFIG_HOME"));
+      String xdgConfigHome = File::decodeName(pdk::get_env("XDG_CONFIG_HOME"));
       if (isTestModeEnabled()) {
          xdgConfigHome = Dir::getHomePath() + Latin1String("/.pdktest/config");
       }
@@ -119,7 +119,7 @@ String StandardPaths::writableLocation(StandardLocation type)
       const uint myUid = uint(geteuid());
       // http://standards.freedesktop.org/basedir-spec/latest/
       FileInfo fileInfo;
-      String xdgRuntimeDir = File::decodeName(pdk::pdk_getenv("XDG_RUNTIME_DIR"));
+      String xdgRuntimeDir = File::decodeName(pdk::get_env("XDG_RUNTIME_DIR"));
       if (xdgRuntimeDir.isEmpty()) {
          const String userName = FileSystemEngine::resolveUserName(myUid);
          xdgRuntimeDir = Dir::getTempPath() + Latin1String("/runtime-") + userName;
@@ -176,7 +176,7 @@ String StandardPaths::writableLocation(StandardLocation type)
    }
    
    // http://www.freedesktop.org/wiki/Software/xdg-user-dirs
-   String xdgConfigHome = File::decodeName(pdk::pdk_getenv("XDG_CONFIG_HOME"));
+   String xdgConfigHome = File::decodeName(pdk::get_env("XDG_CONFIG_HOME"));
    if (xdgConfigHome.isEmpty()) {
       xdgConfigHome = Dir::getHomePath() + Latin1String("/.config");
    }
@@ -283,7 +283,7 @@ StringList xdg_data_dirs()
 {
    StringList dirs;
    // http://standards.freedesktop.org/basedir-spec/latest/
-   String xdgDataDirsEnv = File::decodeName(pdk::pdk_getenv("XDG_DATA_DIRS"));
+   String xdgDataDirsEnv = File::decodeName(pdk::get_env("XDG_DATA_DIRS"));
    if (xdgDataDirsEnv.isEmpty()) {
       dirs.push_back(String::fromLatin1("/usr/local/share"));
       dirs.push_back(String::fromLatin1("/usr/share"));
@@ -316,7 +316,7 @@ StringList xdg_config_dirs()
 {
    StringList dirs;
    // http://standards.freedesktop.org/basedir-spec/latest/
-   const String xdgConfigDirs = File::decodeName(pdk::pdk_getenv("XDG_CONFIG_DIRS"));
+   const String xdgConfigDirs = File::decodeName(pdk::get_env("XDG_CONFIG_DIRS"));
    if (xdgConfigDirs.isEmpty()) {
       dirs.push_back(String::fromLatin1("/etc/xdg"));
    } else {

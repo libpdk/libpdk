@@ -38,11 +38,11 @@ namespace lang {
 class String;
 } // lang
 
-PDK_CORE_EXPORT ds::ByteArray pdk_getenv(const char *varName);
-PDK_CORE_EXPORT lang::String pdk_env_var(const char *varName);
-PDK_CORE_EXPORT lang::String pdk_env_var(const char *varName, const lang::String &defaultValue);
-PDK_CORE_EXPORT bool pdk_putenv(const char *varName, const ds::ByteArray &value);
-PDK_CORE_EXPORT bool pdk_unsetenv(const char *varName);
+PDK_CORE_EXPORT ds::ByteArray get_env(const char *varName);
+PDK_CORE_EXPORT lang::String get_env_var(const char *varName);
+PDK_CORE_EXPORT lang::String get_env_var(const char *varName, const lang::String &defaultValue);
+PDK_CORE_EXPORT bool put_env(const char *varName, const ds::ByteArray &value);
+PDK_CORE_EXPORT bool unset_env(const char *varName);
 
 PDK_CORE_EXPORT bool env_var_is_empty(const char *varName) noexcept;
 PDK_CORE_EXPORT bool env_var_isset(const char *varName) noexcept;

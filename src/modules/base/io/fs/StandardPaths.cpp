@@ -66,7 +66,7 @@ String check_executable(const String &path)
 StringList executable_extensions()
 {
    // If %PATHEXT% does not contain .exe, it is either empty, malformed, or distorted in ways that we cannot support, anyway.
-   const StringList pathExt = String::fromLocal8Bit(pdk::pdk_getenv("PATHEXT")).toLower().split(Latin1Character(';'));
+   const StringList pathExt = String::fromLocal8Bit(pdk::get_env("PATHEXT")).toLower().split(Latin1Character(';'));
    return pathExt.contains(Latin1String(".exe"), pdk::CaseSensitivity::Insensitive) ?
             pathExt :
             StringList() << Latin1String(".exe") << Latin1String(".com")
@@ -141,7 +141,7 @@ String StandardPaths::findExecutable(const String &executableName, const StringL
    }
    StringList searchPaths = paths;
    if (paths.empty()) {
-      ByteArray pEnv = pdk::pdk_getenv("PATH");
+      ByteArray pEnv = pdk::get_env("PATH");
       if (PDK_UNLIKELY(pEnv.isNull())) {
          // Get a default path. POSIX.1 does not actually require this, but
          // most Unix libc fall back to confstr(_CS_PATH) if the PATH
