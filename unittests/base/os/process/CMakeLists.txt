@@ -16,6 +16,8 @@ macro(add_process_testapp name)
 endmacro()
 
 pdk_add_unittest(ModuleBaseUnittests ProcessTest ${PDK_PROCESS_TEST_SRCS})
+pdk_add_unittest(ModuleBaseUnittests ProcessEnvironmentTest ProcessEnvironmentTest.cpp)
+
 add_process_testapp(FileWriterProcessApp apps/testFileWriterProcess.cpp)
 add_process_testapp(DetachedApp apps/testDetached.cpp)
 add_process_testapp(ExitCodesApp apps/testExitCodes.cpp)
@@ -33,6 +35,7 @@ add_process_testapp(ProcessOutputApp apps/testProcessOutput.cpp)
 add_process_testapp(ProcessSpacesArgsApp apps/testProcessSpacesArgs.cpp)
 add_process_testapp(ProcessSpacesArgsOneSpaceApp OUTPUT_NAME "one space" apps/testProcessSpacesArgs.cpp)
 add_process_testapp(ProcessSpacesArgsOneSpacesApp OUTPUT_NAME "two space s" apps/testProcessSpacesArgs.cpp)
+# Windows platform
 #add_process_testapp(SetNamedPipeHandleStateApp apps/testSetNamedPipeHandleState.cpp)
 add_process_testapp(SetWorkingDirectoryApp apps/testSetWorkingDirectory.cpp)
 add_process_testapp(SoftExitApp apps/testSoftExit.cpp)
