@@ -17,6 +17,7 @@ endmacro()
 
 pdk_add_unittest(ModuleBaseUnittests ProcessTest ${PDK_PROCESS_TEST_SRCS})
 pdk_add_unittest(ModuleBaseUnittests ProcessEnvironmentTest ProcessEnvironmentTest.cpp)
+pdk_add_unittest(ModuleBaseUnittests ProcessNoApplicationTest ProcessNoApplicationTest.cpp)
 
 add_process_testapp(FileWriterProcessApp apps/testFileWriterProcess.cpp)
 add_process_testapp(DetachedApp apps/testDetached.cpp)
