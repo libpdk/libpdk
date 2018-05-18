@@ -65,4 +65,5 @@ target_compile_definitions(IoTest PUBLIC PDKTEST_CURRENT_TEST_DIR="${CMAKE_CURRE
    PUBLIC PDKTEST_CURRENT_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/io")
 
 add_subdirectory(os/process)
+add_subdirectory(io/textstream)
 

@@ -45,12 +45,12 @@ static const int PDK_TEXTSTREAM_BUFFERSIZE = 16384;
    pdk::pulonglong tmp; \
    switch (implPtr->getNumber(&tmp)) { \
    case TextStreamPrivate::NumberParsingStatus::npsOk: \
-   i = (type)tmp; \
-   break; \
+      i = (type)tmp; \
+      break; \
    case TextStreamPrivate::NumberParsingStatus::npsMissingDigit: \
    case TextStreamPrivate::NumberParsingStatus::npsInvalidPrefix: \
-   i = (type)0; \
-   setStatus(atEnd() ? TextStream::Status::ReadPastEnd : TextStream::Status::ReadCorruptData); \
+      i = (type)0; \
+      setStatus(atEnd() ? TextStream::Status::ReadPastEnd : TextStream::Status::ReadCorruptData); \
    break; \
    } \
    return *this; } while (false)
@@ -1412,7 +1412,7 @@ void TextStream::setRealNumberNotation(RealNumberNotation notation)
    implPtr->m_params.m_realNumberNotation = notation;
 }
 
-TextStream::RealNumberNotation TextStream::realNumberNotation() const
+TextStream::RealNumberNotation TextStream::getRealNumberNotation() const
 {
    PDK_D(const TextStream);
    return implPtr->m_params.m_realNumberNotation;
@@ -1747,7 +1747,7 @@ TextStream &TextStream::operator<<(double f)
    CHECK_VALID_STREAM(*this);
    
    LocaleData::DoubleForm form = LocaleData::DoubleForm::DFDecimal;
-   switch (realNumberNotation()) {
+   switch (getRealNumberNotation()) {
    case RealNumberNotation::FixedNotation:
       form = LocaleData::DoubleForm::DFDecimal;
       break;
@@ -2030,7 +2030,7 @@ void TextStream::setAutoDetectUnicode(bool enabled)
    implPtr->m_autoDetectUnicode = enabled;
 }
 
-bool TextStream::autoDetectUnicode() const
+bool TextStream::getAutoDetectUnicode() const
 {
    PDK_D(const TextStream);
    return implPtr->m_autoDetectUnicode;
@@ -2044,7 +2044,7 @@ void TextStream::setGenerateByteOrderMark(bool generate)
    }
 }
 
-bool TextStream::generateByteOrderMark() const
+bool TextStream::getGenerateByteOrderMark() const
 {
    PDK_D(const TextStream);
    return (implPtr->m_writeConverterState.m_flags & TextCodec::ConversionFlag::IgnoreHeader) == 0;

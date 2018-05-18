@@ -115,9 +115,9 @@ public:
    void setCodec(const char *codecName);
    TextCodec *getCodec() const;
    void setAutoDetectUnicode(bool enabled);
-   bool autoDetectUnicode() const;
+   bool getAutoDetectUnicode() const;
    void setGenerateByteOrderMark(bool generate);
-   bool generateByteOrderMark() const;
+   bool getGenerateByteOrderMark() const;
 #endif
    
    void setLocale(const Locale &locale);
@@ -161,7 +161,7 @@ public:
    int getIntegerBase() const;
    
    void setRealNumberNotation(RealNumberNotation notation);
-   RealNumberNotation realNumberNotation() const;
+   RealNumberNotation getRealNumberNotation() const;
    
    void setRealNumberPrecision(int precision);
    int getRealNumberPrecision() const;
