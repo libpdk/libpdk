@@ -838,3 +838,150 @@ TEST_F(TextStreamTest, testPerformance)
                   readMethods[i2]);
    }
 }
+
+namespace {
+
+void init_hex_test_data(std::list<std::tuple<pdk::plonglong, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_INT64_C(0), ByteArray("0x0")));
+   data.push_back(std::make_tuple(PDK_INT64_C(1), ByteArray("0x1")));
+   data.push_back(std::make_tuple(PDK_INT64_C(2), ByteArray("0x2")));
+   data.push_back(std::make_tuple(PDK_INT64_C(3), ByteArray("0x3")));
+   data.push_back(std::make_tuple(PDK_INT64_C(4), ByteArray("0x4")));
+   data.push_back(std::make_tuple(PDK_INT64_C(5), ByteArray("0x5")));
+   data.push_back(std::make_tuple(PDK_INT64_C(6), ByteArray("0x6")));
+   data.push_back(std::make_tuple(PDK_INT64_C(7), ByteArray("0x7")));
+   data.push_back(std::make_tuple(PDK_INT64_C(8), ByteArray("0x8")));
+   data.push_back(std::make_tuple(PDK_INT64_C(9), ByteArray("0x9")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xa), ByteArray("0xa")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xb), ByteArray("0xb")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xc), ByteArray("0xc")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xd), ByteArray("0xd")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xe), ByteArray("0xe")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xf), ByteArray("0xf")));
+   data.push_back(std::make_tuple(PDK_INT64_C(-1), ByteArray("-0x1")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xffffffff), ByteArray("0xffffffff")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xfffffffffffffffe), ByteArray("-0x2")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0xffffffffffffffff), ByteArray("-0x1")));
+   data.push_back(std::make_tuple(PDK_INT64_C(0x7fffffffffffffff), ByteArray("0x7fffffffffffffff")));
+}
+
+void init_bin_test(std::list<std::tuple<int, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(0, ByteArray("0b0")));
+   data.push_back(std::make_tuple(1, ByteArray("0b1")));
+   data.push_back(std::make_tuple(2, ByteArray("0b10")));
+   data.push_back(std::make_tuple(5, ByteArray("0b101")));
+   data.push_back(std::make_tuple(-1, ByteArray("-0b1")));
+   data.push_back(std::make_tuple(0xff, ByteArray("0b11111111")));
+   data.push_back(std::make_tuple(0xffff, ByteArray("0b1111111111111111")));
+   data.push_back(std::make_tuple(0xfefe, ByteArray("0b1111111011111110")));
+}
+
+void init_oct_test(std::list<std::tuple<int, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(0, ByteArray("00")));
+   data.push_back(std::make_tuple(1, ByteArray("01")));
+   data.push_back(std::make_tuple(2, ByteArray("02")));
+   data.push_back(std::make_tuple(5, ByteArray("05")));
+   data.push_back(std::make_tuple(-1, ByteArray("-01")));
+   data.push_back(std::make_tuple(0xff, ByteArray("0377")));
+   data.push_back(std::make_tuple(0xffff, ByteArray("0177777")));
+   data.push_back(std::make_tuple(0xfefe, ByteArray("0177376")));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testHexTest)
+{
+   std::list<std::tuple<pdk::plonglong, ByteArray>> tdata;
+   init_hex_test_data(tdata);
+   for (auto &item : tdata) {
+      pdk::plonglong number = std::get<0>(item);
+      ByteArray &data = std::get<1>(item);
+      ByteArray array;
+      TextStream stream(&array);
+      stream << pdk::io::showbase << pdk::io::hex << number;
+      stream.flush();
+      ASSERT_EQ(array, data);
+   }
+}
+
+TEST_F(TextStreamTest, testBinTest)
+{
+   std::list<std::tuple<int, ByteArray>> tdata;
+   init_bin_test(tdata);
+   for (auto &item : tdata) {
+      int number = std::get<0>(item);
+      ByteArray &data = std::get<1>(item);
+      ByteArray array;
+      TextStream stream(&array);
+      stream << pdk::io::showbase << pdk::io::bin << number;
+      stream.flush();
+      ASSERT_EQ(array, data);
+   }
+}
+
+TEST_F(TextStreamTest, testOctTest)
+{
+   std::list<std::tuple<int, ByteArray>> tdata;
+   init_oct_test(tdata);
+   for (auto &item : tdata) {
+      int number = std::get<0>(item);
+      ByteArray &data = std::get<1>(item);
+      ByteArray array;
+      TextStream stream(&array);
+      stream << pdk::io::showbase << pdk::io::oct << number;
+      stream.flush();
+      ASSERT_EQ(array, data);
+   }
+}
+
+TEST_F(TextStreamTest, testZeroTermination)
+{
+   TextStream stream;
+   char c = '@';
+   stream >> c;
+   ASSERT_EQ(c, '\0');
+   
+   c = '@';
+   
+   stream >> &c;
+   ASSERT_EQ(c, '\0');
+}
+
+TEST_F(TextStreamTest, testWsManipulator)
+{
+   {
+      String string = Latin1String("a b c d");
+      TextStream stream(&string);
+      
+      char a, b, c, d;
+      stream >> a >> b >> c >> d;
+      ASSERT_EQ(a, 'a');
+      ASSERT_EQ(b, ' ');
+      ASSERT_EQ(c, 'b');
+      ASSERT_EQ(d, ' ');
+   }
+   {
+      String string = Latin1String("a b c d");
+      TextStream stream(&string);
+      
+      char a, b, c, d;
+      stream >> a >> pdk::io::ws >> b >> pdk::io::ws >> c >> pdk::io::ws >> d;
+      ASSERT_EQ(a, 'a');
+      ASSERT_EQ(b, 'b');
+      ASSERT_EQ(c, 'c');
+      ASSERT_EQ(d, 'd');
+   }
+}
+
+TEST_F(TextStreamTest, testStillOpenWhenAtEnd)
+{
+   File file(FIND_SOURCE_DATA(TextStreamTest.cpp));
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+   TextStream stream(&file);
+   while (!stream.readLine().isEmpty()) {}
+   ASSERT_TRUE(file.isOpen());
+   // @TODO add socket testcases
+}
