@@ -37,6 +37,7 @@ using pdk::ds::StringList;
 using pdk::io::fs::TemporaryDir;
 using pdk::io::fs::Dir;
 using pdk::io::fs::File;
+using pdk::io::Buffer;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Character;
@@ -376,5 +377,268 @@ TEST_F(TextStreamTest, testReadLineMaxlen)
          list << stream.readLine(5);
          ASSERT_EQ(list, lines);
       }
+   }
+}
+
+TEST_F(TextStreamTest, testReadLinesFromBufferCRCR)
+{
+   Buffer buffer;
+   buffer.open(IoDevice::OpenMode::WriteOnly);
+   ByteArray data("0123456789\r\r\n");
+   for (int i = 0; i < 10000; ++i) {
+      buffer.write(data);
+   }
+   buffer.close();
+   if (buffer.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text)) {
+      TextStream stream(&buffer);
+      while (!stream.atEnd()) {
+         ASSERT_EQ(stream.readLine(), String(Latin1String("0123456789")));
+      }
+   }
+}
+
+namespace {
+
+class ErrorDevice : public IoDevice
+{
+protected:
+   pdk::pint64 readData(char *data, pdk::pint64 maxlen) override
+   {
+      PDK_UNUSED(data);
+      PDK_UNUSED(maxlen);
+      return -1;
+   }
+   
+   pdk::pint64 writeData(const char *data, pdk::pint64 len) override
+   {
+      PDK_UNUSED(data);
+      PDK_UNUSED(len);
+      return -1;
+   }
+};
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testReadLineInto)
+{
+   ByteArray data = "1\n2\n3";
+   TextStream ts(&data);
+   String line;
+   ts.readLineInto(&line);
+   ASSERT_EQ(line, StringLiteral("1"));
+   ts.readLineInto(nullptr, 0); // read the second line, but don't store it
+   ts.readLineInto(&line);
+   ASSERT_EQ(line, StringLiteral("3"));
+   ASSERT_TRUE(!ts.readLineInto(&line));
+   ASSERT_TRUE(line.isEmpty());
+   File file(sg_rfc3261FilePath);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+   
+   ts.setDevice(&file);
+   line.reserve(1);
+   int maxLineCapacity = line.capacity();
+   while (ts.readLineInto(&line)) {
+      ASSERT_TRUE(line.capacity() >= maxLineCapacity);
+      maxLineCapacity = line.capacity();
+   }
+   line = Latin1String("Test string");
+   ErrorDevice errorDevice;
+   ASSERT_TRUE(errorDevice.open(IoDevice::OpenMode::ReadOnly));
+   ts.setDevice(&errorDevice);
+   ASSERT_TRUE(!ts.readLineInto(&line));
+   ASSERT_TRUE(line.isEmpty());
+}
+
+TEST_F(TextStreamTest, testReadLineFromString)
+{
+   std::list<std::tuple<ByteArray, StringList>> tdata;
+   generate_line_data(tdata, true);
+   for (auto &item : tdata) {
+      ByteArray &data = std::get<0>(item);
+      StringList &lines = std::get<1>(item);
+      String dataString = Latin1String(data);
+      TextStream stream(&dataString, IoDevice::OpenMode::ReadOnly);
+      StringList list;
+      while (!stream.atEnd()) {
+         list << stream.readLine();
+      }
+      ASSERT_EQ(list, lines);
+   }
+}
+
+TEST_F(TextStreamTest, testReadLineFromStringThenChangeString)
+{
+   String first = Latin1String("First string");
+   String second = Latin1String("Second string");
+   TextStream stream(&first, IoDevice::OpenMode::ReadOnly);
+   String result = stream.readLine();
+   ASSERT_EQ(first, result);
+   
+   stream.setString(&second, IoDevice::OpenMode::ReadOnly);
+   result = stream.readLine();
+   ASSERT_EQ(second, result);
+}
+
+TEST_F(TextStreamTest, testSetDevice)
+{
+   ByteArray data1("Hello World");
+   ByteArray data2("How are you");
+   Buffer bufferOld(&data1);
+   bufferOld.open(IoDevice::OpenMode::ReadOnly);
+   Buffer bufferNew(&data2);
+   bufferNew.open(IoDevice::OpenMode::ReadOnly);
+   
+   String text;
+   TextStream stream(&bufferOld);
+   stream >> text;
+   ASSERT_EQ(text, String(Latin1String("Hello")));
+   stream.setDevice(&bufferNew);
+   stream >> text;
+   ASSERT_EQ(text, String(Latin1String("How")));
+}
+
+TEST_F(TextStreamTest, testReadLineFromTextDevice)
+{
+   std::list<std::tuple<ByteArray, StringList>> tdata;
+   generate_line_data(tdata, false);
+   for (auto &item : tdata) {
+      ByteArray &data = std::get<0>(item);
+      StringList &lines = std::get<1>(item);
+      for (int i = 0; i < 8; ++i) {
+         Buffer buffer(&data);
+         if (i < 4) {
+            ASSERT_TRUE(buffer.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text));
+         } else {
+            ASSERT_TRUE(buffer.open(IoDevice::OpenMode::ReadOnly));
+         }
+         TextStream stream(&buffer);
+         StringList list;
+         while (!stream.atEnd()) {
+            stream.getPosition(); // <- triggers side effects
+            String line;
+            if (i & 1) {
+               Character c;
+               while (!stream.atEnd()) {
+                  stream >> c;
+                  if (stream.getStatus() == TextStream::Status::Ok) {
+                     if (c != Latin1Character('\n') && c != Latin1Character('\r')) {
+                        line += c;
+                     }  
+                     if (c == Latin1Character('\n')) {
+                        break;
+                     }
+                  }
+               }
+            } else {
+               line = stream.readLine();
+            }
+            
+            if ((i & 3) == 3) {
+               stream.seek(stream.getPosition());
+            }
+            list << line;
+         }
+         ASSERT_EQ(list, lines);
+      }
+   }
+}
+
+TEST_F(TextStreamTest, testReadLineUntilNull)
+{
+   File file(sg_rfc3261FilePath);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+   TextStream stream(&file);
+   for (int i = 0; i < 15066; ++i) {
+      String line = stream.readLine();
+      ASSERT_TRUE(!line.isNull());
+   }
+   ASSERT_TRUE(!stream.readLine().isEmpty());
+   ASSERT_TRUE(stream.readLine().isEmpty());
+}
+
+namespace {
+
+void generate_all_data(std::list<std::tuple<ByteArray, String>> &data, bool forString)
+{
+   // latin-1
+   data.push_back(std::make_tuple(ByteArray(), String()));
+   data.push_back(std::make_tuple(ByteArray("a"), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(ByteArray("a\r"), String(Latin1String("a\r"))));
+   data.push_back(std::make_tuple(ByteArray("a\r\n"), String(Latin1String("a\r\n"))));
+   data.push_back(std::make_tuple(ByteArray("a\n"), String(Latin1String("a\n"))));
+   
+   // utf-16
+   if (!forString) {
+      // one line
+      // utf16-BE/nothing
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\xe5\x00\x67\x00\x65", 8), 
+                                     String::fromLatin1("\345ge")));
+      // utf16-LE/nothing
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\xe5\x00\x67\x00\x65\x00", 8), 
+                                     String::fromLatin1("\345ge")));
+      // utf16-BE/lf
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a", 10), 
+                                     String::fromLatin1("\345ge\n")));
+      // utf16-LE/lf
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00", 10), 
+                                     String::fromLatin1("\345ge\n")));
+      
+      // utf16-BE/crlf
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0d\x00\x0a", 12), 
+                                     String::fromLatin1("\345ge\r\n")));
+      // utf16-LE/crlf
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\xe5\x00\x67\x00\x65\x00\x0d\x00\x0a\x00", 12), 
+                                     String::fromLatin1("\345ge\r\n")));
+      
+      // two lines
+      // utf16-BE/twolines
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a", 18), 
+                                     String::fromLatin1("\345ge\n\345ge\n")));
+      
+      // utf16-LE/twolines
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00", 18), 
+                                     String::fromLatin1("\345ge\n\345ge\n")));
+      
+      // three lines
+      // utf16-BE/threelines
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a"
+                                               "\x00\xe5\x00\x67\x00\x65\x00\x0a", 26), 
+                                     String::fromLatin1("\345ge\n\345ge\n\345ge\n")));
+      
+      // utf16-LE/threelines
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00"
+                                               "\xe5\x00\x67\x00\x65\x00\x0a\x00", 26), 
+                                     String::fromLatin1("\345ge\n\345ge\n\345ge\n")));
+   }
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testReadAllFromDevice)
+{
+   std::list<std::tuple<ByteArray, String>> tdata;
+   generate_all_data(tdata, false);
+   for (auto &item : tdata) {
+      ByteArray &input = std::get<0>(item);
+      String &output = std::get<1>(item);
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenMode::ReadOnly);
+      
+      TextStream stream(&buffer);
+      ASSERT_EQ(stream.readAll(), output);
    }
 }
