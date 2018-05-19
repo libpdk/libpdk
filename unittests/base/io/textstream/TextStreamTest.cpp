@@ -19,6 +19,7 @@
 #include "pdk/base/io/Debug.h"
 #include "pdk/base/ds/ByteArray.h"
 #include "pdk/base/ds/StringList.h"
+#include "pdk/base/time/Time.h"
 #include "pdk/base/io/fs/File.h"
 #include "pdk/base/io/fs/TemporaryDir.h"
 #include "pdk/base/io/TextStream.h"
@@ -38,6 +39,7 @@ using pdk::io::fs::TemporaryDir;
 using pdk::io::fs::Dir;
 using pdk::io::fs::File;
 using pdk::io::Buffer;
+using pdk::time::Time;
 using pdk::lang::String;
 using pdk::lang::Latin1String;
 using pdk::lang::Character;
@@ -626,6 +628,39 @@ void generate_all_data(std::list<std::tuple<ByteArray, String>> &data, bool forS
    }
 }
 
+void init_skip_white_space_data(std::list<std::tuple<ByteArray, Character>> &data)
+{
+   // latin1
+   data.push_back(std::make_tuple(ByteArray(), Character('\0')));
+   data.push_back(std::make_tuple(ByteArray(" one"), Character('o')));
+   data.push_back(std::make_tuple(ByteArray("\none"), Character('o')));
+   data.push_back(std::make_tuple(ByteArray("\n one"), Character('o')));
+   data.push_back(std::make_tuple(ByteArray(" \r\n one"), Character('o')));
+   
+   // utf-16
+   // utf16-BE (empty)
+   data.push_back(std::make_tuple(ByteArray("\xfe\xff", 2), Character('\0')));
+   // utf16-BE ( one)
+   data.push_back(std::make_tuple(ByteArray("\xfe\xff\x00 \x00o\x00n\x00e", 10), Character('o')));
+   // utf16-BE (\none)
+   data.push_back(std::make_tuple(ByteArray("\xfe\xff\x00\n\x00o\x00n\x00e", 10), Character('o')));
+   // utf16-BE (\n one)
+   data.push_back(std::make_tuple(ByteArray("\xfe\xff\x00\n\x00 \x00o\x00n\x00e", 12), Character('o')));
+   // utf16-BE ( \r\n one)
+   data.push_back(std::make_tuple(ByteArray("\xfe\xff\x00 \x00\r\x00\n\x00 \x00o\x00n\x00e", 16), Character('o')));
+   
+   // utf16-LE (empty)
+   data.push_back(std::make_tuple(ByteArray("\xff\xfe", 2), Character('\0')));
+   // utf16-LE ( one)
+   data.push_back(std::make_tuple(ByteArray("\xff\xfe \x00o\x00n\x00e\x00", 10), Character('o')));
+   // utf16-LE (\none)
+   data.push_back(std::make_tuple(ByteArray("\xff\xfe\n\x00o\x00n\x00e\x00", 10), Character('o')));
+   // utf16-LE (\n one)
+   data.push_back(std::make_tuple(ByteArray("\xff\xfe\n\x00 \x00o\x00n\x00e\x00", 12), Character('o')));
+   // utf16-LE ( \r\n one)
+   data.push_back(std::make_tuple(ByteArray("\xff\xfe \x00\r\x00\n\x00 \x00o\x00n\x00e\x00", 16), Character('o')));
+}
+
 } // anonymous namespace
 
 TEST_F(TextStreamTest, testReadAllFromDevice)
@@ -640,5 +675,166 @@ TEST_F(TextStreamTest, testReadAllFromDevice)
       
       TextStream stream(&buffer);
       ASSERT_EQ(stream.readAll(), output);
+   }
+}
+
+TEST_F(TextStreamTest, testReadAllFromString)
+{
+   std::list<std::tuple<ByteArray, String>> tdata;
+   generate_all_data(tdata, true);
+   for (auto &item : tdata) {
+      ByteArray input = std::get<0>(item);
+      String output = std::get<1>(item);
+      String str{Latin1String(input)};
+      TextStream stream(&str);
+      ASSERT_EQ(stream.readAll(), output);
+   }
+}
+
+TEST_F(TextStreamTest, testSkipWhiteSpace)
+{
+   std::list<std::tuple<ByteArray, Character>> data;
+   init_skip_white_space_data(data);
+   for (auto &item : data) {
+      ByteArray input = std::get<0>(item);
+      Character output = std::get<1>(item);
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buffer);
+      stream.skipWhiteSpace();
+      
+      Character tmp;
+      stream >> tmp;
+      
+      ASSERT_EQ(tmp, output);
+      
+      String str{Latin1String(input)};
+      TextStream stream2(&input);
+      stream2.skipWhiteSpace();
+      
+      stream2 >> tmp;
+      
+      ASSERT_EQ(tmp, output);
+   }
+}
+
+namespace {
+
+void init_line_count_data(std::list<std::tuple<ByteArray, int>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray(), 0));
+   data.push_back(std::make_tuple(ByteArray("a\n"), 1));
+   data.push_back(std::make_tuple(ByteArray("a\nb\n"), 2));
+   data.push_back(std::make_tuple(ByteArray("\n"), 1));
+   data.push_back(std::make_tuple(ByteArray("\n\n"), 2));
+   data.push_back(std::make_tuple(ByteArray(16382, '\n'), 16382));
+   data.push_back(std::make_tuple(ByteArray(16383, '\n'), 16383));
+   data.push_back(std::make_tuple(ByteArray(16384, '\n'), 16384));
+   data.push_back(std::make_tuple(ByteArray(16385, '\n'), 16385));
+   
+   File file(sg_rfc3261FilePath);
+   file.open(File::OpenMode::ReadOnly);
+   data.push_back(std::make_tuple(file.readAll(), 15067));
+}
+
+struct CompareIndicesForArray
+{
+   int *array;
+   CompareIndicesForArray(int *array) : array(array) {}
+   bool operator() (const int i1, const int i2)
+   {
+      return array[i1] < array[i2];
+   }
+};
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testLineCount)
+{
+   std::list<std::tuple<ByteArray, int>> tdata;
+   init_line_count_data(tdata);
+   for (auto &item : tdata) {
+      ByteArray &data = std::get<0>(item);
+      int lineCount = std::get<1>(item);
+      File out(Latin1String("out.txt"));
+      out.open(File::OpenMode::WriteOnly);
+      TextStream lineReader(data);
+      int lines = 0;
+      while (!lineReader.atEnd()) {
+         String line = lineReader.readLine();
+         out.write(line.toLatin1() + "\n");
+         ++lines;
+      }
+      out.close();
+      ASSERT_EQ(lines, lineCount);
+   }
+}
+
+TEST_F(TextStreamTest, testPerformance)
+{
+   Time stopWatch;
+   const int N = 3;
+   const char * readMethods[N] = {
+      "File::readLine()",
+      "TextStream::readLine()",
+      "TextStream::readLine(String *)"
+   };
+   int elapsed[N] = {0, 0, 0};
+   stopWatch.restart();
+   int nlines1 = 0;
+   File file(sg_rfc3261FilePath);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+   
+   while (!file.atEnd()) {
+      ++nlines1;
+      file.readLine();
+   }
+   
+   elapsed[0] = stopWatch.elapsed();
+   stopWatch.restart();
+   
+   int nlines2 = 0;
+   File file2(sg_rfc3261FilePath);
+   ASSERT_TRUE(file2.open(File::OpenMode::ReadOnly));
+   
+   TextStream stream(&file2);
+   while (!stream.atEnd()) {
+      ++nlines2;
+      stream.readLine();
+   }
+   
+   elapsed[1] = stopWatch.elapsed();
+   stopWatch.restart();
+   
+   int nlines3 = 0;
+   File file3(sg_rfc3261FilePath);
+   ASSERT_TRUE(file3.open(File::OpenMode::ReadOnly));
+   
+   TextStream stream2(&file3);
+   String line;
+   while (stream2.readLineInto(&line)) {
+      ++nlines3;
+   }
+   
+   
+   elapsed[2] = stopWatch.elapsed();
+   
+   ASSERT_EQ(nlines1, nlines2);
+   ASSERT_EQ(nlines2, nlines3);
+   
+   for (int i = 0; i < N; i++) {
+      std::printf("%s used %.3f seconds to read the file\n", readMethods[i],
+                  elapsed[i] / 1000.0);
+   }
+   int idx[N] = {0, 1, 2};
+   std::sort(idx, idx + N, CompareIndicesForArray(elapsed));
+   
+   for (int i = 0; i < N-1; i++) {
+      int i1 = idx[i];
+      int i2 = idx[i+1];
+      std::printf("Reading by %s is %.2fx faster than by %s\n",
+                  readMethods[i1],
+                  double(elapsed[i2]) / double(elapsed[i1]),
+                  readMethods[i2]);
    }
 }
