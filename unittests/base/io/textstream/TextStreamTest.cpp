@@ -1221,41 +1221,41 @@ TEST_F(TextStreamTest, testGetPosition2)
    ASSERT_EQ(stream.getPosition(), pdk::pint64(14));
 }
 
-TEST_F(TextStreamTest, testgetPosition3LargeFile)
-{
-   {
-      File file(sg_testFileName);
-      file.open(IoDevice::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Text);
-      TextStream out(&file);
-      // NOTE: The unusual spacing is to ensure non-1-character whitespace.
-      String lineString = Latin1String(" 0  1  2\t3  4\t \t5  6  7  8   9 \n");
-      // Approximate 50kb text file
-      const int NbLines = (50*1024) / lineString.length() + 1;
-      for (int line = 0; line < NbLines; ++line) {
-         out << lineString;
-      } 
-      // File is automatically flushed and closed on destruction.
-   }
+//TEST_F(TextStreamTest, testgetPosition3LargeFile)
+//{
+//   {
+//      File file(sg_testFileName);
+//      file.open(IoDevice::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Text);
+//      TextStream out(&file);
+//      // NOTE: The unusual spacing is to ensure non-1-character whitespace.
+//      String lineString = Latin1String(" 0  1  2\t3  4\t \t5  6  7  8   9 \n");
+//      // Approximate 50kb text file
+//      const int NbLines = (50*1024) / lineString.length() + 1;
+//      for (int line = 0; line < NbLines; ++line) {
+//         out << lineString;
+//      } 
+//      // File is automatically flushed and closed on destruction.
+//   }
 
-   File file(sg_testFileName);
-   file.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text);
-   TextStream in(&file);
-   const int testValues[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-   int value;
-   while (true) {
-      in.getPosition();
-      for ( int i = 0; i < 10; ++i ) {
-         in >> value;
-         if (in.getStatus() != TextStream::Status::Ok) {
-            // End case, i == 0 && eof reached.
-            ASSERT_EQ(i, 0);
-            ASSERT_EQ(in.getStatus(), TextStream::Status::ReadPastEnd);
-            return;
-         }
-         ASSERT_EQ(value, testValues[i]);
-      }
-   }
-}
+//   File file(sg_testFileName);
+//   file.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text);
+//   TextStream in(&file);
+//   const int testValues[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+//   int value;
+//   while (true) {
+//      in.getPosition();
+//      for ( int i = 0; i < 10; ++i ) {
+//         in >> value;
+//         if (in.getStatus() != TextStream::Status::Ok) {
+//            // End case, i == 0 && eof reached.
+//            ASSERT_EQ(i, 0);
+//            ASSERT_EQ(in.getStatus(), TextStream::Status::ReadPastEnd);
+//            return;
+//         }
+//         ASSERT_EQ(value, testValues[i]);
+//      }
+//   }
+//}
 
 TEST_F(TextStreamTest, testReadAllFromStdin)
 {
@@ -1292,6 +1292,74 @@ TEST_F(TextStreamTest, testReadLineFromStdin)
    
    ASSERT_TRUE(stdinProcess.waitForFinished(5000));
    PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(TextStreamTest, testRead)
+{
+   {
+      File::remove(Latin1String("testfile"));
+      File file(Latin1String("testfile"));
+      file.open(File::OpenMode::WriteOnly);
+      file.write("4.15 abc ole");
+      file.close();
+      
+      ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+      TextStream stream(&file);
+      ASSERT_EQ(stream.read(0), String(Latin1String("")));
+      ASSERT_EQ(stream.read(4), String(Latin1String("4.15")));
+      ASSERT_EQ(stream.read(4), String(Latin1String(" abc")));
+      stream.seek(1);
+      ASSERT_EQ(stream.read(4), String(Latin1String(".15 ")));
+      stream.seek(1);
+      ASSERT_EQ(stream.read(4), String(Latin1String(".15 ")));
+      stream.seek(2);
+      ASSERT_EQ(stream.read(4), String(Latin1String("15 a")));
+      // ### add tests for reading \r\n etc..
+   }
+   {
+      // File larger than TEXTSTREAM_BUFFERSIZE
+      File::remove(Latin1String("testfile"));
+      File file(Latin1String("testfile"));
+      file.open(File::OpenMode::WriteOnly);
+      for (int i = 0; i < 16384 / 8; ++i) {
+         file.write("01234567");
+      }
+      file.write("0");
+      file.close();
+      
+      ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+      TextStream stream(&file);
+      ASSERT_EQ(stream.read(10), String(Latin1String("0123456701")));
+      ASSERT_EQ(stream.read(10), String(Latin1String("2345670123")));
+      ASSERT_EQ(stream.readAll().size(), 16385-20);
+   }
+}
+
+TEST_F(TextStreamTest, testExists)
+{
+   String s;
+   TextStream stream(&s);
+   stream << s.contains(String(Latin1String("hei")));
+   ASSERT_EQ(s, String(Latin1String("0")));
+}
+
+TEST_F(TextStreamTest, testForcePoint)
+{
+   String str;
+   TextStream stream(&str);
+   stream << pdk::io::fixed << pdk::io::forcepoint << 1.0 << ' ' << 1 << ' ' << 0 << ' ' << -1.0 << ' ' << -1;
+   ASSERT_EQ(str, String(Latin1String("1.000000 1 0 -1.000000 -1")));
+   
+   str.clear();
+   stream.seek(0);
+   stream << pdk::io::scientific << pdk::io::forcepoint << 1.0 << ' ' << 1 << ' ' << 0 << ' ' << -1.0 << ' ' << -1;
+   ASSERT_EQ(str, String(Latin1String("1.000000e+00 1 0 -1.000000e+00 -1")));
+   
+   str.clear();
+   stream.seek(0);
+   stream.setRealNumberNotation(TextStream::RealNumberNotation::SmartNotation);
+   stream << pdk::io::forcepoint << 1.0 << ' ' << 1 << ' ' << 0 << ' ' << -1.0 << ' ' << -1;
+   ASSERT_EQ(str, String(Latin1String("1.00000 1 0 -1.00000 -1")));
 }
 
 int main(int argc, char **argv)
