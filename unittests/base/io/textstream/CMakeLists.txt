@@ -21,4 +21,5 @@ add_process_testapp(ReadLineStdinProcessApp apps/ReadLineStdinProcess.cpp)
 add_process_testapp(StdinProcessApp apps/StdinProcess.cpp)
 
 target_compile_definitions(TextStreamTest PUBLIC PDKTEST_CURRENT_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-   PUBLIC PDKTEST_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+   PUBLIC PDKTEST_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+   PUBLIC PDKTEST_TEXTSTREAM_APPS_DIR="${CMAKE_CURRENT_BINARY_DIR}/apps")

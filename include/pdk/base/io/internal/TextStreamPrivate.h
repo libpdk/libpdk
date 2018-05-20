@@ -82,7 +82,7 @@ public:
    // string
    String *m_string;
    int m_stringOffset;
-   IoDevice::OpenMode m_stringOpenMode;
+   IoDevice::OpenModes m_stringOpenMode;
    TextCodec *m_codec;
    TextCodec::ConverterState m_readConverterState;
    TextCodec::ConverterState m_writeConverterState;

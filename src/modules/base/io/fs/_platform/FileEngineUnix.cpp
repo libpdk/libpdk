@@ -188,7 +188,7 @@ pdk::pint64 FileEnginePrivate::nativeRead(char *data, pdk::pint64 len)
             if (readBytes == 0) {
                int readByte = 0;
                do {
-                  readByte = fgetc(m_fh);
+                  readByte = std::fgetc(m_fh);
                } while (readByte == -1 && errno == EINTR);
                if (readByte != -1) {
                   *data = uchar(readByte);

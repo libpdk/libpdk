@@ -104,10 +104,10 @@ public:
 public:
    TextStream();
    explicit TextStream(IoDevice *device);
-   explicit TextStream(FILE *fileHandle, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
-   explicit TextStream(String *string, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
-   explicit TextStream(ByteArray *array, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadWrite);
-   explicit TextStream(const ByteArray &array, IoDevice::OpenMode openMode = IoDevice::OpenMode::ReadOnly);
+   explicit TextStream(FILE *fileHandle, IoDevice::OpenModes openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(String *string, IoDevice::OpenModes openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(ByteArray *array, IoDevice::OpenModes openMode = IoDevice::OpenMode::ReadWrite);
+   explicit TextStream(const ByteArray &array, IoDevice::OpenModes openMode = IoDevice::OpenMode::ReadOnly);
    virtual ~TextStream();
    
 #ifndef PDK_NO_TEXTCODEC

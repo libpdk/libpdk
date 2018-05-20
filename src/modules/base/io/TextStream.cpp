@@ -212,8 +212,8 @@ bool TextStreamPrivate::fillReadBuffer(pdk::pint64 maxBytes)
    // lines instead. If there is no OBJECT, we read lines for all sequential
    // devices; otherwise, we read lines only for stdin.
    File *file = 0;
-   Q_UNUSED(file);
-   if (device->isSequential()
+   PDK_UNUSED(file);
+   if (m_device->isSequential()
        && (file = qobject_cast<File *>(device)) && file->handle() == 0
        ) {
       if (maxBytes != -1)
@@ -1126,7 +1126,7 @@ TextStream::TextStream(IoDevice *device)
    implPtr->m_status = Status::Ok;
 }
 
-TextStream::TextStream(String *string, IoDevice::OpenMode openMode)
+TextStream::TextStream(String *string, IoDevice::OpenModes openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
@@ -1139,7 +1139,7 @@ TextStream::TextStream(String *string, IoDevice::OpenMode openMode)
    implPtr->m_status = Status::Ok;
 }
 
-TextStream::TextStream(ByteArray *array, IoDevice::OpenMode openMode)
+TextStream::TextStream(ByteArray *array, IoDevice::OpenModes openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
@@ -1154,7 +1154,7 @@ TextStream::TextStream(ByteArray *array, IoDevice::OpenMode openMode)
    implPtr->m_status = Status::Ok;
 }
 
-TextStream::TextStream(const ByteArray &array, IoDevice::OpenMode openMode)
+TextStream::TextStream(const ByteArray &array, IoDevice::OpenModes openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
@@ -1172,7 +1172,7 @@ TextStream::TextStream(const ByteArray &array, IoDevice::OpenMode openMode)
    implPtr->m_status = Status::Ok;
 }
 
-TextStream::TextStream(FILE *fileHandle, IoDevice::OpenMode openMode)
+TextStream::TextStream(FILE *fileHandle, IoDevice::OpenModes openMode)
    : m_implPtr(new TextStreamPrivate(this))
 {
 #if defined (PDK_TEXTSTREAM_DEBUG)
@@ -1494,7 +1494,7 @@ bool TextStream::readLineInto(String *line, pdk::pint64 maxlen)
    const Character *readPtr;
    int length;
    if (!implPtr->scan(&readPtr, &length, int(maxlen), TextStreamPrivate::TokenDelimiter::EndOfLine)) {
-      if (line && !line->isNull()) {
+      if (line && !line->isEmpty()) {
          line->resize(0);
       }
       return false;
@@ -1830,7 +1830,7 @@ TextStream &TextStream::operator<<(const char *string)
 {
    PDK_D(TextStream);
    CHECK_VALID_STREAM(*this);
-   // ### Qt6: consider changing to UTF-8
+   // @TODO consider changing to UTF-8
    implPtr->putString(Latin1String(string));
    return *this;
 }

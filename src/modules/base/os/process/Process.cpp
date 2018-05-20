@@ -989,8 +989,9 @@ pdk::pint64 Process::writeData(const char *data, pdk::pint64 len)
    if (!implPtr->m_stdinWriteTrigger->isActive())
       implPtr->m_stdinWriteTrigger->start();
 #else
-   if (implPtr->m_stdinChannel.m_notifier)
+   if (implPtr->m_stdinChannel.m_notifier) {
       implPtr->m_stdinChannel.m_notifier->setEnabled(true);
+   }
 #endif
 #if defined PDK_PROCESS_DEBUG
    debug_stream("Process::writeData(%p \"%s\", %lld) == %lld (written to buffer)",
@@ -1138,7 +1139,7 @@ void ProcessPrivate::start(IoDevice::OpenModes mode)
        m_processChannelMode != Process::ProcessChannelMode::MergedChannels) {
       setReadChannelCount(2);
    }
-
+   
    m_stdinChannel.m_closed = false;
    m_stdoutChannel.m_closed = false;
    m_stderrChannel.m_closed = false;
@@ -1219,12 +1220,12 @@ String Process::getProgram() const
 
 void Process::setProgram(const String &program)
 {
-    PDK_D(Process);
-    if (implPtr->m_processState != ProcessState::NotRunning) {
-        warning_stream("Process::setProgram: Process is already running");
-        return;
-    }
-    implPtr->m_program = program;
+   PDK_D(Process);
+   if (implPtr->m_processState != ProcessState::NotRunning) {
+      warning_stream("Process::setProgram: Process is already running");
+      return;
+   }
+   implPtr->m_program = program;
 }
 
 StringList Process::getArguments() const

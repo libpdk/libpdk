@@ -28,6 +28,7 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/os/process/Process.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "pdktest/PdkTest.h"
 
 #ifdef PDK_OS_UNIX
 #include <locale.h>
@@ -47,9 +48,14 @@ using pdk::lang::Latin1Character;
 using pdk::io::IoDevice;
 using pdk::io::TextStream;
 using pdk::text::codecs::TextCodec;
+using pdk::os::process::Process;
 
 #define PDKTEST_DIR_SEP "/"
 #define FIND_SOURCE_DATA(name) Latin1String(PDKTEST_CURRENT_SOURCE_DIR PDKTEST_DIR_SEP PDK_STRINGIFY(name))
+#define APP_FILENAME(name) Latin1String(PDKTEST_TEXTSTREAM_APPS_DIR PDKTEST_DIR_SEP PDK_STRINGIFY(name)) 
+
+int sg_argc;
+char **sg_argv;
 
 namespace {
 
@@ -984,4 +990,314 @@ TEST_F(TextStreamTest, testStillOpenWhenAtEnd)
    while (!stream.readLine().isEmpty()) {}
    ASSERT_TRUE(file.isOpen());
    // @TODO add socket testcases
+}
+
+namespace {
+
+void init_read_newlines_data(std::list<std::tuple<ByteArray, String>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray(), String()));
+   data.push_back(std::make_tuple(ByteArray("\r\n"), String(Latin1String("\n"))));
+   data.push_back(std::make_tuple(ByteArray("\r\r\n"), String(Latin1String("\n"))));
+   data.push_back(std::make_tuple(ByteArray("\r\n\r\n"), String(Latin1String("\n\n"))));
+   data.push_back(std::make_tuple(ByteArray("\n"), String(Latin1String("\n"))));
+   data.push_back(std::make_tuple(ByteArray("\n\n"), String(Latin1String("\n\n"))));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testReadNewLines)
+{
+   std::list<std::tuple<ByteArray, String>> data;
+   init_read_newlines_data(data);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      String &output = std::get<1>(item);
+      
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenModes(Buffer::OpenMode::ReadOnly) | Buffer::OpenMode::Text);
+      TextStream stream(&buffer);
+      ASSERT_EQ(stream.readAll(), output);
+   }
+}
+
+TEST_F(TextStreamTest, testSeek)
+{
+   File file(sg_rfc3261FilePath);
+   ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+   
+   TextStream stream(&file);
+   String tmp;
+   stream >> tmp;
+   ASSERT_EQ(tmp, String::fromLatin1("Network"));
+   // TextStream::seek(0) should both clear its internal read/write buffers
+   // and seek the device.
+   for (int i = 0; i < 4; ++i) {
+      stream.seek(6 + i);
+      stream >> tmp;
+      ASSERT_EQ(tmp, String(Latin1String("Network")).substring(i));
+   }
+   
+   for (int i = 0; i < 4; ++i) {
+      stream.seek(10 - i);
+      stream >> tmp;
+      ASSERT_EQ(tmp, String(Latin1String("Network")).substring(4 - i));
+   }
+   
+   stream.seek(2331);
+   stream >> tmp;
+   
+   ASSERT_EQ(tmp, String(Latin1String("authenticate")));
+   stream.seek(4273);
+   stream >> tmp;
+   ASSERT_EQ(tmp, String(Latin1String("35")));
+   // Also test this with a string
+   String words = Latin1String("thisisa");
+   TextStream stream2(&words, IoDevice::OpenMode::ReadOnly);
+   stream2 >> tmp;
+   ASSERT_EQ(tmp, String::fromLatin1("thisisa"));
+   for (int i = 0; i < 4; ++i) {
+      stream2.seek(i);
+      stream2 >> tmp;
+      ASSERT_EQ(tmp, String(Latin1String("thisisa")).substring(i));
+   }
+   for (int i = 0; i < 4; ++i) {
+      stream2.seek(4 - i);
+      stream2 >> tmp;
+      ASSERT_EQ(tmp, String(Latin1String("thisisa")).substring(4 - i));
+   }
+}
+
+TEST_F(TextStreamTest, testGetPosition)
+{
+   {
+      // Strings
+      String str(Latin1String("this is a test"));
+      TextStream stream(&str, IoDevice::OpenMode::ReadWrite);
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(0));
+      for (int i = 0; i <= str.size(); ++i) {
+         ASSERT_TRUE(stream.seek(i));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(i));
+      }
+      for (int j = str.size(); j >= 0; --j) {
+         ASSERT_TRUE(stream.seek(j));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(j));
+      }
+      ASSERT_TRUE(stream.seek(0));
+      
+      Character ch;
+      stream >> ch;
+      ASSERT_EQ(ch, Character('t'));
+      
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(1));
+      ASSERT_TRUE(stream.seek(1));
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(1));
+      ASSERT_TRUE(stream.seek(0));
+      
+      String strtmp;
+      stream >> strtmp;
+      ASSERT_EQ(strtmp, String(Latin1String("this")));
+      
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(4));
+      stream.seek(0);
+      stream.seek(4);
+      
+      stream >> ch;
+      ASSERT_EQ(ch, Character(' '));
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(5));
+      
+      stream.seek(10);
+      stream >> strtmp;
+      ASSERT_EQ(strtmp, String(Latin1String("test")));
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(14));
+   }
+   {
+      // Latin1 device
+      File file(sg_rfc3261FilePath);
+      ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+      
+      TextStream stream(&file);
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(0));
+      
+      for (int i = 0; i <= file.getSize(); i += 7) {
+         ASSERT_TRUE(stream.seek(i));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(i));
+      }
+      for (int j = file.getSize(); j >= 0; j -= 7) {
+         ASSERT_TRUE(stream.seek(j));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(j));
+      }
+      
+      stream.seek(0);
+      
+      String strtmp;
+      stream >> strtmp;
+      ASSERT_EQ(strtmp, String(Latin1String("Network")));
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(13));
+      
+      stream.seek(2598);
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(2598));
+      stream >> strtmp;
+      ASSERT_EQ(stream.getPosition(), pdk::pint64(2601));
+      ASSERT_EQ(strtmp, String(Latin1String("top")));
+   }
+   
+   {
+      // Shift-JIS device
+      for (int i = 0; i < 2; ++i) {
+         File file(sg_shiftJisFilePath);
+         if (i == 0) {
+            ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadOnly));
+         } else {
+            ASSERT_TRUE(file.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text));
+         }
+         TextStream stream(&file);
+         stream.setCodec("Shift-JIS");
+         ASSERT_TRUE(stream.getCodec());
+         
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(0));
+         for (int i = 0; i <= file.getSize(); i += 7) {
+            ASSERT_TRUE(stream.seek(i));
+            ASSERT_EQ(stream.getPosition(), pdk::pint64(i));
+         }
+         for (int j = file.getSize(); j >= 0; j -= 7) {
+            ASSERT_TRUE(stream.seek(j));
+            ASSERT_EQ(stream.getPosition(), pdk::pint64(j));
+         }
+         
+         stream.seek(2089);
+         String strtmp;
+         stream >> strtmp;
+         ASSERT_EQ(strtmp, String(Latin1String("AUnicode")));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(2097));
+         
+         stream.seek(43325);
+         stream >> strtmp;
+         ASSERT_EQ(strtmp, String(Latin1String("Shift-JIS")));
+         stream >> strtmp;
+         ASSERT_EQ(strtmp, String::fromUtf8("\343\201\247\346\233\270\343\201\213\343\202\214\343\201\237"));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(43345));
+         stream >> strtmp;
+         ASSERT_EQ(strtmp, String(Latin1String("POD")));
+         ASSERT_EQ(stream.getPosition(), pdk::pint64(43349));
+      }
+   }
+}
+
+TEST_F(TextStreamTest, testGetPosition2)
+{
+   ByteArray data("abcdef\r\nghijkl\r\n");
+   Buffer buffer(&data);
+   ASSERT_TRUE(buffer.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text));
+   
+   TextStream stream(&buffer);
+   
+   Character ch;
+   
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(0));
+   stream >> ch;
+   ASSERT_EQ(ch, Character('a'));
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(1));
+   
+   String str;
+   stream >> str;
+   ASSERT_EQ(str, String(Latin1String("bcdef")));
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(6));
+   
+   stream >> str;
+   ASSERT_EQ(str, String(Latin1String("ghijkl")));
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(14));
+   
+   // Seek back and try again
+   stream.seek(1);
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(1));
+   stream >> str;
+   ASSERT_EQ(str, String(Latin1String("bcdef")));
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(6));
+   
+   stream.seek(6);
+   stream >> str;
+   ASSERT_EQ(str, String(Latin1String("ghijkl")));
+   ASSERT_EQ(stream.getPosition(), pdk::pint64(14));
+}
+
+TEST_F(TextStreamTest, testgetPosition3LargeFile)
+{
+   {
+      File file(sg_testFileName);
+      file.open(IoDevice::OpenModes(IoDevice::OpenMode::WriteOnly) | IoDevice::OpenMode::Text);
+      TextStream out(&file);
+      // NOTE: The unusual spacing is to ensure non-1-character whitespace.
+      String lineString = Latin1String(" 0  1  2\t3  4\t \t5  6  7  8   9 \n");
+      // Approximate 50kb text file
+      const int NbLines = (50*1024) / lineString.length() + 1;
+      for (int line = 0; line < NbLines; ++line) {
+         out << lineString;
+      } 
+      // File is automatically flushed and closed on destruction.
+   }
+
+   File file(sg_testFileName);
+   file.open(IoDevice::OpenModes(IoDevice::OpenMode::ReadOnly) | IoDevice::OpenMode::Text);
+   TextStream in(&file);
+   const int testValues[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+   int value;
+   while (true) {
+      in.getPosition();
+      for ( int i = 0; i < 10; ++i ) {
+         in >> value;
+         if (in.getStatus() != TextStream::Status::Ok) {
+            // End case, i == 0 && eof reached.
+            ASSERT_EQ(i, 0);
+            ASSERT_EQ(in.getStatus(), TextStream::Status::ReadPastEnd);
+            return;
+         }
+         ASSERT_EQ(value, testValues[i]);
+      }
+   }
+}
+
+TEST_F(TextStreamTest, testReadAllFromStdin)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process stdinProcess;
+   stdinProcess.start(APP_FILENAME(ReadAllStdinProcessApp), IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Text);
+   stdinProcess.setReadChannel(Process::ProcessChannel::StandardError);
+   
+   TextStream stream(&stdinProcess);
+   stream.setCodec("ISO-8859-1");
+   stream << "hello world" << pdk::io::flush;
+   
+   stdinProcess.closeWriteChannel();
+   ASSERT_TRUE(stdinProcess.waitForFinished(5000));
+   ASSERT_EQ(stream.readAll(), String::fromLatin1("hello world\n"));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+TEST_F(TextStreamTest, testReadLineFromStdin)
+{
+   PDKTEST_BEGIN_APP_CONTEXT();
+   Process stdinProcess;
+   stdinProcess.start(APP_FILENAME(ReadLineStdinProcessApp), IoDevice::OpenModes(IoDevice::OpenMode::ReadWrite) | IoDevice::OpenMode::Text);
+   stdinProcess.setReadChannel(Process::ProcessChannel::StandardError);
+   stdinProcess.write("abc\n");
+   ASSERT_TRUE(stdinProcess.waitForReadyRead(5000));
+   ASSERT_EQ(stdinProcess.readAll(), ByteArray("abc"));
+   
+   stdinProcess.write("def\n");
+   ASSERT_TRUE(stdinProcess.waitForReadyRead(5000));
+   ASSERT_EQ(stdinProcess.readAll(), ByteArray("def"));
+   
+   stdinProcess.closeWriteChannel();
+   
+   ASSERT_TRUE(stdinProcess.waitForFinished(5000));
+   PDKTEST_END_APP_CONTEXT();
+}
+
+int main(int argc, char **argv)
+{
+   sg_argc = argc;
+   sg_argv = argv;
+   ::testing::InitGoogleTest(&argc, argv);
+   return RUN_ALL_TESTS();
 }

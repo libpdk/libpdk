@@ -16,16 +16,20 @@
 #include "pdk/kernel/CoreApplication.h"
 #include "pdk/base/io/TextStream.h"
 #include "pdk/base/lang/String.h"
+#include "pdk/base/io/IoDevice.h"
 
 using pdk::kernel::CoreApplication;
 using pdk::io::TextStream;
 using pdk::lang::String;
+using pdk::lang::Latin1String;
+using pdk::io::IoDevice;
 
 int main(int argc, char **argv)
 {
    CoreApplication a(argc, argv);
    TextStream qin(stdin);
-   TextStream qerr(stderr);
+   TextStream qerr(stderr, IoDevice::OpenModes(IoDevice::OpenMode::Unbuffered) | IoDevice::OpenMode::WriteOnly);
+   
    String line;
    do {
       line = qin.readLine();
