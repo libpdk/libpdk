@@ -1362,6 +1362,24 @@ TEST_F(TextStreamTest, testForcePoint)
    ASSERT_EQ(str, String(Latin1String("1.00000 1 0 -1.00000 -1")));
 }
 
+TEST_F(TextStreamTest, testForceSign)
+{
+   String str;
+   TextStream stream(&str);
+   stream << pdk::io::forcesign << 1.2 << ' ' << -1.2 << ' ' << 0;
+   ASSERT_EQ(str, String(Latin1String("+1.2 -1.2 +0")));
+}
+
+TEST_F(TextStreamTest, testRead0d0d0a)
+{
+   File file(sg_task113817File);
+   file.open(IoDevice::OpenMode::ReadOnly | IoDevice::OpenMode::Text);
+   TextStream stream(&file);
+   while (!stream.atEnd()) {
+      stream.readLine();
+   }
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;
