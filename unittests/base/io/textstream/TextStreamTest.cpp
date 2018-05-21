@@ -1380,6 +1380,78 @@ TEST_F(TextStreamTest, testRead0d0d0a)
    }
 }
 
+namespace {
+
+TextStream &noop(TextStream &s)
+{
+   return s;
+}
+
+using pdk::io::TextStreamFunc;
+
+using NumCaseDataType = std::list<std::tuple<TextStreamFunc, TextStreamFunc, TextStreamFunc, TextStreamFunc, int, String>>;
+
+void init_numeral_case_data(NumCaseDataType &data)
+{
+   TextStreamFunc noop_ = noop;
+   TextStreamFunc bin_  = pdk::io::bin;
+   TextStreamFunc oct_  = pdk::io::oct;
+   TextStreamFunc hex_  = pdk::io::hex;
+   TextStreamFunc base  = pdk::io::showbase;
+   TextStreamFunc ucb   = pdk::io::uppercasebase;
+   TextStreamFunc lcb   = pdk::io::lowercasebase;
+   TextStreamFunc ucd   = pdk::io::uppercasedigits;
+   TextStreamFunc lcd   = pdk::io::lowercasedigits;
+   
+   data.push_back(std::make_tuple(noop_, noop_, noop_, noop_, 31, String(Latin1String("31"))));
+   data.push_back(std::make_tuple(noop_, base, noop_, noop_, 31, String(Latin1String("31"))));
+   
+   data.push_back(std::make_tuple(hex_, noop_, noop_, noop_, 31, String(Latin1String("1f"))));
+   data.push_back(std::make_tuple(hex_, noop_, noop_, lcd, 31, String(Latin1String("1f"))));
+   data.push_back(std::make_tuple(hex_, noop_, ucb, noop_, 31, String(Latin1String("1f"))));
+   data.push_back(std::make_tuple(hex_, noop_, noop_, ucd, 31, String(Latin1String("1F"))));
+   data.push_back(std::make_tuple(hex_, noop_, lcb, ucd, 31, String(Latin1String("1F"))));
+   data.push_back(std::make_tuple(hex_, noop_, ucb, ucd, 31, String(Latin1String("1F"))));
+   data.push_back(std::make_tuple(hex_, base, noop_, noop_, 31, String(Latin1String("0x1f"))));
+   data.push_back(std::make_tuple(hex_, base, lcb, lcd, 31, String(Latin1String("0x1f"))));
+   data.push_back(std::make_tuple(hex_, base, ucb, noop_, 31, String(Latin1String("0X1f"))));
+   data.push_back(std::make_tuple(hex_, base, ucb, lcd, 31, String(Latin1String("0X1f"))));
+   data.push_back(std::make_tuple(hex_, base, noop_, ucb, 31, String(Latin1String("0X1f"))));
+   data.push_back(std::make_tuple(hex_, base, lcb, ucd, 31, String(Latin1String("0x1F"))));
+   data.push_back(std::make_tuple(hex_, base, lcb, ucd, 31, String(Latin1String("0x1F"))));
+   
+   data.push_back(std::make_tuple(bin_, noop_, noop_, noop_, 31, String(Latin1String("11111"))));
+   data.push_back(std::make_tuple(bin_, base, noop_, noop_, 31, String(Latin1String("0b11111"))));
+   data.push_back(std::make_tuple(bin_, base, lcb, noop_, 31, String(Latin1String("0b11111"))));
+   data.push_back(std::make_tuple(bin_, base, ucb, noop_, 31, String(Latin1String("0B11111"))));
+   data.push_back(std::make_tuple(bin_, base, noop_, ucd, 31, String(Latin1String("0b11111"))));
+   data.push_back(std::make_tuple(bin_, base, lcb, ucd, 31, String(Latin1String("0b11111"))));
+   data.push_back(std::make_tuple(bin_, base, ucb, ucd, 31, String(Latin1String("0B11111"))));
+   
+   data.push_back(std::make_tuple(oct_, noop_, noop_, noop_, 31, String(Latin1String("37"))));
+   data.push_back(std::make_tuple(oct_, base, noop_, noop_, 31, String(Latin1String("037"))));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testNumeralCase)
+{
+   NumCaseDataType data;
+   init_numeral_case_data(data);
+   for (auto &item : data) {
+      TextStreamFunc func1 = std::get<0>(item);
+      TextStreamFunc func2 = std::get<1>(item);
+      TextStreamFunc func3 = std::get<2>(item);
+      TextStreamFunc func4 = std::get<3>(item);
+      int value = std::get<4>(item);
+      String &expected = std::get<5>(item);
+      String str;
+      TextStream stream(&str);
+      stream << func1 << func2 << func3 << func4 << value;
+      ASSERT_EQ(str, expected);
+   }
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;
