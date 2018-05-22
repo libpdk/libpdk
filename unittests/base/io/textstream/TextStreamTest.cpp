@@ -28,12 +28,14 @@
 #include "pdk/base/text/codecs/TextCodec.h"
 #include "pdk/base/os/process/Process.h"
 #include "pdk/kernel/CoreApplication.h"
+#include "pdk/utils/Locale.h"
 #include "pdktest/PdkTest.h"
 
 #ifdef PDK_OS_UNIX
 #include <locale.h>
 #endif
 
+using pdk::utils::Locale;
 using pdk::ds::ByteArray;
 using pdk::ds::StringList;
 using pdk::io::fs::TemporaryDir;
@@ -2019,6 +2021,219 @@ TEST_F(TextStreamTest, testCharPtrReadOperatorFromDevice)
       ASSERT_STREQ((const char *)buf, arrayOutput.getConstRawData());
    }
 }
+
+TEST_F(TextStreamTest, testStringRefReadOperatorFromDevice)
+{
+   std::list<std::tuple<ByteArray, ByteArray, String>> data;
+   generate_string_data(data, false);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      String &stringOutput = std::get<2>(item);
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buffer);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      String temp;
+      stream >> temp;
+      ASSERT_EQ(temp, stringOutput);
+   }
+}
+
+TEST_F(TextStreamTest, testByteArrayReadOperatorFromDevice)
+{
+   std::list<std::tuple<ByteArray, ByteArray, String>> data;
+   generate_string_data(data, false);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      ByteArray &arrayOutput = std::get<1>(item);
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buffer);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      ByteArray array;
+      stream >> array;
+      ASSERT_EQ(array, arrayOutput);
+   }
+}
+
+#define IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(texttype, type) \
+   TEST_F(TextStreamTest, test##texttype##WriteOperatorToDevice)\
+   {\
+      std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> tdata;\
+      generate_##texttype##_write_operator_to_device_data(tdata);\
+      for (auto &item : tdata) {\
+        pdk::pulonglong number = std::get<0>(item);\
+        ByteArray &data = std::get<1>(item);\
+        ByteArray &dataWithSeparators = std::get<2>(item);\
+        Buffer buffer; \
+        buffer.open(Buffer::OpenMode::WriteOnly); \
+        TextStream stream(&buffer); \
+        stream.setLocale(Locale::c()); \
+        stream << (type)number; \
+        stream.flush(); \
+        ASSERT_STREQ(buffer.getData().getConstRawData(), data.getConstRawData()); \
+        \
+        Locale locale(Latin1String("en-US")); \
+        buffer.reset(); buffer.getBuffer().clear(); \
+        stream.setLocale(locale); \
+        stream << (type)number; \
+        stream.flush(); \
+        ASSERT_EQ(buffer.getData(), dataWithSeparators); \
+        \
+        locale.setNumberOptions(Locale::NumberOption::OmitGroupSeparator); \
+        buffer.reset(); buffer.getBuffer().clear(); \
+        stream.setLocale(locale); \
+        stream << (type)number; \
+        stream.flush(); \
+        ASSERT_STREQ(buffer.getData().getConstRawData(), data.getConstRawData()); \
+        \
+        locale = Locale(Latin1String("de-DE")); \
+        buffer.reset(); buffer.getBuffer().clear(); \
+        stream.setLocale(locale); \
+        stream << (type)number; \
+        stream.flush(); \
+        ASSERT_EQ(buffer.getData(), dataWithSeparators.replace(',', '.')); \
+       }\
+    }
+
+namespace {
+
+void generate_signedshort_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("-1"), ByteArray("-1")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(-32768), ByteArray("-32768"), ByteArray("-32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(-32767), ByteArray("-32767"), ByteArray("-32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("-1"), ByteArray("-1")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("1"), ByteArray("1")));
+}
+
+void generate_unsignedshort_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("65535"), ByteArray("65,535")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32768), ByteArray("32768"), ByteArray("32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32769), ByteArray("32769"), ByteArray("32,769")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("65535"), ByteArray("65,535")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("1"), ByteArray("1")));
+}
+
+void generate_signedint_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("-1"), ByteArray("-1")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32768), ByteArray("32768"), ByteArray("32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32769), ByteArray("32769"), ByteArray("32,769")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("65535"), ByteArray("65,535")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("65536"), ByteArray("65,536")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("65537"), ByteArray("65,537")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483647), ByteArray("2147483647"), ByteArray("2,147,483,647")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483648), ByteArray("-2147483648"), ByteArray("-2,147,483,648")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483649), ByteArray("-2147483647"), ByteArray("-2,147,483,647")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967295), ByteArray("-1"), ByteArray("-1")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967296), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967297), ByteArray("1"), ByteArray("1")));
+}
+
+void generate_unsignedint_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("4294967295"), ByteArray("4,294,967,295")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32768), ByteArray("32768"), ByteArray("32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32769), ByteArray("32769"), ByteArray("32,769")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("65535"), ByteArray("65,535")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("65536"), ByteArray("65,536")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("65537"), ByteArray("65,537")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483647), ByteArray("2147483647"), ByteArray("2,147,483,647")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483648), ByteArray("2147483648"), ByteArray("2,147,483,648")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483649), ByteArray("2147483649"), ByteArray("2,147,483,649")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967295), ByteArray("4294967295"), ByteArray("4,294,967,295")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967296), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967297), ByteArray("1"), ByteArray("1")));
+}
+
+void generate_plonglong_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("-1"), ByteArray("-1")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32768), ByteArray("32768"), ByteArray("32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32769), ByteArray("32769"), ByteArray("32,769")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("65535"), ByteArray("65,535")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("65536"), ByteArray("65,536")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("65537"), ByteArray("65,537")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483647), ByteArray("2147483647"), ByteArray("2,147,483,647")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483648), ByteArray("2147483648"), ByteArray("2,147,483,648")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483649), ByteArray("2147483649"), ByteArray("2,147,483,649")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967295), ByteArray("4294967295"), ByteArray("4,294,967,295")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967296), ByteArray("4294967296"), ByteArray("4,294,967,296")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967297), ByteArray("4294967297"), ByteArray("4,294,967,297")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775807), ByteArray("9223372036854775807"), ByteArray("9,223,372,036,854,775,807")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775808), ByteArray("-9223372036854775808"), ByteArray("-9,223,372,036,854,775,808")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775809), ByteArray("-9223372036854775807"), ByteArray("-9,223,372,036,854,775,807")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(18446744073709551615), ByteArray("-1"), ByteArray("-1")));   
+}
+
+void generate_pulonglong_write_operator_to_device_data(std::list<std::tuple<pdk::pulonglong, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(PDK_UINT64_C(0), ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(1), ByteArray("1"), ByteArray("1")));
+   data.push_back(std::make_tuple(pdk::puint64(-1), ByteArray("18446744073709551615"), ByteArray("18,446,744,073,709,551,615")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(32767), ByteArray("32767"), ByteArray("32,767")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32768), ByteArray("32768"), ByteArray("32,768")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(32769), ByteArray("32769"), ByteArray("32,769")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65535), ByteArray("65535"), ByteArray("65,535")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65536), ByteArray("65536"), ByteArray("65,536")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(65537), ByteArray("65537"), ByteArray("65,537")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483647), ByteArray("2147483647"), ByteArray("2,147,483,647")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483648), ByteArray("2147483648"), ByteArray("2,147,483,648")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(2147483649), ByteArray("2147483649"), ByteArray("2,147,483,649")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967295), ByteArray("4294967295"), ByteArray("4,294,967,295")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967296), ByteArray("4294967296"), ByteArray("4,294,967,296")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(4294967297), ByteArray("4294967297"), ByteArray("4,294,967,297")));
+   
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775807), ByteArray("9223372036854775807"), ByteArray("9,223,372,036,854,775,807")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775808), ByteArray("9223372036854775808"), ByteArray("9,223,372,036,854,775,808")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(9223372036854775809), ByteArray("9223372036854775809"), ByteArray("9,223,372,036,854,775,809")));
+   data.push_back(std::make_tuple(PDK_UINT64_C(18446744073709551615), ByteArray("18446744073709551615"), ByteArray("18,446,744,073,709,551,615")));   
+}
+
+} // anonymous namespace
+
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(signedshort, signed short)
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(unsignedshort, unsigned short)
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(signedint, signed int)
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(unsignedint, unsigned int)
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(plonglong, pdk::plonglong)
+IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(pulonglong, pdk::pulonglong)
+    ;
 
 int main(int argc, char **argv)
 {
