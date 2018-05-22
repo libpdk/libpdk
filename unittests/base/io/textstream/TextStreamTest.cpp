@@ -1711,12 +1711,12 @@ TEST_F(TextStreamTest, testWriteSeekWriteNoBOM)
 
 namespace {
 
-void init_generate_operator_char_data(std::list<std::tuple<ByteArray, Character, char, ByteArray>> &data, bool forString)
+void generate_operator_char_data(std::list<std::tuple<ByteArray, Character, char, ByteArray>> &data, bool forString)
 {
    // empty
    data.push_back(std::make_tuple(ByteArray(), Character('\0'), '\0', ByteArray("\0", 1)));
    // a
-   data.push_back(std::make_tuple(ByteArray("a"), Character('a'), '\a', ByteArray("a")));
+   data.push_back(std::make_tuple(ByteArray("a"), Character('a'), 'a', ByteArray("a")));
    // \\na
    data.push_back(std::make_tuple(ByteArray("\na"), Character('\n'), '\n', ByteArray("\n")));
    // \\0
@@ -1742,7 +1742,7 @@ void init_generate_operator_char_data(std::list<std::tuple<ByteArray, Character,
 TEST_F(TextStreamTest, testCharacterOperatorsFromDevice)
 {
    std::list<std::tuple<ByteArray, Character, char, ByteArray>> data;
-   init_generate_operator_char_data(data, false);
+   generate_operator_char_data(data, false);
    for (auto &item : data) {
       ByteArray &input = std::get<0>(item);
       Character &charOutput = std::get<1>(item);
@@ -1766,6 +1766,257 @@ TEST_F(TextStreamTest, testCharacterOperatorsFromDevice)
       
       ASSERT_EQ(writeBuf.getBuffer().size(), writeOutput.size());
       ASSERT_STREQ(writeBuf.getBuffer().getConstRawData(), writeOutput.getConstRawData());
+   }
+}
+
+TEST_F(TextStreamTest, testCharOperatorsFromDevice)
+{
+   std::list<std::tuple<ByteArray, Character, char, ByteArray>> data;
+   generate_operator_char_data(data, false);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      char charOutput = std::get<2>(item);
+      ByteArray &writeOutput = std::get<3>(item);
+      Buffer buf(&input);
+      buf.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buf);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      char tmp;
+      stream >> tmp;
+      ASSERT_EQ(tmp, charOutput);
+      
+      Buffer writeBuf;
+      writeBuf.open(Buffer::OpenMode::WriteOnly);
+      TextStream writeStream(&writeBuf);
+      writeStream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      writeStream << charOutput;
+      writeStream.flush();
+      
+      ASSERT_EQ(writeBuf.getBuffer().size(), writeOutput.size());
+      ASSERT_STREQ(writeBuf.getBuffer().getConstRawData(), writeOutput.getConstRawData());
+   }
+}
+
+namespace {
+
+void generate_natural_numbers_data(std::list<std::tuple<ByteArray, pdk::pulonglong>> &data, bool forString)
+{
+   data.push_back(std::make_tuple(ByteArray(), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("a"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray(" "), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("0"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("1"), pdk::pulonglong(1)));
+   data.push_back(std::make_tuple(ByteArray("12"), pdk::pulonglong(12)));
+   data.push_back(std::make_tuple(ByteArray("-12"), pdk::pulonglong(-12)));
+   data.push_back(std::make_tuple(ByteArray("-0"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray(" 1"), pdk::pulonglong(1)));
+   data.push_back(std::make_tuple(ByteArray(" \r\n\r\n123"), pdk::pulonglong(123)));
+   
+   data.push_back(std::make_tuple(ByteArray("127"), pdk::pulonglong(127)));
+   data.push_back(std::make_tuple(ByteArray("128"), pdk::pulonglong(128)));
+   data.push_back(std::make_tuple(ByteArray("129"), pdk::pulonglong(129)));
+   data.push_back(std::make_tuple(ByteArray("-127"), pdk::pulonglong(-127)));
+   data.push_back(std::make_tuple(ByteArray("-128"), pdk::pulonglong(-128)));
+   data.push_back(std::make_tuple(ByteArray("-129"), pdk::pulonglong(-129)));
+   
+   data.push_back(std::make_tuple(ByteArray("32767"), pdk::pulonglong(32767)));
+   data.push_back(std::make_tuple(ByteArray("32768"), pdk::pulonglong(32768)));
+   data.push_back(std::make_tuple(ByteArray("32769"), pdk::pulonglong(32769)));
+   
+   data.push_back(std::make_tuple(ByteArray("-32767"), pdk::pulonglong(-32767)));
+   data.push_back(std::make_tuple(ByteArray("-32768"), pdk::pulonglong(-32768)));
+   data.push_back(std::make_tuple(ByteArray("-32769"), pdk::pulonglong(-32769)));
+   
+   data.push_back(std::make_tuple(ByteArray("65537"), pdk::pulonglong(65537)));
+   data.push_back(std::make_tuple(ByteArray("65536"), pdk::pulonglong(65536)));
+   data.push_back(std::make_tuple(ByteArray("65535"), pdk::pulonglong(65535)));
+   
+   data.push_back(std::make_tuple(ByteArray("-65537"), pdk::pulonglong(-65537)));
+   data.push_back(std::make_tuple(ByteArray("-65536"), pdk::pulonglong(-65536)));
+   data.push_back(std::make_tuple(ByteArray("-65535"), pdk::pulonglong(-65535)));
+   
+   data.push_back(std::make_tuple(ByteArray("2147483646"), pdk::pulonglong(2147483646)));
+   data.push_back(std::make_tuple(ByteArray("2147483647"), pdk::pulonglong(2147483647)));
+   data.push_back(std::make_tuple(ByteArray("2147483648"), PDK_UINT64_C(2147483648)));
+   
+   data.push_back(std::make_tuple(ByteArray("-2147483646"), pdk::pulonglong(-2147483646)));
+   data.push_back(std::make_tuple(ByteArray("-2147483647"), pdk::pulonglong(-2147483647)));
+   data.push_back(std::make_tuple(ByteArray("-2147483648"), pdk::puint64(-2147483648LL)));
+   
+   data.push_back(std::make_tuple(ByteArray("4294967296"), PDK_UINT64_C(4294967296)));
+   data.push_back(std::make_tuple(ByteArray("4294967297"), PDK_UINT64_C(4294967297)));
+   data.push_back(std::make_tuple(ByteArray("4294967298"), PDK_UINT64_C(4294967298)));
+   
+   data.push_back(std::make_tuple(ByteArray("-4294967296"), pdk::puint64(-4294967296)));
+   data.push_back(std::make_tuple(ByteArray("-4294967297"), pdk::puint64(-4294967297)));
+   data.push_back(std::make_tuple(ByteArray("-4294967298"), pdk::puint64(-4294967298)));
+   
+   data.push_back(std::make_tuple(ByteArray("9223372036854775807"), PDK_UINT64_C(9223372036854775807)));
+   data.push_back(std::make_tuple(ByteArray("9223372036854775808"), PDK_UINT64_C(9223372036854775808)));
+   data.push_back(std::make_tuple(ByteArray("9223372036854775809"), PDK_UINT64_C(9223372036854775809)));
+   
+   data.push_back(std::make_tuple(ByteArray("18446744073709551615"), PDK_UINT64_C(18446744073709551615)));
+   data.push_back(std::make_tuple(ByteArray("0"), PDK_UINT64_C(0)));
+   data.push_back(std::make_tuple(ByteArray("1"), PDK_UINT64_C(1)));
+   
+   // hex tests
+   data.push_back(std::make_tuple(ByteArray("0x0"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("0x"), pdk::pulonglong(0)));
+   
+   data.push_back(std::make_tuple(ByteArray("0x1"), pdk::pulonglong(1)));
+   data.push_back(std::make_tuple(ByteArray("0xf"), pdk::pulonglong(15)));
+   
+   data.push_back(std::make_tuple(ByteArray("0xdeadbeef"), PDK_UINT64_C(3735928559)));
+   data.push_back(std::make_tuple(ByteArray("0XDEADBEEF"), PDK_UINT64_C(3735928559)));
+   data.push_back(std::make_tuple(ByteArray("0xdeadbeefZzzzz"), PDK_UINT64_C(3735928559)));
+   data.push_back(std::make_tuple(ByteArray("  0xdeadbeefZzzzz"), PDK_UINT64_C(3735928559)));
+   
+   // oct tests
+   data.push_back(std::make_tuple(ByteArray("00"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("0141"), pdk::pulonglong(97)));
+   data.push_back(std::make_tuple(ByteArray("01419999"), pdk::pulonglong(97)));
+   data.push_back(std::make_tuple(ByteArray("  01419999"), pdk::pulonglong(97)));
+   
+   data.push_back(std::make_tuple(ByteArray("0b0"), pdk::pulonglong(0)));
+   data.push_back(std::make_tuple(ByteArray("0b1"), pdk::pulonglong(1)));
+   data.push_back(std::make_tuple(ByteArray("0b10"), pdk::pulonglong(2)));
+   data.push_back(std::make_tuple(ByteArray("0B10"), pdk::pulonglong(2)));
+   data.push_back(std::make_tuple(ByteArray("0b101010"), pdk::pulonglong(42)));
+   data.push_back(std::make_tuple(ByteArray("0b1010102345"), pdk::pulonglong(42)));
+   data.push_back(std::make_tuple(ByteArray("  0b1010102345"), pdk::pulonglong(42)));
+   
+   // utf-16 tests
+   if (!forString) {
+      // utf16-BE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff", 2), pdk::pulonglong(0)));
+      // utf16-BE (0xdeadbeef)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff"
+                                               "\x00\x30\x00\x78\x00\x64\x00\x65\x00\x61\x00\x64\x00\x62\x00\x65\x00\x65\x00\x66", 22), PDK_UINT64_C(3735928559)));
+      // utf16-LE (empty)"
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe", 2), PDK_UINT64_C(0)));
+      // utf16-LE (0xdeadbeef)
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe"
+                                               "\x30\x00\x78\x00\x64\x00\x65\x00\x61\x00\x64\x00\x62\x00\x65\x00\x65\x00\x66\x00", 22), PDK_UINT64_C(3735928559)));
+   }
+}
+
+} // anonymous namespace
+
+#define IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(texttype, type) \
+   TEST_F(TextStreamTest, test##texttype##ReadOperatorFromDevice)\
+{ \
+   std::list<std::tuple<ByteArray, pdk::pulonglong>> data;\
+   generate_natural_numbers_data(data, false);\
+   for (auto &item : data) {\
+      ByteArray &input = std::get<0>(item);\
+      pdk::pulonglong output = std::get<1>(item);\
+      type sh; \
+      TextStream stream(&input); \
+      stream >> sh; \
+      ASSERT_EQ(sh, (type)output); \
+   }\
+   }
+
+using pdkplonglong = pdk::plonglong;
+using pdkpulonglong = pdk::pulonglong;
+
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(signedShort, signed short)
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(unsignedShort, unsigned short)
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(signedInt, signed int)
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(unsignedInt, unsigned int)
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(pdkplonglong, pdk::plonglong)
+IMPLEMENT_STREAM_RIGHT_INT_OPERATOR_TEST(pdkpulonglong, pdk::pulonglong)
+;
+
+namespace {
+
+void generate_real_numbers_data(std::list<std::tuple<ByteArray, double>> &data, bool forString)
+{
+   data.push_back(std::make_tuple(ByteArray(), 0.0));
+   data.push_back(std::make_tuple(ByteArray("a"), 0.0));
+   data.push_back(std::make_tuple(ByteArray("1.0"), 1.0));
+   data.push_back(std::make_tuple(ByteArray(" 1"), 1.0));
+   data.push_back(std::make_tuple(ByteArray(" \r\n1.2"), 1.2));
+   data.push_back(std::make_tuple(ByteArray("3.14"), 3.14));
+   data.push_back(std::make_tuple(ByteArray("-3.14"), -3.14));
+   data.push_back(std::make_tuple(ByteArray(" -3.14"), -3.14));
+   data.push_back(std::make_tuple(ByteArray("314e-02"), 3.14));
+   data.push_back(std::make_tuple(ByteArray("314E-02"), 3.14));
+   data.push_back(std::make_tuple(ByteArray("314e+02"), 31400.));
+   data.push_back(std::make_tuple(ByteArray("314E+02"), 31400.));
+   if (!forString) {
+      // utf16-BE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe", 2),  0.0));
+      // utf16-LE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff", 2),  0.0));
+   }
+}
+
+} // anonymous namespace
+
+#define IMPLEMENT_STREAM_RIGHT_REAL_OPERATOR_TEST(texttype, type) \
+   TEST_F(TextStreamTest, test##texttype##ReadOperatorFromDevice)\
+{ \
+   std::list<std::tuple<ByteArray, double>> data;\
+   generate_real_numbers_data(data, false);\
+   for (auto &item : data) {\
+      ByteArray &input = std::get<0>(item);\
+      double output = std::get<1>(item);\
+      type sh; \
+      TextStream stream(&input); \
+      stream >> sh; \
+      ASSERT_EQ(sh, (type)output); \
+   }\
+}
+
+IMPLEMENT_STREAM_RIGHT_REAL_OPERATOR_TEST(float, float)
+IMPLEMENT_STREAM_RIGHT_REAL_OPERATOR_TEST(double, double)
+;
+
+namespace {
+
+void generate_string_data(std::list<std::tuple<ByteArray, ByteArray, String>> data, bool forString)
+{
+   data.push_back(std::make_tuple(ByteArray(), ByteArray(), String()));
+   data.push_back(std::make_tuple(ByteArray("a"), ByteArray("a"), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(ByteArray("a b"), ByteArray("a b"), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(ByteArray(" a b"), ByteArray(" a b"), String(Latin1String("a"))));
+   data.push_back(std::make_tuple(ByteArray("a1"), ByteArray("a1"), String(Latin1String("a1"))));
+   data.push_back(std::make_tuple(ByteArray("a1 b1"), ByteArray("a1"), String(Latin1String("a1"))));
+   data.push_back(std::make_tuple(ByteArray(" a1 b1"), ByteArray("a1"), String(Latin1String("a1"))));
+   data.push_back(std::make_tuple(ByteArray("\n\n\nole i dole\n"), ByteArray("ole"), String(Latin1String("ole"))));
+   
+   if (!forString) {
+      // utf16-BE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe", 2), ByteArray(), String()));
+      // utf16-BE (corrupt)
+      data.push_back(std::make_tuple(ByteArray("\xff", 1), ByteArray("\xff"), String::fromLatin1("\xff")));
+      // utf16-LE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff", 2), ByteArray(), String()));
+      // utf16-LE (corrupt)
+       data.push_back(std::make_tuple(ByteArray("\xfe", 1), ByteArray("\xfe"), String::fromLatin1("\xfe")));
+   }
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testCharPtrReadOperatorFromDevice)
+{
+   std::list<std::tuple<ByteArray, ByteArray, String>> data;
+   generate_string_data(data, false);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      ByteArray &arrayOutput = std::get<1>(item);
+      Buffer buffer(&input);
+      buffer.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buffer);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      char buf[1024];
+      stream >> buf;
+      
+      ASSERT_STREQ((const char *)buf, arrayOutput.getConstRawData());
    }
 }
 
