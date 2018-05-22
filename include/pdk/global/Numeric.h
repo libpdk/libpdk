@@ -17,6 +17,7 @@
 #define PDK_GLOBAL_NUMERIC_H
 
 #include "Global.h"
+#include "pdk/global/internal/NumericPrivate.h"
 
 namespace pdk {
 

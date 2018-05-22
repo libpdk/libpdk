@@ -247,7 +247,7 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    // "-nan" or "+nan"
    if (pdk::strcmp(num, "nan") == 0) {
       processed = 3;
-      return pdk::pdk_snan();
+      return pdk::snan();
    } else if ((num[0] == '-' || num[0] == '+') && pdk::strcmp(num + 1, "nan") == 0) {
       processed = 0;
       ok = false;
@@ -258,13 +258,13 @@ double ascii_to_double(const char *num, int numLen, bool &ok, int &processed,
    // case we need infinity as overflow marker.
    if (pdk::strcmp(num, "+inf") == 0) {
       processed = 4;
-      return pdk::pdk_inf();
+      return pdk::inf();
    } else if (pdk::strcmp(num, "inf") == 0) {
       processed = 3;
-      return pdk::pdk_inf();
+      return pdk::inf();
    } else if (pdk::strcmp(num, "-inf") == 0) {
       processed = 4;
-      return -pdk::pdk_inf();
+      return -pdk::inf();
    }
    
    double d = 0.0;

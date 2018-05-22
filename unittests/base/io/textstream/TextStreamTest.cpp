@@ -1452,6 +1452,323 @@ TEST_F(TextStreamTest, testNumeralCase)
    }
 }
 
+TEST_F(TextStreamTest, testNanInf)
+{
+   String str(Latin1String("nan NAN nAn +nan +NAN +nAn -nan -NAN -nAn"
+                           " inf INF iNf +inf +INF +iNf -inf -INF -iNf"));
+   TextStream stream(&str);
+   double tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;  
+   stream >> tmpD;
+   ASSERT_TRUE(std::isnan(tmpD));
+   tmpD = 0;
+   
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD > 0);
+   tmpD = 0;
+   
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD < 0);
+   tmpD = 0;
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD < 0);
+   tmpD = 0;  
+   stream >> tmpD;
+   ASSERT_TRUE(std::isinf(tmpD));
+   ASSERT_TRUE(tmpD < 0);
+   tmpD = 0;
+   
+   stream.seek(0);
+   float tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isnan(tmpF));
+   tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF > 0);
+   tmpF = 0;
+   
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF < 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF < 0);
+   tmpF = 0;
+   stream >> tmpF;
+   ASSERT_TRUE(std::isinf(tmpF));
+   ASSERT_TRUE(tmpF < 0);
+   tmpF = 0;
+   
+   String s;
+   TextStream out(&s);
+   out << pdk::inf() << ' ' << -pdk::inf() << ' ' << pdk::qnan()
+       << pdk::io::uppercasedigits << ' '
+       << pdk::inf() << ' ' << -pdk::inf() << ' ' << pdk::qnan()
+       << pdk::io::flush;
+}
+
+namespace {
+
+void init_utf8_incomplete_at_buffer_boundary_data(std::list<bool> &data)
+{
+   data.push_back(false);
+   if (String(Character::SpecialCharacter::ReplacementCharacter).toLocal8Bit() == "\xef\xbf\xbd") {
+      data.push_back(true);
+   }
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testUtf8IncompleteAtBufferBoundary)
+{
+   File::remove(sg_testFileName);
+   File data(sg_testFileName);
+   TextCodec *utf8Codec = TextCodec::codecForMib(106);
+   String lineContents = String::fromUtf8("\342\200\223" // U+2013 EN DASH
+                                          "\342\200\223"
+                                          "\342\200\223"
+                                          "\342\200\223"
+                                          "\342\200\223"
+                                          "\342\200\223");
+   data.open(File::OpenModes(File::OpenMode::WriteOnly) | File::OpenMode::Truncate);
+   {
+      TextStream out(&data);
+      out.setCodec(utf8Codec);
+      out.setFieldWidth(3);
+      
+      for (int i = 0; i < 1000; ++i) {
+         out << i << lineContents << pdk::io::endl;
+      }
+   }
+   data.close();
+   
+   std::list<bool> tdata;
+   init_utf8_incomplete_at_buffer_boundary_data(tdata);
+   for (auto useLocale : tdata) {
+      data.open(File::OpenMode::ReadOnly);
+      TextStream in(&data);
+      if (!useLocale) {
+         in.setCodec(utf8Codec); // Utf8Codec
+      } else {
+         in.setCodec(TextCodec::getCodecForLocale());
+      }
+      int i = 0;
+      do {
+         String line = in.readLine().trimmed();
+         ++i;
+         ASSERT_TRUE(line.endsWith(lineContents)) << String(Latin1String("Line %1: %2")).arg(i).arg(line);
+      } while (!in.atEnd());
+      data.close();
+   }
+}
+
+TEST_F(TextStreamTest, testWriteSeekWriteNoBOM)
+{
+   //First with the default codec (normally either latin-1 or UTF-8)
+   Buffer out;
+   out.open(IoDevice::OpenMode::WriteOnly);
+   TextStream stream(&out);
+   int number = 0;
+   String sizeStr = Latin1String("Size=")
+         + String::number(number).rightJustified(10, Latin1Character('0'));
+   stream << sizeStr << pdk::io::endl;
+   stream << "Version=" << String::number(14) << pdk::io::endl;
+   stream << "blah blah blah" << pdk::io::endl;
+   stream.flush();
+   
+   ASSERT_STREQ(out.getBuffer().getConstRawData(), "Size=0000000000\nVersion=14\nblah blah blah\n");
+   
+   // Now overwrite the size header item
+   number = 42;
+   stream.seek(0);
+   sizeStr = Latin1String("Size=")
+         + String::number(number).rightJustified(10, Latin1Character('0'));
+   stream << sizeStr << pdk::io::endl;
+   stream.flush();
+   
+   // Check buffer is still OK
+   ASSERT_STREQ(out.getBuffer().getConstRawData(), "Size=0000000042\nVersion=14\nblah blah blah\n");
+   
+   //Then UTF-16
+   
+   Buffer out16;
+   out16.open(IoDevice::OpenMode::WriteOnly);
+   TextStream stream16(&out16);
+   stream16.setCodec("UTF-16");
+   
+   stream16 << "one" << "two" << Latin1String("three");
+   stream16.flush();
+   
+   // save that output
+   ByteArray first = out16.getBuffer();
+   
+   stream16.seek(0);
+   stream16 << "one";
+   stream16.flush();
+   
+   ASSERT_EQ(out16.getBuffer(), first);
+}
+
+namespace {
+
+void init_generate_operator_char_data(std::list<std::tuple<ByteArray, Character, char, ByteArray>> &data, bool forString)
+{
+   // empty
+   data.push_back(std::make_tuple(ByteArray(), Character('\0'), '\0', ByteArray("\0", 1)));
+   // a
+   data.push_back(std::make_tuple(ByteArray("a"), Character('a'), '\a', ByteArray("a")));
+   // \\na
+   data.push_back(std::make_tuple(ByteArray("\na"), Character('\n'), '\n', ByteArray("\n")));
+   // \\0
+   data.push_back(std::make_tuple(ByteArray("\0"), Character('\0'), '\0', ByteArray("\0", 1)));
+   // \\xff
+   data.push_back(std::make_tuple(ByteArray("\xff"), Character('\xff'), '\xff', ByteArray("\xff")));
+   // \\xfe
+   data.push_back(std::make_tuple(ByteArray("\xfe"), Character('\xfe'), '\xfe', ByteArray("\xfe")));
+   if (!forString) {
+      // utf16-BE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe", 2), Character('\0'), '\0', ByteArray("\0", 1)));
+      // utf16-BE (a)
+      data.push_back(std::make_tuple(ByteArray("\xff\xfe\x61\x00", 4), Character('a'), 'a', ByteArray("a")));
+      // utf16-LE (empty)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff", 2), Character('\0'), '\0', ByteArray("\0", 1)));
+      // utf16-LE (a)
+      data.push_back(std::make_tuple(ByteArray("\xfe\xff\x00\x61", 4), Character('a'), 'a', ByteArray("a")));
+   }
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testCharacterOperatorsFromDevice)
+{
+   std::list<std::tuple<ByteArray, Character, char, ByteArray>> data;
+   init_generate_operator_char_data(data, false);
+   for (auto &item : data) {
+      ByteArray &input = std::get<0>(item);
+      Character &charOutput = std::get<1>(item);
+      ByteArray &writeOutput = std::get<3>(item);
+      
+      Buffer buf(&input);
+      buf.open(Buffer::OpenMode::ReadOnly);
+      TextStream stream(&buf);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      Character tmp;
+      stream >> tmp;
+      ASSERT_EQ(tmp, charOutput);
+      
+      Buffer writeBuf;
+      writeBuf.open(Buffer::OpenMode::WriteOnly);
+      
+      TextStream writeStream(&writeBuf);
+      writeStream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      writeStream << charOutput;
+      writeStream.flush();
+      
+      ASSERT_EQ(writeBuf.getBuffer().size(), writeOutput.size());
+      ASSERT_STREQ(writeBuf.getBuffer().getConstRawData(), writeOutput.getConstRawData());
+   }
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;

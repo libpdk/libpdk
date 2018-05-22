@@ -1039,13 +1039,13 @@ bool TextStreamPrivate::getReal(double *f)
    // nan/+inf/-inf, so here we also check for uppercase and mixed
    // case versions.
    if (!pdk::stricmp(buf, "nan") || !pdk::stricmp(buf, "+nan") || !pdk::stricmp(buf, "-nan")) {
-      *f = pdk::pdk_snan();
+      *f = pdk::snan();
       return true;
    } else if (!pdk::stricmp(buf, "+inf") || !pdk::stricmp(buf, "inf")) {
-      *f = pdk::pdk_inf();
+      *f = pdk::inf();
       return true;
    } else if (!pdk::stricmp(buf, "-inf")) {
-      *f = -pdk::pdk_inf();
+      *f = -pdk::inf();
       return true;
    }
    bool ok;
