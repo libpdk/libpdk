@@ -2437,6 +2437,415 @@ TEST_F(TextStreamTest, testUseCase2)
    ASSERT_EQ(s, String(Latin1String("ole")));
 }
 
+namespace {
+
+using ManipulatorDataType = std::list<std::tuple<int, int, double, int, String, ByteArray>>;
+
+void init_manipulators_data(ManipulatorDataType data)
+{
+   data.push_back(std::make_tuple(0, 0, 5.0, 5, String(Latin1String("five")), ByteArray("55five")));
+   data.push_back(std::make_tuple(0, 10, 5.0, 5, String(Latin1String("five")), ByteArray("         5         5      five")));
+   // @todo fix
+   // leftadjust
+   // showpos
+   // showpos2
+   // hex
+   // hex uppercase
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testManipulators)
+{
+   ManipulatorDataType data;
+   init_manipulators_data(data);
+   for (auto &item : data) {
+      int width = std::get<1>(item);
+      double realNumber = std::get<2>(item);
+      int intNumber = std::get<3>(item);
+      String &textData = std::get<4>(item);
+      ByteArray &result = std::get<5>(item);
+      Buffer buffer;
+      buffer.open(Buffer::OpenMode::WriteOnly);
+      
+      TextStream stream(&buffer);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      //    stream.setFlags(flags);
+      stream.setFieldWidth(width);
+      stream << realNumber;
+      stream << intNumber;
+      stream << textData;
+      stream.flush();
+      ASSERT_STREQ(buffer.getData().getConstRawData(), result.getConstRawData());
+   }
+}
+
+TEST_F(TextStreamTest, testGenerateBOM)
+{
+   File::remove(Latin1String("bom.txt"));
+   {
+      File file(Latin1String("bom.txt"));
+      ASSERT_TRUE(file.open(File::OpenMode::ReadWrite | File::OpenMode::Truncate));
+      
+      TextStream stream(&file);
+      stream.setCodec(TextCodec::codecForName("UTF-16LE"));
+      stream << "Hello" << pdk::io::endl;
+      
+      file.close();
+      ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+      ASSERT_EQ(file.readAll(), ByteArray("\x48\x00\x65\00\x6c\00\x6c\00\x6f\x00\x0a\x00", 12));
+   }
+   
+   File::remove(Latin1String("bom.txt"));
+   {
+      File file(Latin1String("bom.txt"));
+      ASSERT_TRUE(file.open(File::OpenMode::ReadWrite | File::OpenMode::Truncate));
+      
+      TextStream stream(&file);
+      stream.setCodec(TextCodec::codecForName("UTF-16LE"));
+      stream << pdk::io::bom << "Hello" << pdk::io::endl;
+      
+      file.close();
+      ASSERT_TRUE(file.open(File::OpenMode::ReadOnly));
+      ASSERT_EQ(file.readAll(), ByteArray("\xff\xfe\x48\x00\x65\00\x6c\00\x6c\00\x6f\x00\x0a\x00", 14));
+   }
+}
+
+TEST_F(TextStreamTest, testReadBomSeekBackReadBomAgain)
+{
+   File::remove(Latin1String("utf8bom"));
+   File file(Latin1String("utf8bom"));
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite));
+   file.write("\xef\xbb\xbf""Andreas");
+   file.seek(0);
+   ASSERT_EQ(file.getPosition(), pdk::pint64(0));
+   
+   TextStream stream(&file);
+   stream.setCodec("UTF-8");
+   String Andreas;
+   stream >> Andreas;
+   ASSERT_EQ(Andreas, String(Latin1String("Andreas")));
+   stream.seek(0);
+   stream >> Andreas;
+   ASSERT_EQ(Andreas, String(Latin1String("Andreas")));
+}
+
+namespace {
+
+void init_status_real_read_data(std::list<std::tuple<String, double, String, std::vector<TextStream::Status>>> &data)
+{
+   std::vector<TextStream::Status> list {
+      TextStream::Status::Ok,
+            TextStream::Status::ReadCorruptData,
+            TextStream::Status::Ok,
+            TextStream::Status::Ok,
+            TextStream::Status::ReadPastEnd
+   };
+   data.push_back(std::make_tuple(String(Latin1String("1.23 abc   ")), 1.23, String(Latin1String("abc")), list));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testStatusRealRead)
+{
+   std::list<std::tuple<String, double, String, std::vector<TextStream::Status>>> data;
+   init_status_real_read_data(data);
+   for (auto &item : data) {
+      String &input = std::get<0>(item);
+      double expectedF = std::get<1>(item);
+      String expectedW = std::get<2>(item);
+      std::vector<TextStream::Status> results = std::get<3>(item);
+      TextStream s(&input);
+      double f = 0.0;
+      String w;
+      s >> f;
+      ASSERT_EQ(s.getStatus(), results.at(0));
+      ASSERT_EQ(f, expectedF);
+      s >> f;
+      ASSERT_EQ(s.getStatus(), results.at(1));
+      s.resetStatus();
+      ASSERT_EQ(s.getStatus(), results.at(2));
+      s >> w;
+      ASSERT_EQ(s.getStatus(), results.at(3));
+      ASSERT_EQ(w, expectedW);
+      s >> f;
+      ASSERT_EQ(s.getStatus(), results.at(4));
+   }
+}
+
+TEST_F(TextStreamTest, testStatusIntegerRead)
+{
+    TextStream s("123 abc   ");
+    int i;
+    String w;
+    s >> i;
+    ASSERT_EQ(s.getStatus(), TextStream::Status::Ok);
+    s >> i;
+    ASSERT_EQ(s.getStatus(), TextStream::Status::ReadCorruptData);
+    s.resetStatus();
+    ASSERT_EQ(s.getStatus(), TextStream::Status::Ok);
+    s >> w;
+    ASSERT_EQ(s.getStatus(), TextStream::Status::Ok);
+    ASSERT_EQ(w, String(Latin1String("abc")));
+    s >> i;
+    ASSERT_EQ(s.getStatus(), TextStream::Status::ReadPastEnd);
+}
+
+TEST_F(TextStreamTest, testStatusWordRead)
+{
+   TextStream s("abc ");
+   String w;
+   s >> w;
+   ASSERT_EQ(s.getStatus(), TextStream::Status::Ok);
+   s >> w;
+   ASSERT_EQ(s.getStatus(), TextStream::Status::ReadPastEnd);
+}
+
+namespace {
+
+class FakeBuffer : public Buffer
+{
+protected:
+    pdk::pint64 writeData(const char *c, pdk::pint64 i) { return m_lock ? 0 : Buffer::writeData(c, i); }
+public:
+    FakeBuffer(bool locked = false) : m_lock(locked) {}
+    void setLocked(bool locked) { m_lock = locked; }
+private:
+    bool m_lock;
+};
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testStatusWriteError)
+{
+   FakeBuffer fb(false);
+   ASSERT_TRUE(fb.open(Buffer::OpenMode::ReadWrite));
+   TextStream fs(&fb);
+   fs.setCodec(TextCodec::codecForName("latin1"));
+   /* first write some initial content */
+   fs << "hello";
+   fs.flush();
+   ASSERT_EQ(fs.getStatus(), TextStream::Status::Ok);
+   ASSERT_EQ(fb.getData(), ByteArray("hello"));
+   /* then test that writing can cause an error */
+   fb.setLocked(true);
+   fs << "error";
+   fs.flush();
+   ASSERT_EQ(fs.getStatus(), TextStream::Status::WriteFailed);
+   ASSERT_EQ(fb.getData(), ByteArray("hello"));
+   /* finally test that writing after an error doesn't change the stream any more */
+   fb.setLocked(false);
+   fs << "can't do that";
+   fs.flush();
+   ASSERT_EQ(fs.getStatus(), TextStream::Status::WriteFailed);
+   ASSERT_EQ(fb.getData(), ByteArray("hello"));
+}
+
+TEST_F(TextStreamTest, testAlignAccountingStyle)
+{
+   {
+      String result;
+      TextStream out(&result);
+      out.setFieldAlignment(TextStream::FieldAlignment::AlignAccountingStyle);
+      out.setFieldWidth(4);
+      out.setPadChar('0');
+      out << -1;
+      ASSERT_EQ(result, Latin1String("-001"));
+   }
+   
+   {
+      String result;
+      TextStream out(&result);
+      out.setFieldAlignment(TextStream::FieldAlignment::AlignAccountingStyle);
+      out.setFieldWidth(4);
+      out.setPadChar('0');
+      out << "-1";
+      ASSERT_EQ(result, Latin1String("00-1"));
+   }
+   
+   {
+      String result;
+      TextStream out(&result);
+      out.setFieldAlignment(TextStream::FieldAlignment::AlignAccountingStyle);
+      out.setFieldWidth(6);
+      out.setPadChar('0');
+      out << -1.2;
+      ASSERT_EQ(result, Latin1String("-001.2"));
+   }
+   
+   {
+      String result;
+      TextStream out(&result);
+      out.setFieldAlignment(TextStream::FieldAlignment::AlignAccountingStyle);
+      out.setFieldWidth(6);
+      out.setPadChar('0');
+      out << "-1.2";
+      ASSERT_EQ(result, Latin1String("00-1.2"));
+   }
+}
+
+TEST_F(TextStreamTest, testSetCodec)
+{
+   ByteArray ba("\xe5 v\xe6r\n\xc3\xa5 v\xc3\xa6r\n");
+   String res = Latin1String("\xe5 v\xe6r");
+   
+   TextStream stream(ba);
+   stream.setCodec("ISO 8859-1");
+   ASSERT_EQ(stream.readLine(), res);
+   stream.setCodec("UTF-8");
+   ASSERT_EQ(stream.readLine(), res);
+}
+
+namespace {
+
+void init_double_write_with_flags_data(std::list<std::tuple<double, String, TextStream::NumberFlag, TextStream::RealNumberNotation>> &data)
+{
+   data.push_back(std::make_tuple(-1.23, String(Latin1String("-1.23")), TextStream::NumberFlag::ForceSign, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(1.23, String(Latin1String("+1.23")), TextStream::NumberFlag::ForceSign, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(pdk::inf(), String(Latin1String("inf")), TextStream::NumberFlag::NoFlag, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(-pdk::inf(), String(Latin1String("-inf")), TextStream::NumberFlag::NoFlag, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(pdk::inf(), String(Latin1String("INF")), TextStream::NumberFlag::UppercaseDigits, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(-pdk::inf(), String(Latin1String("-INF")), TextStream::NumberFlag::UppercaseDigits, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(pdk::qnan(), String(Latin1String("nan")), TextStream::NumberFlag::NoFlag, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(pdk::qnan(), String(Latin1String("NAN")), TextStream::NumberFlag::UppercaseDigits, TextStream::RealNumberNotation::Default));
+   data.push_back(std::make_tuple(1.234567e+02, String(Latin1String("1.234567e+02")), TextStream::NumberFlag::NoFlag, TextStream::RealNumberNotation::ScientificNotation));
+   data.push_back(std::make_tuple(1.234567e+02, String(Latin1String("1.234567e+02")), TextStream::NumberFlag::UppercaseBase, TextStream::RealNumberNotation::ScientificNotation));
+   data.push_back(std::make_tuple(1.234567e+02, String(Latin1String("1.234567E+02")), TextStream::NumberFlag::UppercaseDigits, TextStream::RealNumberNotation::ScientificNotation));
+}
+
+void init_double_write_with_precision(std::list<std::tuple<int, double, String>> &data)
+{
+   data.push_back(std::make_tuple(-1, 3.14159, String(Latin1String("3.14159"))));
+   data.push_back(std::make_tuple(0, 3.14159, String(Latin1String("3"))));
+   data.push_back(std::make_tuple(1, 3.14159, String(Latin1String("3"))));
+   
+   data.push_back(std::make_tuple(2, 3.14159, String(Latin1String("3.1"))));
+   data.push_back(std::make_tuple(3, 3.14159, String(Latin1String("3.14"))));
+   data.push_back(std::make_tuple(5, 3.14159, String(Latin1String("3.1416"))));
+   
+   data.push_back(std::make_tuple(6, 3.14159, String(Latin1String("3.14159"))));
+   data.push_back(std::make_tuple(7, 3.14159, String(Latin1String("3.14159"))));
+   data.push_back(std::make_tuple(10, 3.14159, String(Latin1String("3.14159"))));
+}
+
+void init_int_read_with_locale_data(std::list<std::tuple<String, String, int>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("C")), String(Latin1String("-123")), -123));
+   data.push_back(std::make_tuple(String(Latin1String("C")), String(Latin1String("+123")), 123));
+   data.push_back(std::make_tuple(String(Latin1String("C")), String(Latin1String("12,345")), 12));
+   data.push_back(std::make_tuple(String(Latin1String("C")), String(Latin1String("12.345")), 12));
+   
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), String(Latin1String("-123")), -123));
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), String(Latin1String("+123")), 123));
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), String(Latin1String("12.345")), 12345));
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), String(Latin1String(".12345")), 0));
+}
+
+
+void init_int_write_with_locale_data(std::list<std::tuple<String, TextStream::NumberFlag, int, String>> &data)
+{
+   data.push_back(std::make_tuple(String(Latin1String("C")), TextStream::NumberFlag::NoFlag, -123, String(Latin1String("-123"))));
+   data.push_back(std::make_tuple(String(Latin1String("C")), TextStream::NumberFlag::ForceSign, 123, String(Latin1String("+123"))));
+   data.push_back(std::make_tuple(String(Latin1String("C")), TextStream::NumberFlag::NoFlag, 12345, String(Latin1String("12345"))));
+   
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), TextStream::NumberFlag::NoFlag, -123, String(Latin1String("-123"))));
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), TextStream::NumberFlag::ForceSign, 123, String(Latin1String("+123"))));
+   data.push_back(std::make_tuple(String(Latin1String("de_DE")), TextStream::NumberFlag::NoFlag, 12345, String(Latin1String("12.345"))));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testDoubleWriteWithFlags)
+{
+   std::list<std::tuple<double, String, TextStream::NumberFlag, TextStream::RealNumberNotation>> data;
+   init_double_write_with_flags_data(data);
+   for (auto &item : data) {
+      double number = std::get<0>(item);
+      String &output = std::get<1>(item);
+      TextStream::NumberFlag numberFlags = std::get<2>(item);
+      TextStream::RealNumberNotation realNumberNotation = std::get<3>(item);
+      String buf;
+      TextStream stream(&buf);
+      // @TODO refactor these flags
+      if (numberFlags != TextStream::NumberFlag::NoFlag) {
+         stream.setNumberFlags(numberFlags);
+      }
+      if (realNumberNotation != TextStream::RealNumberNotation::Default) {
+         stream.setRealNumberNotation(realNumberNotation);
+      }  
+      stream << number;
+      ASSERT_EQ(buf, output);
+   }
+}
+
+TEST_F(TextStreamTest, testDoubleWriteWithPrecision)
+{
+   std::list<std::tuple<int, double, String>> data;
+   init_double_write_with_precision(data);
+   for (auto &item : data) {
+      int precision = std::get<0>(item);
+      double value = std::get<1>(item);
+      String &result = std::get<2>(item);
+      
+      String buf;
+      TextStream stream(&buf);
+      stream.setRealNumberPrecision(precision);
+      stream << value;
+      ASSERT_EQ(buf, result);
+   }
+}
+
+TEST_F(TextStreamTest, testIntReadWithLocale)
+{
+   std::list<std::tuple<String, String, int>> data;
+   init_int_read_with_locale_data(data);
+   for (auto &item : data) {
+      String &locale = std::get<0>(item);
+      String &input = std::get<1>(item);
+      int output = std::get<2>(item);
+      TextStream stream(&input);
+      stream.setLocale(locale);
+      int result;
+      stream >> result;
+      ASSERT_EQ(result, output);
+   }
+}
+
+TEST_F(TextStreamTest, testIntWriteWithLocale)
+{
+   std::list<std::tuple<String, TextStream::NumberFlag, int, String>> data;
+   init_int_write_with_locale_data(data);
+   for (auto &item : data) {
+      String &locale = std::get<0>(item);
+      TextStream::NumberFlag numberFlags = std::get<1>(item);
+      int input = std::get<2>(item);
+      String &output = std::get<3>(item);
+      String result;
+      TextStream stream(&result);
+      stream.setLocale(locale);
+      if (numberFlags != TextStream::NumberFlag::NoFlag) {
+         stream.setNumberFlags(numberFlags);
+      }
+      stream << input;
+      ASSERT_EQ(result, output);
+   }
+}
+
+TEST_F(TextStreamTest, testTextModeOnEmptyRead)
+{
+   const String filename(sg_tempDir.getPath() + Latin1String("/textmodetest.txt"));
+   
+   File file(filename);
+   ASSERT_TRUE(file.open(IoDevice::OpenMode::ReadWrite | IoDevice::OpenMode::Text)) << pdk_printable(file.getErrorString());
+   TextStream stream(&file);
+   ASSERT_TRUE(file.isTextModeEnabled());
+   String emptyLine = stream.readLine(); // Text mode flag cleared here
+   ASSERT_TRUE(file.isTextModeEnabled());
+   PDK_UNUSED(emptyLine);
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;

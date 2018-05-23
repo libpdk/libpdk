@@ -71,6 +71,7 @@ class PDK_CORE_EXPORT TextStream
 public:
    enum class RealNumberNotation
    {
+      Default,
       SmartNotation,
       FixedNotation,
       ScientificNotation
@@ -94,6 +95,7 @@ public:
    
    enum class NumberFlag
    {
+      NoFlag = 0x0,
       ShowBase = 0x1,
       ForcePoint = 0x2,
       ForceSign = 0x4,
