@@ -2235,6 +2235,208 @@ IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(plonglong, pdk::plonglong)
 IMPLEMENT_STREAM_LEFT_INT_OPERATOR_TEST(pulonglong, pdk::pulonglong)
     ;
 
+namespace {
+
+void generate_real_numbers_data_write(std::list<std::tuple<double, ByteArray, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(0.0, ByteArray("0"), ByteArray("0")));
+   data.push_back(std::make_tuple(3.14, ByteArray("3.14"), ByteArray("3.14")));
+   data.push_back(std::make_tuple(-3.14, ByteArray("-3.14"), ByteArray("-3.14")));
+   data.push_back(std::make_tuple(1.2e+10, ByteArray("1.2e+10"), ByteArray("1.2e+10")));
+   data.push_back(std::make_tuple(-1.2e+10, ByteArray("-1.2e+10"), ByteArray("-1.2e+10")));
+   data.push_back(std::make_tuple(12345., ByteArray("12345"), ByteArray("12,345")));
+}
+
+} // anonymous namesapce
+
+#define IMPLEMENT_STREAM_LEFT_REAL_OPERATOR_TEST(texttype, type) \
+    TEST_F(TextStreamTest, test##texttype##WriteOperatorToDevice)\
+    { \
+        std::list<std::tuple<double, ByteArray, ByteArray>> tdata;\
+        generate_real_numbers_data_write(tdata);\
+        for (auto &item : tdata) {\
+           double number = std::get<0>(item);\
+           ByteArray &data = std::get<1>(item);\
+           ByteArray &dataWithSeparators = std::get<2>(item);\
+           Buffer buffer; \
+           buffer.open(Buffer::OpenMode::WriteOnly); \
+           TextStream stream(&buffer); \
+           stream.setLocale(Locale::c()); \
+           float f = (float)number; \
+           stream << f; \
+           stream.flush(); \
+           ASSERT_STREQ(buffer.getData().getConstRawData(), data.getConstRawData()); \
+           \
+           buffer.reset(); \
+           stream.setLocale(Locale(Latin1String("en-US"))); \
+           stream << f; \
+           stream.flush(); \
+           ASSERT_EQ(buffer.getData(), dataWithSeparators); \
+        }\
+    }
+
+IMPLEMENT_STREAM_LEFT_REAL_OPERATOR_TEST(float, float)
+IMPLEMENT_STREAM_LEFT_REAL_OPERATOR_TEST(double, float)
+;
+
+namespace {
+
+void init_string_write_operator_to_device_data(std::list<std::tuple<ByteArray, String, ByteArray>> &data)
+{
+   data.push_back(std::make_tuple(ByteArray("", 1), String(1, '\0'), ByteArray("", 1)));
+   data.push_back(std::make_tuple(ByteArray("a"), String(Latin1String("a")), ByteArray("a")));
+   data.push_back(std::make_tuple(ByteArray("a cow jumped over the moon"),
+                                  String(Latin1String("a cow jumped over the moon")), 
+                                  ByteArray("a cow jumped over the moon")));
+}
+
+} // anonymous namespace
+
+TEST_F(TextStreamTest, testStringWriteOperatorToDevice)
+{
+   std::list<std::tuple<ByteArray, String, ByteArray>> data;
+   init_string_write_operator_to_device_data(data);
+   for (auto &item : data) {
+      ByteArray &bytedata = std::get<0>(item);
+      String stringdata = std::get<1>(item);
+      ByteArray &result = std::get<2>(item);
+      {
+         // char*
+         Buffer buf;
+         buf.open(Buffer::OpenMode::WriteOnly);
+         TextStream stream(&buf);
+         stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+         stream.setAutoDetectUnicode(true);
+         
+         stream << bytedata.getConstRawData();
+         stream.flush();
+         ASSERT_STREQ(buf.getBuffer().getConstRawData(), result.getConstRawData());
+      }
+      
+      {
+         // ByteArray
+         Buffer buf;
+         buf.open(Buffer::OpenMode::WriteOnly);
+         TextStream stream(&buf);
+         stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+         stream.setAutoDetectUnicode(true);
+         
+         stream << bytedata;
+         stream.flush();
+         ASSERT_STREQ(buf.getBuffer().getConstRawData(), result.getConstRawData());
+      }
+      {
+         // String
+         Buffer buf;
+         buf.open(Buffer::OpenMode::WriteOnly);
+         TextStream stream(&buf);
+         stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+         stream.setAutoDetectUnicode(true);
+         
+         stream << stringdata;
+         stream.flush();
+         ASSERT_STREQ(buf.getBuffer().getConstRawData(), result.getConstRawData());
+      }
+   }
+}
+
+TEST_F(TextStreamTest, testLatin1StringWriteOperatorToDevice)
+{
+   Buffer buf;
+   buf.open(Buffer::OpenMode::WriteOnly);
+   TextStream stream(&buf);
+   stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+   stream.setAutoDetectUnicode(true);
+   
+   stream << Latin1String("No explicit length");
+   stream << Latin1String("Explicit length - ignore this part", 15);
+   stream.flush();
+   ASSERT_STREQ(buf.getBuffer().getConstRawData(), "No explicit lengthExplicit length");
+}
+
+TEST_F(TextStreamTest, testStringrefWriteOperatorToDevice)
+{
+   Buffer buf;
+   buf.open(Buffer::OpenMode::WriteOnly);
+   TextStream stream(&buf);
+   stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+   stream.setAutoDetectUnicode(true);
+   const String expected = Latin1String("No explicit lengthExplicit length");
+   
+   stream << expected.leftRef(18);
+   stream << expected.substringRef(18);
+   stream.flush();
+   ASSERT_STREQ(buf.getBuffer().getConstRawData(), "No explicit lengthExplicit length");
+}
+
+TEST_F(TextStreamTest, testUseCase1)
+{
+   File::remove(Latin1String("testfile"));
+   File file(Latin1String("testfile"));
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite));
+   {
+      TextStream stream(&file);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      stream << 4.15 << ' ' << ByteArray("abc") << ' ' << String(Latin1String("ole"));
+   }
+   file.seek(0);
+   ASSERT_EQ(file.readAll(), ByteArray("4.15 abc ole"));
+   file.seek(0);
+   {
+      double d;
+      ByteArray a;
+      String s;
+      TextStream stream(&file);
+      stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+      stream.setAutoDetectUnicode(true);
+      
+      stream >> d;
+      stream >> a;
+      stream >> s;
+      
+      ASSERT_EQ(d, 4.15);
+      ASSERT_EQ(a, ByteArray("abc"));
+      ASSERT_EQ(s, String(Latin1String("ole")));
+   }
+}
+
+TEST_F(TextStreamTest, testUseCase2)
+{
+   File::remove(Latin1String("testfile"));
+   File file(Latin1String("testfile"));
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite));
+   
+   TextStream stream(&file);
+   stream.setCodec(TextCodec::codecForName("ISO-8859-1"));
+   stream.setAutoDetectUnicode(true);
+   
+   stream << 4.15 << ' ' << ByteArray("abc") << ' ' << String(Latin1String("ole"));
+
+   file.close();
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite));
+   
+   ASSERT_EQ(file.readAll(), ByteArray("4.15 abc ole"));
+   file.close();
+   ASSERT_TRUE(file.open(File::OpenMode::ReadWrite));
+   
+   double d;
+   ByteArray a;
+   String s;
+   TextStream stream2(&file);
+   stream2.setCodec(TextCodec::codecForName("ISO-8859-1"));
+   stream2.setAutoDetectUnicode(true);
+   
+   stream2 >> d;
+   stream2 >> a;
+   stream2 >> s;
+   
+   ASSERT_EQ(d, 4.15);
+   ASSERT_EQ(a, ByteArray("abc"));
+   ASSERT_EQ(s, String(Latin1String("ole")));
+}
+
 int main(int argc, char **argv)
 {
    sg_argc = argc;

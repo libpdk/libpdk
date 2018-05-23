@@ -38,9 +38,10 @@ public:
    
    inline void setupDevice(TextStream *stream, IoDevice *device)
    {
-      // disconnect();
-      //      if (device)
-      //         connect(device, SIGNAL(aboutToClose()), this, SLOT(flushStream()));
+      // @TODO need disconnect ?
+      if (device) {
+         device->connectAboutToCloseSignal(this, &DeviceClosedNotifier::flushStream);
+      }
       this->m_stream = stream;
    }
    

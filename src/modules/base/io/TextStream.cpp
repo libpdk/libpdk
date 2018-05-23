@@ -74,6 +74,7 @@ using pdk::ds::ByteArray;
 using pdk::text::codecs::TextCodec;
 using pdk::lang::Latin1Character;
 using pdk::io::IoDevice;
+using pdk::io::fs::FileDevice;
 using pdk::lang::String;
 using pdk::lang::StringRef;
 using pdk::utils::internal::LocaleData;
@@ -370,13 +371,8 @@ void TextStreamPrivate::flushWriteBuffer()
       return;
    }
    
-   // flush the file
-   //#ifndef PDK_NO_QOBJECT
-   //   FileDevice *file = qobject_cast<FileDevice *>(device);
-   //   bool flushed = !file || file->flush();
-   //#else
-   bool flushed = true;
-   //#endif
+   FileDevice *file = dynamic_cast<FileDevice *>(m_device);
+   bool flushed = !file || file->flush();
    
 #if defined (PDK_PDK_TEXTSTREAM_DEBUG)
    debug_stream("TextStreamPrivate::flushWriteBuffer() wrote %d bytes",
