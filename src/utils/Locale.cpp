@@ -2120,7 +2120,7 @@ String LocaleData::doubleToString(const Character _zero, const Character plus, c
       bufSize += ((d > (1 << 19) || d < -(1 << 19)) ? DoubleMaxDigitsBeforeDecimal : 6) +
             precision;  
    } else {// Add extra digit due to different interpretations of precision. Also, "nan" has to fit.
-      bufSize += std::max(2, precision) + 1;  
+      bufSize += std::max(2, precision) + 1;
    }
    VarLengthArray<char> buf(bufSize);
    int length;

@@ -175,8 +175,8 @@ PDK_CORE_EXPORT void message_output(pdk::MsgType, const MessageLogContext &conte
 PDK_CORE_EXPORT void errno_warning(int code, const char *msg, ...);
 PDK_CORE_EXPORT void errno_warning(const char *msg, ...);
 
-typedef void (*PdkMessageHandler)(pdk::MsgType, const MessageLogContext&, const String &);
-PDK_CORE_EXPORT PdkMessageHandler install_message_handler(PdkMessageHandler);
+typedef void (*MessageHandler)(pdk::MsgType, const MessageLogContext&, const String &);
+PDK_CORE_EXPORT MessageHandler install_message_handler(MessageHandler);
 
 PDK_CORE_EXPORT void set_message_pattern(const String &messagePattern);
 PDK_CORE_EXPORT String format_log_message(pdk::MsgType type, const MessageLogContext &context,

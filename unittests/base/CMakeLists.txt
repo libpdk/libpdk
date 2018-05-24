@@ -49,6 +49,7 @@ pdk_add_unittest(ModuleBaseUnittests TextTest ${PDK_TEXT_TEST_SRCS})
 set(PDK_IO_TEST_SRCS)
 pdk_add_files(PDK_IO_TEST_SRCS
    io/BufferTest.cpp
+   io/DebugTest.cpp
    io/DirTest.cpp
    io/DirIteratorTest.cpp
    io/FileSystemEntryTest.cpp

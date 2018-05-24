@@ -537,7 +537,7 @@ void pdk_meta_enum_flag_debug_operator(Debug &debug, size_t sizeofT, Int value)
 {
    const DebugStateSaver saver(debug);
    debug.resetFormat();
-   debug.nospace() << "QFlags(" << hex << showbase;
+   debug.nospace() << "Flags(" << hex << showbase;
    bool needSeparator = false;
    for (uint i = 0; i < sizeofT * 8; ++i) {
       if (value & (Int(1) << i)) {
@@ -555,7 +555,7 @@ void pdk_meta_enum_flag_debug_operator(Debug &debug, size_t sizeofT, Int value)
 template <class T>
 inline Debug pdk_meta_enum_flag_debug_operator_helper(Debug debug, const pdk::Flags<T> &flags)
 {
-   pdk_meta_enum_flag_debug_operator(debug, sizeof(T), typename pdk::Flags<T>::UnderType(flags));
+   pdk_meta_enum_flag_debug_operator(debug, sizeof(T), flags.getUnderData());
    return debug;
 }
 

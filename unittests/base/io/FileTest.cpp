@@ -2696,7 +2696,7 @@ pdk::pint64 m_streamcurrent_position(FILE *f)
 class MessageHandler
 {
 public:
-   MessageHandler(pdk::PdkMessageHandler messageHandler = handler)
+   MessageHandler(pdk::MessageHandler messageHandler = handler)
    {
       m_ok = true;
       m_oldMessageHandler = pdk::install_message_handler(messageHandler);
@@ -2723,12 +2723,12 @@ protected:
       }
    }
    
-   static pdk::PdkMessageHandler m_oldMessageHandler;
+   static pdk::MessageHandler m_oldMessageHandler;
    static bool m_ok;
 };
 
 bool MessageHandler::m_ok = true;
-pdk::PdkMessageHandler MessageHandler::m_oldMessageHandler = 0;
+pdk::MessageHandler MessageHandler::m_oldMessageHandler = 0;
 
 } // anonymous namespace
 

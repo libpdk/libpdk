@@ -1753,6 +1753,8 @@ TextStream &TextStream::operator<<(double f)
    case RealNumberNotation::SmartNotation:
       form = LocaleData::DoubleForm::DFSignificantDigits;
       break;
+   case RealNumberNotation::Default:
+      break;
    }
    
    LocaleData::Flags flags = LocaleData::Flag::NoFlags;
