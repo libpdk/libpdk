@@ -5,7 +5,15 @@ set(PDK_LANG_TEST_SRCS)
 pdk_add_files(PDK_LANG_TEST_SRCS
    lang/CharacterTest.cpp
    lang/string/DoubleData.h
-   lang/string/StringTest.cpp)
+   lang/string/StringTest.cpp
+   lang/string/Latin1StringTest.cpp
+   lang/string/StringApiSymmetryTest.cpp
+   lang/string/StringBuilderTest.cpp
+   lang/string/StringIteratorTest.cpp
+   lang/string/StringMatcherTest.cpp
+   lang/string/StringRefTest.cpp
+   lang/string/StringViewTest.cpp
+   lang/string/CollatorTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests PdkLangTest ${PDK_LANG_TEST_SRCS})
 
@@ -38,6 +46,15 @@ pdk_add_files(PDK_DS_TEST_SRCS
    ds/RingBufferTest.cpp)
 
 pdk_add_unittest(ModuleBaseUnittests PdkDsTest ${PDK_DS_TEST_SRCS})
+
+set(PDK_TIME_TEST_SRCS)
+pdk_add_files(PDK_TIME_TEST_SRCS
+   time/DateTest.cpp
+   time/TimeTest.cpp
+   time/DateTimeTest.cpp
+   time/TimeZoneTest.cpp)
+
+pdk_add_unittest(ModuleBaseUnittests PdkTimeTest ${PDK_TIME_TEST_SRCS})
 
 set(PDK_TEXT_TEST_SRCS)
 pdk_add_files(PDK_TEXT_TEST_SRCS

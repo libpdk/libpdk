@@ -12,6 +12,7 @@ pdk_add_files(PDK_UTILS_TEST_SRCS
     sharedpointer/ForwardDeclared.h
     sharedpointer/ForwardDeclared.cpp
     LockFreeListTest.cpp
-    LocaleTest.cpp)
+    LocaleTest.cpp
+    VersionNumberTest.cpp)
 
 pdk_add_unittest(UtilsUnittests PdkUtilsTest ${PDK_UTILS_TEST_SRCS})
